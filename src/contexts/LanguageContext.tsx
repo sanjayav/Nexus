@@ -17,17 +17,19 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const direction = language === 'عربي' ? 'rtl' : 'ltr';
 
+  const langAttr = language === 'EN' ? 'en' : language === 'हिंदी' ? 'hi' : language === '简体中文' ? 'zh' : 'ar';
+
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem('aeiforo_language', lang);
     document.documentElement.dir = lang === 'عربي' ? 'rtl' : 'ltr';
-    document.documentElement.lang = lang === 'EN' ? 'en' : lang === '简体中文' ? 'zh' : 'ar';
+    document.documentElement.lang = lang === 'EN' ? 'en' : lang === 'हिंदी' ? 'hi' : lang === '简体中文' ? 'zh' : 'ar';
   };
 
   useEffect(() => {
     document.documentElement.dir = direction;
-    document.documentElement.lang = language === 'EN' ? 'en' : language === '简体中文' ? 'zh' : 'ar';
-  }, [language, direction]);
+    document.documentElement.lang = langAttr;
+  }, [language, direction, langAttr]);
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, direction }}>

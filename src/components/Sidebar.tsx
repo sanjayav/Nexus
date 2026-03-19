@@ -8,23 +8,52 @@ import {
   FileText,
   ClipboardList,
   TrendingUp,
+  ShieldCheck,
+  Link2,
+  Clock,
+  Target,
+  Users,
+  GitBranch,
+  Activity,
+  Plug,
+  KeyRound,
 } from 'lucide-react'
 import clsx from 'clsx'
 
 const navItems = [
+  // WORKSPACE
   { path: '/executive', label: 'Home', icon: LayoutDashboard, group: 'main' },
   { path: '/workbench', label: 'Workbench', icon: ClipboardList, group: 'main' },
   { path: '/frameworks', label: 'Frameworks', icon: Package, group: 'main' },
+
+  // INSIGHTS
   { path: '/evidence', label: 'Evidence Vault', icon: FolderOpen, group: 'workspace' },
+  { path: '/verify', label: 'Verification', icon: ShieldCheck, group: 'workspace' },
   { path: '/analytics', label: 'Analytics', icon: BarChart3, group: 'workspace' },
+  { path: '/analytics/gaps', label: 'Gap Analysis', icon: Activity, group: 'workspace' },
   { path: '/analytics/benchmark', label: 'Benchmark Lab', icon: TrendingUp, group: 'workspace' },
-  { path: '/publish', label: 'Publish', icon: FileText, group: 'workspace' },
+
+  // CHAIN
+  { path: '/events', label: 'Anchors & Events', icon: Link2, group: 'chain' },
+  { path: '/timeline', label: 'Integrity Timeline', icon: Clock, group: 'chain' },
+  { path: '/ghg', label: 'GHG Targets', icon: Target, group: 'chain' },
+  { path: '/roles', label: 'Roles & DIDs', icon: Users, group: 'chain' },
+
+  // PUBLISH
+  { path: '/publish', label: 'Publish', icon: FileText, group: 'publish' },
+
+  // ADMIN
   { path: '/admin', label: 'Admin', icon: Settings, group: 'admin' },
+  { path: '/admin/organization', label: 'Organization', icon: GitBranch, group: 'admin' },
+  { path: '/iam', label: 'Access & Roles', icon: KeyRound, group: 'admin' },
+  { path: '/connectors', label: 'Data Connectors', icon: Plug, group: 'admin' },
 ]
 
 const groupLabels = {
   main: 'Workspace',
   workspace: 'Insights',
+  chain: 'Blockchain',
+  publish: 'Report',
   admin: 'Administration',
 } as const
 
@@ -33,13 +62,16 @@ export default function Sidebar() {
   const navigate = useNavigate()
 
   const isActive = (path: string) => {
-    // Treat frameworks as wrapper for historical /modules routes
     if (path === '/frameworks') {
       return (
         location.pathname === '/frameworks' ||
         location.pathname === '/modules' ||
         location.pathname.startsWith('/modules/')
       )
+    }
+    // exact match for /analytics so /analytics/gaps and /analytics/benchmark don't double-highlight
+    if (path === '/analytics') {
+      return location.pathname === '/analytics'
     }
     return location.pathname === path || location.pathname.startsWith(path + '/')
   }
@@ -86,11 +118,11 @@ export default function Sidebar() {
 
       <nav className="p-4 pt-2 flex-1">
         {groupedItems.map(([group, items]) => (
-          <div key={group} className="mb-6">
+          <div key={group} className="mb-5">
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 px-4">
               {groupLabels[group as keyof typeof groupLabels]}
             </h3>
-            <ul className="space-y-1">
+            <ul className="space-y-0.5">
               {items.map((item) => {
                 const Icon = item.icon
                 const active = isActive(item.path)
@@ -100,13 +132,13 @@ export default function Sidebar() {
                     <button
                       onClick={() => navigate(item.path)}
                       className={clsx(
-                        'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all',
+                        'w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all',
                         active
                           ? 'bg-accent/10 text-accent border border-accent/30'
                           : 'text-gray-300 hover:bg-dark-bg hover:text-white'
                       )}
                     >
-                      <Icon className="w-5 h-5" />
+                      <Icon className="w-4 h-4 flex-shrink-0" />
                       <span>{item.label}</span>
                     </button>
                   </li>
@@ -116,7 +148,11 @@ export default function Sidebar() {
           </div>
         ))}
       </nav>
+
+      {/* Bottom version indicator */}
+      <div className="p-4 flex-shrink-0 border-t border-dark-border">
+        <p className="text-[10px] text-gray-600 text-center tracking-wider uppercase">v1.8 · Sprint 0</p>
+      </div>
     </aside>
   )
 }
-

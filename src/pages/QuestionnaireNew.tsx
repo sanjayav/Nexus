@@ -1,472 +1,316 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useMemo, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import {
-  Save,
-  CheckCircle,
-  AlertCircle,
-  Link2,
-  FileText,
-  Table,
-  BarChart3,
-  History,
-  ChevronLeft,
-  Calendar,
-  User,
-  Upload,
-} from 'lucide-react';
-import { mockData } from '../data/mockData';
-import clsx from 'clsx';
+  CheckCircle, Link2,
+  ChevronLeft, User, Lock, MessageSquare,
+  ChevronDown, Building2, Upload, Plus, ArrowRight,
+  Mail, Sparkles, UserPlus
+} from 'lucide-react'
+import { mockData } from '../data/mockData'
+import clsx from 'clsx'
+import { useRBAC, ROLE_DEFINITIONS, RoleId } from '../contexts/RBACContext'
 
-type Tab = 'form' | 'breakdown' | 'evidence' | 'kpi' | 'history';
+// Key ESG Aesthetic Theme Colors
+const theme = {
+  bgDark: 'bg-[#04332D]',
+  bgLight: 'bg-[#F4F7F6]',
+  primaryGreen: 'bg-[#12C87A]',
+  primaryGreenHover: 'hover:bg-[#0EA965]',
+  textPrimaryGreen: 'text-[#12C87A]',
+  textDark: 'text-[#011C16]',
+  borderGreen: 'border-[#12C87A]',
+}
 
 export default function QuestionnaireNew() {
-  const { moduleId } = useParams<{ moduleId: string }>();
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<Tab>('form');
-  const [formValues, setFormValues] = useState<Record<string, any>>({});
+  const { moduleId } = useParams<{ moduleId: string }>()
+  const navigate = useNavigate()
+  const { currentRole, setRole } = useRBAC()
 
-  console.log('🔍 QuestionnaireNew rendering', { moduleId });
+  const [activeEntity, setActiveEntity] = useState('Asyad Group (Consolidated)')
+  const entities = ['Asyad Group (Consolidated)', 'Asyad Ports', 'Asyad Shipping', 'Oman Rail', 'Asyad Logistics']
 
-  const module = useMemo(
-    () => {
-      const found = mockData.modules.find((m) => m.id === moduleId);
-      console.log('📦 Module lookup', { moduleId, found: found?.title || 'NOT FOUND', allModules: mockData.modules.map(m => m.id) });
-      return found;
-    },
-    [moduleId]
-  );
+  const [formValues, setFormValues] = useState<Record<string, string>>({})
+  const [aiPrompts, setAiPrompts] = useState<Record<string, boolean>>({}) // Track which textareas have active AI suggestions
 
-  const sections = useMemo(
-    () => {
-      if (!moduleId) {
-        console.log('⚠️ No moduleId provided');
-        return [];
-      }
-      const filtered = mockData.questionnaireSections.filter((s) => s.module === moduleId);
-      console.log('📋 Sections lookup', { moduleId, count: filtered.length, totalSections: mockData.questionnaireSections.length });
-      return filtered;
-    },
-    [moduleId]
-  );
+  const module = useMemo(() => mockData.modules.find(m => m.id === moduleId), [moduleId])
+  const sections = useMemo(() => mockData.questionnaireSections.filter(s => s.module === moduleId), [moduleId])
+  const [activeSectionId, setActiveSectionId] = useState('')
 
-  const [activeSectionId, setActiveSectionId] = useState<string>('');
-
-  // Update activeSectionId when sections load or moduleId changes
   useEffect(() => {
-    if (sections.length > 0 && !activeSectionId) {
-      setActiveSectionId(sections[0].id);
-    }
-  }, [sections, activeSectionId]);
+    if (sections.length > 0 && !activeSectionId) setActiveSectionId(sections[0].id)
+  }, [sections, activeSectionId])
 
-  const currentSection = useMemo(
-    () => {
-      if (sections.length === 0) return null;
-      if (!activeSectionId) return sections[0];
-      return sections.find((s) => s.id === activeSectionId) || sections[0];
-    },
-    [sections, activeSectionId]
-  );
+  const currentSection = useMemo(() => {
+    if (sections.length === 0) return null
+    return sections.find(s => s.id === activeSectionId) || sections[0]
+  }, [sections, activeSectionId])
 
-  // Early return if no module
-  if (!module) {
-    console.log('❌ Module not found, showing error');
-    return (
-      <div className="flex items-center justify-center min-h-[60vh] bg-dark-bg">
-        <div className="text-center max-w-md p-8 bg-dark-surface rounded-xl border border-dark-border">
-          <h1 className="text-2xl font-bold text-white mb-4">Module Not Found</h1>
-          <p className="text-gray-400 mb-2">Module ID: <span className="font-mono text-accent">{moduleId || 'undefined'}</span></p>
-          <p className="text-sm text-gray-500 mb-6">
-            Available modules: {mockData.modules.map(m => m.id).join(', ')}
-          </p>
-          <button
-            onClick={() => navigate('/modules')}
-            className="px-6 py-3 bg-accent text-dark-bg rounded-xl hover:bg-accent/90 font-medium"
-          >
-            Back to Modules
-          </button>
-        </div>
-      </div>
-    );
+  if (!module) return <div className="p-12 text-center text-xl font-bold">Module Not Found</div>
+
+  const handleGenerateText = (fieldId: string) => {
+    setAiPrompts(prev => ({ ...prev, [fieldId]: true }))
+    // Simulate AI generation delay
+    setTimeout(() => {
+      setFormValues(prev => ({
+        ...prev,
+        [fieldId]: `Based on our corporate policy and localized operational data, we are committed to aligning with the Science Based Targets initiative (SBTi). We aim to reduce Scope 1 emissions by 24%, and Scope 2 by 15% by 2030, through extensive fleet modernization and localized green grid integration.`
+      }))
+      setAiPrompts(prev => ({ ...prev, [fieldId]: false }))
+    }, 1500)
   }
 
-  // Early return if no sections
-  if (sections.length === 0) {
-    console.log('❌ No sections found, showing error');
-    return (
-      <div className="flex items-center justify-center min-h-[60vh] bg-dark-bg">
-        <div className="text-center max-w-md p-8 bg-dark-surface rounded-xl border border-dark-border">
-          <h2 className="text-xl font-bold text-white mb-4">No Questionnaire Sections Found</h2>
-          <p className="text-gray-400 mb-2">Module ID: <span className="font-mono text-accent">{moduleId}</span></p>
-          <p className="text-sm text-gray-500 mb-6">
-            Total sections in data: {mockData.questionnaireSections.length}
-            <br />
-            Sections for this module: {mockData.questionnaireSections.filter(s => s.module === moduleId).length}
-          </p>
-          <button
-            onClick={() => navigate(`/modules/${moduleId}`)}
-            className="px-4 py-2 bg-accent text-dark-bg rounded-xl hover:bg-accent/90 font-medium"
-          >
-            Back to {module.title}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Loading state
-  if (!currentSection) {
-    console.log('⏳ No current section, showing loading');
-    return (
-      <div className="flex items-center justify-center min-h-[60vh] bg-dark-bg">
-        <div className="text-center p-8 bg-dark-surface rounded-xl border border-dark-border">
-          <p className="text-gray-400 mb-2">Loading section...</p>
-          <p className="text-xs text-gray-500">Sections: {sections.length}, Active ID: {activeSectionId || 'none'}</p>
-        </div>
-      </div>
-    );
-  }
-
-  console.log('✅ Rendering questionnaire UI', {
-    module: module.title,
-    sectionsCount: sections.length,
-    currentSection: currentSection.title,
-    fieldsCount: (currentSection.fields || []).length
-  });
-
-  const meta = (currentSection.meta || {}) as any;
-  const fields = (currentSection.fields || []) as any[];
-
-  // Ensure we have data
-  if (!currentSection || !fields) {
-    console.error('❌ Missing currentSection or fields', { currentSection, fields });
-    return (
-      <div className="w-full bg-red-500/10 border border-red-500 p-8 rounded-xl">
-        <h1 className="text-white text-xl font-bold mb-2">Error: Missing Data</h1>
-        <p className="text-gray-300">currentSection: {currentSection ? 'exists' : 'null'}</p>
-        <p className="text-gray-300">fields: {fields ? fields.length : 'null'}</p>
-      </div>
-    );
-  }
-
-  const tabs = [
-    { id: 'form' as const, label: 'Answers', icon: FileText, subtitle: 'Required answers' },
-    { id: 'breakdown' as const, label: 'Breakdown', icon: Table, subtitle: 'Sub-values' },
-    { id: 'evidence' as const, label: 'Evidence', icon: Link2, subtitle: 'Attachments' },
-    { id: 'kpi' as const, label: 'KPI / KRI', icon: BarChart3, subtitle: 'Performance' },
-    { id: 'history' as const, label: 'Audit Trail', icon: History, subtitle: 'Traceability' },
-  ];
-
-  const handleSave = () => {
-    // Save logic here
-    console.log('Saved:', formValues);
-  };
+  const fields = (currentSection?.fields || []) as any[]
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] -m-8">
-      {/* Left Sidebar - Section Navigator */}
-      <div className="w-80 bg-dark-surface border-r border-dark-border flex flex-col flex-shrink-0">
-        <div className="p-4 border-b border-dark-border">
-          <button
-            onClick={() => navigate(`/modules/${moduleId}`)}
-            className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors mb-2"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Back to {module.title}
+    <div className={`flex flex-col min-h-[calc(100vh-6rem)] ${theme.bgLight} font-sans relative overflow-hidden rounded-br-[2.5rem]`}>
+
+      {/* ── Background Design ── */}
+      <div className={`absolute top-0 left-0 right-0 h-[450px] ${theme.bgDark} rounded-b-[4rem] z-0`} />
+
+      {/* Decorative circles */}
+      <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-white/[0.02] border border-white/[0.05] z-0 pointer-events-none" />
+      <div className="absolute top-[10%] right-[5%] w-[400px] h-[400px] rounded-full bg-white/[0.02] border border-white/[0.05] z-0 pointer-events-none" />
+      <div className="absolute top-[30%] left-[-10%] w-[300px] h-[300px] rounded-full bg-white/[0.02] border border-white/[0.05] z-0 pointer-events-none" />
+
+      {/* ── Top Nav ── */}
+      <div className={`w-full max-w-7xl mx-auto pt-6 pb-2 px-4 flex items-center justify-between z-10 relative`}>
+        <div className="flex items-center gap-6">
+          <button onClick={() => navigate(`/modules`)} className="p-2 rounded-full hover:bg-white/10 transition-colors text-white/70 hover:text-white">
+            <ChevronLeft className="w-5 h-5" />
           </button>
-          <h2 className="text-lg font-bold text-white">Disclosures</h2>
-          <p className="text-xs text-gray-400 mt-1">{sections.length} sections</p>
+          <div className="flex items-center gap-3 bg-white/10 px-4 py-2 rounded-full border border-white/10">
+            <Building2 className="w-4 h-4 text-white/70" />
+            <select value={activeEntity} onChange={(e) => setActiveEntity(e.target.value)} className="bg-transparent text-sm font-semibold text-white focus:outline-none cursor-pointer appearance-none">
+              {entities.map(e => <option key={e} value={e} className="text-black">{e}</option>)}
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-white/50 ml-1" />
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2">
-          {sections.map((section) => {
-            const sectionMeta = section.meta || {} as any;
-            const completion = (sectionMeta as any).completion || { required: 0, answered: 0 };
-            const completionPercent = completion.required > 0
-              ? Math.round((completion.answered / completion.required) * 100)
-              : 0;
-
-            return (
-              <button
-                key={section.id}
-                onClick={() => setActiveSectionId(section.id)}
-                className={clsx(
-                  'w-full text-left p-3 rounded-xl mb-2 transition-all',
-                  activeSectionId === section.id
-                    ? 'bg-accent/10 border border-accent/40'
-                    : 'hover:bg-dark-bg border border-transparent'
-                )}
-              >
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <h3 className={clsx(
-                    'text-sm font-medium',
-                    activeSectionId === section.id ? 'text-accent' : 'text-white'
-                  )}>
-                    {section.title}
-                  </h3>
-                  <span
-                    className={clsx(
-                      'px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0',
-                      (sectionMeta as any).status === 'Approved'
-                        ? 'bg-emerald-500/10 text-emerald-300'
-                        : (sectionMeta as any).status === 'In Review'
-                          ? 'bg-blue-500/10 text-blue-300'
-                          : 'bg-gray-500/10 text-gray-400'
-                    )}
-                  >
-                    {(sectionMeta as any).status || 'Draft'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-1.5 bg-dark-bg rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-accent rounded-full transition-all"
-                      style={{ width: `${completionPercent}%` }}
-                    />
-                  </div>
-                  <span className="text-[10px] text-gray-500">{completionPercent}%</span>
-                </div>
-              </button>
-            );
-          })}
+        <div className="flex items-center gap-4">
+          {/* Demo Role Switcher overlayed for testing */}
+          <select
+            className="bg-white/10 border border-white/20 text-white text-xs font-semibold px-4 py-2 rounded-full focus:outline-none appearance-none cursor-pointer"
+            value={currentRole}
+            onChange={(e) => setRole(e.target.value as RoleId)}
+          >
+            {Object.values(ROLE_DEFINITIONS).map(r => <option key={r.id} value={r.id} className="text-black">{r.name}</option>)}
+          </select>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 bg-dark-bg overflow-hidden">
-        {/* Fixed Header */}
-        <div className="sticky top-0 z-30 bg-dark-bg border-b border-dark-border w-full">
-          <div className="max-w-6xl mx-auto px-6 py-4">
-            {/* Header Info */}
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-2xl font-bold text-white">{currentSection?.title || 'Select a disclosure section'}</h1>
-                  <span
-                    className={clsx(
-                      'px-3 py-1 rounded-full text-xs font-medium',
-                      meta?.status === 'Approved'
-                        ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/40'
-                        : meta?.status === 'In Review'
-                          ? 'bg-blue-500/10 text-blue-300 border border-blue-500/40'
-                          : 'bg-gray-500/10 text-gray-300 border border-gray-500/40'
-                    )}
-                  >
-                    {meta?.status || 'Draft'}
-                  </span>
-                </div>
+      {/* ── Main Layout ── */}
+      <div className="flex-1 flex w-full max-w-7xl mx-auto z-10 relative px-4 overflow-hidden mb-8 gap-8 mt-2">
 
-                {/* Meta Info Row */}
-                <div className="flex items-center gap-6 text-sm text-gray-400">
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    <span>{meta.owner || 'Unassigned'}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>Due: {meta.dueDate || 'Not set'}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4" />
-                    <span>Completion: {meta.completion?.required > 0 ? Math.round((meta.completion.answered / meta.completion.required) * 100) : 0}%</span>
-                  </div>
-                </div>
-              </div>
+        {/* Left Sidebar Menu (Framework Navigation) */}
+        <div className="w-72 flex flex-col shrink-0 overflow-y-auto hidden lg:flex pb-12 scrollbar-none">
+          <div className="mb-8">
+            <h1 className="text-3xl font-extrabold text-white tracking-tight leading-tight">{module.title}</h1>
+            <p className="text-white/60 text-sm mt-3 font-medium">Automate and streamline your data collection process.</p>
+          </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleSave}
-                  className="flex items-center gap-2 px-4 py-2 bg-dark-surface border border-dark-border text-white rounded-xl hover:bg-dark-bg transition-colors"
-                >
-                  <Save className="w-4 h-4" />
-                  Save
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-accent text-dark-bg rounded-xl font-medium hover:bg-accent/90 transition-colors">
-                  <CheckCircle className="w-4 h-4" />
-                  Request Review
-                </button>
-              </div>
+          <div className="bg-white rounded-[24px] shadow-xl p-3 flex flex-col gap-1 border border-black/5">
+            <div className="p-4 pb-2">
+              <p className="text-xs font-bold text-black/40 uppercase tracking-widest mb-1">Framework Sections</p>
             </div>
+            {sections.map((section, idx) => {
+              const active = activeSectionId === section.id
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => setActiveSectionId(section.id)}
+                  className={clsx(
+                    'w-full text-left px-4 py-3.5 rounded-[16px] transition-all flex items-center justify-between group',
+                    active ? 'bg-[#F2FDF7] text-[#013328]' : 'hover:bg-black/5 text-black/60'
+                  )}
+                >
+                  <span className={clsx("text-sm font-bold", active && "text-[#12C87A]")}>
+                    {idx + 1}. {section.title.replace(/^(Section [A-E]|BRSR Section [A-E]) – /, '').split(':')[0].trim()}
+                  </span>
+                  {active && <ArrowRight className="w-4 h-4 text-[#12C87A]" />}
+                </button>
+              )
+            })}
 
-            {/* Tabs */}
-            <div className="flex items-center gap-2 overflow-x-auto">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={clsx(
-                      'flex items-center gap-2 px-4 py-3 rounded-t-xl border-b-2 transition-all whitespace-nowrap',
-                      activeTab === tab.id
-                        ? 'bg-dark-surface border-accent text-accent'
-                        : 'border-transparent text-gray-400 hover:text-gray-300 hover:bg-dark-surface/50'
-                    )}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <div className="text-left">
-                      <div className="text-sm font-medium">{tab.label}</div>
-                      <div className="text-xs opacity-70">{tab.subtitle}</div>
-                    </div>
-                  </button>
-                );
-              })}
+            <div className="mt-4 p-4 border-t border-black/5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-black/60">Module Progress</span>
+                <span className="text-xs font-bold text-[#12C87A]">63%</span>
+              </div>
+              <div className="h-2 w-full bg-black/5 rounded-full overflow-hidden">
+                <div className="h-full bg-[#12C87A] rounded-full w-[63%]" />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-5xl mx-auto">
-            {activeTab === 'form' && (
-              <div className="max-w-4xl mx-auto space-y-6">
-                {fields.length === 0 ? (
-                  <div className="bg-dark-surface border border-dark-border rounded-xl p-8 text-center">
-                    <p className="text-gray-400 mb-2">No fields found for this section</p>
-                    <p className="text-sm text-gray-500">Section: {currentSection?.title}</p>
+        {/* Right Content Area (Cards) */}
+        <div className="flex-1 overflow-y-auto pb-24 scrollbar-none mt-2 lg:mt-0">
+
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-white tracking-tight">{currentSection?.title}</h2>
+
+            <div className="flex items-center gap-3">
+              <button onClick={() => console.log('Submitted')} className={`flex items-center gap-2 px-6 py-3 rounded-full shadow-lg ${theme.primaryGreen} ${theme.primaryGreenHover} text-white font-bold text-sm transition-all shadow-[#12C87A]/20`}>
+                <CheckCircle className="w-4 h-4" /> Submit Section
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-6">
+
+            {/* Quick Action Cards (User Management / Connections) */}
+            <div className="grid grid-cols-2 gap-6 mb-2">
+              <div className="bg-white rounded-[24px] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-black/5 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-bold text-[#011C16]">User management</h3>
+                    <UserPlus className="w-5 h-5 text-black/20" />
                   </div>
-                ) : (
-                  fields.map((field) => (
-                    <div
-                      key={field.id}
-                      className="bg-dark-surface border border-dark-border rounded-xl p-6 hover:border-accent/30 transition-colors"
-                    >
-                      {/* Field Label */}
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <label className="block text-sm font-medium text-white mb-1">
-                            {field.label}
-                            {field.required && <span className="text-red-400 ml-1">*</span>}
-                          </label>
-                          {(field as any).hint && (
-                            <p className="text-xs text-gray-400 mt-1">{(field as any).hint}</p>
-                          )}
-                        </div>
-                        {(field as any).evidenceRequired && (
-                          <span className="flex items-center gap-1 px-2 py-1 bg-amber-500/10 text-amber-300 border border-amber-500/30 rounded-full text-xs">
-                            <Link2 className="w-3 h-3" />
-                            Evidence required
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Input Field */}
-                      {field.type === 'textarea' ? (
-                        <textarea
-                          value={formValues[field.id] || field.value || ''}
-                          onChange={(e) =>
-                            setFormValues({ ...formValues, [field.id]: e.target.value })
-                          }
-                          placeholder={`Enter ${field.label.toLowerCase()}...`}
-                          rows={6}
-                          className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
-                        />
-                      ) : field.type === 'select' ? (
-                        <select
-                          value={formValues[field.id] || field.value || ''}
-                          onChange={(e) =>
-                            setFormValues({ ...formValues, [field.id]: e.target.value })
-                          }
-                          className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                        >
-                          <option value="">Select...</option>
-                          {((field as any).options || []).map((opt: string) => (
-                            <option key={opt} value={opt}>
-                              {opt}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input
-                          type="text"
-                          value={formValues[field.id] || field.value || ''}
-                          onChange={(e) =>
-                            setFormValues({ ...formValues, [field.id]: e.target.value })
-                          }
-                          placeholder={`Enter ${field.label.toLowerCase()}...`}
-                          className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent"
-                        />
-                      )}
-
-                      {/* Field Footer - Evidence Link */}
-                      {(field as any).evidenceRequired && (
-                        <button className="flex items-center gap-2 mt-3 text-sm text-accent hover:underline">
-                          <Upload className="w-4 h-4" />
-                          Link evidence file
-                        </button>
-                      )}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-black/80 flex items-center gap-2"><User className="w-3.5 h-3.5" /> Data Gatherer (Site A)</span>
+                      <span className="text-[#12C87A] font-bold bg-[#12C87A]/10 px-2 py-0.5 rounded">Invite pending</span>
                     </div>
-                  ))
-                )}
-
-                {/* Guidance Box */}
-                <div className="bg-gradient-to-br from-blue-500/5 to-blue-500/10 border border-blue-500/20 rounded-xl p-6 mt-8">
-                  <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-blue-400" />
-                    Guidance
-                  </h3>
-                  <div className="space-y-3 text-sm text-gray-300">
-                    <div>
-                      <p className="font-medium text-white mb-1">What Auditors Check:</p>
-                      <ul className="list-disc list-inside space-y-1 text-xs text-gray-400">
-                        <li>Confirm boundary and ownership match DMA</li>
-                        <li>Ensure evidence is anchored or pending review</li>
-                        <li>Validate units and conversion factors</li>
-                      </ul>
-                    </div>
-                    <div>
-                      <p className="font-medium text-white mb-1">Common Mistakes:</p>
-                      <ul className="list-disc list-inside space-y-1 text-xs text-gray-400">
-                        <li>Leaving evidence placeholders empty</li>
-                        <li>Mixing Scope 1 & 2 responses</li>
-                      </ul>
-                    </div>
-                    <div>
-                      <p className="font-medium text-white mb-1">Example Answer:</p>
-                      <p className="text-xs text-gray-400 italic">
-                        Document protocol, factor source, period, and activity data per line item.
-                      </p>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-black/80 flex items-center gap-2"><Lock className="w-3.5 h-3.5" /> Auditor (Internal)</span>
+                      <span className="text-[#12C87A] font-bold bg-[#12C87A]/10 px-2 py-0.5 rounded">Joined 19 Sep</span>
                     </div>
                   </div>
                 </div>
+                <button className={`mt-5 w-full py-2.5 rounded-xl border-2 ${theme.borderGreen} ${theme.textPrimaryGreen} font-bold text-xs hover:bg-[#12C87A]/5 transition-colors`}>
+                  Manage Access
+                </button>
               </div>
-            )}
 
-            {activeTab === 'breakdown' && (
-              <div className="bg-dark-surface border border-dark-border rounded-xl p-6">
-                <h3 className="text-lg font-bold text-white mb-4">Breakdown Table</h3>
-                <p className="text-sm text-gray-400">
-                  Breakdown tables with auto-calculated totals will appear here for quantitative disclosures.
-                </p>
+              <div className="bg-white rounded-[24px] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-black/5 flex flex-col justify-between items-center text-center">
+                <div className="w-12 h-12 bg-[#F2FDF7] rounded-full flex items-center justify-center mb-3">
+                  <Upload className={`w-5 h-5 ${theme.textPrimaryGreen}`} />
+                </div>
+                <h3 className="text-sm font-bold text-[#011C16] mb-1">Entity Documentation</h3>
+                <p className="text-xs text-black/50 font-medium px-4 mb-4">Upload policies or raw invoices for AI to calculate metrics below.</p>
+                <button className={`w-full py-2.5 rounded-xl border border-black/10 font-bold text-xs hover:bg-black/5 transition-colors`}>
+                  Upload File
+                </button>
               </div>
-            )}
+            </div>
 
-            {activeTab === 'evidence' && (
-              <div className="bg-dark-surface border border-dark-border rounded-xl p-6">
-                <h3 className="text-lg font-bold text-white mb-4">Linked Evidence</h3>
-                <p className="text-sm text-gray-400">Evidence files linked to this disclosure will appear here.</p>
-              </div>
-            )}
+            {/* Metric Collection Cards */}
+            {fields.map((field) => (
+              <div key={field.id} className="bg-white rounded-[24px] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-black/5 transition-all hover:shadow-[0_15px_40px_rgba(0,0,0,0.08)] group relative">
 
-            {activeTab === 'kpi' && (
-              <div className="bg-dark-surface border border-dark-border rounded-xl p-6">
-                <h3 className="text-lg font-bold text-white mb-4">KPI / KRI Dashboard</h3>
-                <p className="text-sm text-gray-400">
-                  Performance indicators and data quality risk indicators will appear here.
-                </p>
-              </div>
-            )}
+                {/* Categorization Tag */}
+                <div className={clsx(
+                  "absolute -top-3 left-8 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-sm",
+                  (field.id.includes('energy') || field.id.includes('emissions') || field.id.includes('ghg') || field.id.includes('water') || field.id.includes('waste') || field.id.includes('biodiversity') || field.id.includes('carbon') || field.id.includes('env') || field.id.includes('p5'))
+                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+                    : (field.id.includes('employee') || field.id.includes('safety') || field.id.includes('worker') || field.id.includes('training') || field.id.includes('posh') || field.id.includes('welfare') || field.id.includes('p3') || field.id.includes('p6') || field.id.includes('hr'))
+                    ? 'bg-blue-50 border border-blue-200 text-blue-700'
+                    : (field.id.includes('csr') || field.id.includes('community') || field.id.includes('p8') || field.id.includes('inclusive'))
+                    ? 'bg-purple-50 border border-purple-200 text-purple-700'
+                    : (field.id.includes('revenue') || field.id.includes('profit') || field.id.includes('capex') || field.id.includes('fines') || field.id.includes('green_revenue'))
+                    ? 'bg-amber-50 border border-amber-200 text-amber-700'
+                    : 'bg-[#FFF9E6] border border-[#FFE898] text-[#9D7103]'
+                )}>
+                  {(field.id.includes('energy') || field.id.includes('emissions') || field.id.includes('ghg') || field.id.includes('water') || field.id.includes('waste') || field.id.includes('biodiversity') || field.id.includes('carbon') || field.id.includes('env') || field.id.includes('p5'))
+                    ? 'Environment'
+                    : (field.id.includes('employee') || field.id.includes('safety') || field.id.includes('worker') || field.id.includes('training') || field.id.includes('posh') || field.id.includes('welfare') || field.id.includes('p3') || field.id.includes('p6') || field.id.includes('hr'))
+                    ? 'Social'
+                    : (field.id.includes('csr') || field.id.includes('community') || field.id.includes('p8') || field.id.includes('inclusive'))
+                    ? 'CSR / Inclusive Growth'
+                    : (field.id.includes('revenue') || field.id.includes('profit') || field.id.includes('capex') || field.id.includes('fines') || field.id.includes('green_revenue'))
+                    ? 'Financial'
+                    : 'Governance'}
+                </div>
 
-            {activeTab === 'history' && (
-              <div className="bg-dark-surface border border-dark-border rounded-xl p-6">
-                <h3 className="text-lg font-bold text-white mb-4">Audit Trail</h3>
-                <p className="text-sm text-gray-400">Version history and approval trail will appear here.</p>
+                <div className="flex flex-col lg:flex-row gap-8 items-start pt-2">
+                  <div className="flex-1 w-full relative">
+                    <label className="block text-lg font-bold text-[#011C16] mb-2 leading-snug pr-8">
+                      {field.label}
+                    </label>
+                    {field.hint && <p className="text-sm font-medium text-black/50 mb-4">{field.hint}</p>}
+
+                    {field.type === 'textarea' ? (
+                      <div className="relative">
+                        <textarea
+                          value={formValues[field.id] ?? field.value ?? ''}
+                          onChange={e => setFormValues({ ...formValues, [field.id]: e.target.value })}
+                          rows={4}
+                          className="w-full px-5 py-4 bg-[#F8FAFA] border border-black/10 rounded-[16px] text-[#011C16] focus:outline-none focus:ring-2 focus:ring-[#12C87A] focus:border-transparent resize-none text-sm transition-all"
+                          placeholder="Provide the qualitative response for this disclosure..."
+                        />
+                        {/* AI Generate Text Button (Floating inside textarea) */}
+                        <div className="absolute bottom-4 right-4 flex gap-2">
+                          <button
+                            onClick={() => handleGenerateText(field.id)}
+                            disabled={aiPrompts[field.id]}
+                            className={clsx(
+                              `flex items-center gap-2 px-4 py-2 rounded-xl text-white font-bold text-xs shadow-md transition-all`,
+                              aiPrompts[field.id] ? "bg-black/20 cursor-wait" : `${theme.primaryGreen} ${theme.primaryGreenHover}`
+                            )}
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            {aiPrompts[field.id] ? 'Generating...' : 'Generate Text'}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="relative max-w-sm">
+                        <input
+                          type={field.type === 'number' ? 'number' : 'text'}
+                          value={formValues[field.id] ?? field.value ?? ''}
+                          onChange={e => setFormValues({ ...formValues, [field.id]: e.target.value })}
+                          className={`w-full px-5 py-4 bg-[#F8FAFA] border ${formValues[field.id] ? 'border-[#12C87A]' : 'border-black/10'} rounded-[16px] text-lg font-bold text-[#011C16] focus:outline-none focus:ring-2 focus:ring-[#12C87A] focus:border-transparent transition-all`}
+                          placeholder={field.type === 'number' ? '0.00' : 'Enter value...'}
+                        />
+                        {formValues[field.id] && (
+                          <div className={`absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full ${theme.primaryGreen} flex items-center justify-center text-white`}>
+                            <CheckCircle className="w-4 h-4" />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Side Actions for the Field */}
+                  <div className="w-full lg:w-64 flex flex-shrink-0 flex-col gap-3">
+                    <p className="text-[10px] font-bold text-black/40 uppercase tracking-widest pl-1">Actions & Delegation</p>
+
+                    <button className="flex items-center justify-between w-full px-4 py-3 bg-[#F8FAFA] hover:bg-[#F2FDF7] border border-black/5 hover:border-[#12C87A]/30 rounded-xl transition-all text-sm font-semibold text-black/70 group">
+                      <span className="flex items-center gap-2"><Mail className="w-4 h-4 text-black/40 group-hover:text-[#12C87A]" /> Request Data</span>
+                      <ChevronRightIcon className="w-4 h-4 text-black/20" />
+                    </button>
+
+                    <button className="flex items-center justify-between w-full px-4 py-3 bg-[#F8FAFA] hover:bg-black/5 border border-black/5 rounded-xl transition-all text-sm font-semibold text-black/70 group">
+                      <span className="flex items-center gap-2"><Link2 className="w-4 h-4 text-black/40" /> Linked API Source</span>
+                      <span className="w-2 h-2 rounded-full bg-black/20" />
+                    </button>
+
+                    <button className="flex items-center justify-between w-full px-4 py-3 bg-[#F8FAFA] hover:bg-black/5 border border-black/5 rounded-xl transition-all text-sm font-semibold text-black/70 group">
+                      <span className="flex items-center gap-2"><MessageSquare className="w-4 h-4 text-black/40" /> Add Comment</span>
+                    </button>
+                  </div>
+                </div>
               </div>
-            )}
+            ))}
+
+            {/* Create your own metric button */}
+            <button className={`w-full py-5 rounded-[24px] border-2 border-dashed ${theme.borderGreen} bg-white hover:bg-[#F2FDF7] flex items-center justify-center gap-2 ${theme.textPrimaryGreen} font-bold transition-all shadow-sm`}>
+              <Plus className="w-5 h-5" />
+              Create your own metric
+            </button>
+
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }
 
+function ChevronRightIcon(props: any) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m9 18 6-6-6-6" />
+    </svg>
+  )
+}

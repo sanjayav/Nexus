@@ -16,18 +16,16 @@ export default function PeriodCreate() {
   });
 
   const handleCreate = () => {
-    // In real app: POST /periods
-    // Then redirect to DMA or Home
     navigate('/executive');
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white">Create Reporting Period</h1>
-        <p className="text-gray-400 mt-2">
-          Set up a new reporting cycle with framework packs, scope boundary, and disclosure checklist
+        <h1 className="text-3xl font-bold text-black tracking-tight">Create Reporting Period</h1>
+        <p className="text-sm text-black/60 font-medium mt-2 max-w-2xl tracking-wide">
+          Set up a new reporting cycle with framework packs, scope boundary, and disclosure checklist.
         </p>
       </div>
 
@@ -43,18 +41,18 @@ export default function PeriodCreate() {
             <div className="flex flex-col items-center">
               <div
                 className={clsx(
-                  'w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 transition-all',
+                  'w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 transition-all shadow-sm',
                   step >= s.num
-                    ? 'bg-accent text-dark-bg border-accent'
-                    : 'bg-dark-surface text-gray-500 border-dark-border'
+                    ? 'bg-black text-white border-black'
+                    : 'bg-white/60 text-black/40 border-black/10'
                 )}
               >
                 {step > s.num ? <CheckCircle className="w-5 h-5" /> : s.num}
               </div>
               <span
                 className={clsx(
-                  'text-xs mt-2 font-medium',
-                  step >= s.num ? 'text-white' : 'text-gray-500'
+                  'text-xs mt-3 font-bold uppercase tracking-widest',
+                  step >= s.num ? 'text-black' : 'text-black/40'
                 )}
               >
                 {s.label}
@@ -63,8 +61,8 @@ export default function PeriodCreate() {
             {idx < 3 && (
               <div
                 className={clsx(
-                  'flex-1 h-0.5 mx-4 transition-all',
-                  step > s.num ? 'bg-accent' : 'bg-dark-border'
+                  'flex-1 h-0.5 mx-4 transition-all rounded-full',
+                  step > s.num ? 'bg-black' : 'bg-black/10'
                 )}
               />
             )}
@@ -74,39 +72,43 @@ export default function PeriodCreate() {
 
       {/* Step 1: Period Details */}
       {step === 1 && (
-        <div className="bg-dark-surface border border-dark-border rounded-2xl p-6 space-y-4">
-          <div className="flex items-center gap-3 mb-4">
-            <Calendar className="w-5 h-5 text-accent" />
-            <h2 className="text-xl font-bold text-white">Period Details</h2>
+        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-lg flex flex-col relative overflow-hidden">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-black/5 rounded-xl border border-black/5">
+              <Calendar className="w-5 h-5 text-black" />
+            </div>
+            <h2 className="text-xl font-bold text-black">Period Details</h2>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">Period Name</label>
-            <input
-              type="text"
-              value={period.name}
-              onChange={(e) => setPeriod({ ...period, name: e.target.value })}
-              className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-xl text-white focus:border-accent focus:outline-none"
-              placeholder="e.g., FY2025"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Start Date</label>
+              <label className="block text-xs font-bold text-black/60 uppercase tracking-widest mb-2">Period Name</label>
               <input
-                type="date"
-                value={period.startDate}
-                onChange={(e) => setPeriod({ ...period, startDate: e.target.value })}
-                className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-xl text-white focus:border-accent focus:outline-none"
+                type="text"
+                value={period.name}
+                onChange={(e) => setPeriod({ ...period, name: e.target.value })}
+                className="w-full px-4 py-3 bg-white border border-black/10 rounded-xl text-black font-semibold focus:border-black focus:outline-none shadow-sm transition-colors"
+                placeholder="e.g., FY2025"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">End Date</label>
-              <input
-                type="date"
-                value={period.endDate}
-                onChange={(e) => setPeriod({ ...period, endDate: e.target.value })}
-                className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-xl text-white focus:border-accent focus:outline-none"
-              />
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label className="block text-xs font-bold text-black/60 uppercase tracking-widest mb-2">Start Date</label>
+                <input
+                  type="date"
+                  value={period.startDate}
+                  onChange={(e) => setPeriod({ ...period, startDate: e.target.value })}
+                  className="w-full px-4 py-3 bg-white border border-black/10 rounded-xl text-black font-semibold focus:border-black focus:outline-none shadow-sm transition-colors appearance-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-black/60 uppercase tracking-widest mb-2">End Date</label>
+                <input
+                  type="date"
+                  value={period.endDate}
+                  onChange={(e) => setPeriod({ ...period, endDate: e.target.value })}
+                  className="w-full px-4 py-3 bg-white border border-black/10 rounded-xl text-black font-semibold focus:border-black focus:outline-none shadow-sm transition-colors appearance-none"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -114,47 +116,51 @@ export default function PeriodCreate() {
 
       {/* Step 2: Scope & Region */}
       {step === 2 && (
-        <div className="bg-dark-surface border border-dark-border rounded-2xl p-6 space-y-4">
-          <div className="flex items-center gap-3 mb-4">
-            <Globe className="w-5 h-5 text-accent" />
-            <h2 className="text-xl font-bold text-white">Scope Boundary & Region</h2>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">Scope Boundary</label>
-            <div className="flex gap-3">
-              {['Group', 'BU', 'Site', 'Asset'].map((b) => (
-                <button
-                  key={b}
-                  onClick={() => setPeriod({ ...period, boundary: b })}
-                  className={clsx(
-                    'px-6 py-3 rounded-xl font-medium border transition-all',
-                    period.boundary === b
-                      ? 'bg-accent/10 text-accent border-accent'
-                      : 'bg-dark-bg border-dark-border text-gray-400 hover:border-gray-500'
-                  )}
-                >
-                  {b}
-                </button>
-              ))}
+        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-lg flex flex-col relative overflow-hidden">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-black/5 rounded-xl border border-black/5">
+              <Globe className="w-5 h-5 text-black" />
             </div>
+            <h2 className="text-xl font-bold text-black">Scope Boundary & Region</h2>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-400 mb-2">Region Mode</label>
-            <div className="flex gap-3">
-              {['Global', 'China', 'Global + China'].map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setPeriod({ ...period, regionMode: r })}
-                  className={clsx(
-                    'px-6 py-3 rounded-xl font-medium border transition-all',
-                    period.regionMode === r
-                      ? 'bg-accent/10 text-accent border-accent'
-                      : 'bg-dark-bg border-dark-border text-gray-400 hover:border-gray-500'
-                  )}
-                >
-                  {r}
-                </button>
-              ))}
+          <div className="space-y-6">
+            <div>
+              <label className="block text-xs font-bold text-black/60 uppercase tracking-widest mb-3">Scope Boundary</label>
+              <div className="flex flex-wrap gap-3">
+                {['Group', 'BU', 'Site', 'Asset'].map((b) => (
+                  <button
+                    key={b}
+                    onClick={() => setPeriod({ ...period, boundary: b })}
+                    className={clsx(
+                      'px-6 py-3 rounded-xl text-sm font-bold border transition-all shadow-sm',
+                      period.boundary === b
+                        ? 'bg-black text-white border-black'
+                        : 'bg-white border-black/10 text-black/70 hover:border-black/30'
+                    )}
+                  >
+                    {b}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-black/60 uppercase tracking-widest mb-3">Region Mode</label>
+              <div className="flex flex-wrap gap-3">
+                {['Global', 'India', 'GCC', 'China', 'India + Global', 'GCC + Global', 'Global + China'].map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setPeriod({ ...period, regionMode: r })}
+                    className={clsx(
+                      'px-6 py-3 rounded-xl text-sm font-bold border transition-all shadow-sm',
+                      period.regionMode === r
+                        ? 'bg-[#12C87A]/10 text-[#013328] border-[#12C87A]/30'
+                        : 'bg-white border-black/10 text-black/70 hover:border-black/30'
+                    )}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -162,16 +168,18 @@ export default function PeriodCreate() {
 
       {/* Step 3: Framework Packs */}
       {step === 3 && (
-        <div className="bg-dark-surface border border-dark-border rounded-2xl p-6 space-y-4">
-          <div className="flex items-center gap-3 mb-4">
-            <FileText className="w-5 h-5 text-accent" />
-            <h2 className="text-xl font-bold text-white">Select Framework Packs</h2>
+        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-lg flex flex-col relative overflow-hidden">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-black/5 rounded-xl border border-black/5">
+              <FileText className="w-5 h-5 text-black" />
+            </div>
+            <h2 className="text-xl font-bold text-black">Select Framework Packs</h2>
           </div>
-          <p className="text-sm text-gray-400 mb-4">
-            Choose which disclosure frameworks are required for this reporting period
+          <p className="text-sm font-medium text-black/60 mb-6">
+            Choose which disclosure frameworks are required for this reporting period.
           </p>
-          <div className="grid grid-cols-2 gap-3">
-            {['GRI', 'IFRS S1', 'IFRS S2', 'MSX', 'China ESG Pack', 'TCFD'].map((pack) => (
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            {['GRI', 'IFRS S1', 'IFRS S2', 'MSX', 'BRSR Core', 'China ESG Pack', 'TCFD'].map((pack) => (
               <button
                 key={pack}
                 onClick={() => {
@@ -184,19 +192,20 @@ export default function PeriodCreate() {
                   });
                 }}
                 className={clsx(
-                  'px-4 py-3 rounded-xl font-medium border transition-all text-left',
+                  'px-4 py-4 rounded-xl text-sm font-bold border transition-all shadow-sm text-left',
                   period.packs.includes(pack)
-                    ? 'bg-accent/10 text-accent border-accent'
-                    : 'bg-dark-bg border-dark-border text-gray-400 hover:border-gray-500'
+                    ? 'bg-black text-white border-black shadow-md scale-[1.02]'
+                    : 'bg-white border-black/10 text-black/70 hover:border-black/30 hover:scale-[1.01]'
                 )}
               >
                 {pack}
               </button>
             ))}
           </div>
-          <div className="mt-4 p-4 bg-dark-bg border border-dark-border rounded-xl">
-            <p className="text-xs text-gray-400">
-              ✓ Auto-generates disclosure checklist + required evidence rules per pack selected
+          <div className="mt-6 p-4 bg-[#12C87A]/5 border border-[#12C87A]/20 rounded-xl flex items-center gap-3">
+            <CheckCircle className="w-5 h-5 text-[#12C87A] shrink-0" />
+            <p className="text-xs font-bold text-[#013328]">
+              Auto-generates disclosure checklist + required evidence rules per pack selected.
             </p>
           </div>
         </div>
@@ -204,39 +213,43 @@ export default function PeriodCreate() {
 
       {/* Step 4: Review & Create */}
       {step === 4 && (
-        <div className="bg-dark-surface border border-dark-border rounded-2xl p-6 space-y-4">
-          <div className="flex items-center gap-3 mb-4">
-            <CheckCircle className="w-5 h-5 text-accent" />
-            <h2 className="text-xl font-bold text-white">Review & Create</h2>
-          </div>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-400">Period Name:</span>
-              <span className="text-white font-medium">{period.name}</span>
+        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-lg flex flex-col relative overflow-hidden">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-black/5 rounded-xl border border-black/5">
+              <CheckCircle className="w-5 h-5 text-black" />
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Date Range:</span>
-              <span className="text-white font-medium">
-                {period.startDate} to {period.endDate}
+            <h2 className="text-xl font-bold text-black">Review & Create</h2>
+          </div>
+
+          <div className="grid gap-4 bg-white border border-black/10 rounded-2xl p-6 shadow-sm mb-6">
+            <div className="flex justify-between items-center py-2 border-b border-black/5">
+              <span className="text-xs font-bold text-black/50 uppercase tracking-widest">Period Name</span>
+              <span className="text-sm font-bold text-black">{period.name}</span>
+            </div>
+            <div className="flex justify-between items-center py-2 border-b border-black/5">
+              <span className="text-xs font-bold text-black/50 uppercase tracking-widest">Date Range</span>
+              <span className="text-sm font-bold text-black">
+                {period.startDate} <span className="text-black/40 mx-1">to</span> {period.endDate}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Boundary:</span>
-              <span className="text-white font-medium">{period.boundary}</span>
+            <div className="flex justify-between items-center py-2 border-b border-black/5">
+              <span className="text-xs font-bold text-black/50 uppercase tracking-widest">Boundary</span>
+              <span className="text-sm font-bold text-black">{period.boundary}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Region Mode:</span>
-              <span className="text-white font-medium">{period.regionMode}</span>
+            <div className="flex justify-between items-center py-2 border-b border-black/5">
+              <span className="text-xs font-bold text-black/50 uppercase tracking-widest">Region Mode</span>
+              <span className="text-sm font-bold text-black">{period.regionMode}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-400">Framework Packs:</span>
-              <span className="text-white font-medium">{period.packs.join(', ')}</span>
+            <div className="flex justify-between items-center py-2">
+              <span className="text-xs font-bold text-black/50 uppercase tracking-widest">Framework Packs</span>
+              <span className="text-sm font-bold text-[#12C87A] bg-[#12C87A]/10 px-2 py-0.5 rounded">{period.packs.join(', ')}</span>
             </div>
           </div>
-          <div className="mt-4 p-4 bg-gradient-to-br from-accent/5 to-accent/10 border border-accent/20 rounded-xl">
-            <p className="text-sm text-white font-medium mb-1">Ready to Create</p>
-            <p className="text-xs text-gray-400">
-              This will generate your Period Workspace with disclosure checklist, evidence rules, and DMA setup
+
+          <div className="p-4 bg-black border border-black rounded-xl text-white shadow-lg">
+            <p className="text-sm font-bold mb-1">Ready to Create</p>
+            <p className="text-xs text-white/60 font-medium">
+              This will generate your Period Workspace with disclosure checklist, evidence rules, and DMA setup.
             </p>
           </div>
         </div>
@@ -247,24 +260,24 @@ export default function PeriodCreate() {
         <button
           onClick={() => setStep(Math.max(1, step - 1))}
           disabled={step === 1}
-          className="px-6 py-3 rounded-xl font-medium border border-dark-border text-gray-400 hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          className="px-6 py-3 rounded-xl text-xs uppercase tracking-widest font-bold border border-black/10 bg-white text-black/60 hover:text-black hover:border-black/30 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           Back
         </button>
         {step < 4 ? (
           <button
             onClick={() => setStep(step + 1)}
-            className="px-6 py-3 rounded-xl font-medium bg-accent text-dark-bg hover:bg-accent/90 flex items-center gap-2 transition-all"
+            className="px-6 py-3 rounded-xl text-xs uppercase tracking-widest font-bold bg-black text-white shadow-lg hover:bg-black/80 hover:scale-[1.02] flex items-center gap-2 transition-all"
           >
             Continue
-            <ArrowRight className="w-5 h-5" />
+            <ArrowRight className="w-4 h-4" />
           </button>
         ) : (
           <button
             onClick={handleCreate}
-            className="px-6 py-3 rounded-xl font-medium bg-accent text-dark-bg hover:bg-accent/90 flex items-center gap-2 transition-all"
+            className="px-6 py-3 rounded-xl text-xs uppercase tracking-widest font-bold bg-[#12C87A] text-[#013328] shadow-lg shadow-[#12C87A]/20 hover:scale-[1.02] flex items-center gap-2 transition-all border border-[#12C87A]/50"
           >
-            <CheckCircle className="w-5 h-5" />
+            <CheckCircle className="w-4 h-4" />
             Create Period Workspace
           </button>
         )}

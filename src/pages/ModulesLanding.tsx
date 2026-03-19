@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { BarChart3, LayoutDashboard, ChevronRight, Clock, CheckCircle, AlertCircle, FileText, Play } from 'lucide-react'
+import { LayoutDashboard, Clock, CheckCircle, AlertCircle, FileText, Play, ArrowRight } from 'lucide-react'
 import { mockData } from '../data/mockData'
 import clsx from 'clsx'
 
@@ -9,15 +9,15 @@ export default function ModulesLanding() {
   const getStateColor = (state: string) => {
     switch (state) {
       case 'Open':
-        return 'bg-blue-500/10 text-blue-400 border-blue-500/30'
+        return 'bg-blue-500/10 text-blue-700 border-blue-500/30'
       case 'In Review':
-        return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
+        return 'bg-amber-500/10 text-amber-700 border-amber-500/30'
       case 'Approved':
-        return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+        return 'bg-emerald-500/10 text-emerald-700 border-emerald-500/30'
       case 'Published':
-        return 'bg-purple-500/10 text-purple-400 border-purple-500/30'
+        return 'bg-purple-500/10 text-purple-700 border-purple-500/30'
       default:
-        return 'bg-gray-500/10 text-gray-400 border-gray-500/30'
+        return 'bg-black/5 text-black/60 border-black/10'
     }
   }
 
@@ -50,153 +50,118 @@ export default function ModulesLanding() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col h-full space-y-8 animate-in fade-in duration-500">
+
+      {/* Header aligned with Light Glassmorphism Growth UI */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 shrink-0">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">All Reporting Modules</h1>
-          <p className="text-gray-400">Select a module to continue or jump to dashboards for insights</p>
+          <h1 className="text-3xl font-bold text-black tracking-tight flex items-center gap-3">
+            Reporting Frameworks
+          </h1>
+          <p className="text-sm text-black/60 mt-2 max-w-2xl font-medium tracking-wide">
+            Active modules and standard mapping. Track completion, review evidence, and export to final formats.
+          </p>
         </div>
 
-        {/* Quick Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex gap-3">
           <button
             onClick={() => navigate('/analytics')}
-            className="flex items-center gap-2 px-4 py-2.5 bg-dark-surface border border-dark-border rounded-xl hover:border-accent transition-colors"
+            className="flex items-center gap-2 px-5 py-3 bg-white/60 border border-white hover:bg-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-sm"
           >
-            <BarChart3 className="w-5 h-5 text-accent" />
-            <span className="font-medium">Open Full Analytics</span>
+            Open Analytics
           </button>
           <button
             onClick={() => navigate('/executive')}
-            className="flex items-center gap-2 px-4 py-2.5 bg-accent/10 border border-accent/30 rounded-xl hover:bg-accent/20 transition-colors"
+            className="flex items-center gap-2 px-5 py-3 bg-black text-white rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-black/20 hover:scale-[1.02] transition-transform"
           >
-            <LayoutDashboard className="w-5 h-5 text-accent" />
-            <span className="font-medium text-accent">Open Executive Summary</span>
+            <LayoutDashboard className="w-4 h-4" />
+            Executive View
           </button>
         </div>
       </div>
 
-      {/* Module Cards Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Grid mapping perfectly to "Month Goal's" or "Task in Process" cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 flex-1">
         {mockData.modules.map((module) => (
           <div
             key={module.id}
-            className="bg-dark-surface border border-dark-border rounded-2xl p-6 hover:border-accent/50 transition-all"
+            className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-lg flex flex-col hover:shadow-xl transition-shadow relative overflow-hidden group"
           >
-            {/* Card Header */}
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="text-xl font-bold text-white">{module.title}</h3>
-                  <div className={clsx('px-2 py-1 rounded-md border text-xs font-medium flex items-center gap-1.5', getStateColor(module.state))}>
-                    {getStateIcon(module.state)}
-                    {module.state}
-                  </div>
-                </div>
-                <p className="text-sm text-gray-400">{module.description}</p>
+            {/* The abstract card background glow mimicking premium UI */}
+            <div className="absolute -top-10 -right-10 w-40 h-40 bg-white rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
+            {/* Header / Pills */}
+            <div className="flex justify-between items-start mb-6 relative z-10">
+              <div className={clsx(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border",
+                getStateColor(module.state)
+              )}>
+                {getStateIcon(module.state)}
+                {module.state}
               </div>
             </div>
 
-            {/* Stats Row */}
-            <div className="grid grid-cols-3 gap-4 mb-4 pb-4 border-b border-dark-border">
-              <div>
-                <div className="text-xs text-gray-400 mb-1">Coverage</div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold text-white">{module.coverage}%</span>
-                </div>
-                <div className="w-full bg-dark-bg rounded-full h-1.5 mt-2">
-                  <div
-                    className="bg-accent rounded-full h-1.5 transition-all"
-                    style={{ width: `${module.coverage}%` }}
-                  />
-                </div>
+            <div className="mb-6 relative z-10">
+              <h3 className="text-2xl font-bold text-black mb-2">{module.title}</h3>
+              <p className="text-xs text-black/50 font-medium leading-relaxed line-clamp-2">{module.description}</p>
+            </div>
+
+            {/* Progress / Stats Block entirely redesigned for the new UI */}
+            <div className="bg-white/40 border border-white rounded-2xl p-4 mb-6 relative z-10">
+              <div className="flex justify-between items-center text-xs font-bold text-black/50 uppercase tracking-widest mb-3">
+                <span>Completion</span>
+                <span className="text-black font-mono">{module.coverage}%</span>
+              </div>
+              <div className="w-full bg-black/5 rounded-full h-1.5 mb-4 overflow-hidden">
+                <div
+                  className="bg-black rounded-full h-1.5 transition-all duration-1000 ease-out"
+                  style={{ width: `${module.coverage}%` }}
+                />
               </div>
 
-              <div>
-                <div className="text-xs text-gray-400 mb-1">Sections</div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold text-white">{module.completedSections}</span>
-                  <span className="text-sm text-gray-400">/ {module.questionnaireSections}</span>
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-black/5">
+                <div>
+                  <span className="block text-[10px] text-black/40 font-bold uppercase tracking-widest mb-1">Sections</span>
+                  <span className="font-bold text-black">{module.completedSections} <span className="text-black/30 font-medium text-xs">/ {module.questionnaireSections}</span></span>
                 </div>
-              </div>
-
-              <div>
-                <div className="text-xs text-gray-400 mb-1">Last Activity</div>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <Clock className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm text-gray-300">{formatDate(module.lastActivity)}</span>
+                <div>
+                  <span className="block text-[10px] text-black/40 font-bold uppercase tracking-widest mb-1">Last Sync</span>
+                  <span className="font-bold text-black text-xs flex items-center gap-1.5 pt-0.5">
+                    <Clock className="w-3 h-3 text-black/40" /> {formatDate(module.lastActivity)}
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Validation Status */}
-            <div className="mb-4">
-              <div className="flex items-center gap-2">
-                {module.validationsPassed ? (
-                  <>
-                    <CheckCircle className="w-4 h-4 text-emerald-400" />
-                    <span className="text-sm text-emerald-400">All validations passed</span>
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle className="w-4 h-4 text-yellow-400" />
-                    <span className="text-sm text-yellow-400">Some validations need attention</span>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex items-center gap-3">
+            {/* Action Bar (Pushing to bottom) */}
+            <div className="mt-auto relative z-10">
               <button
                 onClick={() => navigate(`/modules/${module.id}/questionnaire`)}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-accent text-dark-bg rounded-xl font-medium hover:bg-accent/90 transition-colors"
+                className="w-full flex items-center justify-between p-4 bg-black text-white rounded-xl shadow-md hover:scale-[1.02] transition-transform"
               >
-                Continue Questionnaire
-                <ChevronRight className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => navigate(`/modules/${module.id}`)}
-                className="px-4 py-2.5 bg-dark-bg border border-dark-border rounded-xl font-medium hover:border-accent transition-colors"
-              >
-                Open Module Hub
-              </button>
-            </div>
-
-            {/* More Options */}
-            <div className="flex items-center gap-4 mt-4 pt-4 border-t border-dark-border">
-              <button
-                onClick={() => navigate(`/analytics?module=${module.id}`)}
-                className="text-sm text-gray-400 hover:text-accent transition-colors flex items-center gap-1.5"
-              >
-                <BarChart3 className="w-4 h-4" />
-                Module Analytics
-              </button>
-              <button
-                onClick={() => navigate(`/executive?module=${module.id}`)}
-                className="text-sm text-gray-400 hover:text-accent transition-colors flex items-center gap-1.5"
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                Executive View
+                <span className="text-sm font-bold uppercase tracking-widest">Open Framework</span>
+                <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                  <ArrowRight className="w-3.5 h-3.5 text-white" />
+                </div>
               </button>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Empty State (shown when no modules) */}
+      {/* Empty State */}
       {mockData.modules.length === 0 && (
-        <div className="bg-dark-surface border border-dashed border-dark-border rounded-2xl p-12 text-center">
-          <FileText className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-white mb-2">No modules yet</h3>
-          <p className="text-gray-400 mb-6">Add modules from the registry to start reporting</p>
-          <button className="px-6 py-2.5 bg-accent text-dark-bg rounded-xl font-medium hover:bg-accent/90 transition-colors">
-            Browse Module Registry
+        <div className="flex-1 bg-white/40 border border-white/60 rounded-[2rem] flex flex-col items-center justify-center text-center p-12">
+          <div className="w-20 h-20 bg-black/5 rounded-3xl rotate-12 flex items-center justify-center mb-6">
+            <FileText className="w-8 h-8 text-black/40 -rotate-12" />
+          </div>
+          <h3 className="text-2xl font-bold text-black mb-2">No active frameworks.</h3>
+          <p className="text-sm text-black/50 max-w-md mx-auto mb-8 font-medium">Activate a module from the official ESG registry to begin structuring your data and evidence.</p>
+          <button className="px-6 py-3 bg-black text-white text-xs font-bold uppercase tracking-widest rounded-xl hover:scale-105 transition-transform shadow-lg shadow-black/20">
+            Open Registry
           </button>
         </div>
       )}
     </div>
   )
 }
-

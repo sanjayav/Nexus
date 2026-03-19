@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { ExternalLink, Eye, Link2, Search, Filter, UploadCloud, Tag, Calendar, AlertCircle, CheckCircle2, Shield } from 'lucide-react'
+import { Eye, Link2, Search, UploadCloud, Tag, Calendar, AlertCircle, CheckCircle2, Shield, Database } from 'lucide-react'
+import clsx from 'clsx'
 import { mockData } from '../data/mockData'
 
 export default function EvidenceLibrary() {
@@ -8,265 +9,213 @@ export default function EvidenceLibrary() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Evidence Vault</h1>
-          <p className="text-sm text-gray-400">
-            Central library for all evidence files with integrity tracking, expiry alerts, and reuse suggestions
-          </p>
+    <div className="flex flex-col h-full space-y-8 animate-in fade-in duration-500">
+
+      {/* Top Cards matching "Over all information" from the design */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+
+        {/* Black summary card */}
+        <div className="md:col-span-2 bg-black text-white rounded-[2rem] p-8 shadow-2xl shadow-black/20 flex flex-col justify-between relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none" />
+
+          <div>
+            <div className="flex justify-between items-start mb-6">
+              <span className="text-sm font-semibold opacity-80 uppercase tracking-widest">Evidence Vault</span>
+              <div className="flex items-center gap-2 text-indigo-400 text-xs font-bold bg-indigo-400/10 px-3 py-1.5 rounded-full border border-indigo-400/20">
+                <Database className="w-3 h-3" /> VERIFIED
+              </div>
+            </div>
+            <div className="flex items-baseline gap-3 mb-8">
+              <span className="text-6xl font-bold tracking-tighter">142</span>
+              <span className="text-sm text-white/50 uppercase tracking-widest font-bold">Total Artifacts</span>
+            </div>
+          </div>
+
+          {/* Mini Stats Equivalent */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-white/10 rounded-2xl p-4 border border-white/5 hover:bg-white/20 transition-colors cursor-pointer">
+              <span className="block text-2xl font-bold">67%</span>
+              <span className="block text-[10px] opacity-70 mt-1 uppercase tracking-widest flex items-center gap-1">Re-use Rate <span className="text-emerald-400">↗</span></span>
+            </div>
+            <div className="bg-white/10 rounded-2xl p-4 border border-white/5 hover:bg-white/20 transition-colors cursor-pointer">
+              <span className="block text-2xl font-bold">8</span>
+              <span className="block text-[10px] opacity-70 mt-1 uppercase tracking-widest text-amber-300">Orphaned</span>
+            </div>
+            <div className="bg-white/10 rounded-2xl p-4 border border-white/5 hover:bg-white/20 transition-colors cursor-pointer">
+              <span className="block text-2xl font-bold">94%</span>
+              <span className="block text-[10px] opacity-70 mt-1 uppercase tracking-widest text-emerald-300">Coverage</span>
+            </div>
+          </div>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 bg-accent text-dark-bg rounded-xl font-medium hover:bg-accent/90 transition-colors">
-          <UploadCloud className="w-4 h-4" />
-          Bulk Upload
-        </button>
+
+        {/* White Action Card - Upload */}
+        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-lg flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center">
+                <UploadCloud className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-sm font-bold opacity-80">Ingestion</span>
+            </div>
+            <h3 className="text-xl font-bold text-black leading-tight mb-2">Upload Artifacts</h3>
+            <p className="text-xs text-black/50 font-medium">Auto-extract metadata, apply hashes, and map to frameworks.</p>
+          </div>
+
+          <button className="w-full py-3 bg-black text-white text-xs font-bold uppercase tracking-widest rounded-xl hover:scale-[1.02] shadow-xl shadow-black/20 transition-all flex items-center justify-center gap-2 mt-4">
+            Bulk Upload <span className="text-lg leading-none">+</span>
+          </button>
+        </div>
+
+        {/* Expiring Alerts Card */}
+        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-lg flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-start mb-4">
+              <span className="text-sm font-bold text-black uppercase tracking-widest opacity-60">Alerts</span>
+              <AlertCircle className="w-5 h-5 text-rose-500" />
+            </div>
+            <div className="flex items-end gap-3 mb-2">
+              <span className="text-5xl font-bold tracking-tighter text-black">2</span>
+            </div>
+            <p className="text-xs text-black/50 font-bold uppercase tracking-widest">
+              Expiring within 30 days
+            </p>
+          </div>
+
+          <button className="w-full py-3 bg-white border border-black/10 text-black text-xs font-bold uppercase tracking-widest rounded-xl hover:bg-black/5 transition-all flex items-center justify-center gap-2 mt-4">
+            View Renewals
+          </button>
+        </div>
       </div>
 
-      {/* Side Metrics */}
-      <div className="grid grid-cols-4 gap-4">
-        <div className="bg-dark-surface rounded-2xl p-6 border border-dark-border">
-          <div className="text-sm text-gray-400 mb-2">Evidence Re-use Rate</div>
-          <div className="text-3xl font-bold">67%</div>
-          <div className="text-xs text-emerald-400 mt-2">↗ +12% from last period</div>
-        </div>
-        <div className="bg-dark-surface rounded-2xl p-6 border border-dark-border">
-          <div className="text-sm text-gray-400 mb-2">Orphaned Evidence</div>
-          <div className="text-3xl font-bold">8</div>
-          <div className="text-xs text-amber-400 mt-2">Items not linked to submissions</div>
-        </div>
-        <div className="bg-dark-surface rounded-2xl p-6 border border-dark-border">
-          <div className="text-sm text-gray-400 mb-2">Certificates Expiring</div>
-          <div className="text-3xl font-bold">2</div>
-          <div className="text-xs text-rose-400 mt-2">Within 30 days</div>
-        </div>
-        <div className="bg-dark-surface rounded-2xl p-6 border border-dark-border">
-          <div className="text-sm text-gray-400 mb-2">Evidence Coverage</div>
-          <div className="text-3xl font-bold">94%</div>
-          <div className="text-xs text-gray-400 mt-2">Disclosures with evidence</div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-dark-surface rounded-2xl p-6 border border-dark-border">
-        <div className="flex items-center gap-4 mb-4">
+      {/* Main Table Area (White Glassmorphic) */}
+      <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-lg flex flex-col h-full min-h-[500px]">
+        {/* Filters */}
+        <div className="flex flex-col lg:flex-row gap-4 mb-6">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by Evidence ID, disclosure, CID, SHA, uploader, or expiry date..."
-              className="w-full pl-10 pr-4 py-2 rounded-lg bg-dark-bg border border-dark-border text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              placeholder="Search by Evidence ID, CID, tags..."
+              className="w-full pl-12 pr-4 py-3 rounded-xl bg-white/50 border border-white focus:border-black/20 text-sm font-medium text-black focus:outline-none focus:ring-4 focus:ring-black/5 transition-all placeholder:text-black/30"
             />
           </div>
-          <select className="px-4 py-2 rounded-lg bg-dark-bg border border-dark-border text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+          <select className="px-4 py-3 rounded-xl bg-white/50 border border-white text-sm font-bold text-black/70 focus:outline-none focus:ring-4 focus:ring-black/5">
             <option>All Modules</option>
             <option>GRI</option>
-            <option>MSX</option>
+            <option>CSRD</option>
             <option>IFRS S1</option>
-            <option>IFRS S2</option>
           </select>
-          <select className="px-4 py-2 rounded-lg bg-dark-bg border border-dark-border text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+          <select className="px-4 py-3 rounded-xl bg-white/50 border border-white text-sm font-bold text-black/70 focus:outline-none focus:ring-4 focus:ring-black/5">
             <option>All Types</option>
             <option>xlsx</option>
             <option>json</option>
             <option>pdf</option>
-            <option>csv</option>
           </select>
         </div>
-        <div className="flex items-center gap-2 text-xs">
+
+        {/* Status Pills */}
+        <div className="flex items-center gap-2 text-xs mb-8 overflow-x-auto pb-2 scrollbar-none">
           <button
             onClick={() => setStatusFilter('all')}
-            className={`px-3 py-1.5 rounded-full border ${
-              statusFilter === 'all'
-                ? 'border-accent text-accent bg-accent/10'
-                : 'border-dark-border text-gray-400 hover:border-gray-500'
-            } transition-colors`}
+            className={clsx("px-4 py-2 rounded-full font-bold uppercase tracking-widest transition-all whitespace-nowrap", statusFilter === 'all' ? 'bg-black text-white shadow-md' : 'bg-white/50 text-black/50 hover:bg-white hover:text-black')}
           >
             All
           </button>
           <button
             onClick={() => setStatusFilter('linked')}
-            className={`px-3 py-1.5 rounded-full border ${
-              statusFilter === 'linked'
-                ? 'border-emerald-500 text-emerald-300 bg-emerald-500/10'
-                : 'border-dark-border text-gray-400 hover:border-gray-500'
-            } transition-colors flex items-center gap-1`}
+            className={clsx("px-4 py-2 rounded-full font-bold uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-1.5", statusFilter === 'linked' ? 'bg-indigo-500 text-white shadow-md' : 'bg-white/50 text-black/50 hover:bg-white hover:text-black')}
           >
-            <Link2 className="w-3 h-3" />
-            Linked
+            <Link2 className="w-3.5 h-3.5" /> Linked
           </button>
           <button
             onClick={() => setStatusFilter('orphaned')}
-            className={`px-3 py-1.5 rounded-full border ${
-              statusFilter === 'orphaned'
-                ? 'border-amber-500 text-amber-300 bg-amber-500/10'
-                : 'border-dark-border text-gray-400 hover:border-gray-500'
-            } transition-colors flex items-center gap-1`}
+            className={clsx("px-4 py-2 rounded-full font-bold uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-1.5", statusFilter === 'orphaned' ? 'bg-amber-500 text-white shadow-md' : 'bg-white/50 text-black/50 hover:bg-white hover:text-black')}
           >
-            <AlertCircle className="w-3 h-3" />
-            Orphaned
+            <AlertCircle className="w-3.5 h-3.5" /> Orphaned
           </button>
           <button
             onClick={() => setStatusFilter('expiring')}
-            className={`px-3 py-1.5 rounded-full border ${
-              statusFilter === 'expiring'
-                ? 'border-rose-500 text-rose-300 bg-rose-500/10'
-                : 'border-dark-border text-gray-400 hover:border-gray-500'
-            } transition-colors flex items-center gap-1`}
+            className={clsx("px-4 py-2 rounded-full font-bold uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-1.5", statusFilter === 'expiring' ? 'bg-rose-500 text-white shadow-md' : 'bg-white/50 text-black/50 hover:bg-white hover:text-black')}
           >
-            <Calendar className="w-3 h-3" />
-            Expiring (&lt; 30d)
+            <Calendar className="w-3.5 h-3.5" /> Expiring
           </button>
           <button
             onClick={() => setStatusFilter('verified')}
-            className={`px-3 py-1.5 rounded-full border ${
-              statusFilter === 'verified'
-                ? 'border-accent text-accent bg-accent/10'
-                : 'border-dark-border text-gray-400 hover:border-gray-500'
-            } transition-colors flex items-center gap-1`}
+            className={clsx("px-4 py-2 rounded-full font-bold uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-1.5", statusFilter === 'verified' ? 'bg-emerald-500 text-white shadow-md' : 'bg-white/50 text-black/50 hover:bg-white hover:text-black')}
           >
-            <Shield className="w-3 h-3" />
-            Integrity Verified
+            <Shield className="w-3.5 h-3.5" /> Verified
           </button>
         </div>
-      </div>
 
-      {/* Evidence Table */}
-      <div className="bg-dark-surface rounded-2xl border border-dark-border overflow-hidden">
+        {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-dark-border bg-dark-bg text-xs uppercase tracking-wide">
-                <th className="text-left px-4 py-3 text-gray-400">
-                  Evidence ID
-                </th>
-                <th className="text-left px-4 py-3 text-gray-400">Linked To</th>
-                <th className="text-left px-4 py-3 text-gray-400">Type</th>
-                <th className="text-left px-4 py-3 text-gray-400">Tags</th>
-                <th className="text-left px-4 py-3 text-gray-400">Expiry</th>
-                <th className="text-left px-4 py-3 text-gray-400">Integrity</th>
-                <th className="text-left px-4 py-3 text-gray-400">Uploader</th>
-                <th className="text-left px-4 py-3 text-gray-400">Added</th>
-                <th className="text-left px-4 py-3 text-gray-400">Reuse</th>
-                <th className="text-left px-4 py-3 text-gray-400">
-                  Actions
-                </th>
+              <tr className="border-b border-black/10 text-[10px] font-bold text-black/40 uppercase tracking-widest">
+                <th className="pb-4 font-bold">Evidence ID / CID</th>
+                <th className="pb-4 font-bold">Linked To</th>
+                <th className="pb-4 font-bold">Type</th>
+                <th className="pb-4 font-bold">Tags</th>
+                <th className="pb-4 font-bold">Integrity</th>
+                <th className="pb-4 font-bold text-right">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-black/5">
               {evidence.map((item) => (
-                <tr key={item.id} className="border-b border-dark-border hover:bg-dark-bg/50 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="font-mono text-sm text-white">{item.id}</div>
-                    <div className="font-mono text-xs text-gray-500 mt-0.5 truncate max-w-[180px]" title={item.cid}>
+                <tr key={item.id} className="hover:bg-white/40 transition-colors group">
+                  <td className="py-4">
+                    <div className="font-bold text-sm text-black">{item.id}</div>
+                    <div className="font-mono text-[10px] text-black/40 mt-1 uppercase tracking-widest truncate max-w-[180px]" title={item.cid}>
                       CID: {item.cid?.slice(0, 12)}...
                     </div>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      <span className="px-2 py-0.5 bg-blue-500/10 text-blue-300 border border-blue-500/30 rounded text-[11px]">
+                  <td className="py-4">
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-700 rounded text-[10px] font-bold uppercase tracking-wider">
                         GRI 305-1
                       </span>
                       {item.id === 'EV-20251201-GRI305-003' && (
-                        <>
-                          <span className="px-2 py-0.5 bg-blue-500/10 text-blue-300 border border-blue-500/30 rounded text-[11px]">
-                            GRI 305-2
-                          </span>
-                          <span className="px-2 py-0.5 bg-blue-500/10 text-blue-300 border border-blue-500/30 rounded text-[11px]">
-                            IFRS S2
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="px-2 py-1 rounded-full text-xs bg-gray-500/10 border border-gray-500/30 text-gray-300 font-mono">
-                      {item.mime.includes('spreadsheet')
-                        ? 'xlsx'
-                        : item.mime.includes('json')
-                        ? 'json'
-                        : 'pdf'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      <span className="px-2 py-0.5 rounded-full text-[11px] bg-purple-500/10 border border-purple-500/30 text-purple-300">
-                        <Tag className="w-3 h-3 inline mr-1" />
-                        emissions
-                      </span>
-                      {item.id === 'EV-20251201-GRI305-003' && (
-                        <span className="px-2 py-0.5 rounded-full text-[11px] bg-purple-500/10 border border-purple-500/30 text-purple-300">
-                          energy
+                        <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-700 rounded text-[10px] font-bold uppercase tracking-wider">
+                          IFRS S2
                         </span>
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3">
-                    {item.id === 'EV-20251201-GRI305-001' ? (
-                      <span className="text-xs text-rose-300 flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        2025-12-15 (14d)
-                      </span>
-                    ) : item.id === 'EV-20251201-GRI305-002' ? (
-                      <span className="text-xs text-amber-300 flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        2026-03-01
+                  <td className="py-4">
+                    <span className="px-2 py-1 rounded bg-black/5 text-black/60 font-mono text-[10px] uppercase font-bold tracking-widest">
+                      {item.mime.includes('spreadsheet') ? 'xlsx' : item.mime.includes('json') ? 'json' : 'pdf'}
                     </span>
-                    ) : (
-                      <span className="text-xs text-gray-400">—</span>
-                    )}
                   </td>
-                  <td className="px-4 py-3">
-                    {item.anchored ? (
-                      <span className="flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">
-                        <CheckCircle2 className="w-3 h-3" />
-                        Verified
+                  <td className="py-4">
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-purple-500/10 text-purple-700 border border-purple-500/20 flex items-center gap-1">
+                        <Tag className="w-3 h-3" /> emissions
                       </span>
-                    ) : (
-                      <span className="flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-gray-500/10 border border-gray-500/30 text-gray-400">
-                        <AlertCircle className="w-3 h-3" />
-                        Pending
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="text-xs text-gray-300">{item.addedBy.slice(0, 20)}...</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="text-xs text-gray-400">
-                      {new Date(item.addedAt).toLocaleDateString()}
                     </div>
                   </td>
-                  <td className="px-4 py-3">
-                    {item.id === 'EV-20251201-GRI305-003' ? (
-                      <div className="text-xs text-emerald-400 font-medium">
-                        Used in 3 disclosures
-                      </div>
+                  <td className="py-4">
+                    {item.anchored ? (
+                      <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 w-max">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Verified
+                      </span>
                     ) : (
-                      <div className="text-xs text-gray-500">—</div>
+                      <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 text-amber-700 w-max">
+                        <AlertCircle className="w-3.5 h-3.5" /> Pending
+                      </span>
                     )}
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      <button
-                        className="p-1.5 rounded-full hover:bg-dark-bg border border-transparent hover:border-accent transition-colors"
-                        title="Preview"
-                      >
-                        <Eye className="w-4 h-4 text-gray-400 hover:text-accent" />
+                  <td className="py-4 text-right">
+                    <div className="flex items-center justify-end gap-1 opacity-50 group-hover:opacity-100 transition-opacity">
+                      <button className="p-2 rounded-full hover:bg-black/5 text-black/60 hover:text-black transition-colors" title="Preview">
+                        <Eye className="w-4 h-4" />
                       </button>
-                      <button
-                        className="p-1.5 rounded-full hover:bg-dark-bg border border-transparent hover:border-accent transition-colors"
-                        title="Tag & Map"
-                      >
-                        <Tag className="w-4 h-4 text-gray-400 hover:text-accent" />
+                      <button className="p-2 rounded-full hover:bg-black/5 text-black/60 hover:text-black transition-colors" title="Tag & Map">
+                        <Tag className="w-4 h-4" />
                       </button>
-                      <button
-                        className="p-1.5 rounded-full hover:bg-dark-bg border border-transparent hover:border-accent transition-colors"
-                        title="View Proof"
-                      >
-                        <Shield className="w-4 h-4 text-gray-400 hover:text-accent" />
+                      <button className="p-2 rounded-full hover:bg-black/5 text-black/60 hover:text-emerald-600 transition-colors" title="Verify Proof">
+                        <Shield className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
@@ -279,4 +228,3 @@ export default function EvidenceLibrary() {
     </div>
   )
 }
-

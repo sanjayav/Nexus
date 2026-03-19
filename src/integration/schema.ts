@@ -2,7 +2,7 @@
 // into the reporting dashboard. This is the foundation for a governed ingestion
 // pipeline that can be backed by real APIs later.
 
-export type ESGFramework = 'GRI' | 'IFRS-S1' | 'IFRS-S2' | 'MSX'
+export type ESGFramework = 'GRI' | 'IFRS-S1' | 'IFRS-S2' | 'MSX' | 'BRSR-Core' | 'CSRD-ESRS' | 'TCFD' | 'China-ESG'
 
 export type Scope = 'Scope1' | 'Scope2' | 'Scope3'
 

@@ -46,10 +46,20 @@ A comprehensive frontend dashboard for sustainability reporting with blockchain-
 
 ### 🌱 GHG & Targets
 - Scope 1 and Scope 2 emissions tracking
+- **Scope 3 calculator** (GHG Protocol 15 categories, CPCB/CEA factors)
 - Emissions trends with anchored points
 - Intensity vs production analysis
 - Methodology documentation
 - ZK threshold compliance proofs
+
+### 🚀 Pioneer Features
+- **CSRD / ESRS** — EU sustainability reporting
+- **TCFD** — Climate-related financial disclosures
+- **China ESG (CASS)** — CASS framework
+- **AI Studio** — AI drafting, data extraction, disclosure mapping
+- **XBRL / iXBRL** — Machine-readable export (Report Builder)
+- **Workflow Config** — Approval chains, SLAs, notifications
+- **Multi-tenant** — Organization switcher
 
 ### 👥 Roles & Credentials
 - DID management

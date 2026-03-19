@@ -10,6 +10,7 @@ export default function LanguageSelector() {
 
   const languages: { code: Language; label: string; flag: string }[] = [
     { code: 'EN', label: 'English', flag: '🇬🇧' },
+    { code: 'हिंदी', label: 'हिंदी', flag: '🇮🇳' },
     { code: '简体中文', label: '简体中文', flag: '🇨🇳' },
     { code: 'عربي', label: 'عربي', flag: '🇦🇪' },
   ];

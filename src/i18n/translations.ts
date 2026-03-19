@@ -1,4 +1,4 @@
-export type Language = 'EN' | '简体中文' | 'عربي';
+export type Language = 'EN' | 'हिंदी' | '简体中文' | 'عربي';
 
 export const translations = {
   EN: {
@@ -96,6 +96,68 @@ export const translations = {
       next: 'Next',
       finish: 'Finish',
       logout: 'Logout',
+    },
+  },
+  'हिंदी': {
+    nav: {
+      home: 'होम',
+      workbench: 'कार्यक्षेत्र',
+      frameworks: 'फ्रेमवर्क',
+      evidenceVault: 'साक्ष्य भंडार',
+      analytics: 'विश्लेषण',
+      publish: 'प्रकाशित करें',
+      admin: 'व्यवस्थापक',
+    },
+    login: {
+      title: 'Aeiforo में आपका स्वागत है',
+      subtitle: 'आश्वासन-ग्रेड ESG रिपोर्टिंग प्लेटफॉर्म',
+      email: 'ईमेल',
+      password: 'पासवर्ड',
+      signin: 'साइन इन करें',
+      demo: 'डेमो क्रेडेंशियल्स पूर्व-भरी हुई',
+    },
+    home: {
+      title: 'रिपोर्टिंग कमांड सेंटर',
+      period: 'अवधि',
+      regionMode: 'क्षेत्र मोड',
+      integrity: 'अखंडता',
+      verified: 'सत्यापित',
+      pipeline: { setup: 'सेटअप', dma: 'DMA', collection: 'संग्रह', review: 'समीक्षा', publish: 'प्रकाशित करें' },
+      riskStrip: 'जोखिम अलर्ट',
+      criticalGaps: 'प्रकाशन को ब्लॉक करने वाले महत्वपूर्ण अंतर',
+      missingEvidence: 'गायब साक्ष्य फाइलें',
+      expiringCerts: 'समाप्त होने वाले प्रमाणपत्र (< 30 दिन)',
+      nextActions: 'अगली कार्रवाई',
+      continueDMA: 'जलवायु विषयों के लिए DMA जारी रखें',
+      resolveGaps: 'BU/साइटों में {count} अंतरों को हल करें',
+      reviewSubmissions: 'अनुमोदन के लिए तैयार {count} सबमिशन की समीक्षा करें',
+    },
+    workbench: {
+      title: 'कार्यक्षेत्र',
+      subtitle: 'कार्य, DMA/महत्व, समीक्षा और अंतर समाधान के लिए केंद्रीय हब',
+      tabs: { tasks: 'कार्य और अंतर', dma: 'DMA / महत्व', reviews: 'समीक्षा और अनुमोदन' },
+      readyToPublish: 'प्रकाशित करने के लिए तैयार: {count} मॉड्यूल',
+      criticalGaps: 'महत्वपूर्ण अंतर: {count}',
+      filters: { all: 'सभी कार्य', mine: 'मेरे कार्य', critical: 'महत्वपूर्ण', dueThisWeek: 'इस सप्ताह देय' },
+    },
+    orgSetup: {
+      title: 'संगठन सेटअप',
+      subtitle: 'अपनी रिपोर्टिंग वातावरण, फ्रेमवर्क और शासन मॉडल कॉन्फ़िगर करें',
+      regionMode: 'क्षेत्र मोड',
+      dataResidency: 'डेटा निवास',
+      defaultLanguage: 'डिफ़ॉल्ट भाषा',
+      entityHierarchy: 'इकाई पदानुक्रम',
+      roles: 'भूमिकाएं (RBAC)',
+      frameworkPacks: 'सक्षम फ्रेमवर्क पैक',
+      methodLibraries: 'विधि पुस्तकालय',
+      save: 'कॉन्फ़िगरेशन सहेजें',
+      saved: 'सहेजा गया',
+    },
+    common: {
+      save: 'सहेजें', cancel: 'रद्द करें', delete: 'हटाएं', edit: 'संपादित करें', view: 'देखें',
+      export: 'निर्यात', import: 'आयात', search: 'खोज', filter: 'फ़िल्टर', loading: 'लोड हो रहा है...',
+      noData: 'कोई डेटा उपलब्ध नहीं', error: 'एक त्रुटि हुई', success: 'सफलता', confirm: 'पुष्टि करें',
+      back: 'वापस', next: 'अगला', finish: 'समाप्त', logout: 'लॉग आउट',
     },
   },
   '简体中文': {
@@ -296,7 +358,7 @@ export const translations = {
 
 export function getTranslation(lang: Language, key: string): string {
   const keys = key.split('.');
-  let value: any = translations[lang];
+  let value: any = translations[lang as keyof typeof translations];
   
   for (const k of keys) {
     value = value?.[k];
