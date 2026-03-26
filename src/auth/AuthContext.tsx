@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, ReactNode } from 'react'
 
 /** Demo sign-in shown on the login screen and validated by `login`. */
-export const DEMO_EMAIL = 'user1@markltics.co.uk'
+export const DEMO_EMAIL = 'user1@marklytics.co.uk'
 export const DEMO_PASSWORD = 'marklytics'
 
 type DemoUser = {
