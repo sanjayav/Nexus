@@ -5,10 +5,11 @@ import {
     Box, Shield, Bell, Search as SearchIcon,
     ChevronRight,
     Activity, Layers, FileText, BarChart, Focus,
-    Calculator, Settings2, Sparkles
+    Calculator, Settings2, Sparkles, LogOut
 } from 'lucide-react'
 import clsx from 'clsx'
 import { useRBAC } from '../contexts/RBACContext'
+import { useAuth } from '../auth/AuthContext'
 
 const NAV_GROUPS = [
     {
@@ -58,6 +59,15 @@ export default function UIAppShell({ children }: { children: React.ReactNode }) 
     const location = useLocation()
     const navigate = useNavigate()
     const { roleDef } = useRBAC()
+    const { user, logout } = useAuth()
+
+    const handleLogout = () => {
+        logout()
+        navigate('/login', { replace: true })
+    }
+
+    const displayName = user?.name ?? 'User Panel'
+    const userInitial = (user?.name?.[0] ?? user?.email?.[0] ?? 'U').toUpperCase()
 
     return (
         // The Background representing white paper waves. Using a CSS pattern + gradients.
@@ -148,26 +158,46 @@ export default function UIAppShell({ children }: { children: React.ReactNode }) 
                         </div>
 
                         {/* User Profile Snippet (Bottom Left) */}
-                        <div className="p-6 border-t border-black/[0.04] mt-auto">
+                        <div className="p-6 border-t border-black/[0.04] mt-auto space-y-3">
                             {!isSidebarCollapsed ? (
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-black/5 border border-black/10 flex items-center justify-center shrink-0">
-                                        <span className="text-sm font-bold text-black">U</span>
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-sm font-bold text-black truncate">User Panel</div>
-                                        <div className="text-xs text-black/50 truncate flex items-center gap-1.5 mt-0.5">
-                                            {roleDef.name}
+                                <>
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-black/5 border border-black/10 flex items-center justify-center shrink-0">
+                                            <span className="text-sm font-bold text-black">{userInitial}</span>
                                         </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-bold text-black truncate">{displayName}</div>
+                                            <div className="text-xs text-black/50 truncate flex items-center gap-1.5 mt-0.5">
+                                                {user?.email ?? roleDef.name}
+                                            </div>
+                                        </div>
+                                        <button type="button" onClick={() => setCollapsed(true)} className="p-1.5 rounded-full hover:bg-black/5 text-black/40 hover:text-black transition" aria-label="Collapse sidebar">
+                                            <ChevronRight className="w-4 h-4 rotate-180" />
+                                        </button>
                                     </div>
-                                    <button onClick={() => setCollapsed(true)} className="p-1.5 rounded-full hover:bg-black/5 text-black/40 hover:text-black transition">
-                                        <ChevronRight className="w-4 h-4 rotate-180" />
+                                    <button
+                                        type="button"
+                                        onClick={handleLogout}
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest text-black/70 border border-black/10 bg-white/50 hover:bg-white hover:text-black hover:border-black/20 transition-colors"
+                                    >
+                                        <LogOut className="w-4 h-4" />
+                                        Log out
+                                    </button>
+                                </>
+                            ) : (
+                                <div className="flex flex-col items-center gap-2">
+                                    <button type="button" onClick={() => setCollapsed(false)} className="w-full flex justify-center p-2 rounded-xl text-black/40 hover:bg-black/5 transition" aria-label="Expand sidebar">
+                                        <ChevronRight className="w-5 h-5" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleLogout}
+                                        className="w-full flex justify-center p-2.5 rounded-xl text-black/50 hover:bg-rose-50 hover:text-rose-600 border border-transparent hover:border-rose-200 transition-colors"
+                                        title="Log out"
+                                    >
+                                        <LogOut className="w-5 h-5" />
                                     </button>
                                 </div>
-                            ) : (
-                                <button onClick={() => setCollapsed(false)} className="w-full flex justify-center p-2 rounded-xl text-black/40 hover:bg-black/5 transition">
-                                    <ChevronRight className="w-5 h-5" />
-                                </button>
                             )}
                         </div>
                     </aside>
@@ -180,7 +210,7 @@ export default function UIAppShell({ children }: { children: React.ReactNode }) 
                             {/* Greeting / Dynamic Based on Route maybe */}
                             <div className="flex-1">
                                 {location.pathname === '/carbon' || location.pathname === '/dma' ? (
-                                    <h1 className="text-2xl font-bold text-black tracking-tight">Hi, User!</h1>
+                                    <h1 className="text-2xl font-bold text-black tracking-tight">Hi, {user?.name?.split(' ')[0] ?? 'there'}!</h1>
                                 ) : (
                                     <div className="text-lg font-bold text-black opacity-80">Workspace</div>
                                 )}
@@ -213,8 +243,17 @@ export default function UIAppShell({ children }: { children: React.ReactNode }) 
                                     <button
                                         onClick={() => navigate('/admin')}
                                         className="w-10 h-10 rounded-full border border-black/10 overflow-hidden ml-2 shadow-sm bg-black/5 flex items-center justify-center cursor-pointer hover:border-black/30 hover:bg-black/10 transition-colors focus:outline-none active:scale-95"
+                                        aria-label="Admin"
                                     >
-                                        <span className="text-xs font-bold text-black">A</span>
+                                        <span className="text-xs font-bold text-black">{userInitial}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleLogout}
+                                        className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest text-black/60 border border-black/10 bg-white/60 hover:bg-white hover:text-black hover:border-black/20 transition-colors"
+                                    >
+                                        <LogOut className="w-3.5 h-3.5" />
+                                        Log out
                                     </button>
                                 </div>
                             </div>
