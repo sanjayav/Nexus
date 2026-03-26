@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, ReactNode } from 'react'
 
-const DEMO_EMAIL = 'admin@aeiforo.co.uk'
-const DEMO_PASSWORD = 'admin'
+/** Demo sign-in shown on the login screen and validated by `login`. */
+export const DEMO_EMAIL = 'user1@markltics.co.uk'
+export const DEMO_PASSWORD = 'marklytics'
 
 type DemoUser = {
   email: string
@@ -20,7 +21,6 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<DemoUser | null>(() => {
-    // Initialize from localStorage if available
     const stored = localStorage.getItem('aeiforo_auth_user')
     if (stored) {
       try {
@@ -35,8 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string): Promise<boolean> => {
     const normalizedEmail = email.trim().toLowerCase()
     const valid =
-      normalizedEmail === DEMO_EMAIL.toLowerCase() &&
-      password === DEMO_PASSWORD
+      normalizedEmail === DEMO_EMAIL.toLowerCase() && password === DEMO_PASSWORD
 
     if (!valid) {
       return false
@@ -44,12 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const demoUser: DemoUser = {
       email: DEMO_EMAIL,
-      name: 'Aeiforo Admin',
+      name: 'Marklytics User',
       role: 'Admin',
     }
 
     setUser(demoUser)
-    // Persist to localStorage
     localStorage.setItem('aeiforo_auth_user', JSON.stringify(demoUser))
 
     return true
@@ -57,7 +55,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null)
-    // Clear from localStorage
     localStorage.removeItem('aeiforo_auth_user')
   }
 
@@ -78,5 +75,3 @@ export function useAuth() {
   }
   return ctx
 }
-
-

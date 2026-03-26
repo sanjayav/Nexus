@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Search, ChevronDown, User, ChevronRight, LogOut } from 'lucide-react'
 import { mockData } from '../data/mockData'
-import { useAuth } from '../auth/AuthContext'
+import { useAuth, DEMO_EMAIL } from '../auth/AuthContext'
 import LanguageSelector from './LanguageSelector'
 import { useLanguage } from '../contexts/LanguageContext'
 import { t } from '../i18n/translations'
@@ -145,7 +145,7 @@ export default function Header() {
               <span className="text-gray-300 font-medium">
                 {user?.name ?? 'Demo user'}
               </span>
-              <span className="text-gray-500">{user?.email ?? 'admin@aeiforo.co.uk'}</span>
+              <span className="text-gray-500">{user?.email ?? DEMO_EMAIL}</span>
             </div>
             <button
               className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-dark-bg transition-colors border border-transparent hover:border-dark-border"
