@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import bcrypt from 'bcryptjs'
+import * as bcrypt from 'bcryptjs'
 import { getDb } from '../_db'
 import { signToken, cors } from '../_auth'
 

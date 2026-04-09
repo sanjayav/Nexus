@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { getDb } from './_db'
 import { cors } from './_auth'
-import bcrypt from 'bcryptjs'
+import * as bcrypt from 'bcryptjs'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   cors(res)
