@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { getDb } from '../_db'
-import { verifyToken, cors } from '../_auth'
+import { getDb } from '../_db.js'
+import { verifyToken, cors } from '../_auth.js'
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
