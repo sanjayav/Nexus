@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { auth as authApi, setToken, clearToken, type AuthUser } from '../lib/api'
+import { resolvePermissions } from '../lib/rbac'
 
 export type Role = 'PA' | 'TL' | 'FM' | 'SO' | 'AUD' | 'AUTO'
 
@@ -12,10 +13,10 @@ export interface User {
   groups?: string[]
   subdivisions?: string[]
   sources?: string[]
-  // RBAC fields (populated when using Neon DB)
   roles?: string[]
   roleNames?: string[]
   permissions?: string[]
+  preferredFrameworkId?: string
 }
 
 type AuthContextValue = {
@@ -29,53 +30,23 @@ type AuthContextValue = {
   dbConnected: boolean
 }
 
-// Demo users — fallback when no Neon DB connection
-const DEMO_USERS: Record<string, { password: string; user: User }> = {
-  'admin@aeiforo.com': {
-    password: 'demo2026',
-    user: {
-      email: 'admin@aeiforo.com', name: 'Jane Mitchell', role: 'PA', tenantId: 'demo-tenant',
-      roles: ['admin'], roleNames: ['Platform Admin'],
-      permissions: ['dashboard.view','calculators.view','calculators.edit','data.view','data.upload','data.approve','reports.view','reports.create','reports.publish','analytics.view','workflow.view','workflow.approve','audit.view','admin.users','admin.roles','admin.org','admin.settings'],
-    },
-  },
-  'tl@aeiforo.com': {
-    password: 'demo2026',
-    user: {
-      email: 'tl@aeiforo.com', name: 'Tom Harris', role: 'TL', tenantId: 'demo-tenant',
-      groups: ['uk-region', 'eu-region'],
-      roles: ['team-lead'], roleNames: ['Team Lead'],
-      permissions: ['dashboard.view','calculators.view','calculators.edit','data.view','data.upload','data.approve','reports.view','reports.create','analytics.view','workflow.view','workflow.approve','audit.view','admin.users'],
-    },
-  },
-  'fm@aeiforo.com': {
-    password: 'demo2026',
-    user: {
-      email: 'fm@aeiforo.com', name: 'Sarah Chen', role: 'FM', tenantId: 'demo-tenant',
-      subdivisions: ['uk-factory', 'de-office'],
-      roles: ['analyst'], roleNames: ['Analyst'],
-      permissions: ['dashboard.view','calculators.view','calculators.edit','data.view','data.upload','reports.view','reports.create','analytics.view','workflow.view'],
-    },
-  },
-  'so@aeiforo.com': {
-    password: 'demo2026',
-    user: {
-      email: 'so@aeiforo.com', name: 'Alex Rivera', role: 'SO', tenantId: 'demo-tenant',
-      sources: ['boiler-1', 'boiler-2', 'grid-elec'],
-      roles: ['viewer'], roleNames: ['Viewer'],
-      permissions: ['dashboard.view','calculators.view','data.view','reports.view','analytics.view','workflow.view'],
-    },
-  },
-}
-
 const LEGACY_EMAILS: Record<string, string> = {
   'demo@gcgroup.com': 'admin@aeiforo.com',
   'user1@marklytics.co.uk': 'admin@aeiforo.com',
 }
 
-// Map DB role slugs to legacy Role codes
+// Map DB role slugs to legacy short codes (for Role field backwards compat).
 const SLUG_TO_ROLE: Record<string, Role> = {
-  'admin': 'PA', 'team-lead': 'TL', 'analyst': 'FM', 'viewer': 'SO', 'auditor': 'AUD',
+  'admin': 'PA',
+  'platform_admin': 'PA',
+  'team-lead': 'TL',
+  'subsidiary_lead': 'TL',
+  'group_sustainability_officer': 'SO',
+  'plant_manager': 'FM',
+  'analyst': 'FM',
+  'data_contributor': 'FM',
+  'viewer': 'SO',
+  'auditor': 'AUD',
 }
 
 function dbUserToUser(u: AuthUser): User {
@@ -89,6 +60,7 @@ function dbUserToUser(u: AuthUser): User {
     roles: u.roles,
     roleNames: u.roleNames,
     permissions: u.permissions,
+    preferredFrameworkId: u.preferredFrameworkId,
   }
 }
 
@@ -97,14 +69,16 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     const stored = localStorage.getItem('aeiforo_auth_user')
-    if (stored) {
-      try { return JSON.parse(stored) } catch { return null }
+    const token = localStorage.getItem('aeiforo_token')
+    if (!stored) return null
+    if (!token) {
+      localStorage.removeItem('aeiforo_auth_user')
+      return null
     }
-    return null
+    try { return JSON.parse(stored) } catch { return null }
   })
   const [dbConnected, setDbConnected] = useState(false)
 
-  // Persist user changes
   useEffect(() => {
     if (user) {
       localStorage.setItem('aeiforo_auth_user', JSON.stringify(user))
@@ -120,15 +94,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(u)
       setDbConnected(true)
     } catch {
-      // Token expired or API unavailable — keep current user
+      // Token expired — let the next API call trigger the global 401 → /login redirect
     }
   }, [])
 
+  /**
+   * Live auth only. Hits /api/auth/login against Neon. Any failure (including
+   * network) returns false — we never fall back to demo credentials.
+   */
   const login = async (email: string, password: string): Promise<boolean> => {
     const normalizedEmail = email.trim().toLowerCase()
     const resolvedEmail = LEGACY_EMAILS[normalizedEmail] || normalizedEmail
-
-    // Try real API first
     try {
       const res = await authApi.login(resolvedEmail, password)
       setToken(res.token)
@@ -137,17 +113,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setDbConnected(true)
       return true
     } catch {
-      // API unavailable — fall through to demo mode
+      return false
     }
-
-    // Demo fallback
-    const entry = DEMO_USERS[resolvedEmail]
-    if (!entry || entry.password !== password) return false
-
-    setUser(entry.user)
-    localStorage.setItem('aeiforo_auth_user', JSON.stringify(entry.user))
-    setDbConnected(false)
-    return true
   }
 
   const register = async (data: { email: string; name: string; password: string; inviteToken?: string }): Promise<boolean> => {
@@ -170,7 +137,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setDbConnected(false)
   }
 
-  const permissions = user?.permissions ?? []
+  const permissions = user
+    ? ((user.permissions && user.permissions.length > 0) ? user.permissions : resolvePermissions(user))
+    : []
 
   return (
     <AuthContext.Provider value={{ user, isAuthenticated: Boolean(user), permissions, login, register, logout, refreshUser, dbConnected }}>

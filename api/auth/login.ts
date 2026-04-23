@@ -16,6 +16,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const rows = await sql`
       SELECT u.id, u.org_id, u.email, u.name, u.password_hash, u.is_active, u.avatar_url,
+             u.preferred_framework_id,
              array_agg(DISTINCT r.slug) AS role_slugs,
              array_agg(DISTINCT r.name) AS role_names,
              array_agg(DISTINCT p.resource || '.' || p.action) AS permissions
@@ -49,6 +50,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         email: user.email,
         name: user.name,
         avatarUrl: user.avatar_url,
+        preferredFrameworkId: user.preferred_framework_id ?? 'gri',
         roles: (user.role_slugs ?? []).filter(Boolean),
         roleNames: (user.role_names ?? []).filter(Boolean),
         permissions: (user.permissions ?? []).filter(Boolean),

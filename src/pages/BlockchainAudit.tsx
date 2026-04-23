@@ -22,10 +22,12 @@ import {
   Hourglass,
   ChevronsUp,
 } from 'lucide-react'
-import { blockchainRecords, type BlockchainRecord } from '../data/pttgcData'
+import { type BlockchainRecord } from '../data/pttgcData'
 import { Badge } from '../design-system'
-import { blockchain as blockchainApi, type ApiBlockchainRecord } from '../lib/api'
+import { blockchain as blockchainApi, type ApiBlockchainRecord, type ChainVerifyReport, type ChainAnchor } from '../lib/api'
 import { useApi } from '../lib/useApi'
+import { useEffect } from 'react'
+import { ShieldAlert, Download, Bitcoin, RefreshCw } from 'lucide-react'
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */
@@ -60,6 +62,24 @@ const eventIcon: Record<EventType, typeof Shield> = {
   Anchored: Anchor,
   'Report Generated': FileText,
   Corrected: PenLine,
+}
+
+/**
+ * Normalise whatever the API returns into one of our 5 canonical event types.
+ * Raw blockchain_records.event_type can be lowercase, "verified", "confirmed" etc.
+ * — this maps them to the nearest visual bucket so icons never come up undefined.
+ */
+function normaliseEventType(raw: string | undefined | null): EventType {
+  const s = (raw ?? '').toLowerCase()
+  if (s.includes('approve')) return 'Approved'
+  if (s.includes('anchor')) return 'Anchored'
+  if (s.includes('report')) return 'Report Generated'
+  if (s.includes('correct') || s.includes('restate')) return 'Corrected'
+  return 'Submitted'
+}
+
+function getEventIcon(eventType: string | undefined | null): typeof Shield {
+  return eventIcon[normaliseEventType(eventType)] ?? Shield
 }
 
 function truncate(val: string, len = 16): string {
@@ -137,7 +157,7 @@ function ChainVisualization({ records }: { records: BlockchainRecord[] }) {
 
       <div className="flex items-center justify-center gap-0 overflow-x-auto py-4">
         {chainSteps.map((step, idx) => {
-          const Icon = eventIcon[step.eventType]
+          const Icon = getEventIcon(step.eventType)
           const accent = stepAccent[step.eventType] ?? { bg: 'var(--bg-secondary)', border: 'var(--border-default)', icon: 'var(--text-tertiary)' }
           return (
             <div key={step.id} className="flex items-center">
@@ -256,6 +276,43 @@ export default function BlockchainAudit() {
   const [facilityFilter, setFacilityFilter] = useState<string>('all')
   const [eventTypeFilter, setEventTypeFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [verifyReport, setVerifyReport] = useState<ChainVerifyReport | null>(null)
+  const [verifying, setVerifying] = useState(false)
+  const [anchors, setAnchors] = useState<ChainAnchor[]>([])
+  const [anchoring, setAnchoring] = useState(false)
+  const [anchorFlash, setAnchorFlash] = useState<string | null>(null)
+
+  const runVerify = async () => {
+    setVerifying(true)
+    try {
+      const r = await blockchainApi.verify()
+      setVerifyReport(r)
+    } catch (e) {
+      alert(`Verify failed: ${e instanceof Error ? e.message : e}`)
+    }
+    setVerifying(false)
+  }
+
+  const loadAnchors = async () => {
+    try { setAnchors(await blockchainApi.listAnchors()) } catch { /* silent */ }
+  }
+
+  useEffect(() => { loadAnchors() }, [])
+
+  const runAnchor = async () => {
+    setAnchoring(true)
+    setAnchorFlash(null)
+    try {
+      const r = await blockchainApi.anchorTip()
+      setAnchorFlash(r.alreadyAnchored
+        ? `This tip was already anchored within the last minute.`
+        : `✓ Submitted ${r.tip_hash.slice(0, 20)}… to OpenTimestamps · ${r.receipt_size} bytes · Bitcoin confirmation 1-6h`)
+      await loadAnchors()
+    } catch (e) {
+      setAnchorFlash(`Anchor failed: ${e instanceof Error ? e.message : e}`)
+    }
+    setAnchoring(false)
+  }
 
   // API integration with mock fallback
   const { data: records, isLive } = useApi<ApiBlockchainRecord[]>(
@@ -263,26 +320,23 @@ export default function BlockchainAudit() {
     [],
   )
 
-  // Map API records to display format, fallback to mock blockchainRecords
+  // Live records only. Empty feed shows as-is — no demo fallback.
   const displayRecords: BlockchainRecord[] = useMemo(() => {
-    if (records.length > 0) {
-      return records.map((r) => ({
-        id: r.id,
-        timestamp: r.created_at,
-        eventType: (r.event_type || 'Submitted') as BlockchainRecord['eventType'],
-        facility: r.facility_name || 'Unknown',
-        dataPoint: (r.metadata as Record<string, unknown>)?.dataPoint as string || r.record_type || '',
-        submitter: (r.metadata as Record<string, unknown>)?.submitter as string || 'System',
-        submitterDID: r.verifier_did || '',
-        approver: (r.metadata as Record<string, unknown>)?.approver as string || '',
-        approverDID: (r.metadata as Record<string, unknown>)?.approverDID as string || '',
-        merkleRoot: r.data_hash,
-        txHash: r.transaction_hash,
-        blockNumber: r.block_number,
-        status: (r.status === 'anchored' ? 'verified' : r.status === 'confirmed' ? 'verified' : 'pending') as BlockchainRecord['status'],
-      }))
-    }
-    return blockchainRecords
+    return records.map((r) => ({
+      id: r.id,
+      timestamp: r.created_at,
+      eventType: normaliseEventType(r.event_type),
+      facility: r.facility_name || 'Unknown',
+      dataPoint: (r.metadata as Record<string, unknown>)?.dataPoint as string || r.record_type || '',
+      submitter: (r.metadata as Record<string, unknown>)?.submitter as string || 'System',
+      submitterDID: r.verifier_did || '',
+      approver: (r.metadata as Record<string, unknown>)?.approver as string || '',
+      approverDID: (r.metadata as Record<string, unknown>)?.approverDID as string || '',
+      merkleRoot: r.data_hash,
+      txHash: r.transaction_hash,
+      blockNumber: r.block_number,
+      status: (r.status === 'anchored' ? 'verified' : r.status === 'confirmed' ? 'verified' : 'pending') as BlockchainRecord['status'],
+    }))
   }, [records])
 
   const facilities = useMemo(
@@ -336,7 +390,7 @@ export default function BlockchainAudit() {
         <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl" style={{
           background: 'linear-gradient(180deg, var(--accent-teal), var(--accent-purple))',
         }} />
-        <div className="relative flex items-start justify-between">
+        <div className="relative flex items-start justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center animate-float" style={{
               background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent-teal) 15%, transparent), color-mix(in srgb, var(--accent-purple) 10%, transparent))',
@@ -346,10 +400,10 @@ export default function BlockchainAudit() {
             </div>
             <div>
               <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">
-                Blockchain Audit Trail
+                Tamper-evident audit trail
               </h1>
               <p className="mt-1 text-[var(--text-sm)] text-[var(--text-tertiary)] max-w-2xl leading-relaxed flex items-center gap-2 flex-wrap">
-                Every data submission, approval, and report generation is timestamped, hashed, and anchored on-chain. Tamper-evident chain of custody for every sustainability data point.
+                Every assignment submission, approval, comment and publish is hash-chained. Any modification to a past record breaks the chain.
                 {isLive && (
                   <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--accent-green)] bg-[var(--accent-green-light)] px-2 py-0.5 rounded-full">
                     <Wifi className="w-3 h-3" /> Live
@@ -357,6 +411,53 @@ export default function BlockchainAudit() {
                 )}
               </p>
             </div>
+          </div>
+
+          {/* Verify + Anchor actions */}
+          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={runVerify}
+                disabled={verifying}
+                className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--accent-teal)] text-white text-[var(--text-sm)] font-semibold hover:opacity-90 disabled:opacity-60 inline-flex items-center gap-2 shadow-sm"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                {verifying ? 'Verifying…' : 'Verify chain'}
+              </button>
+              <button
+                onClick={runAnchor}
+                disabled={anchoring}
+                title="Submit the current chain tip to OpenTimestamps for Bitcoin notarization"
+                className="px-4 py-2 rounded-[var(--radius-md)] bg-[#F7931A] text-white text-[var(--text-sm)] font-semibold hover:opacity-90 disabled:opacity-60 inline-flex items-center gap-2 shadow-sm"
+              >
+                <Bitcoin className="w-4 h-4" />
+                {anchoring ? 'Anchoring…' : 'Anchor to Bitcoin'}
+              </button>
+            </div>
+            {verifyReport && (
+              <div className={`text-[11px] px-3 py-2 rounded-[var(--radius-md)] max-w-[340px] ${
+                verifyReport.verified ? 'bg-[var(--accent-green-light)] text-[var(--status-ok)]' : 'bg-[var(--accent-red-light)] text-[var(--status-reject)]'
+              }`}>
+                {verifyReport.verified ? (
+                  <>
+                    <div className="font-semibold inline-flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Chain intact</div>
+                    <div className="opacity-80">{verifyReport.totalRecords} records verified. Tip: <span className="font-mono">{verifyReport.tipHash?.slice(0, 18) ?? '—'}…</span></div>
+                  </>
+                ) : (
+                  <>
+                    <div className="font-semibold inline-flex items-center gap-1"><ShieldAlert className="w-3 h-3" /> Chain broken</div>
+                    <div className="opacity-80">At block #{verifyReport.brokenAt}. {verifyReport.brokenReason}</div>
+                  </>
+                )}
+              </div>
+            )}
+            {anchorFlash && (
+              <div className={`text-[11px] px-3 py-2 rounded-[var(--radius-md)] max-w-[340px] ${
+                anchorFlash.startsWith('✓') ? 'bg-[#F7931A]/10 text-[#8B5A00]' : 'bg-[var(--accent-red-light)] text-[var(--status-reject)]'
+              }`}>
+                {anchorFlash}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -393,6 +494,86 @@ export default function BlockchainAudit() {
           )
         })}
       </div>
+
+      {/* ── Bitcoin anchors panel ── */}
+      {anchors.length > 0 && (
+        <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] overflow-hidden" style={{ boxShadow: 'var(--shadow-card)' }}>
+          <header className="px-5 py-3 border-b border-[var(--border-subtle)] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Bitcoin className="w-4 h-4 text-[#F7931A]" />
+              <h3 className="font-display text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">Bitcoin anchors · OpenTimestamps</h3>
+            </div>
+            <button onClick={loadAnchors} className="text-[10px] font-semibold text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] inline-flex items-center gap-1">
+              <RefreshCw className="w-3 h-3" /> Refresh
+            </button>
+          </header>
+          <table className="w-full text-[var(--text-sm)]">
+            <thead>
+              <tr className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] bg-[var(--bg-secondary)]">
+                <th className="text-left px-5 py-2 font-semibold">Anchored</th>
+                <th className="text-left px-3 py-2 font-semibold">Tip hash</th>
+                <th className="text-center px-3 py-2 font-semibold">Block</th>
+                <th className="text-center px-3 py-2 font-semibold">Status</th>
+                <th className="text-right px-5 py-2 font-semibold">Receipt</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border-subtle)]">
+              {anchors.map(a => (
+                <tr key={a.id} className="hover:bg-[var(--bg-secondary)]">
+                  <td className="px-5 py-2.5 text-[var(--text-xs)] text-[var(--text-secondary)]">{new Date(a.anchored_at).toLocaleString()}</td>
+                  <td className="px-3 py-2.5 font-mono text-[10px] text-[var(--accent-teal)]">{a.tip_hash.slice(0, 24)}…</td>
+                  <td className="px-3 py-2.5 text-center text-[var(--text-xs)] tabular-nums text-[var(--text-secondary)]">#{a.tip_block_number}</td>
+                  <td className="px-3 py-2.5 text-center">
+                    {a.status === 'confirmed' ? (
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--status-ok)] bg-[var(--accent-green-light)] px-1.5 py-0.5 rounded">
+                        BTC block #{a.bitcoin_block_height}
+                      </span>
+                    ) : a.status === 'pending' ? (
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-[#F7931A] bg-[#F7931A]/10 px-1.5 py-0.5 rounded">
+                        Pending · submitted
+                      </span>
+                    ) : (
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--status-reject)] bg-[var(--accent-red-light)] px-1.5 py-0.5 rounded" title={a.error_message ?? ''}>
+                        Failed
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-5 py-2.5 text-right">
+                    {a.receipt_size != null && a.receipt_size > 0 ? (
+                      <a href={blockchainApi.anchorReceiptUrl(a.id) + `&_auth=${localStorage.getItem('aeiforo_token') ?? ''}`}
+                         className="text-[var(--text-xs)] font-semibold text-[var(--color-brand)] hover:underline inline-flex items-center gap-1"
+                         onClick={async (e) => {
+                           e.preventDefault()
+                           try {
+                             const token = localStorage.getItem('aeiforo_token') ?? ''
+                             const res = await fetch(`/api/blockchain?view=anchor-receipt&anchor_id=${a.id}`, { headers: { Authorization: `Bearer ${token}` } })
+                             if (!res.ok) { alert('Download failed'); return }
+                             const blob = await res.blob()
+                             const url = URL.createObjectURL(blob)
+                             const link = document.createElement('a')
+                             link.href = url
+                             link.download = `${a.tip_hash.slice(2, 18)}.ots`
+                             link.click()
+                             URL.revokeObjectURL(url)
+                           } catch { alert('Download failed') }
+                         }}>
+                        <Download className="w-3 h-3" /> .ots ({a.receipt_size}B)
+                      </a>
+                    ) : (
+                      <span className="text-[10px] text-[var(--text-tertiary)]">—</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="px-5 py-2 bg-[var(--bg-secondary)] text-[10px] text-[var(--text-tertiary)] border-t border-[var(--border-subtle)]">
+            Every anchor submits the chain tip's SHA-256 to the public OpenTimestamps calendar network.
+            Partial receipts confirm within minutes; Bitcoin block confirmation follows in 1–6 hours.
+            Download the <code className="font-mono">.ots</code> file to verify independently via <a href="https://opentimestamps.org" target="_blank" rel="noreferrer" className="text-[var(--color-brand)] underline">opentimestamps.org</a>.
+          </div>
+        </div>
+      )}
 
       {/* ── Filter Bar ── */}
       <div
@@ -510,7 +691,7 @@ export default function BlockchainAudit() {
             </thead>
             <tbody>
               {filteredRecords.map((record, idx) => {
-                const Icon = eventIcon[record.eventType]
+                const Icon = getEventIcon(record.eventType)
                 return (
                   <tr
                     key={record.id}
@@ -520,7 +701,7 @@ export default function BlockchainAudit() {
                       {formatTimestamp(record.timestamp)}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <Badge variant={eventTypeBadgeVariant[record.eventType]}>
+                      <Badge variant={eventTypeBadgeVariant[normaliseEventType(record.eventType)]}>
                         <Icon className="w-3 h-3" />
                         {record.eventType}
                       </Badge>

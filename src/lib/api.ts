@@ -22,6 +22,18 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 
   const res = await fetch(`${API_BASE}${path}`, { ...opts, headers })
 
+  if (res.status === 401 && !path.startsWith('/auth/')) {
+    // Stale session — demo-mode fallback leaves a user in localStorage without a
+    // server-issued JWT. Clear and bounce to /login so the user can re-authenticate
+    // against the live backend.
+    localStorage.removeItem('aeiforo_token')
+    localStorage.removeItem('aeiforo_auth_user')
+    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      window.location.assign('/login?expired=1')
+    }
+    throw new Error('Session expired — please log in again')
+  }
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }))
     throw new Error(body.error || `API error ${res.status}`)
@@ -37,6 +49,7 @@ export interface AuthUser {
   email: string
   name: string
   avatarUrl?: string
+  preferredFrameworkId?: string
   roles: string[]
   roleNames: string[]
   permissions: string[]
@@ -82,10 +95,10 @@ export const users = {
     }),
 
   update: (id: string, data: { name?: string; isActive?: boolean; roleIds?: string[] }) =>
-    request<ApiUser>(`/users/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    request<ApiUser>(`/users?id=${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) }),
 
   deactivate: (id: string) =>
-    request<{ ok: boolean }>(`/users/${id}`, { method: 'DELETE' }),
+    request<{ ok: boolean }>(`/users?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
 }
 
 // ── Roles ─────────────────────────────────
@@ -275,6 +288,28 @@ export interface ApiBlockchainRecord {
   created_at: string
 }
 
+export interface ChainVerifyReport {
+  verified: boolean
+  totalRecords: number
+  brokenAt: number | null
+  brokenReason?: string
+  tipHash: string | null
+}
+
+export interface ChainAnchor {
+  id: string
+  tip_hash: string
+  tip_block_number: number
+  anchor_method: string
+  calendar_url: string | null
+  receipt_size: number | null
+  status: 'pending' | 'confirmed' | 'failed'
+  error_message: string | null
+  anchored_at: string
+  confirmed_at: string | null
+  bitcoin_block_height: number | null
+}
+
 export const blockchain = {
   list: (params?: { record_type?: string; status?: string; facility_name?: string }) => {
     const qs = params ? '?' + new URLSearchParams(Object.entries(params).filter(([,v]) => v != null).map(([k,v]) => [k, String(v)])).toString() : ''
@@ -282,6 +317,10 @@ export const blockchain = {
   },
   create: (data: { record_type: string; reference_id?: string; facility_name: string; event_type: string; metadata?: Record<string, unknown> }) =>
     request<ApiBlockchainRecord>('/blockchain', { method: 'POST', body: JSON.stringify(data) }),
+  verify: () => request<ChainVerifyReport>('/blockchain?view=verify'),
+  listAnchors: () => request<ChainAnchor[]>('/blockchain?view=anchors'),
+  anchorTip: () => request<{ ok: boolean; anchor_id: string; tip_hash: string; tip_block: number; receipt_size: number; anchored_at: string; status: string; note?: string; alreadyAnchored?: boolean }>('/blockchain', { method: 'POST', body: JSON.stringify({ action: 'anchor-tip' }) }),
+  anchorReceiptUrl: (anchorId: string) => `/api/blockchain?view=anchor-receipt&anchor_id=${encodeURIComponent(anchorId)}`,
 }
 
 // ── Reports ──────────────────────────────
@@ -361,6 +400,183 @@ export const disclosures = {
   },
   upsert: (data: { framework_code: string; disclosure_code: string; period_year: number; response_data: Record<string, unknown>; status: string }) =>
     request<ApiDisclosureResponse>('/disclosures', { method: 'POST', body: JSON.stringify(data) }),
+}
+
+// ── Nexus (SRD v2.0 action/view dispatchers) ─────────────
+
+export interface NexusQuestionnaireItem {
+  id: string
+  section: string
+  subsection: string
+  gri_code: string
+  line_item: string
+  unit: string | null
+  scope_split: string | null
+  default_workflow_role: 'AUTO' | 'FM' | 'SO' | 'TL'
+  entry_mode_default: 'Manual' | 'Calculator' | 'Connector'
+  target_fy2026: number | null
+  footnote_refs: string[]
+  reporting_scope: 'group' | 'jv'
+}
+
+export interface NexusHistoricalPoint {
+  year: number
+  scope_key: string | null
+  value: number
+  source_report: string
+  confidence_score: number
+}
+
+export interface NexusDataValue {
+  id: string
+  questionnaire_item_id: string
+  reporting_year_id: string
+  facility_id: string | null
+  scope_key: string | null
+  value: number | null
+  unit: string | null
+  entry_mode: 'Manual' | 'Calculator' | 'Connector' | null
+  status: 'not_started' | 'draft' | 'submitted' | 'reviewed' | 'approved' | 'rejected' | 'published'
+  value_hash: string | null
+  comment: string | null
+  entered_by: string | null
+  entered_at: string | null
+  submitted_at: string | null
+  reviewed_by: string | null
+  reviewed_at: string | null
+  approved_by: string | null
+  approved_at: string | null
+  // joined from questionnaire_item when returned by queue views
+  line_item?: string
+  gri_code?: string
+  section?: string
+}
+
+export interface NexusEvidence {
+  id: string
+  filename: string
+  file_type: string | null
+  file_size: number
+  file_hash: string
+  uploaded_at: string
+  uploaded_by_name: string | null
+}
+
+export interface NexusAuditEvent {
+  id: string
+  data_value_id: string
+  event_type: 'entered' | 'submitted' | 'reviewed' | 'approved' | 'rejected' | 'published' | 'assigned' | 'overridden'
+  actor_user_id: string | null
+  actor_name: string | null
+  actor_email: string | null
+  actor_platform_role: string | null
+  actor_workflow_role: string | null
+  timestamp: string
+  previous_hash: string
+  new_hash: string
+  comment: string | null
+}
+
+export const nexus = {
+  // Questionnaire tree — scoped to a framework. Defaults to GRI 305 (Phase 1).
+  tree: (frameworkId: string = 'gri') =>
+    request<NexusQuestionnaireItem[]>(`/workflow?view=tree&framework_id=${encodeURIComponent(frameworkId)}`),
+
+  // Historical 4-year reference for a specific question
+  historical: (questionId: string) =>
+    request<NexusHistoricalPoint[]>(`/workflow?view=historical&question_id=${encodeURIComponent(questionId)}`),
+
+  // Queues
+  reviewQueue: () => request<NexusDataValue[]>('/workflow?view=review-queue'),
+  approvalQueue: () => request<NexusDataValue[]>('/workflow?view=approval-queue'),
+
+  // Actions
+  enterValue: (body: {
+    question_id: string
+    reporting_year_id: string
+    facility_id?: string | null
+    scope_key?: string | null
+    value: number
+    unit?: string
+    mode?: 'Manual' | 'Calculator' | 'Connector'
+    comment?: string
+  }) =>
+    request<NexusDataValue & { value_hash: string }>('/workflow', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'enter-value', ...body }),
+    }),
+
+  submit: (data_value_id: string) =>
+    request<{ ok: true; value_hash: string }>('/workflow', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'submit', data_value_id }),
+    }),
+
+  review: (data_value_id: string, decision: 'pass' | 'reject', comment?: string) =>
+    request<{ ok: true; new_status: string; value_hash: string }>('/workflow', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'review', data_value_id, decision, comment }),
+    }),
+
+  approve: (data_value_id: string, decision: 'approve' | 'reject', comment?: string) =>
+    request<{ ok: true; new_status: string; value_hash: string }>('/workflow', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'approve', data_value_id, decision, comment }),
+    }),
+
+  publish: (reporting_year_id: string) =>
+    request<{ ok: true; publish_hash: string }>('/workflow', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'publish', reporting_year_id }),
+    }),
+
+  listEvidence: (data_value_id: string) =>
+    request<NexusEvidence[]>(`/workflow?view=evidence&data_value_id=${encodeURIComponent(data_value_id)}`),
+
+  uploadEvidence: async (data_value_id: string, file: File): Promise<NexusEvidence> => {
+    const content_base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = reader.result as string
+        resolve(result.split(',', 2)[1] ?? '')
+      }
+      reader.onerror = () => reject(reader.error)
+      reader.readAsDataURL(file)
+    })
+    return request<NexusEvidence>('/workflow', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'upload-evidence',
+        data_value_id,
+        filename: file.name,
+        file_type: file.type || null,
+        size: file.size,
+        content_base64,
+      }),
+    })
+  },
+
+  removeEvidence: (evidence_id: string) =>
+    request<{ ok: true }>('/workflow', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'remove-evidence', evidence_id }),
+    }),
+
+  evidenceDownloadUrl: (evidence_id: string) =>
+    `/api/workflow?view=evidence-file&evidence_id=${encodeURIComponent(evidence_id)}`,
+
+  connectorPull: (body: { question_id: string; reporting_year_id: string; connector: string; facility_id?: string | null }) =>
+    request<NexusDataValue & { value_hash: string; receipt_hash: string }>('/workflow', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'connector-pull', ...body }),
+    }),
+
+  // Blockchain trail
+  trail: (data_value_id: string) =>
+    request<NexusAuditEvent[]>(`/blockchain?view=trail&data_value_id=${encodeURIComponent(data_value_id)}`),
+
+  hash: (data_value_id: string) =>
+    request<{ value_hash: string; status: string }>(`/blockchain?view=hash&data_value_id=${encodeURIComponent(data_value_id)}`),
 }
 
 // ── Audit Log ────────────────────────────

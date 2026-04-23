@@ -4,7 +4,6 @@ import {
   FileSpreadsheet,
   Activity,
   Users,
-  Truck,
   ChevronRight,
   ArrowLeft,
   Database,
@@ -18,7 +17,6 @@ import OrganisationSetup from './OrganisationSetup'
 import RawSupplierIngestion from './RawSupplierIngestion'
 import MeasuredData from './MeasuredData'
 import EntitySubmissions from './EntitySubmissions'
-import SupplierData from './SupplierData'
 
 /* ═══════════════════════════════════════════
    Module definitions
@@ -79,17 +77,6 @@ const MODULES: DataModule[] = [
     color: 'amber',
     status: 'live',
     stats: [{ label: 'Entities', value: '48+' }, { label: 'Templates', value: '4' }],
-  },
-  {
-    id: 'suppliers',
-    title: 'Supplier Data',
-    subtitle: 'Scope 3 supply chain emissions',
-    desc: 'Manage Scope 3 supplier-level emissions — upload actual data, track completeness, and replace spend-based estimates with measured values.',
-    icon: Truck,
-    accent: 'var(--accent-green)',
-    color: 'green',
-    status: 'live',
-    stats: [{ label: 'Suppliers', value: '10+' }, { label: 'Completeness', value: '67%' }],
   },
 ]
 
@@ -228,7 +215,6 @@ export default function DataIngestion() {
       {view === 'raw-supplier' && <RawSupplierIngestion />}
       {view === 'measured' && <MeasuredData />}
       {view === 'entities' && <EntitySubmissions />}
-      {view === 'suppliers' && <SupplierData />}
     </div>
   )
 }

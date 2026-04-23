@@ -16,22 +16,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const sql = getDb()
 
   try {
-    // Check invitation if token provided
-    let orgId = '00000000-0000-0000-0000-000000000001' // default org
-    let roleId: string | null = null
-
-    if (inviteToken) {
-      const inv = await sql`
-        SELECT id, org_id, role_id, email, status, expires_at
-        FROM invitations WHERE token = ${inviteToken}
-      `
-      if (inv.length === 0) return res.status(400).json({ error: 'Invalid invitation' })
-      if (inv[0].status !== 'pending') return res.status(400).json({ error: 'Invitation already used' })
-      if (new Date(inv[0].expires_at) < new Date()) return res.status(400).json({ error: 'Invitation expired' })
-      if (inv[0].email.toLowerCase() !== email.toLowerCase()) return res.status(400).json({ error: 'Email does not match invitation' })
-      orgId = inv[0].org_id
-      roleId = inv[0].role_id
+    // ─── SECURITY: registration is invitation-only. ──────────────
+    // An earlier draft dropped any self-registered user into the default org,
+    // causing a cross-tenant data leak (a random registered user saw every
+    // assignment in the seed tenant). We now require a valid invitation token
+    // and refuse any open signup. If you want open signup back, you MUST also
+    // provision a fresh organisation row per signup — that code path is NOT
+    // wired here and should not be turned on casually.
+    if (!inviteToken) {
+      return res.status(403).json({
+        error: 'Self-registration is disabled. Ask your platform admin for an invitation link.',
+      })
     }
+
+    const inv = await sql`
+      SELECT id, org_id, role_id, email, status, expires_at
+      FROM invitations WHERE token = ${inviteToken}
+    `
+    if (inv.length === 0) return res.status(400).json({ error: 'Invalid invitation' })
+    if (inv[0].status !== 'pending') return res.status(400).json({ error: 'Invitation already used' })
+    if (new Date(inv[0].expires_at) < new Date()) return res.status(400).json({ error: 'Invitation expired' })
+    if (inv[0].email.toLowerCase() !== email.toLowerCase()) return res.status(400).json({ error: 'Email does not match invitation' })
+    const orgId = inv[0].org_id
+    const roleId: string | null = inv[0].role_id
 
     // Check if email exists
     const existing = await sql`SELECT id FROM users WHERE email = ${email.toLowerCase().trim()}`

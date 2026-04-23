@@ -30,13 +30,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       facilityPerformance,
       totalProduction
     ] = await Promise.all([
-      // Total emissions for current year
+      // Total emissions for current year (scope is stored as int 1/2/3)
       sql`
         SELECT
           COALESCE(SUM(co2e_tonnes), 0) AS total,
-          COALESCE(SUM(CASE WHEN scope = 'scope_1' THEN co2e_tonnes ELSE 0 END), 0) AS scope1,
-          COALESCE(SUM(CASE WHEN scope = 'scope_2' THEN co2e_tonnes ELSE 0 END), 0) AS scope2,
-          COALESCE(SUM(CASE WHEN scope = 'scope_3' THEN co2e_tonnes ELSE 0 END), 0) AS scope3
+          COALESCE(SUM(CASE WHEN scope = 1 THEN co2e_tonnes ELSE 0 END), 0) AS scope1,
+          COALESCE(SUM(CASE WHEN scope = 2 THEN co2e_tonnes ELSE 0 END), 0) AS scope2,
+          COALESCE(SUM(CASE WHEN scope = 3 THEN co2e_tonnes ELSE 0 END), 0) AS scope3
         FROM activity_data
         WHERE org_id = ${token.org} AND period_year = ${currentYear}
       `,
@@ -68,9 +68,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       sql`
         SELECT
           period_month,
-          COALESCE(SUM(CASE WHEN scope = 'scope_1' THEN co2e_tonnes ELSE 0 END), 0) AS scope1,
-          COALESCE(SUM(CASE WHEN scope = 'scope_2' THEN co2e_tonnes ELSE 0 END), 0) AS scope2,
-          COALESCE(SUM(CASE WHEN scope = 'scope_3' THEN co2e_tonnes ELSE 0 END), 0) AS scope3
+          COALESCE(SUM(CASE WHEN scope = 1 THEN co2e_tonnes ELSE 0 END), 0) AS scope1,
+          COALESCE(SUM(CASE WHEN scope = 2 THEN co2e_tonnes ELSE 0 END), 0) AS scope2,
+          COALESCE(SUM(CASE WHEN scope = 3 THEN co2e_tonnes ELSE 0 END), 0) AS scope3
         FROM activity_data
         WHERE org_id = ${token.org} AND period_year = ${currentYear} AND period_month IS NOT NULL
         GROUP BY period_month
@@ -90,9 +90,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         SELECT
           f.name,
           f.production_volume,
-          COALESCE(SUM(CASE WHEN ad.scope = 'scope_1' THEN ad.co2e_tonnes ELSE 0 END), 0) AS scope1,
-          COALESCE(SUM(CASE WHEN ad.scope = 'scope_2' THEN ad.co2e_tonnes ELSE 0 END), 0) AS scope2,
-          COALESCE(SUM(CASE WHEN ad.scope = 'scope_3' THEN ad.co2e_tonnes ELSE 0 END), 0) AS scope3,
+          COALESCE(SUM(CASE WHEN ad.scope = 1 THEN ad.co2e_tonnes ELSE 0 END), 0) AS scope1,
+          COALESCE(SUM(CASE WHEN ad.scope = 2 THEN ad.co2e_tonnes ELSE 0 END), 0) AS scope2,
+          COALESCE(SUM(CASE WHEN ad.scope = 3 THEN ad.co2e_tonnes ELSE 0 END), 0) AS scope3,
           COALESCE(SUM(ad.co2e_tonnes), 0) AS total
         FROM facilities f
         LEFT JOIN activity_data ad ON ad.facility_id = f.id AND ad.period_year = ${currentYear}
@@ -149,11 +149,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     })
 
-    // Map scope names for display
+    // Map scope integers to display labels (scope column is int 1/2/3)
     const scopeMap: Record<string, string> = {
-      scope_1: 'Scope 1',
-      scope_2: 'Scope 2',
-      scope_3: 'Scope 3',
+      '1': 'Scope 1',
+      '2': 'Scope 2',
+      '3': 'Scope 3',
     }
 
     return res.status(200).json({
@@ -168,7 +168,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         dataPointsVerified: Number(verifiedCount[0].count),
       },
       scopeBreakdown: scopeBreakdown.map((s: Record<string, unknown>) => ({
-        name: scopeMap[s.name as string] || s.name,
+        name: scopeMap[String(s.name)] || String(s.name),
         value: Number(s.value),
       })),
       monthlyTrend,

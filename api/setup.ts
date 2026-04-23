@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { getDb } from './_db.js'
 import { cors } from './_auth.js'
+import { PTTGC_SEED } from './_pttgcSeed.js'
 import * as bcrypt from 'bcryptjs'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -229,6 +230,218 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       created_at TIMESTAMPTZ DEFAULT now()
     )`
 
+    // ═══════════════════════════════════════════
+    // Nexus SRD v2.0 — §17 schema additions (additive only)
+    // Coexists with existing activity_data / workflow_tasks / blockchain_records
+    // so current APIs keep working. New PTTGC workflow uses these tables.
+    // ═══════════════════════════════════════════
+
+    await sql`CREATE TABLE IF NOT EXISTS questionnaire_item (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      section TEXT NOT NULL,
+      subsection TEXT NOT NULL,
+      gri_code TEXT NOT NULL,
+      line_item TEXT NOT NULL,
+      unit TEXT,
+      scope_split TEXT,
+      has_target BOOLEAN DEFAULT false,
+      requires_coverage BOOLEAN DEFAULT false,
+      default_workflow_role TEXT CHECK (default_workflow_role IN ('AUTO','FM','SO','TL')),
+      entry_mode_default TEXT CHECK (entry_mode_default IN ('Manual','Calculator','Connector')),
+      target_fy2026 NUMERIC,
+      footnote_refs JSONB DEFAULT '[]'::jsonb,
+      reporting_scope TEXT DEFAULT 'group' CHECK (reporting_scope IN ('group','jv')),
+      created_at TIMESTAMPTZ DEFAULT now(),
+      UNIQUE(gri_code, line_item, scope_split, reporting_scope)
+    )`
+
+    await sql`CREATE TABLE IF NOT EXISTS reporting_year (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      organisation_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      year INTEGER NOT NULL,
+      status TEXT DEFAULT 'setup' CHECK (status IN ('setup','active','published')),
+      published_at TIMESTAMPTZ,
+      publish_hash TEXT,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      UNIQUE(organisation_id, year)
+    )`
+
+    await sql`CREATE TABLE IF NOT EXISTS data_value (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      questionnaire_item_id UUID REFERENCES questionnaire_item(id) ON DELETE CASCADE,
+      reporting_year_id UUID REFERENCES reporting_year(id) ON DELETE CASCADE,
+      facility_id UUID REFERENCES facilities(id),
+      scope_key TEXT,
+      value NUMERIC,
+      unit TEXT,
+      entry_mode TEXT CHECK (entry_mode IN ('Manual','Calculator','Connector')),
+      status TEXT DEFAULT 'not_started' CHECK (status IN ('not_started','draft','submitted','reviewed','approved','rejected','published')),
+      entered_by UUID REFERENCES users(id),
+      entered_at TIMESTAMPTZ,
+      submitted_at TIMESTAMPTZ,
+      reviewed_by UUID REFERENCES users(id),
+      reviewed_at TIMESTAMPTZ,
+      approved_by UUID REFERENCES users(id),
+      approved_at TIMESTAMPTZ,
+      value_hash TEXT,
+      comment TEXT,
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`
+
+    await sql`CREATE INDEX IF NOT EXISTS idx_data_value_year_item
+      ON data_value(reporting_year_id, questionnaire_item_id)`
+
+    await sql`CREATE TABLE IF NOT EXISTS historical_value (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      questionnaire_item_id UUID REFERENCES questionnaire_item(id) ON DELETE CASCADE,
+      year INTEGER NOT NULL,
+      scope_key TEXT,
+      value NUMERIC,
+      source_report TEXT,
+      confidence_score NUMERIC DEFAULT 1.0,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      UNIQUE(questionnaire_item_id, year, scope_key)
+    )`
+
+    await sql`CREATE INDEX IF NOT EXISTS idx_historical_year
+      ON historical_value(questionnaire_item_id, year)`
+
+    await sql`CREATE TABLE IF NOT EXISTS evidence (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      data_value_id UUID REFERENCES data_value(id) ON DELETE CASCADE,
+      filename TEXT NOT NULL,
+      file_type TEXT,
+      file_size INTEGER,
+      file_bytes BYTEA,
+      uploaded_by UUID REFERENCES users(id),
+      uploaded_at TIMESTAMPTZ DEFAULT now(),
+      file_hash TEXT,
+      storage_uri TEXT
+    )`
+    // Additively make sure file_bytes exists on pre-existing DBs.
+    await sql`ALTER TABLE evidence ADD COLUMN IF NOT EXISTS file_bytes BYTEA`
+    await sql`CREATE INDEX IF NOT EXISTS idx_evidence_data_value ON evidence(data_value_id)`
+
+    await sql`CREATE TABLE IF NOT EXISTS connector_receipt (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      data_value_id UUID REFERENCES data_value(id) ON DELETE CASCADE,
+      connector_name TEXT NOT NULL,
+      source_record_id TEXT,
+      fetched_at TIMESTAMPTZ DEFAULT now(),
+      payload_json JSONB DEFAULT '{}'::jsonb,
+      receipt_hash TEXT
+    )`
+
+    await sql`CREATE TABLE IF NOT EXISTS audit_event (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      data_value_id UUID REFERENCES data_value(id) ON DELETE CASCADE,
+      event_type TEXT NOT NULL CHECK (event_type IN ('entered','submitted','reviewed','approved','rejected','published','assigned','overridden')),
+      actor_user_id UUID REFERENCES users(id),
+      actor_platform_role TEXT,
+      actor_workflow_role TEXT,
+      timestamp TIMESTAMPTZ DEFAULT now(),
+      previous_hash TEXT,
+      new_hash TEXT,
+      comment TEXT
+    )`
+
+    await sql`CREATE INDEX IF NOT EXISTS idx_audit_event_value
+      ON audit_event(data_value_id, timestamp DESC)`
+
+    await sql`CREATE TABLE IF NOT EXISTS calculator_input (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      data_value_id UUID REFERENCES data_value(id) ON DELETE CASCADE,
+      input_key TEXT NOT NULL,
+      value NUMERIC,
+      unit TEXT,
+      source TEXT CHECK (source IN ('manual','connector','prior_year')),
+      emission_factor_used NUMERIC,
+      gwp_used NUMERIC,
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`
+
+    // ═══════════════════════════════════════════
+    // Org structure + questionnaire assignment (frontend-facing)
+    // These are the tables the /api/org handler owns. Separate from the
+    // Nexus SRD data_value chain so admins can build an org tree and assign
+    // questionnaire items without touching workflow tables.
+    // ═══════════════════════════════════════════
+
+    await sql`CREATE TABLE IF NOT EXISTS org_entities (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      parent_id UUID REFERENCES org_entities(id) ON DELETE CASCADE,
+      type TEXT NOT NULL CHECK (type IN ('group','business_unit','subsidiary','plant','office')),
+      name TEXT NOT NULL,
+      code TEXT,
+      country TEXT,
+      equity NUMERIC,
+      industry TEXT,
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_org_entities_parent ON org_entities(parent_id)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_org_entities_org ON org_entities(org_id)`
+
+    await sql`CREATE TABLE IF NOT EXISTS org_members (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+      entity_id UUID REFERENCES org_entities(id) ON DELETE CASCADE,
+      email TEXT NOT NULL,
+      name TEXT NOT NULL,
+      role TEXT NOT NULL CHECK (role IN ('platform_admin','group_sustainability_officer','subsidiary_lead','plant_manager','data_contributor','auditor')),
+      created_at TIMESTAMPTZ DEFAULT now(),
+      UNIQUE(org_id, email, entity_id)
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_org_members_entity ON org_members(entity_id)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_org_members_email ON org_members(email)`
+
+    await sql`CREATE TABLE IF NOT EXISTS question_assignments (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      framework_id TEXT NOT NULL DEFAULT 'gri',
+      questionnaire_item_id UUID REFERENCES questionnaire_item(id) ON DELETE CASCADE,
+      gri_code TEXT NOT NULL,
+      line_item TEXT NOT NULL,
+      unit TEXT,
+      entity_id UUID REFERENCES org_entities(id) ON DELETE CASCADE,
+      assignee_email TEXT NOT NULL,
+      assignee_name TEXT NOT NULL,
+      assignee_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+      entry_modes JSONB NOT NULL DEFAULT '["Manual"]'::jsonb,
+      used_mode TEXT,
+      due_date DATE,
+      status TEXT NOT NULL DEFAULT 'not_started'
+        CHECK (status IN ('not_started','in_progress','submitted','reviewed','approved','rejected')),
+      value NUMERIC,
+      comment TEXT,
+      evidence_ids JSONB DEFAULT '[]'::jsonb,
+      assigned_by TEXT,
+      assigned_at TIMESTAMPTZ DEFAULT now(),
+      last_updated TIMESTAMPTZ DEFAULT now()
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_qa_assignee ON question_assignments(assignee_email)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_qa_entity ON question_assignments(entity_id)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_qa_status ON question_assignments(status)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_qa_framework ON question_assignments(framework_id)`
+
+    await sql`CREATE TABLE IF NOT EXISTS workflow_role_assignment (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      questionnaire_item_id UUID REFERENCES questionnaire_item(id) ON DELETE CASCADE,
+      section TEXT,
+      workflow_role TEXT NOT NULL CHECK (workflow_role IN ('AUTO','FM','SO','TL')),
+      assigned_by UUID REFERENCES users(id),
+      assigned_at TIMESTAMPTZ DEFAULT now(),
+      UNIQUE(user_id, questionnaire_item_id, workflow_role)
+    )`
+
+    await sql`CREATE INDEX IF NOT EXISTS idx_wra_item
+      ON workflow_role_assignment(questionnaire_item_id, workflow_role)`
+
+    await sql`CREATE INDEX IF NOT EXISTS idx_wra_user
+      ON workflow_role_assignment(user_id)`
+
     // ===== SEED DATA =====
 
     // Seed permissions
@@ -421,18 +634,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // --- Seed workflow tasks ---
     const workflowTasks: [string,string,string,string,string,string,string,string,string|null,string|null,string|null][] = [
       // [id, type, title, description, status, facility_id, priority, assigned_to, assigned_by, submitted_by, due_date]
-      ['w0000000-0000-0000-0000-000000000001','data_approval','Approve Q1 Scope 1 — Rayong Refinery','Review and approve stationary combustion data for Jan-Mar 2026','pending',F1,'high',TL,ADMIN,AN,'2026-04-15'],
-      ['w0000000-0000-0000-0000-000000000002','data_approval','Approve Q1 Scope 2 — Map Ta Phut Olefins','Review purchased electricity data for Q1','pending',F2,'medium',TL,ADMIN,AN,'2026-04-18'],
-      ['w0000000-0000-0000-0000-000000000003','data_submission','Submit Mar fugitive emissions — Olefins','Complete fugitive emission data entry for March 2026','pending',F2,'high',AN,TL,null,'2026-04-10'],
-      ['w0000000-0000-0000-0000-000000000004','calculation_review','Review EF update — Aromatics Scope 1','Verify updated fuel oil emission factors from IPCC 2006','in_review',F3,'medium',TL,ADMIN,AN,null],
-      ['w0000000-0000-0000-0000-000000000005','report_review','Review CDP Climate Change 2026 draft','Final review of CDP questionnaire responses before submission','in_review',F1,'critical',ADMIN,TL,AN,'2026-04-30'],
-      ['w0000000-0000-0000-0000-000000000006','data_approval','Approve Q1 Scope 3 — HMC Polymers','Review end-of-life processing data for Q1','in_review',F4,'medium',TL,ADMIN,AN,'2026-04-20'],
-      ['w0000000-0000-0000-0000-000000000007','data_approval','Approve Jan Scope 1 — HMC Polymers','Stationary combustion data for January','approved',F4,'medium',TL,ADMIN,AN,null],
-      ['w0000000-0000-0000-0000-000000000008','data_submission','Submit Q1 electricity — Aromatics','Electricity consumption data for Q1 2026','approved',F3,'low',AN,TL,null,null],
-      ['w0000000-0000-0000-0000-000000000009','calculation_review','Verify Scope 2 market-based EFs','Check market-based emission factor calculations','approved',F1,'medium',TL,ADMIN,AN,null],
-      ['w0000000-0000-0000-0000-000000000010','data_approval','Approve Feb process emissions — Refinery','Process emissions data rejected due to missing supporting docs','rejected',F1,'high',TL,ADMIN,AN,null],
-      ['w0000000-0000-0000-0000-000000000011','report_review','Review CSRD ESRS E1 draft report','ESRS E1 climate disclosures need methodology updates','rejected',F2,'critical',ADMIN,TL,AN,'2026-05-15'],
-      ['w0000000-0000-0000-0000-000000000012','data_approval','Anchor Q4 2025 Scope 1 — All Facilities','Blockchain-anchored quarterly Scope 1 dataset','anchored',F1,'high',ADMIN,TL,AN,null],
+      ['e0000000-0000-0000-0000-000000000001','data_approval','Approve Q1 Scope 1 — Rayong Refinery','Review and approve stationary combustion data for Jan-Mar 2026','pending',F1,'high',TL,ADMIN,AN,'2026-04-15'],
+      ['e0000000-0000-0000-0000-000000000002','data_approval','Approve Q1 Scope 2 — Map Ta Phut Olefins','Review purchased electricity data for Q1','pending',F2,'medium',TL,ADMIN,AN,'2026-04-18'],
+      ['e0000000-0000-0000-0000-000000000003','data_submission','Submit Mar fugitive emissions — Olefins','Complete fugitive emission data entry for March 2026','pending',F2,'high',AN,TL,null,'2026-04-10'],
+      ['e0000000-0000-0000-0000-000000000004','calculation_review','Review EF update — Aromatics Scope 1','Verify updated fuel oil emission factors from IPCC 2006','in_review',F3,'medium',TL,ADMIN,AN,null],
+      ['e0000000-0000-0000-0000-000000000005','report_review','Review CDP Climate Change 2026 draft','Final review of CDP questionnaire responses before submission','in_review',F1,'critical',ADMIN,TL,AN,'2026-04-30'],
+      ['e0000000-0000-0000-0000-000000000006','data_approval','Approve Q1 Scope 3 — HMC Polymers','Review end-of-life processing data for Q1','in_review',F4,'medium',TL,ADMIN,AN,'2026-04-20'],
+      ['e0000000-0000-0000-0000-000000000007','data_approval','Approve Jan Scope 1 — HMC Polymers','Stationary combustion data for January','approved',F4,'medium',TL,ADMIN,AN,null],
+      ['e0000000-0000-0000-0000-000000000008','data_submission','Submit Q1 electricity — Aromatics','Electricity consumption data for Q1 2026','approved',F3,'low',AN,TL,null,null],
+      ['e0000000-0000-0000-0000-000000000009','calculation_review','Verify Scope 2 market-based EFs','Check market-based emission factor calculations','approved',F1,'medium',TL,ADMIN,AN,null],
+      ['e0000000-0000-0000-0000-000000000010','data_approval','Approve Feb process emissions — Refinery','Process emissions data rejected due to missing supporting docs','rejected',F1,'high',TL,ADMIN,AN,null],
+      ['e0000000-0000-0000-0000-000000000011','report_review','Review CSRD ESRS E1 draft report','ESRS E1 climate disclosures need methodology updates','rejected',F2,'critical',ADMIN,TL,AN,'2026-05-15'],
+      ['e0000000-0000-0000-0000-000000000012','data_approval','Anchor Q4 2025 Scope 1 — All Facilities','Blockchain-anchored quarterly Scope 1 dataset','anchored',F1,'high',ADMIN,TL,AN,null],
     ]
 
     for (const [id,type,title,desc,status,facId,priority,assignTo,assignBy,subBy,due] of workflowTasks) {
@@ -510,12 +723,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // --- Seed reports ---
     const reportRows: [string,string,string,string,string,string,string,number,string,string|null,string|null][] = [
       // [id, framework_id, framework_name, title, period, status, format, pages, assurance_status, generated_by, published_at]
-      ['r0000000-0000-0000-0000-000000000001','CDP-CC','CDP','CDP Climate Change 2026','FY2026','in_review','PDF',127,'in_progress',ADMIN,null],
-      ['r0000000-0000-0000-0000-000000000002','TCFD','TCFD','TCFD Alignment Report','FY2026','draft','PDF',84,'not_started',AN,null],
-      ['r0000000-0000-0000-0000-000000000003','GRI-305','GRI','GRI 305 Emissions Disclosure','FY2026','in_review','PDF',156,'in_progress',AN,null],
-      ['r0000000-0000-0000-0000-000000000004','CSRD-E1','CSRD','CSRD ESRS E1 Report','FY2026','draft','PDF',203,'not_started',ADMIN,null],
-      ['r0000000-0000-0000-0000-000000000005','CDP-CC','CDP','CDP Climate Change 2025','FY2025','published','PDF',118,'completed',ADMIN,'2025-12-15T09:00:00Z'],
-      ['r0000000-0000-0000-0000-000000000006','GRI','GRI','GRI Sustainability Report 2025','FY2025','published','PDF',142,'completed',AN,'2025-11-30T09:00:00Z'],
+      ['d0000000-0000-0000-0000-000000000001','CDP-CC','CDP','CDP Climate Change 2026','FY2026','in_review','PDF',127,'in_progress',ADMIN,null],
+      ['d0000000-0000-0000-0000-000000000002','TCFD','TCFD','TCFD Alignment Report','FY2026','draft','PDF',84,'not_started',AN,null],
+      ['d0000000-0000-0000-0000-000000000003','GRI-305','GRI','GRI 305 Emissions Disclosure','FY2026','in_review','PDF',156,'in_progress',AN,null],
+      ['d0000000-0000-0000-0000-000000000004','CSRD-E1','CSRD','CSRD ESRS E1 Report','FY2026','draft','PDF',203,'not_started',ADMIN,null],
+      ['d0000000-0000-0000-0000-000000000005','CDP-CC','CDP','CDP Climate Change 2025','FY2025','published','PDF',118,'completed',ADMIN,'2025-12-15T09:00:00Z'],
+      ['d0000000-0000-0000-0000-000000000006','GRI','GRI','GRI Sustainability Report 2025','FY2025','published','PDF',142,'completed',AN,'2025-11-30T09:00:00Z'],
     ]
 
     for (const [id,fwId,fwName,title,period,status,format,pages,assurance,genBy,pubAt] of reportRows) {
@@ -531,23 +744,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // --- Seed anomalies ---
     const anomalyRows: [string,string,string,string,string,string,number,string,number,number,number,string][] = [
       // [id, facility_id, type, severity, title, description, scope, metric, expected, actual, deviation_pct, status]
-      ['n0000000-0000-0000-0000-000000000001',F2,'spike','critical',
+      ['f0000000-0000-0000-0000-000000000001',F2,'spike','critical',
         'Fugitive emissions spike at Map Ta Phut Olefins',
         'March 2026 fugitive CH4 emissions 11% above 12-month rolling average. Possible valve leak in cracker unit C-401.',
         1,'fugitive_ch4_tonnes',8300,9100,9.6,'open'],
-      ['n0000000-0000-0000-0000-000000000002',F1,'trend','warning',
+      ['f0000000-0000-0000-0000-000000000002',F1,'trend','warning',
         'Scope 1 intensity at Rayong Refinery above trend',
         'tCO2e per barrel of crude processed has increased 4.2% vs. prior 6-month baseline. Check furnace efficiency.',
         1,'co2e_per_barrel',0.285,0.297,4.2,'investigating'],
-      ['n0000000-0000-0000-0000-000000000003',F1,'gap','warning',
+      ['f0000000-0000-0000-0000-000000000003',F1,'gap','warning',
         'Scope 2 market/location gap widening',
         'Market-based Scope 2 exceeds location-based by 18%, up from 12% last quarter. Review REC procurement strategy.',
         2,'market_location_ratio',1.12,1.18,5.4,'open'],
-      ['n0000000-0000-0000-0000-000000000004',F4,'completeness','warning',
+      ['f0000000-0000-0000-0000-000000000004',F4,'completeness','warning',
         'Supplier data completeness below threshold',
         'Only 67% of Tier 1 suppliers have submitted FY2026 emission factors. Target is 85% by Q2.',
         3,'supplier_coverage_pct',85,67,-21.2,'open'],
-      ['n0000000-0000-0000-0000-000000000005',F3,'consumption','info',
+      ['f0000000-0000-0000-0000-000000000005',F3,'consumption','info',
         'Unusual electricity consumption at Aromatics',
         'March electricity draw 5% above seasonal forecast. Correlates with extended turnaround maintenance window.',
         2,'electricity_mwh',160000,168000,5.0,'resolved'],
@@ -564,6 +777,95 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
          ${status === 'resolved' ? '2026-04-02T11:30:00Z' : null},
          ${status === 'resolved' ? TL : null})
         ON CONFLICT DO NOTHING`
+    }
+
+    // ═══════════════════════════════════════════
+    // Nexus SRD v2.0 — §17 seed data
+    // Source: PTTGC FY2025 Sustainability Performance Data (published Feb 2026)
+    // ═══════════════════════════════════════════
+
+    // --- Seed reporting_year (FY2026 active) ---
+    await sql`INSERT INTO reporting_year (id, organisation_id, year, status)
+      VALUES ('11000000-0000-0000-0000-000000000026', ${ORG}, 2026, 'active')
+      ON CONFLICT DO NOTHING`
+
+    // --- Seed questionnaire_item + historical_value from PTTGC SPD ---
+    // Source of truth: api/_pttgcSeed.ts (mirrors every row in the published PDF).
+    // Idempotent via UNIQUE(gri_code, line_item, scope_split, reporting_scope) +
+    // UNIQUE(questionnaire_item_id, year, scope_key).
+    for (const row of PTTGC_SEED) {
+      const [section, subsection, griCode, lineItem, unit, scopeSplit, defaultRole,
+             entryMode, targetFy2026, footnotes, reportingScope,
+             v22, v23, v24, v25, sourcePage] = row
+
+      const inserted = await sql`
+        INSERT INTO questionnaire_item
+          (section, subsection, gri_code, line_item, unit, scope_split,
+           default_workflow_role, entry_mode_default, target_fy2026,
+           footnote_refs, reporting_scope)
+        VALUES
+          (${section}, ${subsection}, ${griCode}, ${lineItem}, ${unit}, ${scopeSplit},
+           ${defaultRole}, ${entryMode}, ${targetFy2026},
+           ${JSON.stringify(footnotes)}::jsonb, ${reportingScope})
+        ON CONFLICT (gri_code, line_item, scope_split, reporting_scope) DO NOTHING
+        RETURNING id
+      ` as Array<{ id: string }>
+
+      // Look up the questionnaire_item id (whether just inserted or pre-existing).
+      let qItemId: string
+      if (inserted.length > 0) {
+        qItemId = inserted[0].id
+      } else {
+        const existing = await sql`
+          SELECT id FROM questionnaire_item
+          WHERE gri_code = ${griCode}
+            AND line_item = ${lineItem}
+            AND (scope_split IS NOT DISTINCT FROM ${scopeSplit})
+            AND reporting_scope = ${reportingScope}
+          LIMIT 1
+        ` as Array<{ id: string }>
+        if (existing.length === 0) continue
+        qItemId = existing[0].id
+      }
+
+      const source = `PTTGC FY2025 SPD — ${sourcePage}`
+      const years: Array<[number, number | null]> = [[2022, v22], [2023, v23], [2024, v24], [2025, v25]]
+      for (const [year, val] of years) {
+        if (val === null) continue
+        await sql`INSERT INTO historical_value
+          (questionnaire_item_id, year, scope_key, value, source_report, confidence_score)
+          VALUES
+          (${qItemId}, ${year}, ${scopeSplit}, ${val}, ${source}, 1.0)
+          ON CONFLICT DO NOTHING`
+      }
+    }
+
+    // --- Seed default workflow_role_assignment for seeded users ---
+    // Admin (SO) across all Natural Capital, FM on Financial/Manufacture, etc.
+    // Per SRD §9.2 default role mapping. Scope-level assignment (no specific item_id) via section column.
+    // SRD-style section-scoped bindings — cascades at query time via rbac helper.
+    const sectionAssignments: Array<[userId: string, section: string, role: 'AUTO'|'FM'|'SO'|'TL']> = [
+      // ADMIN — Platform Admin (cross-cutting SO on all Natural Capital + governance)
+      [ADMIN, 'Natural Capital', 'SO'],
+      [ADMIN, 'Social & Relationship Capital', 'SO'],
+      // TL — Team Lead for HR/HSE/Supply Chain
+      [TL, 'Human Capital', 'TL'],
+      [TL, 'Natural Capital', 'TL'],
+      // FM on Financial / Manufacture
+      ['00000000-0000-0000-0000-000000000102', 'Financial Capital', 'FM'],
+      ['00000000-0000-0000-0000-000000000102', 'Manufacture Capital', 'FM'],
+    ]
+
+    for (const [userId, section, role] of sectionAssignments) {
+      // Assign to all items in the section that match the user's scope
+      const items = await sql`SELECT id FROM questionnaire_item WHERE section = ${section}`
+      for (const it of items) {
+        await sql`INSERT INTO workflow_role_assignment
+          (user_id, questionnaire_item_id, section, workflow_role, assigned_by)
+          VALUES
+          (${userId}, ${it.id}, ${section}, ${role}, ${ADMIN})
+          ON CONFLICT DO NOTHING`
+      }
     }
 
     return res.status(200).json({ ok: true, message: 'Database setup complete — tables created and seeded' })

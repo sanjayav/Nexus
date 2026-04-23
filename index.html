@@ -1,15 +1,27 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="pttgc-flat">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <title>Aeiforo — Carbon & ESG Reporting</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <title>Nexus by Aeiforo — Sustainability Intelligence Platform</title>
+    <script>
+      // Apply persisted theme before first paint to avoid flash.
+      (function() {
+        try {
+          var t = localStorage.getItem('nexus-theme');
+          if (t === 'glass' || t === 'pttgc-flat') {
+            document.documentElement.setAttribute('data-theme', t);
+          }
+        } catch (e) {}
+      })();
+    </script>
     <style>
-      html { background-color: #FFFFFF; }
+      html { background-color: #F4F6F8; }
+      html[data-theme='glass'] { background-color: #FAFAF8; }
     </style>
   </head>
   <body>

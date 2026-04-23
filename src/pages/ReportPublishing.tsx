@@ -1,415 +1,663 @@
-import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { motion } from 'framer-motion'
 import {
-  FileOutput,
-  FileText,
-  Download,
-  Upload,
-  CheckCircle2,
-  Clock,
-  Shield,
-  Loader2,
-  Eye,
-  Sparkles,
-  Bot,
-  ArrowUpRight,
-  BarChart3,
-  Globe,
-  Lock,
-  Send,
-  BookOpen,
-  AlertTriangle,
-  Calendar,
-  Hash,
+  Download, Send, Loader2, CheckCircle2, AlertCircle,
+  Shield, Hash, Clock, FileText, ShieldCheck, Copy, ExternalLink, RotateCw, X, BadgeCheck,
 } from 'lucide-react'
-import { publishableReports, PublishableReport } from '../data/moduleData'
-import { frameworkStatuses } from '../data/pttgcData'
-import { Badge, Tabs, Button } from '../design-system'
+import { useOrgData } from '../lib/useOrgData'
+import { useFramework } from '../lib/frameworks'
+import { orgStore, type QuestionAssignment, type PublishedReport, type AssuranceRequest, type ReportingPeriod } from '../lib/orgStore'
+import PageHeader from '../components/PageHeader'
+import SectionHeader from '../design-system/components/SectionHeader'
+import Button from '../design-system/components/Button'
+import EmptyState from '../design-system/components/EmptyState'
+import { SkeletonCard } from '../design-system/components/Skeleton'
+import { riseIn, popIn, slideInLeft } from '../components/motion'
 
-/* ═══════════════════════════════════════════
-   Constants
-   ═══════════════════════════════════════════ */
-const FRAMEWORK_COLORS: Record<string, { color: string; badge: 'green' | 'blue' | 'purple' | 'amber' }> = {
-  cdp: { color: '#16A34A', badge: 'green' },
-  tcfd: { color: '#2563EB', badge: 'blue' },
-  gri: { color: '#7C3AED', badge: 'purple' },
-  csrd: { color: '#D97706', badge: 'amber' },
-}
+type View = 'loading' | 'ready' | 'error'
 
-const STATUS_CONFIG: Record<string, { label: string; badge: 'amber' | 'blue' | 'teal' | 'green' }> = {
-  draft: { label: 'Draft', badge: 'amber' },
-  'in-review': { label: 'In Review', badge: 'blue' },
-  approved: { label: 'Approved', badge: 'teal' },
-  published: { label: 'Published', badge: 'green' },
-}
-
-const ASSURANCE_CONFIG: Record<string, { label: string; badge: 'gray' | 'blue' | 'teal' }> = {
-  'not-started': { label: 'Not Started', badge: 'gray' },
-  'in-progress': { label: 'In Progress', badge: 'blue' },
-  assured: { label: 'Assured', badge: 'teal' },
-}
-
-const TABS_CONFIG = [
-  { id: 'all', label: 'All Reports' },
-  { id: 'in-progress', label: 'In Progress' },
-  { id: 'published', label: 'Published' },
-  { id: 'frameworks', label: 'Frameworks' },
-]
-
-function stagger(i: number) { return `stagger-${Math.min(i + 1, 10)}` }
-
-/* ═══════════════════════════════════════════
-   Component
-   ═══════════════════════════════════════════ */
 export default function ReportPublishing() {
-  const navigate = useNavigate()
-  const [tab, setTab] = useState('all')
-  const [reports, setReports] = useState<PublishableReport[]>(publishableReports)
-  const [generatingId, setGeneratingId] = useState<string | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  const { data: orgData, loading: orgLoading } = useOrgData()
+  const { active: framework } = useFramework()
+  const [state, setState] = useState<View>('loading')
+  const [error, setError] = useState<string | null>(null)
+  const [periods, setPeriods] = useState<ReportingPeriod[]>([])
+  const [selectedPeriodId, setSelectedPeriodId] = useState<string>('')
+  const [reports, setReports] = useState<PublishedReport[]>([])
+  const [assurance, setAssurance] = useState<AssuranceRequest[]>([])
+  const [publishing, setPublishing] = useState(false)
+  const [publishBanner, setPublishBanner] = useState<{ verify_url: string; sha256: string; version: number; is_draft: boolean } | null>(null)
+  const [assuranceModalOpen, setAssuranceModalOpen] = useState(false)
 
-  const showToast = (msg: string) => {
-    setToast(msg)
-    setTimeout(() => setToast(null), 3000)
+  const load = async () => {
+    setState('loading')
+    try {
+      const [ps, reps, asrs] = await Promise.all([
+        orgStore.listPeriods(),
+        orgStore.listPublishedReports(),
+        orgStore.listAssuranceRequests(),
+      ])
+      setPeriods(ps.filter(p => p.framework_id === framework.id))
+      setReports(reps.filter((r: PublishedReport) => r.framework_id === framework.id))
+      setAssurance(asrs.filter((a: AssuranceRequest) => ps.find(p => p.id === a.period_id)?.framework_id === framework.id))
+      if (!selectedPeriodId && ps.length > 0) {
+        const active = ps.find(p => p.status === 'active' && p.framework_id === framework.id) ?? ps.find(p => p.framework_id === framework.id)
+        if (active) setSelectedPeriodId(active.id)
+      }
+      setState('ready')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load')
+      setState('error')
+    }
   }
 
-  const filteredReports = useMemo(() => {
-    if (tab === 'in-progress') return reports.filter(r => r.status !== 'published')
-    if (tab === 'published') return reports.filter(r => r.status === 'published')
-    if (tab === 'frameworks') return []
-    return reports
-  }, [tab, reports])
+  useEffect(() => { load() }, [framework.id])
 
-  const stats = useMemo(() => ({
-    total: reports.length,
-    published: reports.filter(r => r.status === 'published').length,
-    inProgress: reports.filter(r => r.status === 'in-review' || r.status === 'approved').length,
-    draft: reports.filter(r => r.status === 'draft').length,
-  }), [reports])
+  const period = periods.find(p => p.id === selectedPeriodId) ?? null
 
-  const handleGenerate = (id: string) => {
-    setGeneratingId(id)
-    setTimeout(() => {
-      setReports(prev => prev.map(r => r.id === id ? { ...r, status: 'in-review' as const, generatedDate: '2026-04-09' } : r))
-      setGeneratingId(null)
-      showToast('Report generated successfully')
-    }, 2000)
+  const periodAssignments = useMemo<QuestionAssignment[]>(() => {
+    if (!orgData || !period) return []
+    return orgData.assignments.filter(a =>
+      a.framework_id === framework.id &&
+      (a.period_id === period.id || !a.period_id)
+    )
+  }, [orgData, period, framework.id])
+
+  const readiness = useMemo(() => {
+    const total = periodAssignments.length
+    const approved = periodAssignments.filter(a => a.status === 'approved').length
+    const inFlight = periodAssignments.filter(a => a.status === 'submitted' || a.status === 'reviewed').length
+    const open = periodAssignments.filter(a => a.status === 'not_started' || a.status === 'in_progress' || a.status === 'rejected').length
+    const pct = total === 0 ? 0 : Math.round((approved / total) * 100)
+    const canPublish = approved > 0
+    return { total, approved, inFlight, open, pct, canPublish }
+  }, [periodAssignments])
+
+  const latestForPeriod = reports.find(r => r.period_id === selectedPeriodId)
+  const signedAssurance = assurance.filter(a => a.period_id === selectedPeriodId && a.status === 'signed')
+  const pendingAssurance = assurance.filter(a => a.period_id === selectedPeriodId && a.status === 'pending')
+
+  const handlePublish = async (assurance_request_id?: string) => {
+    if (!period) return
+    setPublishing(true); setPublishBanner(null)
+    try {
+      const res = await orgStore.publishReport(period.id, assurance_request_id)
+      setPublishBanner({ verify_url: res.verify_url, sha256: res.pdf_sha256, version: res.version, is_draft: res.is_draft })
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Publish failed')
+    } finally {
+      setPublishing(false)
+    }
   }
 
-  const handlePublish = (id: string) => {
-    setReports(prev => prev.map(r => r.id === id ? { ...r, status: 'published' as const, publishedDate: '2026-04-09' } : r))
-    showToast('Report published successfully')
+  if (state === 'loading' || orgLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="h-[120px] rounded-[18px] skeleton" />
+        <SkeletonCard />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <SkeletonCard /><SkeletonCard />
+        </div>
+      </div>
+    )
+  }
+
+  if (state === 'error') {
+    return (
+      <EmptyState
+        icon={<AlertCircle className="w-7 h-7" />}
+        title="Unable to load publish centre"
+        description={error ?? ''}
+        actions={<Button variant="secondary" onClick={load}>Retry</Button>}
+      />
+    )
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Toast */}
-      {toast && (
-        <div className="fixed top-6 right-6 z-50 animate-slide-up flex items-center gap-2.5 px-4 py-3 rounded-xl border shadow-lg" style={{
-          backgroundColor: 'color-mix(in srgb, var(--accent-teal) 8%, var(--bg-primary))',
-          borderColor: 'color-mix(in srgb, var(--accent-teal) 20%, transparent)',
-        }}>
-          <CheckCircle2 className="w-4 h-4 text-[var(--accent-teal)] animate-check" />
-          <span className="text-[var(--text-sm)] font-semibold text-[var(--accent-teal)]">{toast}</span>
+    <div className="space-y-8">
+      <PageHeader
+        eyebrow="Reports"
+        title="Publish Centre"
+        subtitle="Generate an auditor-grade PDF, anchor its hash to a public timestamp, and track the assurance workflow."
+        actions={
+          <>
+            {period && (
+              <Button
+                variant="secondary"
+                size="md"
+                icon={<ShieldCheck className="w-4 h-4" />}
+                onClick={() => setAssuranceModalOpen(true)}
+              >
+                Request assurance
+              </Button>
+            )}
+            <Button
+              variant="brand"
+              size="md"
+              icon={publishing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              onClick={() => handlePublish(signedAssurance[0]?.id)}
+              disabled={!period || !readiness.canPublish || publishing}
+            >
+              {publishing ? 'Publishing…' : latestForPeriod ? 'Re-publish' : 'Publish report'}
+            </Button>
+          </>
+        }
+      />
+
+      {publishBanner && <PublishBanner banner={publishBanner} onClose={() => setPublishBanner(null)} />}
+
+      {/* Period picker */}
+      <section>
+        <SectionHeader kicker="Scope" title="Reporting period" subtitle={`${framework.name} — pick a period to publish.`} />
+        <div className="flex flex-wrap gap-2">
+          {periods.length === 0 ? (
+            <div className="text-[13px] text-[var(--text-tertiary)]">No periods set up. Create one in Admin → Reporting cycles.</div>
+          ) : (
+            periods.map(p => (
+              <button
+                key={p.id}
+                onClick={() => setSelectedPeriodId(p.id)}
+                className={`chip ${selectedPeriodId === p.id ? 'chip-active' : ''}`}
+              >
+                {p.label}
+                <span className="text-[10px] text-[var(--text-quaternary)] uppercase tracking-[0.08em]">{p.status}</span>
+              </button>
+            ))
+          )}
         </div>
+      </section>
+
+      {/* Readiness card */}
+      {period && (
+        <section>
+          <motion.div {...popIn(0)} className="surface-hero p-8">
+            <div className="flex items-start justify-between gap-6 flex-wrap">
+              <div className="flex-1 min-w-0">
+                <div className="kicker mb-2">Readiness · {period.label}</div>
+                <h2 className="text-display text-[28px] text-[var(--text-primary)]">
+                  {readiness.total === 0 ? 'No disclosures assigned yet' : readiness.approved === readiness.total ? 'Ready to publish' : `${readiness.approved} of ${readiness.total} disclosures approved`}
+                </h2>
+                <p className="text-[13.5px] text-[var(--text-secondary)] mt-2 max-w-xl leading-relaxed">
+                  The PDF is generated server-side and each page includes verification on the footer. The cover carries a QR code and a SHA-256 hash anchored to a public timestamp calendar — any recipient can confirm the file hasn't been modified.
+                </p>
+                <div className="mt-5 max-w-md">
+                  <div className="flex items-baseline justify-between mb-2">
+                    <span className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)]">Coverage</span>
+                    <span className="text-[14px] font-bold tabular-nums text-[var(--text-primary)]">{readiness.pct}%</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{
+                        width: `${readiness.pct}%`,
+                        background: readiness.pct === 100
+                          ? 'linear-gradient(90deg, #10B981, #2E7D32)'
+                          : 'linear-gradient(90deg, #1B6B7B, #3B8A9B)',
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-5 flex-wrap">
+                  <Tally label="Approved" value={readiness.approved} accent="green" />
+                  <Tally label="In review" value={readiness.inFlight} accent="blue" />
+                  <Tally label="Open" value={readiness.open} accent="amber" />
+                </div>
+              </div>
+
+              {/* Current assurance badge */}
+              <AssurancePill signed={signedAssurance[0]} pending={pendingAssurance[0]} />
+            </div>
+          </motion.div>
+        </section>
       )}
 
-      {/* Hero Header */}
-      <div className="animate-slide-up relative overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--bg-primary)] p-6">
-        <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{
-          background: 'radial-gradient(ellipse at 15% 50%, #16A34A 0%, transparent 50%), radial-gradient(ellipse at 85% 50%, #2563EB 0%, transparent 50%)',
-        }} />
-        <div className="relative flex items-start justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center animate-float" style={{
-              background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent-teal) 15%, transparent), color-mix(in srgb, var(--accent-blue) 10%, transparent))',
-              border: '1.5px solid color-mix(in srgb, var(--accent-teal) 25%, transparent)',
-            }}>
-              <FileOutput className="w-7 h-7 text-[var(--accent-teal)]" />
-            </div>
-            <div>
-              <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">Report Publishing</h1>
-              <p className="mt-1 text-[var(--text-sm)] text-[var(--text-tertiary)]">
-                Disclosure-ready reports generated from verified, assured data. Publish to CDP, TCFD, GRI, and CSRD.
-              </p>
-            </div>
+      {/* Latest artifact for this period */}
+      {latestForPeriod && (
+        <section>
+          <SectionHeader kicker="Latest artifact" title={`Version ${latestForPeriod.version}`} subtitle={`Published ${new Date(latestForPeriod.published_at).toLocaleString()}. Hash anchored to OpenTimestamps.`} />
+          <ArtifactCard report={latestForPeriod} />
+        </section>
+      )}
+
+      {/* Publish history */}
+      <section>
+        <SectionHeader kicker="Archive" title="Publish history" subtitle="Every prior version is retained, hashed, and externally timestamped." />
+        {reports.length === 0 ? (
+          <EmptyState
+            icon={<FileText className="w-7 h-7" />}
+            title="No reports published yet"
+            description="Approve at least one disclosure in this framework, then hit Publish."
+          />
+        ) : (
+          <div className="surface-paper overflow-hidden">
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="text-[10.5px] uppercase tracking-[0.1em] text-[var(--text-tertiary)] bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)]">
+                  <th className="text-left px-5 py-3 font-semibold">Version</th>
+                  <th className="text-left px-5 py-3 font-semibold">Period</th>
+                  <th className="text-left px-5 py-3 font-semibold">Assurance</th>
+                  <th className="text-left px-5 py-3 font-semibold">Hash</th>
+                  <th className="text-left px-5 py-3 font-semibold">Published</th>
+                  <th className="text-right px-5 py-3 font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border-subtle)]">
+                {reports.map((r, i) => <ReportRow key={r.id} report={r} i={i} />)}
+              </tbody>
+            </table>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="teal">FY 2026</Badge>
-            <Button variant="secondary" size="sm" icon={<Bot className="w-3.5 h-3.5" />} onClick={() => navigate('/reports/ai')}>
-              AI Report
-            </Button>
-          </div>
-        </div>
-      </div>
+        )}
+      </section>
 
-      {/* KPI Strip */}
-      <div className="grid grid-cols-4 gap-4">
-        {[
-          { label: 'Total Reports', value: stats.total, icon: FileText, accent: '#0F7B6F' },
-          { label: 'Published', value: stats.published, icon: CheckCircle2, accent: '#16A34A' },
-          { label: 'In Progress', value: stats.inProgress, icon: Clock, accent: '#2563EB' },
-          { label: 'Draft', value: stats.draft, icon: AlertTriangle, accent: '#D97706' },
-        ].map((kpi, idx) => {
-          const Icon = kpi.icon
-          return (
-            <div key={kpi.label} className={`animate-slide-up ${stagger(idx)} group relative overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] p-4 transition-all duration-300 ease-[var(--ease-out-expo)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-[2px] cursor-default`}>
-              <div className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: `linear-gradient(90deg, ${kpi.accent}, transparent)` }} />
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-semibold">{kpi.label}</p>
-                  <p className="text-[var(--text-2xl)] font-bold text-[var(--text-primary)] mt-1 tabular-nums animate-count" style={{ animationDelay: `${200 + idx * 100}ms` }}>{kpi.value}</p>
-                </div>
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110" style={{ backgroundColor: `color-mix(in srgb, ${kpi.accent} 10%, transparent)` }}>
-                  <Icon className="w-5 h-5" style={{ color: kpi.accent }} />
-                </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Tabs */}
-      <div className="animate-slide-up stagger-5">
-        <Tabs tabs={TABS_CONFIG} activeTab={tab} onChange={setTab} />
-      </div>
-
-      {/* ── Report Cards ── */}
-      {tab !== 'frameworks' && (
-        <div className="space-y-6">
-          {/* AI Report Banner */}
-          <button
-            onClick={() => navigate('/reports/ai')}
-            className="animate-slide-up stagger-6 w-full text-left group relative overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] p-5 transition-all duration-300 ease-[var(--ease-out-expo)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-[1px] hover:border-[var(--border-strong)] cursor-pointer"
-          >
-            <div className="absolute top-0 left-0 right-0 h-[2px] opacity-60 group-hover:opacity-100 transition-opacity duration-500" style={{ background: 'linear-gradient(90deg, #7C3AED, #2563EB, #0F7B6F)' }} />
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110" style={{ background: 'linear-gradient(135deg, color-mix(in srgb, #7C3AED 12%, transparent), color-mix(in srgb, #2563EB 8%, transparent))', border: '1px solid color-mix(in srgb, #7C3AED 20%, transparent)' }}>
-                <Sparkles className="w-6 h-6 text-[#7C3AED]" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">AI Report Generation</h3>
-                  <Badge variant="purple">New</Badge>
-                </div>
-                <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-0.5">Generate AI-drafted narrative summaries from verified emissions data with blockchain-anchored sources.</p>
-              </div>
-              <ArrowUpRight className="w-5 h-5 text-[var(--text-tertiary)] group-hover:text-[#7C3AED] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300" />
-            </div>
-          </button>
-
-          {/* Report grid */}
-          {filteredReports.length === 0 ? (
-            <div className="animate-scale-in rounded-2xl border border-dashed border-[var(--border-default)] bg-[var(--bg-secondary)] py-16 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-[var(--bg-tertiary)] flex items-center justify-center mx-auto mb-4 animate-float">
-                <FileText className="w-7 h-7 text-[var(--text-tertiary)]" />
-              </div>
-              <p className="text-[var(--text-base)] font-semibold text-[var(--text-secondary)]">No reports in this category</p>
-            </div>
+      {/* Assurance requests for this period */}
+      {period && (
+        <section>
+          <SectionHeader
+            kicker="Assurance"
+            title="Independent assurance workflow"
+            subtitle="Send a signed upload link to your audit partner. Once they submit an ISAE 3000 opinion, the draft watermark lifts on the next publish."
+          />
+          {assurance.filter(a => a.period_id === period.id).length === 0 ? (
+            <EmptyState
+              size="sm"
+              icon={<Shield className="w-6 h-6" />}
+              title="No assurance requests yet"
+              description="Request assurance from a third-party firm. The platform sends them a private upload link — they don't need a login."
+              actions={<Button variant="brand" size="md" icon={<ShieldCheck className="w-4 h-4" />} onClick={() => setAssuranceModalOpen(true)}>Request assurance</Button>}
+            />
           ) : (
-            <div className="grid grid-cols-2 gap-4">
-              {filteredReports.map((report, idx) => (
-                <ReportCard
-                  key={report.id}
-                  report={report}
-                  index={idx}
-                  isGenerating={generatingId === report.id}
-                  onGenerate={() => handleGenerate(report.id)}
-                  onPublish={() => handlePublish(report.id)}
-                />
+            <div className="space-y-3">
+              {assurance.filter(a => a.period_id === period.id).map((a, i) => (
+                <AssuranceRow key={a.id} req={a} i={i} onChange={load} />
               ))}
             </div>
           )}
-        </div>
+        </section>
       )}
 
-      {/* ── Frameworks Tab ── */}
-      {tab === 'frameworks' && (
-        <div className="space-y-4 animate-fade-in">
-          {frameworkStatuses.map((fw, idx) => {
-            const fwColor = FRAMEWORK_COLORS[fw.id] || FRAMEWORK_COLORS.cdp
-            const pct = fw.completion
-            return (
-              <div
-                key={fw.id}
-                className={`animate-slide-up ${stagger(idx)} group relative overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] transition-all duration-300 ease-[var(--ease-out-expo)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-[1px]`}
-              >
-                <div className="flex">
-                  <div className="w-[3px] flex-shrink-0" style={{ backgroundColor: fwColor.color }} />
-                  <div className="flex-1 p-5">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `color-mix(in srgb, ${fwColor.color} 10%, transparent)` }}>
-                          <Globe className="w-5 h-5" style={{ color: fwColor.color }} />
-                        </div>
-                        <div>
-                          <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{fw.fullName}</h3>
-                          <p className="text-[10px] text-[var(--text-tertiary)]">{fw.name} · FY 2026</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {fw.score && <Badge variant={fwColor.badge}>{fw.score}</Badge>}
-                        <Badge variant={fw.status === 'Published' ? 'green' : fw.status === 'Draft' ? 'amber' : 'blue'} dot>{fw.status}</Badge>
-                      </div>
-                    </div>
-
-                    {/* Progress bar */}
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1 h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
-                        <div className="h-full rounded-full transition-all duration-1000 ease-[var(--ease-out-expo)]" style={{ width: `${pct}%`, backgroundColor: fwColor.color }} />
-                      </div>
-                      <span className="text-[var(--text-xs)] font-bold tabular-nums" style={{ color: fwColor.color }}>{pct}%</span>
-                    </div>
-
-                    {/* Stats */}
-                    <div className="flex items-center gap-6 mt-3 text-[var(--text-xs)] text-[var(--text-tertiary)]">
-                      <span className="flex items-center gap-1"><BookOpen className="w-3 h-3" /> {fw.disclosures}/{fw.totalDisclosures} disclosures</span>
-                      <span className="flex items-center gap-1"><BarChart3 className="w-3 h-3" /> {fw.totalDisclosures - fw.disclosures} remaining</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
+      {assuranceModalOpen && period && (
+        <RequestAssuranceModal
+          period={period}
+          onClose={() => setAssuranceModalOpen(false)}
+          onCreated={() => { setAssuranceModalOpen(false); load() }}
+        />
       )}
-
-      {/* ── Publishing Workflow Footer ── */}
-      <div className="grid grid-cols-3 gap-4 animate-slide-up stagger-8">
-        {[
-          { step: '01', title: 'Draft Generation', desc: 'Reports are auto-generated from assured data packages. Framework-specific formatting and XBRL tagging applied.', icon: FileText, color: '#D97706' },
-          { step: '02', title: 'Review & Approval', desc: 'Generated reports pass through internal review. Discrepancies are flagged and resolved before approval.', icon: Eye, color: '#2563EB' },
-          { step: '03', title: 'Publish & Archive', desc: 'Approved reports are published with full audit trail. Blockchain-anchored checksums for tamper-evidence.', icon: Lock, color: '#0F7B6F' },
-        ].map((s) => {
-          const Icon = s.icon
-          return (
-            <div key={s.step} className="group relative overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] p-5 transition-all duration-300 hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-[1px] cursor-default">
-              <div className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: `linear-gradient(90deg, ${s.color}, transparent)` }} />
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-[var(--text-2xl)] font-bold tabular-nums" style={{ color: `color-mix(in srgb, ${s.color} 30%, transparent)` }}>{s.step}</span>
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110" style={{ backgroundColor: `color-mix(in srgb, ${s.color} 10%, transparent)` }}>
-                  <Icon className="w-4 h-4" style={{ color: s.color }} />
-                </div>
-              </div>
-              <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mb-1">{s.title}</h3>
-              <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] leading-relaxed">{s.desc}</p>
-            </div>
-          )
-        })}
-      </div>
     </div>
   )
 }
 
-/* ═══════════════════════════════════════════
-   Report Card
-   ═══════════════════════════════════════════ */
-function ReportCard({
-  report, index, isGenerating, onGenerate, onPublish,
-}: {
-  report: PublishableReport; index: number; isGenerating: boolean
-  onGenerate: () => void; onPublish: () => void
-}) {
-  const fwCfg = FRAMEWORK_COLORS[report.frameworkId] || FRAMEWORK_COLORS.cdp
-  const statusCfg = STATUS_CONFIG[report.status]
-  const assurCfg = ASSURANCE_CONFIG[report.assuranceStatus]
-  const delay = Math.min(index * 60, 400)
+// ─── Sub-components ────────────────────────────────────────
 
+function Tally({ label, value, accent }: { label: string; value: number; accent: 'green' | 'blue' | 'amber' }) {
+  const bg = accent === 'green' ? 'var(--accent-green-light)' : accent === 'blue' ? 'var(--accent-blue-light)' : 'var(--accent-amber-light)'
+  const fg = accent === 'green' ? 'var(--status-ok)' : accent === 'blue' ? 'var(--status-pending)' : 'var(--status-draft)'
   return (
-    <div
-      className="animate-slide-up group/card relative overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] transition-all duration-300 ease-[var(--ease-out-expo)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-[1px] hover:border-[var(--border-strong)]"
-      style={{ animationDelay: `${delay}ms` }}
+    <div className="px-3 py-2 rounded-[10px]" style={{ background: bg }}>
+      <div className="text-[10px] uppercase tracking-[0.12em] font-semibold" style={{ color: fg }}>{label}</div>
+      <div className="text-[18px] font-bold tabular-nums tracking-[-0.01em]" style={{ color: fg }}>{value}</div>
+    </div>
+  )
+}
+
+function AssurancePill({ signed, pending }: { signed?: AssuranceRequest; pending?: AssuranceRequest }) {
+  if (signed) {
+    return (
+      <div className="px-4 py-3 rounded-[12px] border border-[var(--status-ok)]/30 bg-[var(--accent-green-light)]/60 min-w-[200px]">
+        <div className="flex items-center gap-2">
+          <BadgeCheck className="w-4 h-4 text-[var(--status-ok)]" />
+          <span className="text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--status-ok)]">Assured</span>
+        </div>
+        <div className="text-[13.5px] font-semibold text-[var(--text-primary)] mt-1.5 truncate">{signed.auditor_firm ?? signed.auditor_email}</div>
+        <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
+          {signed.opinion_type === 'reasonable' ? 'Reasonable assurance' : 'Limited assurance'} · {signed.signed_at ? new Date(signed.signed_at).toLocaleDateString() : ''}
+        </div>
+      </div>
+    )
+  }
+  if (pending) {
+    return (
+      <div className="px-4 py-3 rounded-[12px] border border-[var(--status-draft)]/30 bg-[var(--accent-amber-light)]/60 min-w-[200px]">
+        <div className="flex items-center gap-2">
+          <Clock className="w-4 h-4 text-[var(--status-draft)]" />
+          <span className="text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--status-draft)]">Assurance pending</span>
+        </div>
+        <div className="text-[13.5px] font-semibold text-[var(--text-primary)] mt-1.5 truncate">{pending.auditor_firm ?? pending.auditor_email}</div>
+        <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">Upload link active</div>
+      </div>
+    )
+  }
+  return (
+    <div className="px-4 py-3 rounded-[12px] border border-[var(--border-default)] bg-[var(--bg-secondary)] min-w-[200px]">
+      <div className="flex items-center gap-2">
+        <Shield className="w-4 h-4 text-[var(--text-tertiary)]" />
+        <span className="text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--text-tertiary)]">Unaudited</span>
+      </div>
+      <div className="text-[13.5px] font-semibold text-[var(--text-primary)] mt-1.5">No assurance</div>
+      <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">Will publish as "DRAFT"</div>
+    </div>
+  )
+}
+
+function PublishBanner({ banner, onClose }: { banner: { verify_url: string; sha256: string; version: number; is_draft: boolean }; onClose: () => void }) {
+  return (
+    <motion.div
+      {...popIn(0)}
+      className="surface-paper p-5 relative overflow-hidden"
+      style={{
+        background: banner.is_draft
+          ? 'linear-gradient(135deg, rgba(230,168,23,0.06) 0%, transparent 60%)'
+          : 'linear-gradient(135deg, rgba(46,125,50,0.06) 0%, transparent 60%)',
+        borderColor: banner.is_draft ? 'rgba(230,168,23,0.3)' : 'rgba(46,125,50,0.3)',
+      }}
     >
-      {/* Left accent */}
-      <div className="flex">
-        <div className="w-[3px] flex-shrink-0" style={{ backgroundColor: fwCfg.color }} />
-        <div className="flex-1 p-5">
-          {/* Top: framework + status */}
-          <div className="flex items-center justify-between mb-3">
-            <Badge variant={fwCfg.badge}>{report.frameworkName}</Badge>
-            <Badge variant={statusCfg.badge} dot>{statusCfg.label}</Badge>
+      <button onClick={onClose} className="absolute top-3 right-3 w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)]">
+        <X className="w-4 h-4" />
+      </button>
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0" style={{ background: banner.is_draft ? 'var(--accent-amber-light)' : 'var(--accent-green-light)', color: banner.is_draft ? 'var(--status-draft)' : 'var(--status-ok)' }}>
+          <CheckCircle2 className="w-5 h-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[14.5px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">
+            Version {banner.version} published {banner.is_draft ? 'as unaudited draft' : 'with assurance'}
           </div>
-
-          {/* Title */}
-          <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mb-0.5">{report.title}</h3>
-          <p className="text-[10px] text-[var(--text-tertiary)]">{report.period}</p>
-
-          {/* Meta grid */}
-          <div className="grid grid-cols-3 gap-3 mt-4">
-            {[
-              { label: 'Format', value: report.format, icon: FileText },
-              { label: 'Pages', value: report.pages.toString(), icon: Hash },
-              { label: 'Assurance', value: assurCfg.label, icon: Shield },
-            ].map(m => {
-              const Icon = m.icon
-              return (
-                <div key={m.label} className="rounded-lg p-2.5 bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-                  <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">{m.label}</p>
-                  <p className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)] mt-0.5 flex items-center gap-1">
-                    <Icon className="w-3 h-3 text-[var(--text-tertiary)]" />
-                    {m.value}
-                  </p>
-                </div>
-              )
-            })}
+          <div className="text-[12px] text-[var(--text-secondary)] mt-1 leading-snug">
+            SHA-256: <span className="font-mono">{banner.sha256.slice(0, 24)}…</span> — anchored to OpenTimestamps. Verify URL:
           </div>
-
-          {/* Dates */}
-          <div className="flex items-center gap-4 mt-3 text-[10px] text-[var(--text-tertiary)]">
-            {report.generatedDate && (
-              <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Generated: {report.generatedDate}</span>
-            )}
-            {report.publishedDate && (
-              <span className="flex items-center gap-1"><Send className="w-3 h-3" /> Published: {report.publishedDate}</span>
-            )}
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-2 mt-4">
-            {report.status === 'draft' && (
-              <button
-                onClick={onGenerate}
-                disabled={isGenerating}
-                className="flex-1 py-2.5 rounded-xl text-[var(--text-sm)] font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 active:scale-[0.98]"
-                style={{ backgroundColor: 'var(--bg-inverse)', color: 'var(--text-inverse)' }}
-              >
-                {isGenerating ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Generating...</>
-                ) : (
-                  <><FileText className="w-4 h-4" /> Generate Report</>
-                )}
-              </button>
-            )}
-            {report.status === 'in-review' && (
-              <div className="flex-1 py-2.5 rounded-xl text-[var(--text-sm)] font-semibold flex items-center justify-center gap-2 border" style={{
-                backgroundColor: 'color-mix(in srgb, var(--accent-blue) 6%, transparent)',
-                borderColor: 'color-mix(in srgb, var(--accent-blue) 15%, transparent)',
-                color: 'var(--accent-blue)',
-              }}>
-                <Eye className="w-4 h-4" /> Under Review
-              </div>
-            )}
-            {report.status === 'approved' && (
-              <button
-                onClick={onPublish}
-                className="flex-1 py-2.5 rounded-xl text-[var(--text-sm)] font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] border"
-                style={{
-                  backgroundColor: 'color-mix(in srgb, var(--accent-teal) 8%, transparent)',
-                  borderColor: 'color-mix(in srgb, var(--accent-teal) 20%, transparent)',
-                  color: 'var(--accent-teal)',
-                }}
-              >
-                <Upload className="w-4 h-4" /> Publish
-              </button>
-            )}
-            {report.status === 'published' && (
-              <button className="flex-1 py-2.5 rounded-xl text-[var(--text-sm)] font-semibold transition-all duration-200 flex items-center justify-center gap-2 cursor-pointer border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] active:scale-[0.98]">
-                <Download className="w-4 h-4" /> Download
-              </button>
-            )}
+          <div className="flex items-center gap-2 mt-2">
+            <code className="font-mono text-[11px] text-[var(--color-brand-strong)] bg-[var(--bg-secondary)] px-2 py-1 rounded-[6px] border border-[var(--border-subtle)] truncate">{banner.verify_url}</code>
+            <button onClick={() => navigator.clipboard.writeText(banner.verify_url)} className="px-2 py-1 rounded-[6px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]">
+              <Copy className="w-3.5 h-3.5" />
+            </button>
+            <a href={banner.verify_url} target="_blank" rel="noreferrer" className="px-2 py-1 rounded-[6px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]">
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
           </div>
         </div>
       </div>
+    </motion.div>
+  )
+}
+
+function ArtifactCard({ report }: { report: PublishedReport }) {
+  return (
+    <motion.div {...popIn(0)} className="surface-paper p-6">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex items-start gap-4 flex-1 min-w-0">
+          <div className="w-12 h-12 rounded-[12px] flex items-center justify-center flex-shrink-0" style={{ background: 'var(--gradient-brand-soft)', color: 'var(--color-brand)' }}>
+            <FileText className="w-6 h-6" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[13px] font-semibold text-[var(--text-primary)]">Version {report.version} · {report.framework_id.toUpperCase()}</span>
+              {report.is_draft ? (
+                <span className="chip" style={{ background: 'var(--accent-amber-light)', color: 'var(--status-draft)', borderColor: 'rgba(230,168,23,0.3)' }}>DRAFT</span>
+              ) : (
+                <span className="chip" style={{ background: 'var(--accent-green-light)', color: 'var(--status-ok)', borderColor: 'rgba(46,125,50,0.3)' }}>ASSURED</span>
+              )}
+            </div>
+            <div className="text-[11.5px] text-[var(--text-tertiary)]">{(report.pdf_size / 1024).toFixed(1)} KB · published by {report.published_by_name}</div>
+            <div className="text-[11px] text-[var(--text-tertiary)] mt-2 flex items-center gap-1.5 font-mono tabular-nums">
+              <Hash className="w-3 h-3" />
+              {report.pdf_sha256.slice(0, 24)}…{report.pdf_sha256.slice(-8)}
+            </div>
+            {report.anchor_tip_hash && (
+              <div className="text-[11px] text-[var(--status-ok)] mt-1.5 flex items-center gap-1.5">
+                <BadgeCheck className="w-3 h-3" />
+                Anchored to OpenTimestamps on {report.anchored_at ? new Date(report.anchored_at).toLocaleDateString() : '—'}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-2 flex-shrink-0">
+          <Button variant="secondary" size="md" icon={<ExternalLink className="w-4 h-4" />} onClick={() => window.open(`/verify/${report.verification_token}`, '_blank')}>
+            Verify
+          </Button>
+          <Button variant="brand" size="md" icon={<Download className="w-4 h-4" />} onClick={() => orgStore.downloadReportPdf(report.id, `${report.framework_id}-${report.period_label.replace(/\s+/g, '')}-v${report.version}.pdf`)}>
+            Download
+          </Button>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+function ReportRow({ report, i }: { report: PublishedReport; i: number }) {
+  return (
+    <motion.tr {...slideInLeft(i)} className="hover:bg-[var(--bg-secondary)]">
+      <td className="px-5 py-3">
+        <span className="text-[13px] font-semibold text-[var(--text-primary)]">v{report.version}</span>
+      </td>
+      <td className="px-5 py-3">
+        <div className="text-[12.5px] text-[var(--text-primary)] font-medium">{report.period_label}</div>
+        <div className="text-[10.5px] text-[var(--text-tertiary)]">FY {report.period_year}</div>
+      </td>
+      <td className="px-5 py-3">
+        {report.is_draft ? (
+          <span className="chip" style={{ background: 'var(--accent-amber-light)', color: 'var(--status-draft)' }}>DRAFT</span>
+        ) : (
+          <span className="chip" style={{ background: 'var(--accent-green-light)', color: 'var(--status-ok)' }}>{report.auditor_firm ?? 'Signed'}</span>
+        )}
+      </td>
+      <td className="px-5 py-3 font-mono text-[11px] text-[var(--text-tertiary)] tabular-nums">
+        {report.pdf_sha256.slice(0, 14)}…
+        {report.anchor_tip_hash && <span className="ml-2 inline-flex items-center gap-0.5 text-[var(--status-ok)]"><BadgeCheck className="w-3 h-3" />anchored</span>}
+      </td>
+      <td className="px-5 py-3 text-[11.5px] text-[var(--text-secondary)]">
+        {new Date(report.published_at).toLocaleDateString()}
+        <div className="text-[10.5px] text-[var(--text-tertiary)]">{report.published_by_name}</div>
+      </td>
+      <td className="px-5 py-3 text-right">
+        <div className="inline-flex gap-1.5">
+          <a href={`/verify/${report.verification_token}`} target="_blank" rel="noreferrer" className="px-2 h-7 inline-flex items-center rounded-[6px] text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title="Public verification page">
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+          <button onClick={() => orgStore.downloadReportPdf(report.id, `${report.framework_id}-v${report.version}.pdf`)} className="px-2 h-7 inline-flex items-center rounded-[6px] text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title="Download PDF">
+            <Download className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </td>
+    </motion.tr>
+  )
+}
+
+function AssuranceRow({ req, i, onChange }: { req: AssuranceRequest; i: number; onChange: () => void }) {
+  const [busy, setBusy] = useState(false)
+  const [showLink, setShowLink] = useState<string | null>(null)
+
+  const copyUploadLink = async () => {
+    setBusy(true)
+    try {
+      const { upload_token } = await orgStore.getAssuranceUploadLink(req.id)
+      const url = `${window.location.origin}/assure/${upload_token}`
+      await navigator.clipboard.writeText(url)
+      setShowLink(url)
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Unable to get link')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const rotateLink = async () => {
+    if (!confirm('Rotate the upload link? The previous one will stop working immediately.')) return
+    setBusy(true)
+    try {
+      const { upload_token } = await orgStore.rotateAssuranceToken(req.id)
+      const url = `${window.location.origin}/assure/${upload_token}`
+      await navigator.clipboard.writeText(url)
+      setShowLink(url)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const withdraw = async () => {
+    if (!confirm('Withdraw this assurance request?')) return
+    setBusy(true)
+    try {
+      await orgStore.withdrawAssurance(req.id)
+      onChange()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const statusColor =
+    req.status === 'signed' ? { bg: 'var(--accent-green-light)', fg: 'var(--status-ok)' }
+    : req.status === 'pending' ? { bg: 'var(--accent-amber-light)', fg: 'var(--status-draft)' }
+    : { bg: 'var(--bg-tertiary)', fg: 'var(--text-tertiary)' }
+
+  return (
+    <motion.div {...riseIn(i)} className="surface-paper p-5">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0" style={{ background: statusColor.bg, color: statusColor.fg }}>
+            {req.status === 'signed' ? <BadgeCheck className="w-5 h-5" /> : req.status === 'pending' ? <Clock className="w-5 h-5" /> : <X className="w-5 h-5" />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[14px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{req.auditor_firm ?? req.auditor_name ?? req.auditor_email}</span>
+              <span className="chip" style={{ background: statusColor.bg, color: statusColor.fg, textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '10px' }}>{req.status}</span>
+              {req.opinion_type && <span className="chip">{req.opinion_type === 'reasonable' ? 'Reasonable' : 'Limited'}</span>}
+            </div>
+            <div className="text-[12px] text-[var(--text-tertiary)] mt-1">
+              {req.auditor_email} · requested {new Date(req.requested_at).toLocaleDateString()}
+              {req.signed_at && <> · signed {new Date(req.signed_at).toLocaleDateString()} by {req.signed_by}</>}
+            </div>
+            {req.notes && <p className="text-[12.5px] text-[var(--text-secondary)] mt-2 leading-relaxed">{req.notes}</p>}
+            {req.statement_sha256 && (
+              <div className="text-[11px] text-[var(--text-tertiary)] mt-2 font-mono">
+                statement sha-256: {req.statement_sha256.slice(0, 20)}…
+              </div>
+            )}
+            {showLink && (
+              <div className="mt-3 p-3 rounded-[8px] bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
+                <div className="text-[11px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)] mb-1">Upload link (copied)</div>
+                <code className="font-mono text-[11px] text-[var(--color-brand-strong)] break-all">{showLink}</code>
+                <div className="text-[10.5px] text-[var(--text-tertiary)] mt-1.5">Send this to the auditor. They can upload the signed statement without a platform login.</div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {req.status === 'pending' && (
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <Button size="sm" variant="secondary" icon={<Copy className="w-3.5 h-3.5" />} onClick={copyUploadLink} disabled={busy}>Copy upload link</Button>
+            <Button size="sm" variant="ghost" icon={<RotateCw className="w-3.5 h-3.5" />} onClick={rotateLink} disabled={busy}>Rotate</Button>
+            <Button size="sm" variant="ghost" icon={<X className="w-3.5 h-3.5" />} onClick={withdraw} disabled={busy}>Withdraw</Button>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  )
+}
+
+function RequestAssuranceModal({ period, onClose, onCreated }: { period: ReportingPeriod; onClose: () => void; onCreated: () => void }) {
+  const [firm, setFirm] = useState('')
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [opinion, setOpinion] = useState<'limited' | 'reasonable'>('limited')
+  const [isae, setIsae] = useState('ISAE 3000 (Revised)')
+  const [notes, setNotes] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const submit = async () => {
+    if (!email) { setError('Auditor email is required'); return }
+    setSubmitting(true); setError(null)
+    try {
+      await orgStore.requestAssurance({
+        period_id: period.id,
+        auditor_email: email,
+        auditor_firm: firm || undefined,
+        auditor_name: name || undefined,
+        opinion_type: opinion,
+        isae_reference: isae,
+        notes: notes || undefined,
+      })
+      onCreated()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-backdrop" style={{ background: 'rgba(11,18,32,0.5)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        onClick={e => e.stopPropagation()}
+        className="surface-paper max-w-lg w-full p-6"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <span className="kicker">New request</span>
+            <h2 className="text-display text-[22px] text-[var(--text-primary)] mt-0.5">Request independent assurance</h2>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)]">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed mb-4">
+          A one-shot upload link will be generated. Copy it and send it to your auditor. They can submit their signed statement without a platform login; the statement is hashed and embedded in the next published version of the report for {period.label}.
+        </p>
+
+        <div className="space-y-3">
+          <Field label="Auditor firm" placeholder="e.g. LRQA Group, Deloitte" value={firm} onChange={setFirm} />
+          <Field label="Contact name" placeholder="Partner / signing auditor" value={name} onChange={setName} />
+          <Field label="Contact email*" placeholder="partner@firm.com" value={email} onChange={setEmail} type="email" />
+          <div>
+            <label className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">Level of assurance</label>
+            <div className="flex gap-1.5">
+              {(['limited', 'reasonable'] as const).map(o => (
+                <button key={o} onClick={() => setOpinion(o)} className={`chip flex-1 justify-center ${opinion === o ? 'chip-active' : ''}`}>
+                  {o === 'limited' ? 'Limited' : 'Reasonable'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <Field label="Standard" placeholder="ISAE 3000 (Revised)" value={isae} onChange={setIsae} />
+          <Field label="Notes (optional)" placeholder="Scope, deadline, special instructions…" value={notes} onChange={setNotes} as="textarea" />
+        </div>
+
+        {error && <div className="mt-4 p-3 rounded-[8px] bg-[var(--accent-red-light)] text-[var(--status-reject)] text-[12.5px] font-medium">{error}</div>}
+
+        <div className="mt-6 flex items-center justify-end gap-2">
+          <Button variant="secondary" size="md" onClick={onClose}>Cancel</Button>
+          <Button variant="brand" size="md" icon={<ShieldCheck className="w-4 h-4" />} onClick={submit} loading={submitting}>Create request</Button>
+        </div>
+      </motion.div>
     </div>
+  )
+}
+
+function Field({ label, placeholder, value, onChange, type = 'text', as = 'input' }: { label: string; placeholder?: string; value: string; onChange: (v: string) => void; type?: string; as?: 'input' | 'textarea' }) {
+  return (
+    <label className="block">
+      <span className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{label}</span>
+      {as === 'textarea' ? (
+        <textarea
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+          rows={3}
+          className="w-full px-3 py-2.5 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13px] text-[var(--text-primary)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/15 outline-none resize-none transition-all"
+        />
+      ) : (
+        <input
+          type={type}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="w-full px-3 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13px] text-[var(--text-primary)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/15 outline-none transition-all"
+        />
+      )}
+    </label>
   )
 }
