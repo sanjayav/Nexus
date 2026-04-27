@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, Check, ArrowRight, Sparkles, X, Database } from 'lucide-react'
+import { ChevronDown, Check, ArrowRight, Sparkles, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { orgStore, type OrgTarget, type MaterialTopic, type ReportingPeriod } from '../lib/orgStore'
 import { useOrgData } from '../lib/useOrgData'
 import { useAuth } from '../auth/AuthContext'
-import DemoSeedModal from './DemoSeedModal'
 
 /**
  * SetupGuide — the "Getting started" widget you see in Stripe, Linear, Vercel,
@@ -55,26 +54,13 @@ const STEPS: StepDef[] = [
 export default function SetupGuide({ collapsed }: { collapsed: boolean }) {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { data: orgData, reload: reloadOrgData } = useOrgData()
+  const { data: orgData } = useOrgData()
   const [targets, setTargets] = useState<OrgTarget[]>([])
   const [topics, setTopics] = useState<MaterialTopic[]>([])
   const [periods, setPeriods] = useState<ReportingPeriod[]>([])
   const [publishedCount, setPublishedCount] = useState(0)
   const [dismissed, setDismissed] = useState(false)
   const [expanded, setExpanded] = useState(true)
-  const [seedOpen, setSeedOpen] = useState(false)
-
-  // Re-fetch the side-loaded resources (targets, topics, periods, published reports)
-  // after the seed completes so the checklist immediately reflects new state.
-  const refetchSideloaded = async () => {
-    const [t, m, p, r] = await Promise.all([
-      orgStore.listTargets().catch(() => []),
-      orgStore.listMaterialTopics().catch(() => []),
-      orgStore.listPeriods().catch(() => []),
-      orgStore.listPublishedReports().catch(() => []),
-    ])
-    setTargets(t); setTopics(m); setPeriods(p); setPublishedCount(r.length)
-  }
 
   // Only platform_admin and group_sustainability_officer see this
   const role = (user?.roles ?? [])[0] ?? ''
@@ -121,6 +107,10 @@ export default function SetupGuide({ collapsed }: { collapsed: boolean }) {
   if (!isSetupOwner) return null
   if (dismissed) return null
   if (isDone) return null
+  // Hidden on a brand-new workspace. Only show the guide once the admin has
+  // taken an action — either loaded the demo sample, or made progress
+  // manually. Empty workspace = clean dashboard, no widget noise.
+  if (completed === 0) return null
 
   // Collapsed sidebar view — a small circular progress badge
   if (collapsed) {
@@ -203,31 +193,10 @@ export default function SetupGuide({ collapsed }: { collapsed: boolean }) {
                 ))}
               </div>
 
-              {/* Opt-in shortcut: fill the workspace with PTTGC sample data
-                  instead of doing every step by hand. Surfaced quietly here
-                  so the default experience is "do it yourself". */}
-              <div className="px-3 pb-3 pt-1 border-t border-white/[0.06]">
-                <button
-                  onClick={() => setSeedOpen(true)}
-                  className="w-full flex items-center gap-2 px-2.5 py-2 rounded-[6px] text-[11px] font-medium text-white/55 hover:text-white hover:bg-white/[0.04] transition-colors cursor-pointer text-left"
-                  title="Pre-fill with PTT Global Chemical sample data"
-                >
-                  <Database className="w-3 h-3 text-[#2fa98e]" />
-                  <span className="flex-1 truncate">Or load PTTGC sample data</span>
-                  <ArrowRight className="w-3 h-3 opacity-60" />
-                </button>
-              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </motion.div>
-
-      {seedOpen && (
-        <DemoSeedModal
-          onClose={() => setSeedOpen(false)}
-          onCompleted={() => { reloadOrgData(); refetchSideloaded() }}
-        />
-      )}
     </div>
   )
 }

@@ -22,6 +22,7 @@ import Button from '../design-system/components/Button'
 import { SkeletonCard } from '../design-system/components/Skeleton'
 import AnomalyFeed from '../components/AnomalyFeed'
 import QuickStartCard from '../components/QuickStartCard'
+import DemoSeedCta from '../components/DemoSeedCta'
 import { type AnomalyScope } from '../lib/orgStore'
 
 /**
@@ -33,7 +34,7 @@ export default function Dashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { active: framework, enabled: enabledFrameworkIds, setActive: setActiveFramework } = useFramework()
-  const { data: orgData, loading } = useOrgData()
+  const { data: orgData, loading, reload: reloadOrgData } = useOrgData()
   const role = resolveRole(user)
   const focus = useMemo(() => focusStage(user, orgData), [user, orgData])
   const pipeline = useMemo(() => computePipeline(user, orgData ?? null), [user, orgData])
@@ -236,6 +237,11 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
+      {/* Empty-workspace CTA: an admin-only "Load PTTGC sample" card. The
+          SetupGuide widget itself stays hidden on a brand-new workspace —
+          this card is the only onboarding affordance until the user clicks. */}
+      <DemoSeedCta show={showOnboardingGate} onCompleted={reloadOrgData} />
+
       {!showOnboardingGate && <QuickStartCard />}
 
       <AnimatePresence>
