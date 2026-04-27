@@ -42,32 +42,46 @@ export default function Calculators() {
   useEffect(() => { load() }, [])
 
   // Group live items by the calculator descriptor that serves them.
+  // The questionnaire seed has been re-run a few times so the DB holds
+  // duplicate rows for the same (gri_code, line_item, scope_split,
+  // reporting_scope) tuple — sometimes 8× or 16× per disclosure. Dedupe by
+  // that compound key here so each calculator lists each line item once.
   const groups = useMemo(() => {
     if (state.kind !== 'ready') return []
     const q = query.toLowerCase().trim()
-    const byDescriptor = new Map<string, { descriptor: CalcDescriptor; items: NexusQuestionnaireItem[] }>()
+    const byDescriptor = new Map<string, { descriptor: CalcDescriptor; items: NexusQuestionnaireItem[]; seenKeys: Set<string> }>()
     for (const item of state.items) {
       if (!hasCalculator(item)) continue
       const d = findCalculator(item)!
-      // Filter against search.
       const hay = `${d.title} ${d.description} ${item.line_item} ${item.gri_code} ${item.section}`.toLowerCase()
       if (q && !hay.includes(q)) continue
-      if (!byDescriptor.has(d.id)) byDescriptor.set(d.id, { descriptor: d, items: [] })
-      byDescriptor.get(d.id)!.items.push(item)
+      if (!byDescriptor.has(d.id)) byDescriptor.set(d.id, { descriptor: d, items: [], seenKeys: new Set() })
+      const group = byDescriptor.get(d.id)!
+      const key = `${item.gri_code}|${item.line_item}|${item.scope_split ?? ''}|${item.reporting_scope ?? ''}|${item.unit ?? ''}`
+      if (group.seenKeys.has(key)) continue
+      group.seenKeys.add(key)
+      group.items.push(item)
     }
-    // Stable order: follow the CALCULATORS array order.
     return CALCULATORS
       .map(d => byDescriptor.get(d.id))
       .filter((g): g is NonNullable<typeof g> => !!g)
+      .map(({ descriptor, items }) => ({ descriptor, items }))
   }, [state, query])
 
-  // Also list line items that are *marked* as Calculator mode but have no registered descriptor yet
-  // — these are the gaps in our calculator coverage. Useful signal.
+  // Also list line items marked Calculator-mode but missing a registered
+  // descriptor — same dedupe so we don't double-count the gap.
   const uncovered = useMemo(() => {
     if (state.kind !== 'ready') return []
-    return state.items.filter(i =>
-      i.entry_mode_default === 'Calculator' && !hasCalculator(i) && i.reporting_scope === 'group'
-    )
+    const seen = new Set<string>()
+    const out: NexusQuestionnaireItem[] = []
+    for (const i of state.items) {
+      if (i.entry_mode_default !== 'Calculator' || hasCalculator(i) || i.reporting_scope !== 'group') continue
+      const key = `${i.gri_code}|${i.line_item}|${i.scope_split ?? ''}|${i.unit ?? ''}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      out.push(i)
+    }
+    return out
   }, [state])
 
   if (state.kind === 'loading') return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-[var(--color-brand)]" /></div>
