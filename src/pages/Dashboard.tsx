@@ -21,6 +21,7 @@ import SectionHeader from '../design-system/components/SectionHeader'
 import Button from '../design-system/components/Button'
 import { SkeletonCard } from '../design-system/components/Skeleton'
 import AnomalyFeed from '../components/AnomalyFeed'
+import QuickStartCard from '../components/QuickStartCard'
 import { type AnomalyScope } from '../lib/orgStore'
 
 /**
@@ -235,6 +236,10 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
+      {/* QuickStart and OnboardingHero are mutually exclusive: when the org has
+          no entities yet, surface the deeper onboarding flow instead. */}
+      {!showOnboardingGate && <QuickStartCard />}
+
       <AnimatePresence>
         {showOnboardingGate && <OnboardingHero key="gate" onStart={() => navigate('/onboarding')} />}
       </AnimatePresence>

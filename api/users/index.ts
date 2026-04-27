@@ -13,7 +13,7 @@ import { verifyToken, cors } from '../_auth.js'
  *   DELETE /api/users?id=<uuid> → deactivate
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  cors(res)
+  cors(res, req)
   if (req.method === 'OPTIONS') return res.status(204).end()
 
   const token = await verifyToken(req)

@@ -5,7 +5,7 @@ import { PTTGC_SEED } from './_pttgcSeed.js'
 import * as bcrypt from 'bcryptjs'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  cors(res)
+  cors(res, req)
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 

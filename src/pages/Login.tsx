@@ -23,7 +23,15 @@ const ROLE_ACCOUNTS = [
   { label: 'Narrative Owner',                email: 'narrator@aeiforo.com', role: 'NO',  desc: 'Writes governance + strategy disclosures' },
   { label: 'Auditor',                        email: 'aud@aeiforo.com',      role: 'AUD', desc: 'Read-only published data + trail' },
 ]
-const SHARED_PASSWORD = 'demo2026'
+/**
+ * Demo password sourced from build-time env. In dev (`npm run dev`) we
+ * default to "demo2026" so the role tiles work out of the box without local
+ * env setup. In production, the value MUST come from VITE_DEMO_PASSWORD —
+ * if it's unset, the tiles disappear entirely so no known string ships.
+ */
+const SHARED_PASSWORD: string = import.meta.env.VITE_DEMO_PASSWORD
+  ?? (import.meta.env.DEV ? 'demo2026' : '')
+const DEMO_TILES_ENABLED = SHARED_PASSWORD.length > 0
 
 const features = [
   { icon: BarChart3, text: '10+ GHG Protocol calculator modules' },
@@ -215,8 +223,9 @@ export default function Login() {
               </button>
             )}
 
-            {/* Quick-login role tiles — real auth against Neon */}
-            {mode === 'login' && (
+            {/* Quick-login role tiles — real auth against Neon. Hidden in
+                production builds where VITE_DEMO_PASSWORD isn't set. */}
+            {mode === 'login' && DEMO_TILES_ENABLED && (
               <>
                 <div className="grid grid-cols-3 gap-1.5">
                   {ROLE_ACCOUNTS.map((acc, i) => {

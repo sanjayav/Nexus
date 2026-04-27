@@ -32,7 +32,7 @@ import {
  *   { action: 'remove-assignment', id }
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  cors(res)
+  cors(res, req)
   if (req.method === 'OPTIONS') return res.status(204).end()
 
   const sql = getDb()

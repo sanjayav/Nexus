@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "patch-roles": "tsx scripts/patch-roles.ts",
     "seed-org": "tsx scripts/seed-org.ts",
-    "seed-client": "tsx scripts/seed-client-demo.ts"
+    "seed-client": "tsx scripts/seed-client-demo.ts",
+    "seed-all": "tsx scripts/seed-all.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",

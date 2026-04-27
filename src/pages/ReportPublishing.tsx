@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import {
   Download, Send, Loader2, CheckCircle2, AlertCircle,
   Shield, Hash, Clock, FileText, ShieldCheck, Copy, ExternalLink, RotateCw, X, BadgeCheck,
+  FileSpreadsheet, Sparkles,
 } from 'lucide-react'
 import { useOrgData } from '../lib/useOrgData'
 import { useFramework } from '../lib/frameworks'
@@ -13,11 +14,15 @@ import Button from '../design-system/components/Button'
 import EmptyState from '../design-system/components/EmptyState'
 import { SkeletonCard } from '../design-system/components/Skeleton'
 import { riseIn, popIn, slideInLeft } from '../components/motion'
+import ExcelImport from '../components/ExcelImport'
+import JargonTooltip from '../components/JargonTooltip'
+import type { ExcelRow } from '../data/pttepDemoData'
+import { computeEmissionsTotals, valueForAssignment, type EmissionsTotals } from '../lib/excelToEmissions'
 
 type View = 'loading' | 'ready' | 'error'
 
 export default function ReportPublishing() {
-  const { data: orgData, loading: orgLoading } = useOrgData()
+  const { data: orgData, loading: orgLoading, reload: reloadOrgData } = useOrgData()
   const { active: framework } = useFramework()
   const [state, setState] = useState<View>('loading')
   const [error, setError] = useState<string | null>(null)
@@ -28,6 +33,10 @@ export default function ReportPublishing() {
   const [publishing, setPublishing] = useState(false)
   const [publishBanner, setPublishBanner] = useState<{ verify_url: string; sha256: string; version: number; is_draft: boolean } | null>(null)
   const [assuranceModalOpen, setAssuranceModalOpen] = useState(false)
+  const [importModalOpen, setImportModalOpen] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{ totals: EmissionsTotals; updated: number; failed: number } | null>(null)
+  const [autoPublishAfterImport, setAutoPublishAfterImport] = useState(false)
 
   const load = async () => {
     setState('loading')
@@ -91,6 +100,60 @@ export default function ReportPublishing() {
     }
   }
 
+  const handleExcelImport = async (rows: ExcelRow[]) => {
+    if (!period) return
+    setImportModalOpen(false)
+    setImporting(true)
+    setImportResult(null)
+    setError(null)
+
+    const totals = computeEmissionsTotals(rows)
+
+    let updated = 0
+    let failed = 0
+
+    try {
+      // Reload to get the freshest assignment list
+      await reloadOrgData()
+      const fresh = await orgStore.listAssignments()
+      const periodAssignmentsAll = fresh.filter(a =>
+        a.framework_id === framework.id &&
+        (a.period_id === period.id || !a.period_id)
+      )
+
+      // Prefer GRI 305 (emissions) assignments; fall back to anything in the period
+      const emissionsAssignments = periodAssignmentsAll.filter(a => a.gri_code?.startsWith('305-'))
+      const targets = emissionsAssignments.length > 0 ? emissionsAssignments : periodAssignmentsAll
+
+      for (const a of targets) {
+        const value = valueForAssignment(a.gri_code ?? '', totals) ?? totals.total
+        try {
+          await orgStore.updateAssignment(a.id, {
+            value,
+            unit: 'tCO2e',
+            status: 'approved',
+            comment: `Auto-populated from Excel import (${rows.length} rows). Scope 1: ${totals.scope1} · Scope 2: ${totals.scope2} · Scope 3: ${totals.scope3} tCO2e.`,
+          })
+          updated += 1
+        } catch {
+          failed += 1
+        }
+      }
+
+      await reloadOrgData()
+      setImportResult({ totals, updated, failed })
+
+      if (autoPublishAfterImport && updated > 0) {
+        setAutoPublishAfterImport(false)
+        await handlePublish(signedAssurance[0]?.id)
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Import failed')
+    } finally {
+      setImporting(false)
+    }
+  }
+
   if (state === 'loading' || orgLoading) {
     return (
       <div className="space-y-6">
@@ -126,6 +189,17 @@ export default function ReportPublishing() {
               <Button
                 variant="secondary"
                 size="md"
+                icon={importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
+                onClick={() => { setAutoPublishAfterImport(false); setImportModalOpen(true) }}
+                disabled={importing || publishing}
+              >
+                {importing ? 'Importing…' : 'Import from Excel'}
+              </Button>
+            )}
+            {period && (
+              <Button
+                variant="secondary"
+                size="md"
                 icon={<ShieldCheck className="w-4 h-4" />}
                 onClick={() => setAssuranceModalOpen(true)}
               >
@@ -146,6 +220,15 @@ export default function ReportPublishing() {
       />
 
       {publishBanner && <PublishBanner banner={publishBanner} onClose={() => setPublishBanner(null)} />}
+
+      {importResult && (
+        <ImportResultBanner
+          result={importResult}
+          onClose={() => setImportResult(null)}
+          onPublish={() => { setImportResult(null); handlePublish(signedAssurance[0]?.id) }}
+          publishing={publishing}
+        />
+      )}
 
       {/* Period picker */}
       <section>
@@ -179,7 +262,11 @@ export default function ReportPublishing() {
                   {readiness.total === 0 ? 'No disclosures assigned yet' : readiness.approved === readiness.total ? 'Ready to publish' : `${readiness.approved} of ${readiness.total} disclosures approved`}
                 </h2>
                 <p className="text-[13.5px] text-[var(--text-secondary)] mt-2 max-w-xl leading-relaxed">
-                  The PDF is generated server-side and each page includes verification on the footer. The cover carries a QR code and a SHA-256 hash anchored to a public timestamp calendar — any recipient can confirm the file hasn't been modified.
+                  The PDF is generated server-side and each page includes verification on the footer. The cover carries a QR code and a{' '}
+                  <JargonTooltip term="SHA-256">A 256-bit cryptographic fingerprint of the PDF. Any change to the file — even a single character — produces a different hash, so recipients can prove the file hasn't been altered.</JargonTooltip>
+                  {' '}hash anchored to a{' '}
+                  <JargonTooltip term="public timestamp calendar">An external service (OpenTimestamps) that records the hash on the Bitcoin blockchain at a specific moment, providing a tamper-evident proof that the report existed in this exact form on a given date — without trusting Aeiforo or any single party.</JargonTooltip>
+                  {' '}— any recipient can confirm the file hasn't been modified.
                 </p>
                 <div className="mt-5 max-w-md">
                   <div className="flex items-baseline justify-between mb-2">
@@ -256,7 +343,13 @@ export default function ReportPublishing() {
           <SectionHeader
             kicker="Assurance"
             title="Independent assurance workflow"
-            subtitle="Send a signed upload link to your audit partner. Once they submit an ISAE 3000 opinion, the draft watermark lifts on the next publish."
+            subtitle={(
+              <>
+                Send a signed upload link to your audit partner. Once they submit an{' '}
+                <JargonTooltip term="ISAE 3000">International Standard on Assurance Engagements 3000 — the global standard auditors follow when assuring non-financial information like sustainability data. "Limited" assurance is a moderate level; "Reasonable" is the highest, equivalent to a financial audit.</JargonTooltip>
+                {' '}opinion, the draft watermark lifts on the next publish.
+              </>
+            )}
           />
           {assurance.filter(a => a.period_id === period.id).length === 0 ? (
             <EmptyState
@@ -283,7 +376,81 @@ export default function ReportPublishing() {
           onCreated={() => { setAssuranceModalOpen(false); load() }}
         />
       )}
+
+      {importModalOpen && (
+        <ExcelImport
+          onImport={handleExcelImport}
+          onClose={() => setImportModalOpen(false)}
+        />
+      )}
     </div>
+  )
+}
+
+function ImportResultBanner({ result, onClose, onPublish, publishing }: {
+  result: { totals: EmissionsTotals; updated: number; failed: number }
+  onClose: () => void
+  onPublish: () => void
+  publishing: boolean
+}) {
+  const { totals, updated, failed } = result
+  const success = updated > 0
+  return (
+    <motion.div
+      {...popIn(0)}
+      className="surface-paper p-5 relative overflow-hidden"
+      style={{
+        background: success
+          ? 'linear-gradient(135deg, rgba(46,125,50,0.06) 0%, transparent 60%)'
+          : 'linear-gradient(135deg, rgba(230,168,23,0.06) 0%, transparent 60%)',
+        borderColor: success ? 'rgba(46,125,50,0.3)' : 'rgba(230,168,23,0.3)',
+      }}
+    >
+      <button onClick={onClose} className="absolute top-3 right-3 w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)]">
+        <X className="w-4 h-4" />
+      </button>
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0" style={{ background: success ? 'var(--accent-green-light)' : 'var(--accent-amber-light)', color: success ? 'var(--status-ok)' : 'var(--status-draft)' }}>
+          <Sparkles className="w-5 h-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[14.5px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">
+            {success
+              ? `${totals.rows} rows imported · ${updated} disclosure${updated === 1 ? '' : 's'} auto-populated and approved`
+              : `Import processed but no matching disclosures were updated`}
+          </div>
+          <div className="text-[12px] text-[var(--text-secondary)] mt-1 leading-snug">
+            Computed totals:{' '}
+            <strong>
+              <JargonTooltip term="Scope 1">Direct GHG emissions from sources the company owns or controls — e.g. fuel combusted on-site, company vehicles, refrigerant leaks. GHG Protocol category.</JargonTooltip>
+            </strong>{' '}
+            {totals.scope1.toLocaleString()} ·{' '}
+            <strong>
+              <JargonTooltip term="Scope 2">Indirect GHG emissions from purchased electricity, steam, heating, or cooling. Reported two ways: location-based (grid average) and market-based (contract-specific).</JargonTooltip>
+            </strong>{' '}
+            {totals.scope2.toLocaleString()} ·{' '}
+            <strong>
+              <JargonTooltip term="Scope 3">All other indirect emissions across the value chain — split into 15 categories: purchased goods, capital goods, transportation, business travel, employee commuting, use of sold products, end-of-life treatment, investments, etc.</JargonTooltip>
+            </strong>{' '}
+            {totals.scope3.toLocaleString()} tCO₂e
+            {failed > 0 && <span className="text-[var(--status-reject)]"> · {failed} update(s) failed</span>}
+          </div>
+          {success && (
+            <div className="mt-3">
+              <Button
+                variant="brand"
+                size="sm"
+                icon={publishing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                onClick={onPublish}
+                disabled={publishing}
+              >
+                {publishing ? 'Publishing…' : 'Publish report now'}
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
   )
 }
 

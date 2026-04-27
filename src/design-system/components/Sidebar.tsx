@@ -26,6 +26,8 @@ type NavItem = {
   badgeKey?: 'myTasks' | 'reviewQueue' | 'approvalQueue' | 'anomalies'
   /** Small amber dot for flagship features. */
   pin?: boolean
+  /** Hidden behind the "Show advanced" toggle by default. */
+  advanced?: boolean
 }
 
 type NavGroup = {
@@ -68,7 +70,7 @@ const NAV: NavGroup[] = [
         roles: ['subsidiary_lead', 'plant_manager', 'platform_admin'] },
       { path: '/workflow/approval', label: 'Approval queue', icon: Shield, badgeKey: 'approvalQueue',
         roles: ['group_sustainability_officer', 'platform_admin'] },
-      { path: '/aggregator', label: 'Group rollup', icon: Network,
+      { path: '/aggregator', label: 'Group rollup', icon: Network, advanced: true,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'auditor'] },
     ],
   },
@@ -81,7 +83,9 @@ const NAV: NavGroup[] = [
     items: [
       { path: '/reports',             label: 'Publish centre', icon: FileText,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner', 'auditor'] },
-      { path: '/reports/index',       label: 'GRI index',      icon: BookMarked,
+      { path: '/reports/performance', label: 'Performance data', icon: FileBarChart,
+        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner', 'auditor'] },
+      { path: '/reports/index',       label: 'GRI index',      icon: BookMarked, advanced: true,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner', 'auditor'] },
       // Analytics + Anomalies are for people who act on numbers. Narrative
       // owners write prose; they don't need these.
@@ -115,9 +119,9 @@ const NAV: NavGroup[] = [
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead'] },
       { path: '/admin/users',        label: 'Users & roles',    icon: Users,
         roles: ['platform_admin'] },
-      { path: '/admin/ef-library',   label: 'EF library',       icon: BookOpen,
+      { path: '/admin/ef-library',   label: 'EF library',       icon: BookOpen, advanced: true,
         roles: ['platform_admin'] },
-      { path: '/admin/gwp',          label: 'GWP values',       icon: Atom,
+      { path: '/admin/gwp',          label: 'GWP values',       icon: Atom, advanced: true,
         roles: ['platform_admin'] },
     ],
   },
@@ -127,7 +131,7 @@ const NAV: NavGroup[] = [
     // Only admins and auditors need a dedicated System section.
     roles: ['platform_admin', 'auditor'],
     items: [
-      { path: '/admin/audit', label: 'Audit trail', icon: ShieldCheck,
+      { path: '/admin/audit', label: 'Audit trail', icon: ShieldCheck, advanced: true,
         roles: ['platform_admin', 'auditor'] },
       { path: '/settings',    label: 'Settings',    icon: Settings,
         roles: ['platform_admin'] },
@@ -140,7 +144,12 @@ function canSee(role: PlatformRole, required?: PlatformRole[]): boolean {
   return required.includes(role)
 }
 
+function hasAdvancedForRole(role: PlatformRole): boolean {
+  return NAV.some(g => canSee(role, g.roles) && g.items.some(it => it.advanced && canSee(role, it.roles)))
+}
+
 const STORE_KEY = 'aeiforo_sidebar_open'
+const ADVANCED_KEY = 'aeiforo_sidebar_advanced'
 
 interface SidebarProps {
   collapsed: boolean
@@ -181,6 +190,14 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   useEffect(() => { localStorage.setItem(STORE_KEY, JSON.stringify(Array.from(openSet))) }, [openSet])
 
   const toggleSection = (k: string) => setOpenSet(prev => { const next = new Set(prev); next.has(k) ? next.delete(k) : next.add(k); return next })
+
+  // "Show advanced" — hides utility items by default to reduce nav clutter.
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(() => {
+    try { return localStorage.getItem(ADVANCED_KEY) === '1' } catch { return false }
+  })
+  useEffect(() => {
+    try { localStorage.setItem(ADVANCED_KEY, showAdvanced ? '1' : '0') } catch { /* ignore */ }
+  }, [showAdvanced])
 
   return (
     <aside
@@ -243,7 +260,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <nav className={`flex-1 overflow-y-auto ${collapsed ? 'px-2' : 'px-2.5'} pb-3 space-y-0.5 relative`}>
         {NAV
           .filter(g => canSee(role, g.roles))
-          .map(g => ({ g, visibleItems: g.items.filter(it => canSee(role, it.roles)) }))
+          .map(g => ({ g, visibleItems: g.items.filter(it => canSee(role, it.roles) && (showAdvanced || !it.advanced)) }))
           .filter(({ visibleItems }) => visibleItems.length > 0)
           .map(({ g, visibleItems }, i) => (
             <Section
@@ -259,6 +276,17 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
               isFirst={i === 0}
             />
           ))}
+
+        {!collapsed && hasAdvancedForRole(role) && (
+          <button
+            onClick={() => setShowAdvanced(s => !s)}
+            className="mt-3 w-full flex items-center gap-2 px-2.5 h-8 rounded-[6px] text-[11px] font-medium text-white/40 hover:text-white/70 hover:bg-white/[0.03] transition-colors cursor-pointer"
+            title={showAdvanced ? 'Hide advanced items' : 'Show advanced items (EF library, GWP values, audit trail, etc.)'}
+          >
+            <ChevronDown className={`w-3 h-3 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
+            <span className="flex-1 text-left">{showAdvanced ? 'Hide advanced' : 'Show advanced'}</span>
+          </button>
+        )}
       </nav>
 
       {/* User + logout */}

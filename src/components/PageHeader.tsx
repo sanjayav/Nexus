@@ -7,7 +7,7 @@ import { SPRING } from './motion'
 interface PageHeaderProps {
   eyebrow?: string
   title: string
-  subtitle?: string
+  subtitle?: ReactNode
   actions?: ReactNode
   stage?: StageKey
   /** Show the compact pipeline strip. Defaults to true when `stage` is passed. */

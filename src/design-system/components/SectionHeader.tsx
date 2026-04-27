@@ -2,7 +2,7 @@ import { ReactNode } from 'react'
 
 interface SectionHeaderProps {
   title: string
-  subtitle?: string
+  subtitle?: ReactNode
   actions?: ReactNode
   kicker?: string
   className?: string

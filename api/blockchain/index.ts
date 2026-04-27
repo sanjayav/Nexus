@@ -6,7 +6,7 @@ import { emitAuditEvent, getPlatformRole } from '../_workflow.js'
 import { verifyChain } from '../_hashChain.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  cors(res)
+  cors(res, req)
   if (req.method === 'OPTIONS') return res.status(204).end()
 
   const token = await verifyToken(req)

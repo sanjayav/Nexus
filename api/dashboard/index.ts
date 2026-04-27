@@ -5,7 +5,7 @@ import { verifyToken, cors } from '../_auth.js'
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  cors(res)
+  cors(res, req)
   if (req.method === 'OPTIONS') return res.status(204).end()
 
   const token = await verifyToken(req)

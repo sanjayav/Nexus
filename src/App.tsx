@@ -10,6 +10,7 @@ import Analytics from './pages/Analytics'
 import BlockchainAudit from './pages/BlockchainAudit'
 import ReportPublishing from './pages/ReportPublishing'
 import ReportPreview from './pages/ReportPreview'
+import SustainabilityPerformanceReport from './pages/SustainabilityPerformanceReport'
 import AuditorView from './pages/AuditorView'
 import AIReport from './pages/AIReport'
 import DataIngestion from './pages/DataIngestion'
@@ -32,6 +33,7 @@ import VerifyReport from './pages/VerifyReport'
 import AuditorUpload from './pages/AuditorUpload'
 import { useAuth } from './auth/AuthContext'
 import { homeRouteFor } from './lib/rbac'
+import ErrorBoundary from './components/ErrorBoundary'
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
   const { isAuthenticated } = useAuth()
@@ -105,6 +107,7 @@ function AppRoutes() {
         <Route path="/workflow/approval" element={<ProtectedRoute><WorkflowQueue kind="approval" /></ProtectedRoute>} />
         <Route path="/aggregator/legacy" element={<ProtectedRoute><Aggregator /></ProtectedRoute>} />
         <Route path="/reports" element={<ProtectedRoute><ReportPublishing /></ProtectedRoute>} />
+        <Route path="/reports/performance" element={<ProtectedRoute><SustainabilityPerformanceReport /></ProtectedRoute>} />
         <Route path="/reports/preview" element={<ProtectedRoute><ReportPreview /></ProtectedRoute>} />
         <Route path="/reports/auditor" element={<ProtectedRoute><AuditorView /></ProtectedRoute>} />
         <Route path="/reports/ai" element={<ProtectedRoute><AIReport /></ProtectedRoute>} />
@@ -152,8 +155,10 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }

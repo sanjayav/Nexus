@@ -119,6 +119,77 @@ const PLANS: Plan[] = [
   { email: 'maya@aeiforo.com',  name: 'Maya Prasert',  entityId: E.plant_jur,
     griPrefix: '302-1', status: 'reviewed', modes: ['Connector'], responseType: 'numeric',
     value: 142000, unit: 'GJ', due: '2026-05-30', usedMode: 'Connector' },
+
+  // ═══════════════════════════════════════════════════════════════
+  // DEMO FLOW AMPLIFIER — extra rows so the queues look lived-in
+  // during the sales demo. Each role has enough variety to click
+  // through start → finish without the UI looking sparse.
+  // ═══════════════════════════════════════════════════════════════
+
+  // ── Maya (data contributor) — +6 to fill her task inbox ─────
+  { email: 'maya@aeiforo.com',  name: 'Maya Prasert',  entityId: E.plant_ray,
+    griPrefix: '305-1', status: 'not_started', modes: ['Manual','Calculator'], responseType: 'numeric',
+    value: null, unit: 'tonnes CO2e', due: '2026-06-08' },
+  { email: 'maya@aeiforo.com',  name: 'Maya Prasert',  entityId: E.plant_ray,
+    griPrefix: '305-2', status: 'not_started', modes: ['Manual','Calculator'], responseType: 'numeric',
+    value: null, unit: 'tonnes CO2e', due: '2026-06-12' },
+  { email: 'maya@aeiforo.com',  name: 'Maya Prasert',  entityId: E.plant_ray,
+    griPrefix: '305-4', status: 'in_progress', modes: ['Calculator'],           responseType: 'numeric',
+    value: 0.42, unit: 'tonnes CO2e / tonne product', due: '2026-06-18', usedMode: 'Calculator',
+    comment: 'Intensity ratio — awaiting final Q2 production tonnage' },
+  { email: 'maya@aeiforo.com',  name: 'Maya Prasert',  entityId: E.plant_ray,
+    griPrefix: '303-3', status: 'not_started', modes: ['Manual','Connector'],   responseType: 'numeric',
+    value: null, unit: 'megalitres', due: '2026-06-25' },
+  { email: 'maya@aeiforo.com',  name: 'Maya Prasert',  entityId: E.plant_ray,
+    griPrefix: '306-1', status: 'submitted', modes: ['Manual'],                 responseType: 'numeric',
+    value: 28600, unit: 'tonnes generated', due: '2026-05-28', usedMode: 'Manual' },
+  { email: 'maya@aeiforo.com',  name: 'Maya Prasert',  entityId: E.plant_ray,
+    griPrefix: '403-10', status: 'approved', modes: ['Manual'],                 responseType: 'numeric',
+    value: 0, unit: 'fatalities', due: '2026-05-15', usedMode: 'Manual' },
+
+  // ── Sarah Chen (plant manager) — +5 extra at Map Ta Phut ────
+  { email: 'fm@aeiforo.com',    name: 'Sarah Chen',    entityId: E.plant_mtp,
+    griPrefix: '305-1', status: 'in_progress', modes: ['Calculator'],          responseType: 'numeric',
+    value: 1240000, unit: 'tonnes CO2e', due: '2026-06-10', usedMode: 'Calculator',
+    comment: 'Cross-checking against Cogen plant #2 meter reads' },
+  { email: 'fm@aeiforo.com',    name: 'Sarah Chen',    entityId: E.plant_mtp,
+    griPrefix: '305-2', status: 'submitted', modes: ['Calculator'],            responseType: 'numeric',
+    value: 185000, unit: 'tonnes CO2e', due: '2026-06-05', usedMode: 'Calculator' },
+  { email: 'fm@aeiforo.com',    name: 'Sarah Chen',    entityId: E.plant_mtp,
+    griPrefix: '303-3', status: 'not_started', modes: ['Manual','Connector'],  responseType: 'numeric',
+    value: null, unit: 'megalitres', due: '2026-06-28' },
+  { email: 'fm@aeiforo.com',    name: 'Sarah Chen',    entityId: E.plant_mtp,
+    griPrefix: '405-1', status: 'submitted', modes: ['Manual'],                responseType: 'numeric',
+    value: 28, unit: '% women in management', due: '2026-06-02', usedMode: 'Manual' },
+  { email: 'fm@aeiforo.com',    name: 'Sarah Chen',    entityId: E.plant_mtp,
+    griPrefix: '303-5', status: 'approved', modes: ['Manual'],                 responseType: 'numeric',
+    value: 3800, unit: 'megalitres consumed', due: '2026-05-12', usedMode: 'Manual' },
+
+  // ── Priya Sharma (narrative owner) — +4 group-level narratives ──
+  { email: 'narrator@aeiforo.com', name: 'Priya Sharma', entityId: E.group,
+    griPrefix: '2-12', status: 'not_started', modes: ['Manual'], responseType: 'narrative',
+    value: null, unit: null, due: '2026-06-25' },
+  { email: 'narrator@aeiforo.com', name: 'Priya Sharma', entityId: E.group,
+    griPrefix: '2-22', status: 'in_progress', modes: ['Manual'], responseType: 'narrative',
+    value: null, unit: null, due: '2026-06-18', usedMode: 'Manual',
+    narrativeBody: 'Our 2026 sustainability strategy rests on three pillars: decarbonisation (30% Scope 1+2 reduction by 2030 vs 2020 baseline), circular operations (50% waste diverted from landfill), and just transition (100% of workforce reskilled by 2028).\n\n[Draft — to add governance oversight and capex allocation paragraph]' },
+  { email: 'narrator@aeiforo.com', name: 'Priya Sharma', entityId: E.group,
+    griPrefix: '2-23', status: 'submitted', modes: ['Manual'], responseType: 'narrative',
+    value: null, unit: null, due: '2026-06-10', usedMode: 'Manual',
+    narrativeBody: 'Our Policy Commitments are anchored in the UN Global Compact, OECD Guidelines for Multinational Enterprises, and the UN Guiding Principles on Business and Human Rights. The Code of Conduct — approved by the Board and revised biennially — commits the Group to zero tolerance of child labour, forced labour, bribery and discrimination across all operations and our tier-1 supplier base.' },
+  { email: 'narrator@aeiforo.com', name: 'Priya Sharma', entityId: E.group,
+    griPrefix: '2-29', status: 'reviewed', modes: ['Manual'], responseType: 'narrative',
+    value: null, unit: null, due: '2026-05-25', usedMode: 'Manual',
+    narrativeBody: 'Stakeholder engagement follows a four-tier framework: investor briefings (quarterly), community consultations (annually per operating site), supplier roundtables (biannually), and the Group Materiality Survey (biennially). Findings feed directly into the Board Sustainability Committee and the double-materiality assessment anchored in this report.' },
+
+  // ── More cross-plant submissions to fill Group Rollup view ──
+  { email: 'fm@aeiforo.com',    name: 'Sarah Chen',    entityId: E.plant_jur,
+    griPrefix: '306-3', status: 'reviewed', modes: ['Manual','Calculator'], responseType: 'numeric',
+    value: 8900, unit: 'tonnes', due: '2026-05-28', usedMode: 'Calculator',
+    comment: 'Jurong waste total — reviewed by TL, awaiting GSO approval' },
+  { email: 'maya@aeiforo.com',  name: 'Maya Prasert',  entityId: E.plant_tpe,
+    griPrefix: '305-4', status: 'reviewed', modes: ['Calculator'], responseType: 'numeric',
+    value: 0.38, unit: 'tonnes CO2e / tonne product', due: '2026-05-22', usedMode: 'Calculator' },
 ]
 
 async function main() {

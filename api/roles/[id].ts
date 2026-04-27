@@ -3,7 +3,7 @@ import { getDb } from '../_db.js'
 import { verifyToken, cors } from '../_auth.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  cors(res)
+  cors(res, req)
   if (req.method === 'OPTIONS') return res.status(204).end()
 
   const token = await verifyToken(req)
