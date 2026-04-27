@@ -89,7 +89,11 @@ export default function DemoSeedCta({ show, onCompleted }: Props) {
       {open && (
         <DemoSeedModal
           onClose={() => setOpen(false)}
-          onCompleted={() => { onCompleted(); dismiss() }}
+          // After a successful seed the card naturally hides because `show`
+          // becomes false (workspace now has entities). We deliberately do
+          // NOT persist a dismissal here — otherwise resetting the workspace
+          // back to empty wouldn't bring the CTA back.
+          onCompleted={() => onCompleted()}
         />
       )}
     </>

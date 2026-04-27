@@ -29,6 +29,15 @@ export default function ResetWorkspaceButton({ onReset, variant = 'subtle' }: Pr
     setError(null)
     try {
       await orgStore.resetWorkspace()
+      // Clear any previously-set dismissal flags so empty-workspace prompts
+      // (the demo-seed CTA, the QuickStart card, etc.) reappear after the
+      // wipe. Without this an admin who once clicked "X" stays locked out
+      // of the seed shortcut even on a freshly-blank workspace.
+      try {
+        localStorage.removeItem('aeiforo_demo_cta_dismissed_v1')
+        localStorage.removeItem('aeiforo_quickstart_dismissed_v1')
+        localStorage.removeItem('aeiforo_setup_dismissed')
+      } catch { /* ignore */ }
       setDone(true)
       setTimeout(() => {
         setOpen(false)
