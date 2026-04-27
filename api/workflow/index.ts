@@ -384,10 +384,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // --- action: upload-evidence ---
-    // Body: { action, data_value_id, filename, file_type, size, content_base64 }
+    // Body: { action, data_value_id, filename, file_type, content_base64 }
+    // (size is computed from the buffer — client-supplied size ignored.)
     // Inline BYTEA storage, SHA-256 hashed. Capped at 5 MB per file.
     if (action === 'upload-evidence') {
-      const { data_value_id, filename, file_type, size, content_base64 } = req.body ?? {}
+      const { data_value_id, filename, file_type, content_base64 } = req.body ?? {}
       if (!data_value_id || !filename || !content_base64) {
         return res.status(400).json({ error: 'data_value_id, filename, and content_base64 are required' })
       }

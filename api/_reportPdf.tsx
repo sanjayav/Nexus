@@ -15,8 +15,7 @@
  * No tricks — all content is pulled from the caller. If the data isn't there, the
  * section is either omitted or stamped "not provided" (which is itself a disclosure).
  */
-import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer'
-import React from 'react'
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer'
 
 // ─── Types ──────────────────────────────────────────────────────
 
