@@ -293,6 +293,17 @@ export const orgStore = {
     await req('/org', { method: 'POST', body: JSON.stringify({ action: 'remove-entity', id }) })
   },
 
+  /**
+   * DESTRUCTIVE — wipes the calling user's workspace clean. Removes all
+   * entities, members, targets, materiality, periods, assignments,
+   * assurance requests, and published reports for the org. Preserves the
+   * org row, users (login still works), roles, and the questionnaire
+   * catalogue. Use to reset the demo between presentations.
+   */
+  async resetWorkspace(): Promise<void> {
+    await req('/org', { method: 'POST', body: JSON.stringify({ action: 'reset-workspace', confirm: 'RESET' }) })
+  },
+
   // Members
   async listMembers(): Promise<OrgMember[]> {
     const wire = await req<MemberWire[]>('/org?view=members')

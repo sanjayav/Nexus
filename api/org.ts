@@ -691,6 +691,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'POST') {
       const action = String(req.body?.action || '')
 
+      // ─── Workspace reset ──────────────────────────────────
+      // DESTRUCTIVE: wipes the workspace's onboarding data so it can be
+      // re-seeded for a fresh demo. Preserves the org row, users, roles,
+      // questionnaire catalogue, and audit trail. Admin-only.
+      if (action === 'reset-workspace') {
+        const confirm = String(req.body?.confirm ?? '')
+        if (confirm !== 'RESET') {
+          return res.status(400).json({ error: 'Confirmation required (send confirm: "RESET").' })
+        }
+        // Best-effort cascade. Most child tables FK to org_entities with
+        // ON DELETE CASCADE, but we delete explicitly so the result is
+        // predictable across schema versions.
+        await sql`DELETE FROM assurance_requests       WHERE org_id = ${orgId}`.catch(() => {})
+        await sql`DELETE FROM published_reports        WHERE org_id = ${orgId}`.catch(() => {})
+        await sql`DELETE FROM question_assignments     WHERE org_id = ${orgId}`.catch(() => {})
+        await sql`DELETE FROM reporting_periods        WHERE org_id = ${orgId}`.catch(() => {})
+        await sql`DELETE FROM material_topics          WHERE org_id = ${orgId}`.catch(() => {})
+        await sql`DELETE FROM org_targets              WHERE org_id = ${orgId}`.catch(() => {})
+        await sql`DELETE FROM org_members              WHERE org_id = ${orgId}`.catch(() => {})
+        await sql`DELETE FROM org_entities             WHERE org_id = ${orgId}`.catch(() => {})
+        return res.status(200).json({ ok: true })
+      }
+
       // ─── Entities ─────────────────────────────────────────
       if (action === 'add-entity') {
         const { parent_id, type, name, code, country, equity, industry } = req.body

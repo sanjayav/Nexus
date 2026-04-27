@@ -9,6 +9,7 @@ import { ROLE_CATALOG, type PlatformRole } from '../lib/rbac'
 import JourneyBar from '../components/JourneyBar'
 import { FrameworkBadge } from '../components/FrameworkBadge'
 import { useFramework } from '../lib/frameworks'
+import ResetWorkspaceButton from '../components/ResetWorkspaceButton'
 
 const TYPE_META: Record<EntityType, { label: string; icon: typeof Building2; tint: string; tintFg: string }> = {
   group:        { label: 'Group',        icon: Landmark,   tint: 'var(--accent-teal)',    tintFg: '#fff' },
@@ -75,14 +76,21 @@ export default function OrgOnboarding() {
         <JourneyBar variant="compact" highlight="onboard" />
       </div>
       <header className="mb-6">
-        <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
-          <Sparkles className="w-3 h-3" /> Organisation onboarding
-        </div>
-        <div className="flex items-center gap-2 mt-1 flex-wrap">
-          <h1 className="font-display text-[28px] font-bold text-[var(--text-primary)]">
-            Build your reporting tree
-          </h1>
-          <FrameworkBadge size="md" />
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
+              <Sparkles className="w-3 h-3" /> Organisation onboarding
+            </div>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <h1 className="font-display text-[28px] font-bold text-[var(--text-primary)]">
+                Build your reporting tree
+              </h1>
+              <FrameworkBadge size="md" />
+            </div>
+          </div>
+          {entities.length > 0 && (
+            <ResetWorkspaceButton variant="danger" onReset={() => { refresh(); navigate('/dashboard') }} />
+          )}
         </div>
         <FrameworkScopeNote />
       </header>
