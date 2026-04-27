@@ -2,19 +2,25 @@ import { jwtVerify, SignJWT } from 'jose'
 import type { VercelRequest } from '@vercel/node'
 
 /**
- * JWT_SECRET is required. We refuse to start without it — falling back to a
- * known string would let any reader of this repo forge admin tokens.
- * Set it in Vercel project env (and your local .env for `npm run dev:api`).
+ * JWT_SECRET is required at sign / verify time. We deliberately do NOT throw
+ * at module load — that crashes every serverless function with an opaque
+ * FUNCTION_INVOCATION_FAILED. Instead we throw inside signToken / verifyToken
+ * so endpoints can catch and return a clear 503 with diagnostic info.
+ *
+ * Generate a strong secret with: openssl rand -hex 32
+ * Set it in Vercel project env (Production + Preview) and in your local .env.
  */
-const RAW_SECRET = process.env.JWT_SECRET
-if (!RAW_SECRET || RAW_SECRET.length < 32) {
-  throw new Error(
-    'JWT_SECRET env var is missing or too short (need ≥32 chars). ' +
-    'Set it in Vercel project settings (Production + Preview) and in your local .env. ' +
-    'Generate one with: openssl rand -hex 32'
-  )
+function getSecret(): Uint8Array {
+  const raw = process.env.JWT_SECRET
+  if (!raw || raw.length < 32) {
+    throw new Error(
+      'JWT_SECRET env var is missing or too short (need ≥32 chars). ' +
+      'Set it in Vercel project settings (Production + Preview). ' +
+      'Generate one with: openssl rand -hex 32'
+    )
+  }
+  return new TextEncoder().encode(raw)
 }
-const SECRET = new TextEncoder().encode(RAW_SECRET)
 
 /**
  * CORS allowlist. Production must set ALLOWED_ORIGINS to a comma-separated
@@ -42,14 +48,25 @@ export async function signToken(payload: TokenPayload): Promise<string> {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
-    .sign(SECRET)
+    .sign(getSecret())
 }
 
 export async function verifyToken(req: VercelRequest): Promise<TokenPayload | null> {
   const header = req.headers.authorization
   if (!header?.startsWith('Bearer ')) return null
+  let secret: Uint8Array
   try {
-    const { payload } = await jwtVerify(header.slice(7), SECRET)
+    secret = getSecret()
+  } catch (e) {
+    // Surface the config error in Vercel logs but don't crash the function.
+    // Endpoint returns 401, which prompts the user to re-login; login itself
+    // throws clearly via signToken when the secret is misconfigured.
+    // eslint-disable-next-line no-console
+    console.error('[verifyToken] JWT secret misconfigured:', e instanceof Error ? e.message : e)
+    return null
+  }
+  try {
+    const { payload } = await jwtVerify(header.slice(7), secret)
     return payload as unknown as TokenPayload
   } catch {
     return null
