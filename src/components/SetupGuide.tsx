@@ -4,7 +4,6 @@ import { ChevronDown, Check, ArrowRight, Sparkles, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { orgStore, type OrgTarget, type MaterialTopic, type ReportingPeriod } from '../lib/orgStore'
 import { useOrgData } from '../lib/useOrgData'
-import { useFramework } from '../lib/frameworks'
 import { useAuth } from '../auth/AuthContext'
 
 /**
@@ -28,7 +27,6 @@ interface StepDef {
 interface Ctx {
   entities: number
   users: number
-  frameworksEnabled: number
   materialTopics: number
   targets: number
   periods: number
@@ -36,10 +34,16 @@ interface Ctx {
   publishedReports: number
 }
 
+/**
+ * Each step is gated on real DB state — `done` only when the underlying data
+ * actually exists. We deliberately omit a "Choose frameworks" step in Phase 1:
+ * GRI is auto-enabled and CSRD / TCFD / IFRS are still "Coming soon", so the
+ * checkbox would always be pre-ticked and confuse first-time users into
+ * thinking they'd already done something.
+ */
 const STEPS: StepDef[] = [
   { key: 'org_tree',       title: 'Build the org tree',        helper: 'Add your group, subsidiaries, and plants.',               route: '/onboarding',           check: c => c.entities >= 2 },
   { key: 'users',          title: 'Invite your team',           helper: 'Add plant managers, reviewers, officers.',                route: '/admin/users',          check: c => c.users >= 2 },
-  { key: 'frameworks',     title: 'Choose frameworks',          helper: 'Turn on GRI, CSRD, TCFD, or any combination.',            route: '/settings',             check: c => c.frameworksEnabled >= 1 },
   { key: 'materiality',    title: 'Run materiality assessment', helper: 'Identify the topics that matter most.',                   route: '/admin/materiality',    check: c => c.materialTopics >= 1 },
   { key: 'targets',        title: 'Set a climate target',       helper: 'Commit to a near-term SBTi or net-zero target.',          route: '/admin/targets',        check: c => c.targets >= 1 },
   { key: 'period',         title: 'Open a reporting cycle',     helper: 'Create the fiscal year you are reporting on.',            route: '/admin/periods',        check: c => c.periods >= 1 },
@@ -51,7 +55,6 @@ export default function SetupGuide({ collapsed }: { collapsed: boolean }) {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { data: orgData } = useOrgData()
-  const { enabled } = useFramework()
   const [targets, setTargets] = useState<OrgTarget[]>([])
   const [topics, setTopics] = useState<MaterialTopic[]>([])
   const [periods, setPeriods] = useState<ReportingPeriod[]>([])
@@ -87,13 +90,12 @@ export default function SetupGuide({ collapsed }: { collapsed: boolean }) {
   const ctx: Ctx = useMemo(() => ({
     entities: orgData?.entities.length ?? 0,
     users: orgData?.members.length ?? 0,
-    frameworksEnabled: enabled.length,
     materialTopics: topics.length,
     targets: targets.length,
     periods: periods.length,
     assignments: orgData?.assignments.length ?? 0,
     publishedReports: publishedCount,
-  }), [orgData, enabled, topics, targets, periods, publishedCount])
+  }), [orgData, topics, targets, periods, publishedCount])
 
   const stepsWithStatus = useMemo(() => STEPS.map(s => ({ ...s, done: s.check(ctx) })), [ctx])
   const completed = stepsWithStatus.filter(s => s.done).length
