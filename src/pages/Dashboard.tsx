@@ -22,7 +22,6 @@ import Button from '../design-system/components/Button'
 import { SkeletonCard } from '../design-system/components/Skeleton'
 import AnomalyFeed from '../components/AnomalyFeed'
 import QuickStartCard from '../components/QuickStartCard'
-import StartChoicePanel from '../components/StartChoicePanel'
 import { type AnomalyScope } from '../lib/orgStore'
 
 /**
@@ -34,7 +33,7 @@ export default function Dashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { active: framework, enabled: enabledFrameworkIds, setActive: setActiveFramework } = useFramework()
-  const { data: orgData, loading, reload: reloadOrgData } = useOrgData()
+  const { data: orgData, loading } = useOrgData()
   const role = resolveRole(user)
   const focus = useMemo(() => focusStage(user, orgData), [user, orgData])
   const pipeline = useMemo(() => computePipeline(user, orgData ?? null), [user, orgData])
@@ -237,14 +236,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      {/* StartChoicePanel takes precedence on a truly empty workspace —
-          admin picks fresh-start or one-click PTTGC seed. Once the workspace
-          has entities, fall back to QuickStart / OnboardingHero. */}
-      <StartChoicePanel
-        show={showOnboardingGate}
-        onComplete={() => reloadOrgData()}
-      />
-
       {!showOnboardingGate && <QuickStartCard />}
 
       <AnimatePresence>
