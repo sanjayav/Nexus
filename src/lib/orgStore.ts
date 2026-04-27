@@ -574,7 +574,22 @@ export const orgStore = {
     qs.set('scope', scope)
     if (opts.includeSuppressed) qs.set('include_suppressed', '1')
     if (opts.limit) qs.set('limit', String(opts.limit))
-    return req<AnomalyScanResult>(`/org?${qs.toString()}`)
+    const raw = await req<Partial<AnomalyScanResult>>(`/org?${qs.toString()}`)
+    // Older API responses sometimes omit `summary` when there are no
+    // assignments — normalise to the full shape so callers can safely
+    // read .summary.critical / .summary.by_type.
+    return {
+      anomalies: raw.anomalies ?? [],
+      total: raw.total ?? 0,
+      summary: {
+        total: raw.summary?.total ?? 0,
+        critical: raw.summary?.critical ?? 0,
+        warn: raw.summary?.warn ?? 0,
+        info: raw.summary?.info ?? 0,
+        suppressed_total: raw.summary?.suppressed_total ?? 0,
+        by_type: raw.summary?.by_type ?? ({} as AnomalyScanResult['summary']['by_type']),
+      },
+    }
   },
   async suppressAnomaly(assignment_id: string, anomaly_type: string, reason: string): Promise<void> {
     await req('/org', { method: 'POST', body: JSON.stringify({ action: 'suppress-anomaly', assignment_id, anomaly_type, reason }) })

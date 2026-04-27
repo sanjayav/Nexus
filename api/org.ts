@@ -594,7 +594,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               evidence_ids: string[] | null; due_date: string | null; last_updated: string | null
             }>
 
-        if (assignments.length === 0) return res.status(200).json({ anomalies: [], total: 0 })
+        if (assignments.length === 0) {
+          // Always return the full AnomalyScanResult shape so the client
+          // doesn't have to defend against missing keys.
+          return res.status(200).json({
+            anomalies: [],
+            total: 0,
+            summary: {
+              total: 0, critical: 0, warn: 0, info: 0,
+              suppressed_total: 0,
+              by_type: {},
+            },
+          })
+        }
 
         // Historical values for the relevant items (one query).
         const itemIds = Array.from(new Set((assignments as AssignmentLike[]).map(a => a.questionnaire_item_id)))
