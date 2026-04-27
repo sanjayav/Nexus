@@ -974,12 +974,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (action === 'upsert-material-topic') {
         const { id, framework_id, topic_name, topic_category, linked_gri_codes, impact_score, financial_score, dma_status, rationale, owner_email } = req.body
         if (!topic_name) return res.status(400).json({ error: 'topic_name required' })
+        // impact_score / financial_score are INTEGER columns. Coerce floats
+        // (e.g. 4.7) to int so callers can pass the natural materiality
+        // matrix scale without tripping `invalid input syntax for type integer`.
+        const impactInt   = impact_score   == null ? null : Math.round(Number(impact_score))
+        const financialInt = financial_score == null ? null : Math.round(Number(financial_score))
         if (id) {
           await sql`
             UPDATE material_topics SET
               topic_name = ${topic_name}, topic_category = ${topic_category || null},
               linked_gri_codes = ${JSON.stringify(linked_gri_codes || [])}::jsonb,
-              impact_score = ${impact_score ?? null}, financial_score = ${financial_score ?? null},
+              impact_score = ${impactInt}, financial_score = ${financialInt},
               dma_status = ${dma_status || 'identified'},
               rationale = ${rationale || null}, owner_email = ${owner_email || null},
               assessed_at = ${dma_status && dma_status !== 'identified' ? new Date().toISOString() : null}
@@ -991,7 +996,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           INSERT INTO material_topics (org_id, framework_id, topic_name, topic_category, linked_gri_codes, impact_score, financial_score, dma_status, rationale, owner_email, assessed_at)
           VALUES (${orgId}, ${framework_id || 'gri'}, ${topic_name}, ${topic_category || null},
                   ${JSON.stringify(linked_gri_codes || [])}::jsonb,
-                  ${impact_score ?? null}, ${financial_score ?? null}, ${dma_status || 'identified'},
+                  ${impactInt}, ${financialInt}, ${dma_status || 'identified'},
                   ${rationale || null}, ${owner_email || null},
                   ${dma_status && dma_status !== 'identified' ? new Date().toISOString() : null})
           ON CONFLICT (org_id, framework_id, topic_name) DO UPDATE SET

@@ -79,13 +79,15 @@ export default function DemoSeedModal({ onClose, onCompleted }: Props) {
       })
 
       // ── Step 3: material topics ──
+      // impact_score / financial_score are INTEGER in the DB (1-5 scale).
+      // Decimals would fail with `invalid input syntax for type integer`.
       setSeeding('materiality')
       const topics = [
-        { topic_name: 'Climate change & GHG emissions',         topic_category: 'Environmental', linked_gri_codes: ['305-1','305-2','305-3','305-5'], impact_score: 4.7, financial_score: 4.6, dma_status: 'material' as const },
-        { topic_name: 'Water management',                        topic_category: 'Environmental', linked_gri_codes: ['303-3','303-4','303-5'],         impact_score: 4.2, financial_score: 3.8, dma_status: 'material' as const },
-        { topic_name: 'Process safety & asset integrity',       topic_category: 'Social',        linked_gri_codes: ['403-9','403-10'],                  impact_score: 4.5, financial_score: 4.4, dma_status: 'material' as const },
-        { topic_name: 'Circular economy & product stewardship', topic_category: 'Environmental', linked_gri_codes: ['301-1','301-2','306-3'],          impact_score: 4.0, financial_score: 3.9, dma_status: 'material' as const },
-        { topic_name: 'Business ethics & anti-corruption',      topic_category: 'Governance',    linked_gri_codes: ['205-2','205-3'],                   impact_score: 3.8, financial_score: 4.2, dma_status: 'material' as const },
+        { topic_name: 'Climate change & GHG emissions',         topic_category: 'Environmental', linked_gri_codes: ['305-1','305-2','305-3','305-5'], impact_score: 5, financial_score: 5, dma_status: 'material' as const },
+        { topic_name: 'Water management',                        topic_category: 'Environmental', linked_gri_codes: ['303-3','303-4','303-5'],         impact_score: 4, financial_score: 4, dma_status: 'material' as const },
+        { topic_name: 'Process safety & asset integrity',       topic_category: 'Social',        linked_gri_codes: ['403-9','403-10'],                  impact_score: 5, financial_score: 4, dma_status: 'material' as const },
+        { topic_name: 'Circular economy & product stewardship', topic_category: 'Environmental', linked_gri_codes: ['301-1','301-2','306-3'],          impact_score: 4, financial_score: 4, dma_status: 'material' as const },
+        { topic_name: 'Business ethics & anti-corruption',      topic_category: 'Governance',    linked_gri_codes: ['205-2','205-3'],                   impact_score: 4, financial_score: 4, dma_status: 'material' as const },
       ]
       for (const t of topics) {
         await orgStore.upsertMaterialTopic({ framework_id: framework.id, ...t })
