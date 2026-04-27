@@ -3,11 +3,27 @@ import * as crypto from 'crypto'
 import { getDb } from './_db.js'
 import { verifyToken, cors } from './_auth.js'
 import { appendChainRecord } from './_hashChain.js'
-import { assembleReportInput, renderReportPdf, anchorPdfToOts, generateVerificationToken } from './_reportGenerator.js'
-import {
-  detectAnomaliesForAssignment,
-  type AssignmentLike, type HistoricalPoint, type Anomaly,
-} from './_anomalies.js'
+import type { AssignmentLike, HistoricalPoint, Anomaly } from './_anomalies.js'
+
+/**
+ * The PDF renderer (`@react-pdf/renderer` via _reportGenerator) and the
+ * anomaly engine are heavy. Static-importing them at the top of this file
+ * causes Vercel cold-starts to occasionally crash with FUNCTION_INVOCATION_FAILED
+ * — the imports are loaded eagerly even on lightweight GET ?view=entities
+ * requests that don't need them. We dynamic-import on demand instead.
+ */
+async function loadReportGen() {
+  return import('./_reportGenerator.js')
+}
+async function loadAnomalies() {
+  return import('./_anomalies.js')
+}
+
+/** Light-weight uuid v4 — replicates _reportGenerator.generateVerificationToken
+ *  without dragging in the @react-pdf/renderer dependency. */
+function generateVerificationToken(): string {
+  return crypto.randomUUID()
+}
 
 /**
  * /api/org — single dispatcher for the org tree, membership, and question
@@ -605,7 +621,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           peerByCode.set(a.gri_code, arr)
         }
 
-        // Run rules
+        // Run rules — dynamic-import the engine so the cold-start cost only
+        // hits the anomaly-scan view, not every plain GET to /api/org.
+        const { detectAnomaliesForAssignment } = await loadAnomalies()
         const detected: Anomaly[] = []
         for (const a of assignments as AssignmentLike[]) {
           const history = historyByItem.get(a.questionnaire_item_id) ?? []
@@ -1118,6 +1136,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           || (req.headers['x-forwarded-proto'] && req.headers.host ? `${req.headers['x-forwarded-proto']}://${req.headers.host}` : `https://${req.headers.host ?? 'app.aeiforo.com'}`)
 
         const verificationToken = generateVerificationToken()
+
+        // Heavy: only loaded when a publish actually fires.
+        const { assembleReportInput, renderReportPdf, anchorPdfToOts } = await loadReportGen()
 
         const input = await assembleReportInput(sql as any, {
           orgId,
