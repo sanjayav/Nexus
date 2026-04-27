@@ -491,7 +491,7 @@ export default function Dashboard() {
           />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <motion.div {...popIn(0)}>
-              <SbtiTracker targets={targets} currentEmissions={totalEmissions} onManage={() => navigate('/settings')} />
+              <SbtiTracker targets={targets} currentEmissions={totalEmissions} onManage={() => navigate('/admin/targets')} />
             </motion.div>
             <motion.div {...popIn(1)}>
               <MaterialityPanel topics={materialTopics} assignments={assignments} />

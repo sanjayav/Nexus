@@ -8,7 +8,7 @@ import {
   CheckSquare, Shield, Network,
   FileText, BookMarked, BarChart3, AlertTriangle,
   Calculator as CalcIcon, BookOpen, Atom,
-  Sparkles, Calendar, Scale, UserCog, Users,
+  Sparkles, Calendar, Scale, UserCog, Users, Target as TargetIcon,
   ShieldCheck, Settings,
   // Chrome
   ChevronLeft, ChevronRight, ChevronDown, Leaf, LogOut,
@@ -115,6 +115,8 @@ const NAV: NavGroup[] = [
         roles: ['platform_admin', 'group_sustainability_officer'] },
       { path: '/admin/materiality',  label: 'Materiality',      icon: Scale,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner'] },
+      { path: '/admin/targets',      label: 'Climate targets',  icon: TargetIcon,
+        roles: ['platform_admin', 'group_sustainability_officer'] },
       { path: '/admin/assignments',  label: 'Assignments',      icon: UserCog,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead'] },
       { path: '/admin/users',        label: 'Users & roles',    icon: Users,

@@ -41,7 +41,7 @@ const STEPS: StepDef[] = [
   { key: 'users',          title: 'Invite your team',           helper: 'Add plant managers, reviewers, officers.',                route: '/admin/users',          check: c => c.users >= 2 },
   { key: 'frameworks',     title: 'Choose frameworks',          helper: 'Turn on GRI, CSRD, TCFD, or any combination.',            route: '/settings',             check: c => c.frameworksEnabled >= 1 },
   { key: 'materiality',    title: 'Run materiality assessment', helper: 'Identify the topics that matter most.',                   route: '/admin/materiality',    check: c => c.materialTopics >= 1 },
-  { key: 'targets',        title: 'Set a climate target',       helper: 'Commit to a near-term SBTi or net-zero target.',          route: '/settings',             check: c => c.targets >= 1 },
+  { key: 'targets',        title: 'Set a climate target',       helper: 'Commit to a near-term SBTi or net-zero target.',          route: '/admin/targets',        check: c => c.targets >= 1 },
   { key: 'period',         title: 'Open a reporting cycle',     helper: 'Create the fiscal year you are reporting on.',            route: '/admin/periods',        check: c => c.periods >= 1 },
   { key: 'assign',         title: 'Assign disclosures',         helper: 'Route each GRI line item to the right contributor.',      route: '/admin/assignments',    check: c => c.assignments >= 1 },
   { key: 'publish',        title: 'Publish your first report',  helper: 'Once data is approved, generate the auditor-grade PDF.', route: '/reports',              check: c => c.publishedReports >= 1 },

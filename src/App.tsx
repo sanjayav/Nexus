@@ -11,6 +11,7 @@ import BlockchainAudit from './pages/BlockchainAudit'
 import ReportPublishing from './pages/ReportPublishing'
 import ReportPreview from './pages/ReportPreview'
 import SustainabilityPerformanceReport from './pages/SustainabilityPerformanceReport'
+import ClimateTargets from './pages/ClimateTargets'
 import AuditorView from './pages/AuditorView'
 import AIReport from './pages/AIReport'
 import DataIngestion from './pages/DataIngestion'
@@ -119,6 +120,7 @@ function AppRoutes() {
         <Route path="/admin/users" element={<ProtectedRoute><UsersRoles /></ProtectedRoute>} />
         <Route path="/admin/assignments" element={<ProtectedRoute><AssignmentManager /></ProtectedRoute>} />
         <Route path="/admin/materiality" element={<ProtectedRoute><Materiality /></ProtectedRoute>} />
+        <Route path="/admin/targets" element={<ProtectedRoute><ClimateTargets /></ProtectedRoute>} />
         <Route path="/admin/periods" element={<ProtectedRoute><ReportingPeriods /></ProtectedRoute>} />
         <Route path="/reports/index" element={<ProtectedRoute><ContentIndex /></ProtectedRoute>} />
         <Route path="/onboarding" element={<ProtectedRoute><OrgOnboarding /></ProtectedRoute>} />
