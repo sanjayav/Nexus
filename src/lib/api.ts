@@ -477,10 +477,40 @@ export interface NexusAuditEvent {
   comment: string | null
 }
 
+/**
+ * Dedupe questionnaire-item rows by their canonical disclosure key. The DB
+ * holds duplicate rows (the seed has been re-run several times without
+ * cleanup) — same gri_code + line_item + scope_split + reporting_scope +
+ * unit, different UUIDs. We pick the first row per key and drop the rest so
+ * every catalogue view (Calculators, Data entry picker, Workflow, Content
+ * index, etc.) shows each disclosure exactly once.
+ *
+ * Existing assignments that reference one of the dropped IDs still work —
+ * the assignment row carries its own questionnaire_item_id, and the entry
+ * page looks up by ID, not by listing the tree.
+ */
+function dedupeQuestionnaireItems(items: NexusQuestionnaireItem[]): NexusQuestionnaireItem[] {
+  const seen = new Set<string>()
+  const out: NexusQuestionnaireItem[] = []
+  for (const it of items) {
+    const key = [
+      it.gri_code, it.line_item, it.scope_split ?? '', it.reporting_scope ?? '', it.unit ?? '',
+    ].join('|')
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(it)
+  }
+  return out
+}
+
 export const nexus = {
   // Questionnaire tree — scoped to a framework. Defaults to GRI 305 (Phase 1).
-  tree: (frameworkId: string = 'gri') =>
-    request<NexusQuestionnaireItem[]>(`/workflow?view=tree&framework_id=${encodeURIComponent(frameworkId)}`),
+  tree: async (frameworkId: string = 'gri') => {
+    const raw = await request<NexusQuestionnaireItem[]>(
+      `/workflow?view=tree&framework_id=${encodeURIComponent(frameworkId)}`,
+    )
+    return dedupeQuestionnaireItems(raw)
+  },
 
   // Historical 4-year reference for a specific question
   historical: (questionId: string) =>
