@@ -15,7 +15,7 @@ interface Props {
 }
 
 /**
- * One-click "Load PTTGC sample" modal. Opt-in only — surfaced from the
+ * One-click "Load demo data" modal. Opt-in only — surfaced from the
  * SetupGuide as a small action so the default workspace is clean for users
  * who want to onboard manually.
  */
@@ -37,7 +37,7 @@ export default function DemoSeedModal({ onClose, onCompleted }: Props) {
       // ── Step 1: org tree ──
       setSeeding('org')
       const group = await orgStore.addEntity({
-        parentId: null, type: 'group', name: 'PTT Global Chemical', code: 'PTTGC', country: 'TH', equity: 100, industry: 'Chemicals',
+        parentId: null, type: 'group', name: 'Demo Co', code: 'DEMO', country: 'GB', equity: 100, industry: 'Chemicals',
       })
       const subs = await Promise.all([
         orgStore.addEntity({ parentId: group.id, type: 'subsidiary', name: 'GC Marketing Solutions', code: 'GCM', country: 'TH', equity: 100, industry: 'Trading' }),
@@ -136,7 +136,7 @@ export default function DemoSeedModal({ onClose, onCompleted }: Props) {
             </div>
             <div className="min-w-0">
               <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">
-                Load PTT Global Chemical sample
+                Load demo sample
               </h3>
               <p className="text-[11.5px] text-[var(--text-tertiary)]">
                 Pre-fills your workspace so you can demo every flow in seconds.

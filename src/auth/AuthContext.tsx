@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { auth as authApi, setToken, clearToken, type AuthUser } from '../lib/api'
 import { resolvePermissions } from '../lib/rbac'
+import { setUserContext } from '../lib/sentry'
 
 export type Role = 'PA' | 'TL' | 'FM' | 'SO' | 'AUD' | 'AUTO'
 
@@ -24,7 +25,7 @@ type AuthContextValue = {
   isAuthenticated: boolean
   permissions: string[]
   login: (email: string, password: string) => Promise<boolean>
-  register: (data: { email: string; name: string; password: string; inviteToken?: string }) => Promise<boolean>
+  register: (data: { email: string; name: string; password: string; workspaceName?: string; inviteToken?: string }) => Promise<boolean>
   logout: () => void
   refreshUser: () => Promise<void>
   dbConnected: boolean
@@ -93,6 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const u = dbUserToUser(me)
       setUser(u)
       setDbConnected(true)
+      // No-op when VITE_SENTRY_DSN is unset.
+      setUserContext({ id: u.id, email: u.email })
     } catch {
       // Token expired — let the next API call trigger the global 401 → /login redirect
     }
@@ -107,23 +110,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const resolvedEmail = LEGACY_EMAILS[normalizedEmail] || normalizedEmail
     try {
       const res = await authApi.login(resolvedEmail, password)
+      // MFA-required flow returns `{ mfaRequired: true, tempToken }`. Current
+      // UI doesn't have the verify step wired in, so we treat it as a failed
+      // login. When MFA verify is built, swap this branch to set MFA state.
+      if ('mfaRequired' in res && res.mfaRequired) {
+        return false
+      }
       setToken(res.token)
       const u = dbUserToUser(res.user)
       setUser(u)
       setDbConnected(true)
+      setUserContext({ id: u.id, email: u.email })
       return true
     } catch {
       return false
     }
   }
 
-  const register = async (data: { email: string; name: string; password: string; inviteToken?: string }): Promise<boolean> => {
+  const register = async (data: { email: string; name: string; password: string; workspaceName?: string; inviteToken?: string }): Promise<boolean> => {
     try {
       const res = await authApi.register(data)
       setToken(res.token)
       const u = dbUserToUser(res.user)
       setUser(u)
       setDbConnected(true)
+      setUserContext({ id: u.id, email: u.email })
       return true
     } catch {
       return false
@@ -135,6 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearToken()
     localStorage.removeItem('aeiforo_auth_user')
     setDbConnected(false)
+    setUserContext(null)
   }
 
   const permissions = user

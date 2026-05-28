@@ -30,3 +30,24 @@ dist-ssr
 .env.test.local
 .env.production.local
 
+# Playwright
+playwright-report/
+test-results/
+playwright/.cache/
+
+# Test artifacts
+coverage/
+
+# Vercel
+.vercel/
+
+# TypeScript incremental
+*.tsbuildinfo
+
+# Editor
+.vscode/settings.json
+.idea/
+
+# OS
+.DS_Store
+

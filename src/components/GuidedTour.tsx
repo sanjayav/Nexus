@@ -13,7 +13,7 @@ const steps = [
   {
     icon: LayoutDashboard,
     title: 'Command Center',
-    description: 'The Dashboard gives you a bird\'s-eye view: module health, SBTi trajectory, and facility performance across all GC Group operations.',
+    description: 'The Dashboard gives you a bird\'s-eye view: module health, SBTi trajectory, and facility performance across all Demo Co operations.',
     color: 'bg-blue-500',
   },
   {

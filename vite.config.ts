@@ -18,5 +18,30 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          // Split heavy deps into their own chunks so the main index-*.js stays small.
+          // Spline + react-pdf are route-specific; recharts/react-vendor are shared
+          // but still big enough to cache independently of app code.
+          manualChunks: (id) => {
+            if (!id.includes('node_modules')) return undefined
+            if (id.includes('@splinetool')) return 'spline'
+            if (id.includes('@react-pdf') || id.includes('pdfjs-dist') || id.includes('pdf-lib')) return 'pdf'
+            if (id.includes('recharts') || id.includes('d3-')) return 'recharts'
+            if (
+              id.includes('/react/') ||
+              id.includes('/react-dom/') ||
+              id.includes('/react-router-dom/') ||
+              id.includes('/react-router/') ||
+              id.includes('/scheduler/')
+            ) {
+              return 'react-vendor'
+            }
+            return undefined
+          },
+        },
+      },
+    },
   }
 })

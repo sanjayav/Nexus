@@ -19,7 +19,7 @@
  * ═══════════════════════════════════════════════════════════ */
 
 :root,
-:root[data-theme='pttgc-flat'],
+:root[data-theme='demo-flat'],
 :root[data-theme='light'] {
   /* ── Brand ─────────────────────────────────────── */
   --color-brand:         #1B6B7B;

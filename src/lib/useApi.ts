@@ -30,6 +30,9 @@ export function useApi<T>(
     } finally {
       setLoading(false)
     }
+    // Intentional: `deps` is the user-supplied dep array forwarded straight to
+    // useCallback. The exhaustive-deps rule cannot statically verify it, but
+    // callers control re-fetch identity via this array (mirrors useEffect's API).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps)
 

@@ -22,7 +22,7 @@ import {
   Hourglass,
   ChevronsUp,
 } from 'lucide-react'
-import { type BlockchainRecord } from '../data/pttgcData'
+import { type BlockchainRecord } from '../data/demoData'
 import { Badge } from '../design-system'
 import { blockchain as blockchainApi, type ApiBlockchainRecord, type ChainVerifyReport, type ChainAnchor } from '../lib/api'
 import { useApi } from '../lib/useApi'

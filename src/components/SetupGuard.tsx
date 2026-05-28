@@ -9,7 +9,7 @@ import { setup } from '../lib/api'
  */
 export default function SetupGuard({
   title = 'Live data not found',
-  message = 'This screen reads directly from the Nexus backend. The database appears empty — run the idempotent setup to provision tables and seed PTTGC FY2022–FY2025 historical values.',
+  message = 'This screen reads directly from the Nexus backend. The database appears empty — run the idempotent setup to provision tables and seed FY2022–FY2025 historical values.',
   onReady,
 }: {
   title?: string
@@ -69,7 +69,7 @@ export default function SetupGuard({
         )}
 
         <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-5">
-          Idempotent. Creates tables if missing, seeds PTTGC SPD data, safe to run multiple times.
+          Idempotent. Creates tables if missing, seeds demo SPD data, safe to run multiple times.
         </p>
       </div>
     </div>

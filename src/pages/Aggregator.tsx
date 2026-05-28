@@ -9,7 +9,7 @@ import {
   BarChart3,
 } from 'lucide-react'
 import { frameworkDataMappings } from '../data/moduleData'
-import { facilities, scopeBreakdown, circularMetrics, formatNumber, formatEmissions } from '../data/pttgcData'
+import { facilities, scopeBreakdown, circularMetrics, formatNumber, formatEmissions } from '../data/demoData'
 
 type AggregatorTab = 'entity' | 'scope' | 'matrix' | 'circular'
 
@@ -69,7 +69,7 @@ const frameworkLabels: Record<string, string> = {
 const circularGroups = [
   { name: 'ENVICCO', icon: Recycle, metrics: circularMetrics.filter((m) => m.facility === 'ENVICCO') },
   { name: 'NatureWorks', icon: Factory, metrics: circularMetrics.filter((m) => m.facility === 'NatureWorks') },
-  { name: 'GC Group (All)', icon: Building2, metrics: circularMetrics.filter((m) => m.facility === 'GC Group (All)') },
+  { name: 'Demo Co (All)', icon: Building2, metrics: circularMetrics.filter((m) => m.facility === 'Demo Co (All)') },
 ]
 
 export default function Aggregator() {
@@ -131,7 +131,7 @@ function EntityRollupTab() {
       <div className="bg-dark-800 rounded-2xl border border-dark-600 shadow-card p-6">
         <div className="flex items-center gap-3 mb-4">
           <Building2 className="w-5 h-5 text-accent-400" />
-          <h2 className="text-lg font-heading font-bold text-white">GC Group (Consolidated)</h2>
+          <h2 className="text-lg font-heading font-bold text-white">Demo Co (Consolidated)</h2>
           <span className="ml-auto text-xl font-heading font-bold text-white">{formatEmissions(groupTotal)} tCO2e</span>
         </div>
         <div className="h-3 bg-dark-700 rounded-full overflow-hidden">

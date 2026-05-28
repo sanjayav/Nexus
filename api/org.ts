@@ -1,8 +1,34 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import * as crypto from 'crypto'
 import { getDb } from './_db.js'
-import { verifyToken, cors } from './_auth.js'
+import { verifyToken, cors, requirePermission } from './_auth.js'
+import { z } from 'zod'
+
+// ── Per-action input schemas. Catch obviously malformed bodies before they
+//    reach SQL. We only validate field shape — semantic checks remain inline.
+const uuid = z.string().uuid()
+const emailStr = z.string().email().max(320)
+const entityActionSchema = z.object({
+  id: uuid.optional(),
+  parent_id: uuid.nullable().optional(),
+  type: z.string().min(1).max(100).optional(),
+  name: z.string().min(1).max(300).optional(),
+  code: z.string().max(100).nullable().optional(),
+  country: z.string().max(120).nullable().optional(),
+  equity: z.number().nullable().optional(),
+  industry: z.string().max(200).nullable().optional(),
+})
+const memberActionSchema = z.object({
+  id: uuid.optional(),
+  entity_id: uuid.optional(),
+  email: emailStr.optional(),
+  name: z.string().min(1).max(200).optional(),
+  role: z.string().min(1).max(80).optional(),
+  user_id: uuid.nullable().optional(),
+})
 import { appendChainRecord } from './_hashChain.js'
+import { notify } from './_notify.js'
+import { audit, auditIp } from './_audit.js'
 import type { AssignmentLike, HistoricalPoint, Anomaly } from './_anomalies.js'
 
 /**
@@ -260,17 +286,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json(rows)
       }
       if (view === 'my-assignments') {
-        const rows = await sql`
-          SELECT id, framework_id, questionnaire_item_id AS question_id, gri_code, line_item,
-                 unit, entity_id, assignee_email, assignee_name, assignee_user_id,
-                 entry_modes, used_mode, due_date, status, value, comment, evidence_ids,
-                 response_type, narrative_body, period_id, disclosure_position,
-                 assigned_by, assigned_at, last_updated
-          FROM question_assignments
-          WHERE org_id = ${orgId}
-            AND lower(assignee_email) = ${token.email.toLowerCase()}
-          ORDER BY assigned_at DESC
-        `
+        const overdueOnly = String(req.query.overdue ?? '') === '1'
+        const today = new Date().toISOString().slice(0, 10)
+        // Overdue = due_date < today AND status not yet through pipeline.
+        // We compute is_overdue server-side so the UI can sort/filter without
+        // re-deriving the rule client-side.
+        const rows = overdueOnly
+          ? await sql`
+              SELECT id, framework_id, questionnaire_item_id AS question_id, gri_code, line_item,
+                     unit, entity_id, assignee_email, assignee_name, assignee_user_id,
+                     entry_modes, used_mode, due_date, status, value, comment, evidence_ids,
+                     response_type, narrative_body, period_id, disclosure_position,
+                     assigned_by, assigned_at, last_updated,
+                     (due_date IS NOT NULL AND due_date < ${today}::date
+                       AND status NOT IN ('approved','reviewed','submitted')) AS is_overdue
+              FROM question_assignments
+              WHERE org_id = ${orgId}
+                AND lower(assignee_email) = ${token.email.toLowerCase()}
+                AND due_date IS NOT NULL AND due_date < ${today}::date
+                AND status NOT IN ('approved','reviewed','submitted')
+              ORDER BY due_date ASC
+            `
+          : await sql`
+              SELECT id, framework_id, questionnaire_item_id AS question_id, gri_code, line_item,
+                     unit, entity_id, assignee_email, assignee_name, assignee_user_id,
+                     entry_modes, used_mode, due_date, status, value, comment, evidence_ids,
+                     response_type, narrative_body, period_id, disclosure_position,
+                     assigned_by, assigned_at, last_updated,
+                     (due_date IS NOT NULL AND due_date < ${today}::date
+                       AND status NOT IN ('approved','reviewed','submitted')) AS is_overdue
+              FROM question_assignments
+              WHERE org_id = ${orgId}
+                AND lower(assignee_email) = ${token.email.toLowerCase()}
+              ORDER BY
+                (due_date IS NOT NULL AND due_date < ${today}::date
+                  AND status NOT IN ('approved','reviewed','submitted')) DESC,
+                due_date ASC NULLS LAST,
+                assigned_at DESC
+            `
         return res.status(200).json(rows)
       }
       if (view === 'questions') {
@@ -474,6 +527,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         res.setHeader('X-Verification-Token', rows[0].verification_token)
         res.status(200).end(Buffer.from(pdf_content))
         return
+      }
+
+      if (view === 'report-docx') {
+        // DOCX renderer — gated reports.view, mirrors the PDF data path.
+        const gate = await requirePermission(req, res, 'reports.view')
+        if (!gate) return
+        const id = String(req.query.id || '')
+        if (!id) return res.status(400).json({ error: 'id required' })
+        try {
+          const { generateDocx } = await import('./_reportDocx.js')
+          const out = await generateDocx({ orgId, reportArtifactId: id })
+          res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+          res.setHeader('Content-Disposition', `attachment; filename="${out.filename}"`)
+          res.setHeader('X-Report-Sha256', out.sha256)
+          res.status(200).end(out.bytes)
+          return
+        } catch (e) {
+          return res.status(500).json({ error: e instanceof Error ? e.message : 'DOCX render failed' })
+        }
       }
 
       if (view === 'assurance-requests') {
@@ -708,6 +780,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // re-seeded for a fresh demo. Preserves the org row, users, roles,
       // questionnaire catalogue, and audit trail. Admin-only.
       if (action === 'reset-workspace') {
+        // Destructive workspace wipe → admin-only.
+        const gate = await requirePermission(req, res, 'admin.org')
+        if (!gate) return
         const confirm = String(req.body?.confirm ?? '')
         if (confirm !== 'RESET') {
           return res.status(400).json({ error: 'Confirmation required (send confirm: "RESET").' })
@@ -728,6 +803,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // ─── Entities ─────────────────────────────────────────
       if (action === 'add-entity') {
+        // Org-tree mutation → admin.org.
+        const gate = await requirePermission(req, res, 'admin.org')
+        if (!gate) return
+        try { entityActionSchema.parse(req.body) } catch (e) {
+          if (e instanceof z.ZodError) return res.status(400).json({ error: 'Invalid input', issues: e.issues })
+          throw e
+        }
         const { parent_id, type, name, code, country, equity, industry } = req.body
         if (!type || !name) return res.status(400).json({ error: 'type and name required' })
         const created = await sql`
@@ -738,6 +820,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(201).json(created[0])
       }
       if (action === 'update-entity') {
+        // Org-tree mutation → admin.org.
+        const gate = await requirePermission(req, res, 'admin.org')
+        if (!gate) return
+        try { entityActionSchema.parse(req.body) } catch (e) {
+          if (e instanceof z.ZodError) return res.status(400).json({ error: 'Invalid input', issues: e.issues })
+          throw e
+        }
         const { id, name, code, country, equity, industry, parent_id } = req.body
         if (!id) return res.status(400).json({ error: 'id required' })
         await sql`
@@ -753,8 +842,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ ok: true })
       }
       if (action === 'remove-entity') {
+        // Org-tree mutation → admin.org.
+        const gate = await requirePermission(req, res, 'admin.org')
+        if (!gate) return
         const { id } = req.body
-        if (!id) return res.status(400).json({ error: 'id required' })
+        if (!id || !uuid.safeParse(id).success) return res.status(400).json({ error: 'valid id required' })
         // Cascade via FK ON DELETE CASCADE
         await sql`DELETE FROM org_entities WHERE id = ${id} AND org_id = ${orgId}`
         return res.status(200).json({ ok: true })
@@ -762,6 +854,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // ─── Members ──────────────────────────────────────────
       if (action === 'add-member') {
+        // Membership mutation → admin.users.
+        const gate = await requirePermission(req, res, 'admin.users')
+        if (!gate) return
+        try { memberActionSchema.parse(req.body) } catch (e) {
+          if (e instanceof z.ZodError) return res.status(400).json({ error: 'Invalid input', issues: e.issues })
+          throw e
+        }
         const { entity_id, email, name, role, user_id } = req.body
         if (!entity_id || !email || !name || !role) return res.status(400).json({ error: 'entity_id, email, name, role required' })
         const created = await sql`
@@ -773,14 +872,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(201).json(created[0])
       }
       if (action === 'remove-member') {
+        // Membership mutation → admin.users.
+        const gate = await requirePermission(req, res, 'admin.users')
+        if (!gate) return
         const { id } = req.body
-        if (!id) return res.status(400).json({ error: 'id required' })
+        if (!id || !uuid.safeParse(id).success) return res.status(400).json({ error: 'valid id required' })
         await sql`DELETE FROM org_members WHERE id = ${id} AND org_id = ${orgId}`
         return res.status(200).json({ ok: true })
       }
 
       // ─── Assignments ──────────────────────────────────────
       if (action === 'add-assignment') {
+        // Assignment creation → admin.users (treat like assignment-management).
+        const gate = await requirePermission(req, res, 'admin.users')
+        if (!gate) return
         const {
           framework_id, question_id, gri_code, line_item, unit,
           entity_id, assignee_email, assignee_name, assignee_user_id,
@@ -788,6 +893,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         } = req.body
         if (!question_id || !gri_code || !entity_id || !assignee_email) {
           return res.status(400).json({ error: 'question_id, gri_code, entity_id, assignee_email required' })
+        }
+        if (!uuid.safeParse(question_id).success || !uuid.safeParse(entity_id).success) {
+          return res.status(400).json({ error: 'question_id and entity_id must be UUIDs' })
+        }
+        if (!emailStr.safeParse(assignee_email).success) {
+          return res.status(400).json({ error: 'assignee_email must be a valid email' })
         }
         // Resolve period_id — default to active period for this framework if not provided
         let resolvedPeriodId = period_id
@@ -811,16 +922,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     response_type, narrative_body, period_id, disclosure_position,
                     assigned_by, assigned_at, last_updated
         `
-        // Emit "you've been assigned" notification to the assignee
-        await sql`
-          INSERT INTO notifications (org_id, recipient_user_id, recipient_email, kind, subject, body, route, related_assignment_id)
-          VALUES (${orgId}, ${assignee_user_id || null}, ${assignee_email.toLowerCase().trim()},
-                  'assignment_created',
-                  ${`New assignment · ${gri_code}`},
-                  ${`${line_item} — due ${due_date || 'TBD'}`},
-                  '/my-tasks',
-                  ${created[0].id})
-        `
+        // Emit "you've been assigned" notification (DB row + email)
+        await notify({
+          orgId,
+          userId: assignee_user_id || null,
+          toEmail: assignee_email.toLowerCase().trim(),
+          kind: 'assignment_created',
+          subject: `New assignment · ${gri_code}`,
+          body: `${line_item} — due ${due_date || 'TBD'}`,
+          route: '/my-tasks',
+          relatedAssignmentId: created[0].id,
+        })
         // Chain append
         await appendChainRecord(sql, orgId, {
           record_type: 'assignment_created',
@@ -829,11 +941,178 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           facility_name: line_item,
           metadata: { gri_code, assignee_email, entity_id, framework_id: framework_id || 'gri', actor: token.email },
         })
+        await audit({
+          orgId,
+          userId: token.sub,
+          action: 'assignment.create',
+          resourceType: 'assignment',
+          resourceId: created[0].id,
+          details: {
+            framework_id: framework_id || 'gri',
+            gri_code,
+            line_item,
+            assignee_email: assignee_email.toLowerCase().trim(),
+            entity_id,
+            due_date: due_date ?? null,
+          },
+          ip: auditIp(req),
+        })
         return res.status(201).json(created[0])
       }
+      if (action === 'bulk-add-assignments') {
+        // Bulk fan-out of question_assignments — used during setup so an admin
+        // can hand "all ESRS E1 to Jane" in one click. Caps at 500 items/call
+        // so a typo doesn't fan out the entire questionnaire by mistake.
+        const gate = await requirePermission(req, res, 'admin.users')
+        if (!gate) return
+        const bulkSchema = z.object({
+          framework_id: z.string().min(1).max(120),
+          entity_id: uuid.optional(),
+          filter: z.object({
+            sections: z.array(z.string()).optional(),
+            gri_codes: z.array(z.string()).optional(),
+          }).optional(),
+          assignee_email: emailStr,
+          assignee_name: z.string().min(1).max(200),
+          due_date: z.string().optional(),
+          entry_modes: z.array(z.string()).optional(),
+          reviewer_email: emailStr.optional(),
+          approver_email: emailStr.optional(),
+        })
+        let body: z.infer<typeof bulkSchema>
+        try { body = bulkSchema.parse(req.body) } catch (e) {
+          if (e instanceof z.ZodError) return res.status(400).json({ error: 'Invalid input', issues: e.issues })
+          throw e
+        }
+
+        // Pull matching questionnaire items.
+        const sections = body.filter?.sections ?? []
+        const gri_codes = body.filter?.gri_codes ?? []
+        const items = await sql`
+          SELECT DISTINCT ON (gri_code, line_item)
+                 id, gri_code, line_item, unit, section
+          FROM questionnaire_item
+          WHERE framework_id = ${body.framework_id}
+            AND (cardinality(${sections}::text[]) = 0 OR section = ANY(${sections}::text[]))
+            AND (cardinality(${gri_codes}::text[]) = 0 OR gri_code = ANY(${gri_codes}::text[]))
+          ORDER BY gri_code, line_item, id
+        ` as Array<{ id: string; gri_code: string; line_item: string; unit: string | null; section: string | null }>
+
+        if (items.length > 500) {
+          return res.status(400).json({ error: `Bulk-assign capped at 500 items per call; resolved ${items.length}. Narrow the filter.` })
+        }
+        if (items.length === 0) {
+          return res.status(200).json({ ok: true, totalCreated: 0, totalSkipped: 0, notificationSent: false })
+        }
+
+        // Resolve active period for the framework — assignments need one.
+        const periodRows = await sql`
+          SELECT id FROM reporting_periods
+          WHERE org_id = ${orgId} AND framework_id = ${body.framework_id} AND status = 'active'
+          ORDER BY year DESC LIMIT 1
+        ` as Array<{ id: string }>
+        const resolvedPeriodId = periodRows[0]?.id ?? null
+
+        // Entity to assign against — required for question_assignments (FK).
+        // If caller didn't pick one, fall back to the org's root entity.
+        let entityId = body.entity_id ?? null
+        if (!entityId) {
+          const root = await sql`SELECT id FROM org_entities WHERE org_id = ${orgId} AND parent_id IS NULL ORDER BY created_at ASC LIMIT 1` as Array<{ id: string }>
+          entityId = root[0]?.id ?? null
+        }
+        if (!entityId) return res.status(400).json({ error: 'entity_id required (and no root entity found to default to)' })
+
+        // Existing assignments to skip — same questionnaire_item + entity + assignee.
+        const existing = await sql`
+          SELECT questionnaire_item_id
+          FROM question_assignments
+          WHERE org_id = ${orgId}
+            AND entity_id = ${entityId}
+            AND lower(assignee_email) = ${body.assignee_email.toLowerCase()}
+            AND questionnaire_item_id = ANY(${items.map(i => i.id)}::uuid[])
+        ` as Array<{ questionnaire_item_id: string }>
+        const skipSet = new Set(existing.map(r => r.questionnaire_item_id))
+
+        const toCreate = items.filter(i => !skipSet.has(i.id))
+        const assigneeEmail = body.assignee_email.toLowerCase().trim()
+        const assigneeName = body.assignee_name
+        const entryModesJson = JSON.stringify(body.entry_modes ?? ['Manual'])
+        const dueDate = body.due_date ?? null
+
+        // Batch insert (1 round-trip per row keeps it simple; cap is 500 so
+        // worst-case it's 500 small inserts — Neon HTTP can handle this easily
+        // and we get clear per-row errors).
+        let created = 0
+        for (const it of toCreate) {
+          try {
+            await sql`
+              INSERT INTO question_assignments
+                (org_id, framework_id, questionnaire_item_id, gri_code, line_item, unit,
+                 entity_id, assignee_email, assignee_name,
+                 entry_modes, due_date, assigned_by, response_type, period_id)
+              VALUES
+                (${orgId}, ${body.framework_id}, ${it.id}, ${it.gri_code}, ${it.line_item}, ${it.unit},
+                 ${entityId}, ${assigneeEmail}, ${assigneeName},
+                 ${entryModesJson}::jsonb, ${dueDate}, ${token.email}, 'numeric', ${resolvedPeriodId})
+            `
+            created += 1
+          } catch {
+            // FK or constraint failure on a single row — skip and continue.
+          }
+        }
+
+        // Optional reviewer/approver fan-out — uses workflow_role_assignment
+        // (per-item × role × user). Maps reviewer→TL, approver→SO to match the
+        // existing enum. Resolves the user_id via email before insert; skips
+        // silently when the user isn't on the org yet.
+        const resolveUserId = async (email: string): Promise<string | null> => {
+          const rows = await sql`SELECT id FROM users WHERE lower(email) = ${email.toLowerCase().trim()} LIMIT 1` as Array<{ id: string }>
+          return rows[0]?.id ?? null
+        }
+        const fanOutRole = async (email: string, role: 'TL' | 'SO') => {
+          const uid = await resolveUserId(email)
+          if (!uid) return
+          for (const it of toCreate) {
+            await sql`
+              INSERT INTO workflow_role_assignment (user_id, questionnaire_item_id, section, workflow_role, assigned_by)
+              VALUES (${uid}, ${it.id}, ${it.section}, ${role}, ${token.sub})
+              ON CONFLICT DO NOTHING
+            `.catch(() => { /* schema drift safe */ })
+          }
+        }
+        if (body.reviewer_email) await fanOutRole(body.reviewer_email, 'TL')
+        if (body.approver_email) await fanOutRole(body.approver_email, 'SO')
+
+        // One summary notification (DB row + email) rather than N per-row.
+        let notificationSent = false
+        if (created > 0) {
+          await notify({
+            orgId,
+            toEmail: assigneeEmail,
+            kind: 'assignment_bulk_created',
+            subject: `${created} ${body.framework_id.toUpperCase()} item${created === 1 ? '' : 's'} assigned to you`,
+            body: `You've been assigned ${created} disclosures${dueDate ? `, due ${dueDate}` : ''}. Open My Tasks to start entering data.`,
+            route: '/my-tasks',
+          })
+          notificationSent = true
+        }
+
+        return res.status(200).json({
+          ok: true,
+          totalCreated: created,
+          totalSkipped: items.length - created,
+          notificationSent,
+        })
+      }
       if (action === 'update-assignment') {
+        // update-assignment is multi-purpose: the original assignee enters data
+        // (and progresses status), reviewers/approvers transition status, admins
+        // may also tweak metadata. Gate by *role* against the prior row.
+        const loaded = await import('./_auth.js').then(m => m.loadPermissions(token))
+        if (!loaded) return res.status(401).json({ error: 'User not found' })
         const { id, patch } = req.body
         if (!id || !patch) return res.status(400).json({ error: 'id and patch required' })
+        if (!uuid.safeParse(id).success) return res.status(400).json({ error: 'id must be a UUID' })
         // Capture previous status + period lock so we can enforce write gates.
         const priorRows = await sql`
           SELECT qa.status, qa.assignee_email, qa.assignee_name, qa.gri_code, qa.line_item, qa.entity_id,
@@ -844,6 +1123,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ` as Array<{ status: string; assignee_email: string; assignee_name: string; gri_code: string; line_item: string; entity_id: string; period_id: string | null; period_status: string | null }>
         if (priorRows.length === 0) return res.status(404).json({ error: 'Assignment not found' })
         const prior = priorRows[0]
+
+        // Authorisation: caller is allowed if any of:
+        //   • the original assignee (entering / submitting their own data)
+        //   • workflow.approve / data.approve permission (reviewers/approvers)
+        //   • admin.users (admin re-assigns / edits metadata)
+        const callerEmail = (token.email || '').toLowerCase()
+        const isAssignee = callerEmail === (prior.assignee_email || '').toLowerCase()
+        const canWorkflow = loaded.permissions.has('workflow.approve') || loaded.permissions.has('data.approve')
+        const isAdmin = loaded.permissions.has('admin.users') || loaded.permissions.has('admin.org')
+        if (!isAssignee && !canWorkflow && !isAdmin) {
+          return res.status(403).json({ error: 'Forbidden' })
+        }
 
         // ── Period-lock: once a period is locked or published, nothing in it can change. ──
         if (prior.period_status === 'locked' || prior.period_status === 'published') {
@@ -912,14 +1203,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json(rows[0] ?? null)
       }
       if (action === 'remove-assignment') {
+        // Assignment removal → admin.users.
+        const gate = await requirePermission(req, res, 'admin.users')
+        if (!gate) return
         const { id } = req.body
-        if (!id) return res.status(400).json({ error: 'id required' })
+        if (!id || !uuid.safeParse(id).success) return res.status(400).json({ error: 'valid id required' })
         await sql`DELETE FROM question_assignments WHERE id = ${id} AND org_id = ${orgId}`
         return res.status(200).json({ ok: true })
       }
 
       // ─── Framework enablement (per-tenant) ───────────
       if (action === 'enable-framework') {
+        // Per-tenant framework toggle → admin.org.
+        const gate = await requirePermission(req, res, 'admin.org')
+        if (!gate) return
         const { framework_id } = req.body
         if (!framework_id) return res.status(400).json({ error: 'framework_id required' })
         await sql`
@@ -930,6 +1227,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ ok: true })
       }
       if (action === 'disable-framework') {
+        // Per-tenant framework toggle → admin.org.
+        const gate = await requirePermission(req, res, 'admin.org')
+        if (!gate) return
         const { framework_id } = req.body
         if (!framework_id) return res.status(400).json({ error: 'framework_id required' })
         await sql`
@@ -940,6 +1240,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       // ─── Targets (SBTi etc.) ─────────────────────────
       if (action === 'upsert-target') {
+        // Target mgmt → admin.org.
+        const gate = await requirePermission(req, res, 'admin.org')
+        if (!gate) return
         const { id, framework_id, kind, label, scope_coverage, baseline_year, baseline_value, baseline_unit, target_year, target_reduction_pct, status, validated_by, notes } = req.body
         if (!kind || !label || baseline_year == null || baseline_value == null || target_year == null || target_reduction_pct == null) {
           return res.status(400).json({ error: 'kind, label, baseline_year, baseline_value, target_year, target_reduction_pct required' })
@@ -964,14 +1267,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(201).json({ ok: true, id: rows[0].id })
       }
       if (action === 'remove-target') {
+        // Target mgmt → admin.org.
+        const gate = await requirePermission(req, res, 'admin.org')
+        if (!gate) return
         const { id } = req.body
-        if (!id) return res.status(400).json({ error: 'id required' })
+        if (!id || !uuid.safeParse(id).success) return res.status(400).json({ error: 'valid id required' })
         await sql`DELETE FROM org_targets WHERE id = ${id} AND org_id = ${orgId}`
         return res.status(200).json({ ok: true })
       }
 
       // ─── Material topics / DMA ───────────────────────
       if (action === 'upsert-material-topic') {
+        // Material-topic mgmt → admin.org.
+        const gate = await requirePermission(req, res, 'admin.org')
+        if (!gate) return
         const { id, framework_id, topic_name, topic_category, linked_gri_codes, impact_score, financial_score, dma_status, rationale, owner_email } = req.body
         if (!topic_name) return res.status(400).json({ error: 'topic_name required' })
         // impact_score / financial_score are INTEGER columns. Coerce floats
@@ -1007,14 +1316,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(201).json({ ok: true, id: rows[0]?.id })
       }
       if (action === 'remove-material-topic') {
+        // Material-topic mgmt → admin.org.
+        const gate = await requirePermission(req, res, 'admin.org')
+        if (!gate) return
         const { id } = req.body
-        if (!id) return res.status(400).json({ error: 'id required' })
+        if (!id || !uuid.safeParse(id).success) return res.status(400).json({ error: 'valid id required' })
         await sql`DELETE FROM material_topics WHERE id = ${id} AND org_id = ${orgId}`
         return res.status(200).json({ ok: true })
       }
 
       // ─── Reporting periods ──────────────────────────
       if (action === 'create-period') {
+        // Period mgmt → admin.org.
+        const gate = await requirePermission(req, res, 'admin.org')
+        if (!gate) return
         const { framework_id, year, label, start_date, end_date, submission_deadline, notes } = req.body
         if (!year || !label) return res.status(400).json({ error: 'year and label required' })
         const rows = await sql`
@@ -1028,8 +1343,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(201).json({ ok: true, id: rows[0].id })
       }
       if (action === 'transition-period') {
+        // Period lifecycle → admin.org.
+        const gate = await requirePermission(req, res, 'admin.org')
+        if (!gate) return
         const { id, status } = req.body
         if (!id || !status) return res.status(400).json({ error: 'id and status required' })
+        if (!uuid.safeParse(id).success) return res.status(400).json({ error: 'id must be a UUID' })
         const valid = ['setup', 'active', 'locked', 'published', 'archived']
         if (!valid.includes(status)) return res.status(400).json({ error: `status must be one of ${valid.join(', ')}` })
 
@@ -1078,13 +1397,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Notify the assignee (if they're not the author)
         const asg = await sql`SELECT assignee_email, assignee_user_id, gri_code FROM question_assignments WHERE id = ${assignment_id} AND org_id = ${orgId}` as Array<{ assignee_email: string; assignee_user_id: string | null; gri_code: string }>
         if (asg[0] && asg[0].assignee_email.toLowerCase() !== u.email.toLowerCase()) {
-          await sql`
-            INSERT INTO notifications (org_id, recipient_user_id, recipient_email, kind, subject, body, route, related_assignment_id)
-            VALUES (${orgId}, ${asg[0].assignee_user_id}, ${asg[0].assignee_email}, 'comment',
-                    ${`${u.name} commented on ${asg[0].gri_code}`},
-                    ${body.slice(0, 140)},
-                    '/my-tasks', ${assignment_id})
-          `
+          await notify({
+            orgId,
+            userId: asg[0].assignee_user_id,
+            toEmail: asg[0].assignee_email,
+            kind: 'comment',
+            subject: `${u.name} commented on ${asg[0].gri_code}`,
+            body: body.slice(0, 140),
+            route: '/my-tasks',
+            relatedAssignmentId: assignment_id,
+          })
         }
         await appendChainRecord(sql, orgId, {
           record_type: 'comment_posted',
@@ -1111,6 +1433,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // ─── Materiality assessments ────────────────────
       if (action === 'upsert-materiality-assessment') {
+        // Materiality assessment mgmt → admin.org.
+        const gate = await requirePermission(req, res, 'admin.org')
+        if (!gate) return
         const { id, framework_id, label, kind, status, methodology, conducted_by, conducted_on, stakeholders_engaged } = req.body
         if (!label) return res.status(400).json({ error: 'label required' })
         if (id) {
@@ -1145,6 +1470,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // ─── Reports ───────────────────────────────────────────
       if (action === 'publish-report') {
+        // Publishing → reports.publish.
+        const gate = await requirePermission(req, res, 'reports.publish')
+        if (!gate) return
         const { period_id, framework_id, assurance_request_id, base_url } = req.body ?? {}
         if (!period_id) return res.status(400).json({ error: 'period_id required' })
 
@@ -1253,6 +1581,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (action === 'request-assurance') {
+        // Assurance request → reports.publish (same audience that publishes).
+        const gate = await requirePermission(req, res, 'reports.publish')
+        if (!gate) return
         const { period_id, auditor_name, auditor_email, auditor_firm, opinion_type, isae_reference, notes } = req.body ?? {}
         if (!period_id || !auditor_email) return res.status(400).json({ error: 'period_id and auditor_email required' })
         const uploadToken = generateVerificationToken()
@@ -1278,8 +1609,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (action === 'withdraw-assurance') {
+        // Assurance withdrawal → reports.publish.
+        const gate = await requirePermission(req, res, 'reports.publish')
+        if (!gate) return
         const { id } = req.body ?? {}
-        if (!id) return res.status(400).json({ error: 'id required' })
+        if (!id || !uuid.safeParse(id).success) return res.status(400).json({ error: 'valid id required' })
         const rows = await sql`
           UPDATE assurance_requests SET status = 'withdrawn', upload_token = NULL
           WHERE id = ${id} AND org_id = ${orgId} AND status = 'pending'
@@ -1291,6 +1625,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // ─── Anomaly suppression ──────────────────────────────
       if (action === 'suppress-anomaly') {
+        // Suppressing flagged anomalies → reviewer/approver authority.
+        const gate = await requirePermission(req, res, 'workflow.approve')
+        if (!gate) return
         const { assignment_id, anomaly_type, reason } = req.body ?? {}
         if (!assignment_id || !anomaly_type || !reason) return res.status(400).json({ error: 'assignment_id, anomaly_type and reason required' })
         if (String(reason).trim().length < 10) return res.status(400).json({ error: 'Reason must be at least 10 characters — explain why' })
@@ -1313,6 +1650,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ ok: true })
       }
       if (action === 'restore-anomaly') {
+        // Restoring suppressed anomalies → reviewer/approver authority.
+        const gate = await requirePermission(req, res, 'workflow.approve')
+        if (!gate) return
         const { assignment_id, anomaly_type } = req.body ?? {}
         if (!assignment_id || !anomaly_type) return res.status(400).json({ error: 'assignment_id and anomaly_type required' })
         await sql`DELETE FROM anomaly_suppressions WHERE org_id = ${orgId} AND assignment_id = ${assignment_id} AND anomaly_type = ${anomaly_type}`
@@ -1320,9 +1660,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (action === 'rotate-upload-token') {
+        // Rotating an assurance upload link → reports.publish.
+        const gate = await requirePermission(req, res, 'reports.publish')
+        if (!gate) return
         // Generate a fresh link if the previous one was lost/leaked.
         const { id } = req.body ?? {}
-        if (!id) return res.status(400).json({ error: 'id required' })
+        if (!id || !uuid.safeParse(id).success) return res.status(400).json({ error: 'valid id required' })
         const newToken = generateVerificationToken()
         const rows = await sql`
           UPDATE assurance_requests SET upload_token = ${newToken}
@@ -1361,13 +1704,12 @@ async function emitStatusTransitionNotifications(
 ): Promise<void> {
   const subjectBase = `${prior.gri_code} · ${prior.line_item.slice(0, 60)}`
 
-  async function notify(email: string, kind: string, subject: string, body: string, route: string) {
+  async function notifyOne(email: string, kind: string, subject: string, body: string, route: string) {
     if (!email) return
     if (email.toLowerCase() === actorEmail.toLowerCase()) return // skip self
-    await sql`
-      INSERT INTO notifications (org_id, recipient_email, kind, subject, body, route, related_assignment_id)
-      VALUES (${orgId}, ${email}, ${kind}, ${subject}, ${body}, ${route}, ${assignmentId})
-    `
+    await notify({
+      orgId, toEmail: email, kind, subject, body, route, relatedAssignmentId: assignmentId,
+    })
   }
 
   if (newStatus === 'submitted') {
@@ -1382,18 +1724,18 @@ async function emitStatusTransitionNotifications(
         AND m.role IN ('subsidiary_lead','plant_manager') AND m.org_id = ${orgId}
     ` as Array<{ email: string }>
     for (const r of reviewers) {
-      await notify(r.email, 'review_requested', `Review requested · ${subjectBase}`, `${prior.assignee_name} submitted a value for review.`, '/workflow/review')
+      await notifyOne(r.email, 'review_requested', `Review requested · ${subjectBase}`, `${prior.assignee_name} submitted a value for review.`, '/workflow/review')
     }
   } else if (newStatus === 'reviewed') {
     const approvers = await sql`
       SELECT email FROM org_members WHERE org_id = ${orgId} AND role IN ('group_sustainability_officer','platform_admin')
     ` as Array<{ email: string }>
     for (const r of approvers) {
-      await notify(r.email, 'approval_requested', `Approval needed · ${subjectBase}`, `A subsidiary lead passed this figure on for group approval.`, '/workflow/approval')
+      await notifyOne(r.email, 'approval_requested', `Approval needed · ${subjectBase}`, `A subsidiary lead passed this figure on for group approval.`, '/workflow/approval')
     }
   } else if (newStatus === 'approved') {
-    await notify(prior.assignee_email, 'approved', `Approved · ${subjectBase}`, `Your submission was approved by the sustainability officer.`, '/my-tasks')
+    await notifyOne(prior.assignee_email, 'approved', `Approved · ${subjectBase}`, `Your submission was approved by the sustainability officer.`, '/my-tasks')
   } else if (newStatus === 'rejected') {
-    await notify(prior.assignee_email, 'rejected', `Sent back · ${subjectBase}`, comment || 'Please review and resubmit.', '/my-tasks')
+    await notifyOne(prior.assignee_email, 'rejected', `Sent back · ${subjectBase}`, comment || 'Please review and resubmit.', '/my-tasks')
   }
 }

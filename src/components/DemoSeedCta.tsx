@@ -18,7 +18,7 @@ interface Props {
  * Replaces the previous auto-onboarding pattern (which forced the SetupGuide
  * widget on every empty workspace). Now the dashboard stays clean by default
  * and the admin opts in by clicking this card; that fires the DemoSeedModal,
- * seeds PTTGC sample data, and the rest of the app fills in.
+ * seeds demo sample data, and the rest of the app fills in.
  */
 export default function DemoSeedCta({ show, onCompleted }: Props) {
   const [open, setOpen] = useState(false)
@@ -66,7 +66,7 @@ export default function DemoSeedCta({ show, onCompleted }: Props) {
           <div className="flex-1 min-w-0 pr-8">
             <div className="kicker mb-1">For demos</div>
             <h2 className="font-display text-[18px] font-bold text-[var(--text-primary)] tracking-[-0.005em]">
-              Load PTT Global Chemical sample data
+              Load demo sample data
             </h2>
             <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 leading-relaxed max-w-2xl">
               One click pre-fills your workspace: 7 entities, 2 climate targets, 5 material topics,

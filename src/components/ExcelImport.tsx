@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
 import {
   Upload,
   FileSpreadsheet,
@@ -75,13 +75,44 @@ export default function ExcelImport({ onImport, onClose }: Props) {
     setFileName(file.name)
 
     const reader = new FileReader()
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer)
-        const workbook = XLSX.read(data, { type: 'array' })
-        const sheetName = workbook.SheetNames[0]
-        const sheet = workbook.Sheets[sheetName]
-        const json = XLSX.utils.sheet_to_json<Record<string, string | number>>(sheet, { defval: '' })
+        const data = e.target?.result as ArrayBuffer
+        const workbook = new ExcelJS.Workbook()
+        await workbook.xlsx.load(data)
+        const sheet = workbook.worksheets[0]
+        if (!sheet) {
+          setError('The spreadsheet appears to be empty.')
+          setParsing(false)
+          return
+        }
+
+        // First row is treated as the header.
+        const headerRow = sheet.getRow(1)
+        const hdrs: string[] = []
+        headerRow.eachCell({ includeEmpty: false }, (cell) => {
+          hdrs.push(String(cell.value ?? '').trim())
+        })
+
+        const json: Record<string, string | number>[] = []
+        sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+          if (rowNumber === 1) return
+          const obj: Record<string, string | number> = {}
+          hdrs.forEach((h, i) => {
+            const raw = row.getCell(i + 1).value
+            if (raw == null) {
+              obj[h] = ''
+            } else if (typeof raw === 'number') {
+              obj[h] = raw
+            } else if (typeof raw === 'object' && raw !== null && 'result' in raw && (raw as { result?: unknown }).result != null) {
+              const r = (raw as { result: unknown }).result
+              obj[h] = typeof r === 'number' ? r : String(r)
+            } else {
+              obj[h] = String(raw)
+            }
+          })
+          json.push(obj)
+        })
 
         if (json.length === 0) {
           setError('The spreadsheet appears to be empty.')
@@ -89,7 +120,6 @@ export default function ExcelImport({ onImport, onClose }: Props) {
           return
         }
 
-        const hdrs = Object.keys(json[0])
         setHeaders(hdrs)
         setRawRows(json)
         setMapping(autoMapColumns(hdrs))
@@ -189,7 +219,7 @@ export default function ExcelImport({ onImport, onClose }: Props) {
                 )
               })}
             </div>
-            <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer">
+            <button onClick={onClose} aria-label="Close Excel import" title="Close" className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer">
               <X className="w-4 h-4" />
             </button>
           </div>

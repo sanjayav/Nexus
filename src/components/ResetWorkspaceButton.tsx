@@ -82,7 +82,7 @@ export default function ResetWorkspaceButton({ onReset, variant = 'subtle' }: Pr
                 <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">Reset workspace?</h3>
               </div>
               {!busy && (
-                <button onClick={reset} className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer">
+                <button onClick={reset} aria-label="Close reset workspace dialog" title="Close" className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer">
                   <X className="w-4 h-4" />
                 </button>
               )}

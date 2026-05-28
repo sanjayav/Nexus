@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Shield, ChevronUp, ChevronDown, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
-import { facilities, scopeBreakdown, formatEmissions, formatNumber, Facility } from '../data/pttgcData'
+import { facilities, scopeBreakdown, formatEmissions, formatNumber, Facility } from '../data/demoData'
 import BlockchainProof from '../components/BlockchainProof'
 
 type SortKey = 'name' | 'scope1' | 'scope2' | 'scope3' | 'total' | 'intensity' | 'yoyChange'
@@ -76,7 +76,7 @@ export default function CarbonAccounting() {
       <div>
         <h1 className="text-2xl font-heading font-bold text-white">Carbon Accounting</h1>
         <p className="text-sm text-dark-300 mt-1">
-          Comprehensive emissions breakdown across all GC Group facilities. Click any data point to view its blockchain verification.
+          Comprehensive emissions breakdown across all Demo Co facilities. Click any data point to view its blockchain verification.
         </p>
       </div>
 
@@ -90,7 +90,7 @@ export default function CarbonAccounting() {
               <div className="flex items-center mt-1">
                 <span className="text-2xl font-heading font-bold text-white">8.4M</span>
                 <span className="text-sm text-dark-300 ml-1.5">tCO2e</span>
-                <ShieldBtn dataPoint="Scope 1 Total Emissions" facility="GC Group (All Facilities)" />
+                <ShieldBtn dataPoint="Scope 1 Total Emissions" facility="Demo Co (All Facilities)" />
               </div>
             </div>
             <div className="w-20 h-20">
@@ -128,7 +128,7 @@ export default function CarbonAccounting() {
                 </div>
                 <div className="flex items-center">
                   <span className="text-xs font-semibold text-white">{cat.percentage}%</span>
-                  <ShieldBtn dataPoint={`Scope 1 - ${cat.name}`} facility="GC Group" />
+                  <ShieldBtn dataPoint={`Scope 1 - ${cat.name}`} facility="Demo Co" />
                 </div>
               </div>
             ))}
@@ -143,11 +143,11 @@ export default function CarbonAccounting() {
               <div className="flex items-center mt-1">
                 <span className="text-2xl font-heading font-bold text-white">3.8M</span>
                 <span className="text-sm text-dark-300 ml-1.5">tCO2e</span>
-                <ShieldBtn dataPoint="Scope 2 Total Emissions (Location-Based)" facility="GC Group (All Facilities)" />
+                <ShieldBtn dataPoint="Scope 2 Total Emissions (Location-Based)" facility="Demo Co (All Facilities)" />
               </div>
               <p className="text-[11px] text-dark-400 mt-0.5">
                 Market-based: <span className="font-semibold text-dark-300">3.42M</span> tCO2e
-                <ShieldBtn dataPoint="Scope 2 Total Emissions (Market-Based)" facility="GC Group" />
+                <ShieldBtn dataPoint="Scope 2 Total Emissions (Market-Based)" facility="Demo Co" />
               </p>
             </div>
             <div className="w-20 h-20">
@@ -185,7 +185,7 @@ export default function CarbonAccounting() {
                 </div>
                 <div className="flex items-center">
                   <span className="text-xs font-semibold text-white">{cat.percentage}%</span>
-                  <ShieldBtn dataPoint={`Scope 2 - ${cat.name}`} facility="GC Group" />
+                  <ShieldBtn dataPoint={`Scope 2 - ${cat.name}`} facility="Demo Co" />
                 </div>
               </div>
             ))}
@@ -200,7 +200,7 @@ export default function CarbonAccounting() {
               <div className="flex items-center mt-1">
                 <span className="text-2xl font-heading font-bold text-white">9.3M</span>
                 <span className="text-sm text-dark-300 ml-1.5">tCO2e</span>
-                <ShieldBtn dataPoint="Scope 3 Total Emissions" facility="GC Group (All Facilities)" />
+                <ShieldBtn dataPoint="Scope 3 Total Emissions" facility="Demo Co (All Facilities)" />
               </div>
             </div>
             <div className="w-20 h-20">
@@ -240,7 +240,7 @@ export default function CarbonAccounting() {
                 </div>
                 <div className="flex items-center">
                   <span className="text-xs font-semibold text-white">{cat.percentage}%</span>
-                  <ShieldBtn dataPoint={`Scope 3 Cat ${(cat as typeof cat & { category: number }).category} - ${cat.name}`} facility="GC Group" />
+                  <ShieldBtn dataPoint={`Scope 3 Cat ${(cat as typeof cat & { category: number }).category} - ${cat.name}`} facility="Demo Co" />
                 </div>
               </div>
             ))}

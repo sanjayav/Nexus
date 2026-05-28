@@ -65,7 +65,7 @@ Reusable primitives: `Badge`, `Button`, `Card`, `Input`, `MetricCard`, `Progress
 - [src/components/GuidedTour.tsx](src/components/GuidedTour.tsx) — onboarding walkthrough
 
 ### Static / seed data — [src/data/](src/data/)
-`disclosureFields.ts`, `emissionFactors.ts`, `frameworkData.ts`, `moduleData.ts`, `pttepDemoData.ts`, `pttgcData.ts`.
+`disclosureFields.ts`, `emissionFactors.ts`, `frameworkData.ts`, `moduleData.ts`, `pttepDemoData.ts`, `demoData.ts`.
 
 ### Client utilities — [src/lib/](src/lib/)
 - `api.ts` — fetch wrapper

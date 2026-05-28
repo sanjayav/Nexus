@@ -16,7 +16,23 @@ import { useNavigate } from 'react-router-dom'
 import { useFramework, getFramework } from '../lib/frameworks'
 import CommentThread from '../components/CommentThread'
 
-type FilterState = 'all' | 'pending' | 'in_progress' | 'submitted' | 'approved'
+type FilterState = 'all' | 'overdue' | 'pending' | 'in_progress' | 'submitted' | 'approved'
+
+// Server now stamps `is_overdue` but we re-derive client-side too so that the
+// pill still shows correctly if an older API ever returns the old shape.
+function isOverdue(a: { is_overdue?: boolean; due_date: string | null; status: string }): boolean {
+  if (a.is_overdue) return true
+  if (!a.due_date) return false
+  if (a.status === 'approved' || a.status === 'reviewed' || a.status === 'submitted') return false
+  return new Date(a.due_date).getTime() < Date.now()
+}
+
+function dueThisWeek(a: { due_date: string | null; status: string }): boolean {
+  if (!a.due_date) return false
+  if (a.status === 'approved' || a.status === 'reviewed' || a.status === 'submitted') return false
+  const days = (new Date(a.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+  return days >= 0 && days <= 7
+}
 
 export default function MyTasks() {
   const { user } = useAuth()
@@ -56,6 +72,9 @@ export default function MyTasks() {
       if (!cancelled) setLoading(false)
     })()
     return () => { cancelled = true }
+  // Safe: `refresh` and `nexus.tree` are stable module-level helpers; the
+  // effect should only re-run when the logged-in user or active framework
+  // changes. Including refresh would re-fetch on every render.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.email, framework.id])
 
@@ -63,18 +82,30 @@ export default function MyTasks() {
   const questionById = useMemo(() => new Map(questions.map(q => [q.id, q])), [questions])
 
   const filtered = useMemo(() => {
-    return assignments.filter(a => {
+    const matched = assignments.filter(a => {
       if (filter === 'all') return true
+      if (filter === 'overdue') return isOverdue(a)
       if (filter === 'pending') return a.status === 'not_started'
       if (filter === 'in_progress') return a.status === 'in_progress'
       if (filter === 'submitted') return a.status === 'submitted' || a.status === 'reviewed'
       if (filter === 'approved') return a.status === 'approved'
       return true
     })
+    // Always sort overdue to the top so they're impossible to miss.
+    return [...matched].sort((a, b) => {
+      const oa = isOverdue(a) ? 0 : 1
+      const ob = isOverdue(b) ? 0 : 1
+      if (oa !== ob) return oa - ob
+      const da = a.due_date ? new Date(a.due_date).getTime() : Infinity
+      const db = b.due_date ? new Date(b.due_date).getTime() : Infinity
+      return da - db
+    })
   }, [assignments, filter])
 
   const stats = useMemo(() => ({
     total: assignments.length,
+    overdue: assignments.filter(isOverdue).length,
+    dueThisWeek: assignments.filter(dueThisWeek).length,
     notStarted: assignments.filter(a => a.status === 'not_started').length,
     inProgress: assignments.filter(a => a.status === 'in_progress').length,
     submitted: assignments.filter(a => a.status === 'submitted' || a.status === 'reviewed').length,
@@ -157,6 +188,8 @@ export default function MyTasks() {
               <button
                 key={s.key}
                 onClick={() => setFilter(s.key as FilterState)}
+                aria-pressed={filter === s.key}
+                aria-label={`Filter: ${s.label} (${s.value})`}
                 className={`rounded-[var(--radius-md)] text-left p-3 backdrop-blur transition-colors ${
                   filter === s.key ? 'bg-white/25' : 'bg-white/10 hover:bg-white/15'
                 }`}
@@ -171,19 +204,59 @@ export default function MyTasks() {
         )}
       </div>
 
+      {/* Count badge — overdue / due-this-week / total */}
+      {stats.total > 0 && (
+        <div
+          role="status"
+          aria-live="polite"
+          aria-label={`${stats.overdue} overdue, ${stats.dueThisWeek} due this week, ${stats.total} total`}
+          className="flex items-center gap-3 text-[var(--text-xs)] font-semibold flex-wrap"
+        >
+          {stats.overdue > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 text-red-300 border border-red-500/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+              {stats.overdue} overdue
+            </span>
+          )}
+          <span className="text-[var(--text-tertiary)]">·</span>
+          <span className="text-[var(--text-secondary)]">{stats.dueThisWeek} due this week</span>
+          <span className="text-[var(--text-tertiary)]">·</span>
+          <span className="text-[var(--text-secondary)]">{stats.total} total</span>
+        </div>
+      )}
+
       {/* Tabs */}
-      <div className="flex items-center gap-2 mb-4">
-        {(['all', 'pending', 'in_progress', 'submitted', 'approved'] as FilterState[]).map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-full text-[var(--text-xs)] font-semibold transition-colors ${
-              filter === f ? 'bg-[var(--color-brand)] text-white' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-            }`}
-          >
-            {f === 'all' ? 'All' : f === 'in_progress' ? 'In progress' : f === 'pending' ? 'To do' : f === 'submitted' ? 'Awaiting review' : 'Approved'}
-          </button>
-        ))}
+      <div role="toolbar" aria-label="Filter assignments" className="flex items-center gap-2 mb-4">
+        {(['all', 'overdue', 'pending', 'in_progress', 'submitted', 'approved'] as FilterState[]).map(f => {
+          const count = f === 'overdue' ? stats.overdue : null
+          if (f === 'overdue' && stats.overdue === 0) return null
+          return (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              aria-pressed={filter === f}
+              className={`px-3 py-1.5 rounded-full text-[var(--text-xs)] font-semibold transition-colors inline-flex items-center gap-1.5 ${
+                filter === f
+                  ? f === 'overdue'
+                    ? 'bg-red-500 text-white'
+                    : 'bg-[var(--color-brand)] text-white'
+                  : f === 'overdue'
+                    ? 'bg-red-500/10 text-red-300 border border-red-500/30 hover:bg-red-500/20'
+                    : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
+              }`}
+            >
+              {f === 'all' ? 'All'
+                : f === 'overdue' ? 'Overdue'
+                : f === 'in_progress' ? 'In progress'
+                : f === 'pending' ? 'To do'
+                : f === 'submitted' ? 'Awaiting review'
+                : 'Approved'}
+              {count != null && count > 0 && (
+                <span className="text-[10px] opacity-80 tabular-nums">{count}</span>
+              )}
+            </button>
+          )
+        })}
       </div>
 
       {/* List */}
@@ -270,7 +343,8 @@ function AssignmentRow({
 
   const modes = assignment.entry_modes ?? ['Manual']
 
-  const dueSoon = assignment.due_date ? (new Date(assignment.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24) < 7 : false
+  const overdue = isOverdue(assignment)
+  const dueSoon = !overdue && assignment.due_date ? (new Date(assignment.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24) < 7 : false
 
   return (
     <div className={`rounded-[var(--radius-lg)] border bg-[var(--bg-primary)] transition-all ${
@@ -280,6 +354,8 @@ function AssignmentRow({
       <button
         type="button"
         onClick={onToggle}
+        aria-expanded={expanded}
+        aria-label={`${assignment.gri_code} ${assignment.line_item} for ${entity?.name ?? 'unknown entity'}, status ${assignment.status}${overdue ? ', overdue' : ''}${assignment.due_date ? `, due ${assignment.due_date}` : ''}`}
         className="w-full text-left p-4 flex items-center gap-4"
       >
         <span className="w-1 h-10 rounded-full flex-shrink-0" style={{ background: statusColor }} />
@@ -312,12 +388,17 @@ function AssignmentRow({
               })}
             </span>
             {assignment.due_date && (
-              <span className={`inline-flex items-center gap-1 ${dueSoon ? 'text-[var(--status-reject)] font-semibold' : ''}`}>
+              <span className={`inline-flex items-center gap-1 ${overdue ? 'text-red-300 font-semibold' : dueSoon ? 'text-[var(--status-reject)] font-semibold' : ''}`}>
                 <Calendar className="w-3 h-3" /> {assignment.due_date}
               </span>
             )}
           </div>
         </div>
+        {overdue && (
+          <span className="px-2 py-0.5 rounded-[var(--radius-sm)] text-[10px] font-semibold uppercase tracking-wider flex-shrink-0 bg-red-500/10 text-red-300 border border-red-500/30">
+            Overdue
+          </span>
+        )}
         <StatusPill status={assignment.status} />
         {expanded ? <ChevronUp className="w-4 h-4 text-[var(--text-tertiary)]" /> : <ChevronDown className="w-4 h-4 text-[var(--text-tertiary)]" />}
       </button>
@@ -398,6 +479,8 @@ function AnswerPanel({
   // Effective allowed modes: hide Calculator if no descriptor matches this question
   const availableModes = useMemo(
     () => allowedModes.filter(m => m !== 'Calculator' || calculator != null),
+    // Using the joined string of allowedModes as a value-based dep avoids
+    // re-running when the parent re-creates the array with identical contents.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [allowedModes.join(','), calculator]
   )

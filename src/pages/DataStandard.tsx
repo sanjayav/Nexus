@@ -12,7 +12,7 @@ import { SkeletonLines } from '../design-system/components/Skeleton'
 import { slideInLeft } from '../components/motion'
 
 /**
- * ESG Data Standard — addresses PTTGC priorities #1, #4, #6:
+ * ESG Data Standard — addresses client priorities #1, #4, #6:
  *   · canonical definition (what counts, what doesn't)
  *   · calc method (how to compute, EF source)
  *   · cadence (daily / monthly / quarterly / annual)

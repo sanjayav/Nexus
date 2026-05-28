@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import * as crypto from 'crypto'
 import { getDb } from '../_db.js'
-import { verifyToken, cors } from '../_auth.js'
+import { verifyToken, cors, requirePermission } from '../_auth.js'
 import { emitAuditEvent, getPlatformRole } from '../_workflow.js'
 import { verifyChain } from '../_hashChain.js'
 
@@ -116,6 +116,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // to a public OTS calendar (a.pool.opentimestamps.org), receives a partial receipt,
     // stores it as bytea. Receipt is "pending" until confirmed in a Bitcoin block (~1-6h).
     if (action === 'anchor-tip') {
+      // Chain anchoring → reports.publish (privileged audit operation).
+      const gate = await requirePermission(req, res, 'reports.publish')
+      if (!gate) return
       try {
         // 1. Get current chain tip
         const tipRows = await sql`

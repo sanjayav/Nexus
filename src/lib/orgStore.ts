@@ -91,6 +91,8 @@ export interface QuestionAssignment {
   period_id?: string | null
   disclosure_position?: string | null
   last_updated?: string
+  /** Server-computed: due_date is past AND status isn't through review/approval. */
+  is_overdue?: boolean
 }
 
 export interface ReportingPeriod {
@@ -211,6 +213,7 @@ interface AssignmentWire {
   assigned_by: string
   assigned_at: string
   last_updated: string
+  is_overdue?: boolean
 }
 function mapAssignment(a: AssignmentWire): QuestionAssignment {
   return {
@@ -238,6 +241,7 @@ function mapAssignment(a: AssignmentWire): QuestionAssignment {
     assigned_by: a.assigned_by,
     assigned_at: a.assigned_at,
     last_updated: a.last_updated,
+    is_overdue: a.is_overdue ?? false,
   }
 }
 
@@ -451,6 +455,88 @@ export const orgStore = {
   async markNotificationRead(id: string | 'all'): Promise<void> {
     await req('/org', { method: 'POST', body: JSON.stringify({ action: 'mark-notification-read', id }) })
   },
+  /** Paginated inbox — hits the dedicated /api/notifications endpoint which
+   *  supports `limit`, `offset`, and per-kind filtering. */
+  async inboxNotifications(opts?: { limit?: number; offset?: number; kind?: string }): Promise<{
+    notifications: Notification[]; unread: number; total: number; limit: number; offset: number
+  }> {
+    const qs = new URLSearchParams()
+    if (opts?.limit != null)  qs.set('limit',  String(opts.limit))
+    if (opts?.offset != null) qs.set('offset', String(opts.offset))
+    if (opts?.kind)           qs.set('kind',   opts.kind)
+    const suffix = qs.toString() ? `?${qs}` : ''
+    return req(`/notifications${suffix}`)
+  },
+  async markAllNotificationsRead(): Promise<void> {
+    await req('/notifications', { method: 'POST', body: JSON.stringify({ action: 'mark-all-read' }) })
+  },
+
+  // ── Bulk assignment ────────────────────────────────────
+  async bulkAssign(input: {
+    framework_id: string
+    entity_id?: string
+    filter?: { sections?: string[]; gri_codes?: string[] }
+    assignee_email: string
+    assignee_name: string
+    due_date?: string
+    entry_modes?: string[]
+    reviewer_email?: string
+    approver_email?: string
+  }): Promise<{ ok: boolean; totalCreated: number; totalSkipped: number; notificationSent: boolean }> {
+    return req('/org', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'bulk-add-assignments', ...input }),
+    })
+  },
+
+  // ── GDPR data export ───────────────────────────────────
+  /** Trigger a browser download of the workspace data export zip. */
+  downloadDataExport(): Promise<void> {
+    const token = localStorage.getItem('aeiforo_token') ?? ''
+    return (async () => {
+      const res = await fetch('/api/admin/export', { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: res.statusText }))
+        throw new Error(body.error || `API error ${res.status}`)
+      }
+      const blob = await res.blob()
+      const disposition = res.headers.get('Content-Disposition') ?? ''
+      const m = /filename="?([^";]+)"?/i.exec(disposition)
+      const filename = m?.[1] ?? `aeiforo-export-${Date.now()}.zip`
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    })()
+  },
+
+  // ── Activity data (calculator persistence) ─────────────
+  async saveActivityData(payload: {
+    facility_id: string
+    period_year: number
+    period_month: number
+    scope: 1 | 2 | 3
+    category: string
+    subcategory?: string
+    fuel_type?: string
+    activity_value: number
+    activity_unit: string
+    emission_factor?: number
+    ef_source?: string
+    co2e_tonnes: number
+    co2?: number
+    ch4?: number
+    n2o?: number
+    notes?: string
+    source_calculator_id?: string
+    source_method_id?: string
+  }): Promise<{ id: string }> {
+    return req('/activity-data', { method: 'POST', body: JSON.stringify(payload) })
+  },
 
   // ── Content Index ────────────────────────────────────
   async contentIndex(frameworkId: string = 'gri'): Promise<ContentIndexRow[]> {
@@ -523,6 +609,38 @@ export const orgStore = {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
     if (!res.ok) throw new Error(`Download failed (${res.status})`)
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  },
+  async downloadReportDocx(artifactId: string, filename = 'sustainability-report.docx'): Promise<void> {
+    const token = localStorage.getItem('aeiforo_token')
+    const res = await fetch(`/api/org?view=report-docx&id=${encodeURIComponent(artifactId)}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!res.ok) throw new Error(`Download failed (${res.status})`)
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  },
+  async downloadReportIxbrl(artifactId: string, filename = 'sustainability-report.xhtml'): Promise<void> {
+    const token = localStorage.getItem('aeiforo_token')
+    const res = await fetch(`/api/reports/${encodeURIComponent(artifactId)}/ixbrl`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!res.ok) throw new Error(`iXBRL download failed (${res.status})`)
     const blob = await res.blob()
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')

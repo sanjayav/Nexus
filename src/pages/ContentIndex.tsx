@@ -122,12 +122,12 @@ export default function ContentIndex() {
       <div className="flex items-center gap-2 mb-4 flex-wrap no-print">
         <div className="flex-1 relative min-w-[260px]">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search GRI code, line item, section…"
+          <input id="content-index-search" aria-label="Search disclosures" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search GRI code, line item, section…"
             className="w-full pl-9 pr-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]" />
         </div>
         <div className="relative">
           <Filter className="w-3 h-3 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as StatusFilter)}
+          <select id="content-status-filter" aria-label="Filter by status" value={statusFilter} onChange={e => setStatusFilter(e.target.value as StatusFilter)}
             className="pl-7 pr-7 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)] appearance-none">
             <option value="all">All statuses</option>
             <option value="fully">Fully reported</option>

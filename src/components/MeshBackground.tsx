@@ -66,7 +66,7 @@ export default function MeshBackground({
     )
   }
 
-  // Light variant — PTTGC navy + green aurora on a creamy base
+  // Light variant — navy + green aurora on a creamy base
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden" style={{ zIndex: 0 }}>
       <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, #FAFBFC 0%, #F4F7FA 100%)' }} />

@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { AlertCircle, RotateCcw, Home } from 'lucide-react'
+import { captureError } from '../lib/sentry'
 
 /**
  * Top-level error boundary. Catches any uncaught render error in the React
@@ -32,8 +33,8 @@ export default class ErrorBoundary extends Component<Props, State> {
       console.error('[ErrorBoundary]', error, info.componentStack)
     }
     this.setState({ info })
-    // Production hook: send to error-tracking service here.
-    // e.g. Sentry.captureException(error, { contexts: { react: { componentStack: info.componentStack } } })
+    // Forward to Sentry when VITE_SENTRY_DSN is set; otherwise this is a no-op.
+    captureError(error, { componentStack: info.componentStack })
   }
 
   reset = () => this.setState({ error: null, info: null })

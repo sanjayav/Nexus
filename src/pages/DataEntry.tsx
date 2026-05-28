@@ -16,6 +16,7 @@ import SetupGuard from '../components/SetupGuard'
 import { Button } from '../design-system'
 import { findCalculator, type CalcDescriptor, type CalcInputValues } from '../calculators/registry'
 import { HistoricalReferencePanel } from '../components/HistoricalReferencePanel'
+import { orgStore } from '../lib/orgStore'
 
 const ACTIVE_REPORTING_YEAR_ID = '11000000-0000-0000-0000-000000000026'
 const ACTIVE_YEAR = 2026
@@ -140,6 +141,10 @@ export default function DataEntry() {
     if (mode === 'Calculator' && !calculator && state.kind === 'ready') {
       setMode(state.item.entry_mode_default)
     }
+    // Safe: depending on the full `state` object would re-trigger the snap on
+    // every fetch even when `state.kind` and the calculator haven't changed.
+    // `mode` and `setMode` are deliberately excluded — `mode` is read inside
+    // the guard but we only want to snap when calculator/state.kind flip.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calculator, state.kind])
 
@@ -697,26 +702,24 @@ function CompareSources({
 
   useEffect(() => {
     let cancelled = false
-    import('../lib/orgStore').then(({ orgStore }) =>
-      orgStore.historicalReference(item.id)
-        .then(r => {
-          if (cancelled) return
-          const series = [...r.history].sort((a, b) => a.year - b.year)
-          if (series.length === 0) { setRef(null); return }
-          const values = series.map(s => s.value)
-          const avg = values.reduce((a, b) => a + b, 0) / values.length
-          const last = series[series.length - 1]
-          setRef({
-            lastYear: last.year,
-            lastYearValue: last.value,
-            avg,
-            min: Math.min(...values),
-            max: Math.max(...values),
-            peers: r.peers.slice(0, 3),
-          })
+    orgStore.historicalReference(item.id)
+      .then(r => {
+        if (cancelled) return
+        const series = [...r.history].sort((a, b) => a.year - b.year)
+        if (series.length === 0) { setRef(null); return }
+        const values = series.map(s => s.value)
+        const avg = values.reduce((a, b) => a + b, 0) / values.length
+        const last = series[series.length - 1]
+        setRef({
+          lastYear: last.year,
+          lastYearValue: last.value,
+          avg,
+          min: Math.min(...values),
+          max: Math.max(...values),
+          peers: r.peers.slice(0, 3),
         })
-        .catch(() => setRef(null))
-    )
+      })
+      .catch(() => setRef(null))
     return () => { cancelled = true }
   }, [item.id])
 

@@ -146,13 +146,13 @@ export default function AuditorView() {
             <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--color-brand)] font-semibold mb-1">
               Auditor View · Sustainability Performance Data
             </div>
-            <h1 className="font-display text-[var(--text-2xl)] font-bold">PTT Global Chemical — FY{ACTIVE_YEAR}</h1>
+            <h1 className="font-display text-[var(--text-2xl)] font-bold">Demo Co — FY{ACTIVE_YEAR}</h1>
             <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1">
               Click any value chip to drill into evidence, calculator inputs, and the full hash-chained audit trail.
             </p>
           </header>
 
-          <TrailDocumentBlock heading="GC Group" sections={groupSections} onOpen={openTrail} />
+          <TrailDocumentBlock heading="Demo Co" sections={groupSections} onOpen={openTrail} />
           {jvSections.length > 0 && <TrailDocumentBlock heading="Joint Ventures — Parallel Scope" sections={jvSections} onOpen={openTrail} />}
         </article>
 

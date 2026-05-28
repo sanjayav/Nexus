@@ -91,7 +91,7 @@ export default function AnomalyFeed({
               <SeverityTab active={filter === 'info'} onClick={() => setFilter('info')} count={data.summary.info} tone="info">Info</SeverityTab>
             </>
           )}
-          <button onClick={load} className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors" title="Refresh">
+          <button onClick={load} aria-label="Refresh anomalies" className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors" title="Refresh">
             <RotateCw className="w-3.5 h-3.5" />
           </button>
         </div>

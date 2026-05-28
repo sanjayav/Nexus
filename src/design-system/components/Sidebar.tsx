@@ -9,7 +9,7 @@ import {
   FileText, BookMarked, BarChart3, AlertTriangle,
   Calculator as CalcIcon, BookOpen, Atom,
   Sparkles, Calendar, Scale, UserCog, Users, Target as TargetIcon,
-  ShieldCheck, Settings,
+  ShieldCheck, Settings, Plug, KeyRound, Activity,
   // Chrome
   ChevronLeft, ChevronRight, ChevronDown, Leaf, LogOut,
 } from 'lucide-react'
@@ -17,6 +17,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { resolveRole, ROLE_CATALOG, type PlatformRole } from '../../lib/rbac'
 import SetupGuide from '../../components/SetupGuide'
 import { useOrgBrand } from '../../lib/useOrgBrand'
+import { orgStore } from '../../lib/orgStore'
 
 type NavItem = {
   path: string
@@ -101,6 +102,8 @@ const NAV: NavGroup[] = [
     items: [
       { path: '/data/standard', label: 'Data standard', icon: BookOpen, pin: true },
       { path: '/calculators',   label: 'Calculators',   icon: CalcIcon },
+      { path: '/data/connectors', label: 'ERP connectors', icon: Plug,
+        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'plant_manager', 'data_contributor'] },
       // EF library & GWP values moved to Admin — they're maintained
       // reference tables, not something data contributors touch.
     ],
@@ -120,6 +123,12 @@ const NAV: NavGroup[] = [
       { path: '/admin/assignments',  label: 'Assignments',      icon: UserCog,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead'] },
       { path: '/admin/users',        label: 'Users & roles',    icon: Users,
+        roles: ['platform_admin'] },
+      { path: '/admin/scim',         label: 'SCIM provisioning', icon: KeyRound, advanced: true,
+        roles: ['platform_admin'] },
+      { path: '/admin/api-keys',     label: 'API keys',          icon: KeyRound, advanced: true,
+        roles: ['platform_admin'] },
+      { path: '/admin/system-status',label: 'System status',     icon: Activity, advanced: true,
         roles: ['platform_admin'] },
       { path: '/admin/ef-library',   label: 'EF library',       icon: BookOpen, advanced: true,
         roles: ['platform_admin'] },
@@ -535,7 +544,6 @@ function useBadges() {
     let cancelled = false
     const load = async () => {
       try {
-        const { orgStore } = await import('../../lib/orgStore')
         const [rows, anomalies] = await Promise.all([
           orgStore.listAssignments(),
           orgStore.anomalyScan('role', { limit: 1 }).catch(() => ({ summary: { critical: 0, warn: 0, info: 0, total: 0, suppressed_total: 0, by_type: {} } as any })),

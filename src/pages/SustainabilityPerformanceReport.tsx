@@ -1,7 +1,7 @@
 import { Fragment, useRef, useState } from 'react'
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
 import { Download, Plus, FileSpreadsheet, CheckCircle2, AlertTriangle, Loader2, X } from 'lucide-react'
-import { PTTGC_REPORT, flattenRows, type PttgcReport, type ReportSection, type ReportTable, type ReportRow, type CellValue } from '../data/pttgcReport'
+import { DEMO_REPORT, flattenRows, type DemoReport, type ReportSection, type ReportTable, type ReportRow, type CellValue } from '../data/demoReport'
 import PageHeader from '../components/PageHeader'
 import Button from '../design-system/components/Button'
 import JargonTooltip from '../components/JargonTooltip'
@@ -14,7 +14,7 @@ type ImportSummary = {
 }
 
 export default function SustainabilityPerformanceReport() {
-  const [report, setReport] = useState<PttgcReport>(() => structuredClone(PTTGC_REPORT))
+  const [report, setReport] = useState<DemoReport>(() => structuredClone(DEMO_REPORT))
   const [importOpen, setImportOpen] = useState(false)
   const [summary, setSummary] = useState<ImportSummary | null>(null)
 
@@ -57,7 +57,7 @@ export default function SustainabilityPerformanceReport() {
               variant="secondary"
               size="md"
               icon={<Download className="w-4 h-4" />}
-              onClick={() => downloadTemplate(report)}
+              onClick={() => { void downloadTemplate(report) }}
             >
               Download Excel template
             </Button>
@@ -94,10 +94,10 @@ export default function SustainabilityPerformanceReport() {
 
       {/* Cover */}
       <div className="surface-hero p-8">
-        <div className="kicker mb-2">PTTGC</div>
+        <div className="kicker mb-2">Demo Co</div>
         <h2 className="text-display text-[28px] text-[var(--text-primary)] mb-2">{report.subtitle}</h2>
         <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed max-w-2xl">
-          Operational performance for the period 1 January – 31 December, including companies in which GC holds 50%+ shares and HMC Polymers Co., Ltd. Prepared in accordance with{' '}
+          Operational performance for the period 1 January – 31 December, including companies in which Demo Co holds 50%+ shares and Polymers JV Ltd. Prepared in accordance with{' '}
           <JargonTooltip term="GRI Standards 2021">The latest revision of the Global Reporting Initiative standards, modular by topic (universal, economic, environmental, social) — the de-facto sustainability reporting framework worldwide.</JargonTooltip>
           ,{' '}
           <JargonTooltip term="IFRS S1">General Requirements for Disclosure of Sustainability-related Financial Information — investors-first sustainability reporting baseline issued by the ISSB.</JargonTooltip>
@@ -252,7 +252,7 @@ function fmt(n: number | null): string {
 
 // ─── Add-Year Modal ───────────────────────────────────────────────────
 function AddYearModal({ report, onClose, onImport }: {
-  report: PttgcReport
+  report: DemoReport
   onClose: () => void
   onImport: (year: number, rows: Record<string, CellValue>, summary: ImportSummary) => void
 }) {
@@ -265,12 +265,45 @@ function AddYearModal({ report, onClose, onImport }: {
   const handleFile = (file: File) => {
     setError(null); setParsing(true)
     const reader = new FileReader()
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer)
-        const wb = XLSX.read(data, { type: 'array' })
-        const sheet = wb.Sheets[wb.SheetNames[0]]
-        const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' })
+        const data = e.target?.result as ArrayBuffer
+        const wb = new ExcelJS.Workbook()
+        await wb.xlsx.load(data)
+        const sheet = wb.worksheets[0]
+        if (!sheet) throw new Error('Workbook has no sheets')
+
+        // First row is the header. Build header list, then map each row to
+        // a `{ header: value }` record — same shape XLSX.sheet_to_json gave.
+        const headerRow = sheet.getRow(1)
+        const headers: string[] = []
+        const colCount = sheet.actualColumnCount || sheet.columnCount || 0
+        for (let i = 1; i <= colCount; i++) {
+          headers.push(String(headerRow.getCell(i).value ?? '').trim())
+        }
+
+        const json: Record<string, unknown>[] = []
+        sheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+          if (rowNumber === 1) return
+          const obj: Record<string, unknown> = {}
+          headers.forEach((h, i) => {
+            if (!h) return
+            const v = row.getCell(i + 1).value
+            if (v == null) {
+              obj[h] = ''
+            } else if (typeof v === 'object') {
+              const o = v as { result?: unknown; text?: unknown; richText?: { text?: unknown }[] }
+              if (o.result != null) obj[h] = o.result
+              else if (o.text != null) obj[h] = o.text
+              else if (Array.isArray(o.richText)) obj[h] = o.richText.map((rt) => String(rt?.text ?? '')).join('')
+              else obj[h] = v
+            } else {
+              obj[h] = v
+            }
+          })
+          json.push(obj)
+        })
+
         const { matched, unmatched, unmatchedSamples, rows } = mapExcelRows(report, json)
         onImport(year, rows, { year, matched, unmatched, unmatchedSamples })
       } catch (err) {
@@ -371,7 +404,7 @@ function norm(s: string): string {
   return s.toLowerCase().trim().replace(/[\s_/-]+/g, ' ').replace(/[^\w ]/g, '')
 }
 
-function mapExcelRows(report: PttgcReport, raw: Record<string, unknown>[]): {
+function mapExcelRows(report: DemoReport, raw: Record<string, unknown>[]): {
   matched: number
   unmatched: number
   unmatchedSamples: string[]
@@ -435,30 +468,50 @@ function toNum(x: unknown): number | null {
 }
 
 // ─── Excel template download ──────────────────────────────────────────
-function downloadTemplate(report: PttgcReport) {
+async function downloadTemplate(report: DemoReport) {
   const flat = flattenRows(report)
-  const wb = XLSX.utils.book_new()
+  const lastYear = Math.max(...report.years)
+
+  // Always emit the same column set so the importer's `pick(...)` aliases
+  // line up regardless of whether the row is split male/female or not.
+  const columns = ['Section', 'Table', 'id', 'GRI', 'Required Data', 'Unit', 'Value', 'Male', 'Female'] as const
+
   const data = flat.map(({ section, table, row }) => {
-    const lastYear = Math.max(...report.years)
     const last = row.values[lastYear]
-    const row_: Record<string, unknown> = {
+    const out: Record<string, unknown> = {
       Section: section,
       Table: table,
       id: row.id,
       GRI: row.gri ?? '',
       'Required Data': row.label,
       Unit: row.unit,
+      Value: '',
+      Male: '',
+      Female: '',
     }
     if (row.split === 'mf') {
       const mf = last as { male: number | null; female: number | null } | null
-      row_.Male = mf?.male ?? ''
-      row_.Female = mf?.female ?? ''
+      out.Male = mf?.male ?? ''
+      out.Female = mf?.female ?? ''
     } else {
-      row_.Value = typeof last === 'number' ? last : ''
+      out.Value = typeof last === 'number' ? last : ''
     }
-    return row_
+    return out
   })
-  const sheet = XLSX.utils.json_to_sheet(data)
-  XLSX.utils.book_append_sheet(wb, sheet, 'Performance Data')
-  XLSX.writeFile(wb, `PTTGC_Performance_Data_Template.xlsx`)
+
+  const wb = new ExcelJS.Workbook()
+  const sheet = wb.addWorksheet('Performance Data')
+  sheet.columns = columns.map((c) => ({ header: c, key: c }))
+  sheet.addRows(data)
+
+  const buf = await wb.xlsx.writeBuffer()
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'Demo_Performance_Data_Template.xlsx'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }

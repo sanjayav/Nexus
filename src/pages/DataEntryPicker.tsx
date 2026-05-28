@@ -93,7 +93,7 @@ export default function DataEntryPicker() {
         <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)]">Data Collection</h1>
         <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1">
           Pick any GRI line item to enter, compute, or pull its FY2026 value.
-          <span className="text-[var(--text-tertiary)] ml-2">{total} group-scope items seeded from PTTGC FY2025 SPD.</span>
+          <span className="text-[var(--text-tertiary)] ml-2">{total} group-scope items seeded from FY2025 SPD.</span>
         </p>
       </header>
 

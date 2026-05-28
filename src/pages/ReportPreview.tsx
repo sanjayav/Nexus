@@ -29,7 +29,7 @@ type LoadState =
     }
 
 /**
- * Live PTTGC Sustainability Performance Data preview.
+ * Live Sustainability Performance Data preview.
  * Reads straight from Neon via /api/workflow?view=tree + per-item /view=historical.
  * Each section mirrors the published FY2025 PDF section order; current FY shows approved
  * data_value rows, and the four trailing columns come from historical_value.
@@ -140,7 +140,7 @@ export default function ReportPreview() {
             Sustainability Performance Data
           </div>
           <h1 className="font-display text-[40px] font-bold leading-tight text-[var(--text-primary)] mb-2">
-            PTT Global Chemical<br />Public Company Limited
+            Demo Co<br />Public Company Limited
           </h1>
           <p className="text-[var(--text-lg)] text-[var(--text-secondary)] mb-10">
             Reporting period: 1 January – 31 December {ACTIVE_YEAR}
@@ -150,7 +150,7 @@ export default function ReportPreview() {
           </div>
           <p className="mt-12 text-[var(--text-xs)] text-[var(--text-tertiary)] leading-relaxed">
             Published in accordance with GRI Standards 2021, IFRS S1, IFRS S2, and SASB.
-            Prior-year values (FY2022–FY2025) inherited from the published PTTGC Sustainability Performance Data report.
+            Prior-year values (FY2022–FY2025) inherited from the published Sustainability Performance Data report.
             All current-year values are regenerated from approved entries in the Nexus platform.
           </p>
         </section>
@@ -160,10 +160,10 @@ export default function ReportPreview() {
           <h2 className="font-display text-[var(--text-xl)] font-bold text-[var(--color-brand)] mb-2">Reporting Guidelines</h2>
           <p className="text-[var(--text-xs)] uppercase tracking-wider text-[var(--text-tertiary)] mb-4">GRI 2-1, 2-2, 2-3, 2-4, 2-5</p>
           <div className="space-y-3 text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
-            <p><strong className="text-[var(--text-primary)]">Organisation (GRI 2-1):</strong> PTT Global Chemical Public Company Limited (GC).
-              Head Office: 555/1 Energy Complex Building A, 18th Floor, Vibhavadi Rangsit Road, Chatuchak, Bangkok 10900 Thailand.</p>
-            <p><strong className="text-[var(--text-primary)]">Scope (GRI 2-2):</strong> Operational performance of companies under PTT Global Chemical Group in Thailand for the reporting year,
-              including companies in which GC holds ≥ 50% of total shares, plus HMC Polymers Co., Ltd. (GC holds 41.44%, largest shareholder).
+            <p><strong className="text-[var(--text-primary)]">Organisation (GRI 2-1):</strong> Demo Co PLC.
+              Head Office: 1 Demo Plaza, Industrial District, City Center.</p>
+            <p><strong className="text-[var(--text-primary)]">Scope (GRI 2-2):</strong> Operational performance of Demo Co Group entities for the reporting year,
+              including companies in which Demo Co holds ≥ 50% of total shares, plus Polymers JV Ltd. (Demo Co holds 41.44%, largest shareholder).
               Sustainability data covers &gt; 75% of total revenue.</p>
             <p><strong className="text-[var(--text-primary)]">Reporting period (GRI 2-3):</strong> 1 January – 31 December {ACTIVE_YEAR}. Annual cycle.</p>
             <p><strong className="text-[var(--text-primary)]">Restatements (GRI 2-4):</strong> Where the current report revises prior-year figures,
@@ -174,7 +174,7 @@ export default function ReportPreview() {
         </section>
 
         {/* Group performance data */}
-        <TemplateRenderBlock heading="Sustainability Performance Data — GC Group" sections={groupSections} currentYear={ACTIVE_YEAR} />
+        <TemplateRenderBlock heading="Sustainability Performance Data — Demo Co" sections={groupSections} currentYear={ACTIVE_YEAR} />
 
         {/* JV parallel scope */}
         {jvSections.length > 0 && (
@@ -200,7 +200,7 @@ export default function ReportPreview() {
             </p>
             <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] pt-4 border-t border-[var(--border-subtle)]">
               <strong>Placeholder</strong> — full LRQA assurance statement is inserted here at final publish. Detailed terms of engagement,
-              observations, and conclusion match the standing LRQA template for PTTGC (see PTTGC FY2025 SPD pp. 60–61).
+              observations, and conclusion match the standing assurance template (see Demo Co FY2025 SPD pp. 60–61).
             </p>
           </div>
         </section>

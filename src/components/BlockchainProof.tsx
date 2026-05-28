@@ -53,7 +53,7 @@ export default function BlockchainProof({ isOpen, onClose, dataPoint, facility }
               <p className="text-xs text-dark-400">Immutable audit proof</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-dark-700 transition-colors">
+          <button onClick={onClose} aria-label="Close blockchain verification" title="Close" className="p-2 rounded-lg hover:bg-dark-700 transition-colors">
             <X className="w-4 h-4 text-dark-400" />
           </button>
         </div>

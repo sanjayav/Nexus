@@ -1,4 +1,4 @@
-// PTTGC Sustainability Performance Data — report template.
+// Demo Co Sustainability Performance Data — report template.
 // Drives both the Publish preview (/reports/preview) and the Auditor View (/reports/auditor).
 // Section/subsection order mirrors the published FY2025 PDF so the regenerated report
 // lands in the same layout with updated FY2026 values (SRD §15.2, AC-07, AC-10).
@@ -15,7 +15,7 @@ export const CAPITAL_ORDER = [
 
 export type Capital = (typeof CAPITAL_ORDER)[number]
 
-// Curated subsection order within each capital — matches the PTTGC PDF's section flow.
+// Curated subsection order within each capital — matches the Demo Co PDF's section flow.
 export const SUBSECTION_ORDER: Record<string, string[]> = {
   'Financial Capital': [
     'Direct Economic Value Generated',

@@ -1,8 +1,23 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import * as bcrypt from 'bcryptjs'
 import * as crypto from 'crypto'
+import { z } from 'zod'
 import { getDb } from '../_db.js'
-import { verifyToken, cors } from '../_auth.js'
+import { verifyToken, cors, requirePermission } from '../_auth.js'
+import { audit, auditIp } from '../_audit.js'
+
+const createUserSchema = z.object({
+  email: z.string().email().max(320),
+  name: z.string().min(1).max(200).optional(),
+  password: z.string().min(6).max(200).optional(),
+  roleId: z.string().uuid().optional(),
+  mode: z.enum(['invite', 'create']).optional(),
+})
+const updateUserSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  isActive: z.boolean().optional(),
+  roleIds: z.array(z.string().uuid()).optional(),
+})
 
 /**
  * Unified users handler — list, create, invite, update, deactivate.
@@ -43,6 +58,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // POST — create or invite
     if (req.method === 'POST') {
+      // Creating users / sending invites → admin.users.
+      const gate = await requirePermission(req, res, 'admin.users')
+      if (!gate) return
+      try { createUserSchema.parse(req.body) } catch (e) {
+        if (e instanceof z.ZodError) return res.status(400).json({ error: 'Invalid input', issues: e.issues })
+        throw e
+      }
       const { email, name, password, roleId, mode } = req.body ?? {}
       if (!email) return res.status(400).json({ error: 'Email required' })
 
@@ -70,12 +92,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (roleId) {
         await sql`INSERT INTO user_roles (user_id, role_id, assigned_by) VALUES (${newId}, ${roleId}, ${token.sub})`
       }
+      await audit({
+        orgId: token.org,
+        userId: token.sub,
+        action: 'user.create',
+        resourceType: 'user',
+        resourceId: newId,
+        details: { email: email.toLowerCase().trim(), name, roleId: roleId ?? null },
+        ip: auditIp(req),
+      })
       return res.status(201).json(await loadUser(sql, newId))
     }
 
     // PUT / PATCH — update user
     if (req.method === 'PUT' || req.method === 'PATCH') {
+      // Updating user metadata / role assignments → admin.users.
+      const gate = await requirePermission(req, res, 'admin.users')
+      if (!gate) return
       if (!userId) return res.status(400).json({ error: 'User ID required (pass ?id=)' })
+      try { updateUserSchema.parse(req.body) } catch (e) {
+        if (e instanceof z.ZodError) return res.status(400).json({ error: 'Invalid input', issues: e.issues })
+        throw e
+      }
       const { name, isActive, roleIds } = req.body ?? {}
 
       const check = await sql`SELECT id FROM users WHERE id = ${userId} AND org_id = ${token.org}`
@@ -88,12 +126,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         for (const rid of roleIds) {
           await sql`INSERT INTO user_roles (user_id, role_id, assigned_by) VALUES (${userId}, ${rid}, ${token.sub})`
         }
+        // Role assignments are security-critical — log them separately from
+        // the broader user.update so they're easy to filter on in the UI.
+        await audit({
+          orgId: token.org,
+          userId: token.sub,
+          action: 'user.roles_change',
+          resourceType: 'user',
+          resourceId: userId,
+          details: { roleIds },
+          ip: auditIp(req),
+        })
+      }
+      if (name !== undefined || isActive !== undefined) {
+        await audit({
+          orgId: token.org,
+          userId: token.sub,
+          action: 'user.update',
+          resourceType: 'user',
+          resourceId: userId,
+          details: { name, isActive },
+          ip: auditIp(req),
+        })
       }
       return res.status(200).json(await loadUser(sql, userId))
     }
 
     // DELETE — deactivate
     if (req.method === 'DELETE') {
+      // Deactivating users → admin.users.
+      const gate = await requirePermission(req, res, 'admin.users')
+      if (!gate) return
       if (!userId) return res.status(400).json({ error: 'User ID required (pass ?id=)' })
       await sql`UPDATE users SET is_active = false WHERE id = ${userId} AND org_id = ${token.org}`
       return res.status(200).json({ ok: true })

@@ -1,3 +1,5 @@
+import { captureError } from './sentry'
+
 const API_BASE = '/api'
 
 function getToken(): string | null {
@@ -36,7 +38,13 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }))
-    throw new Error(body.error || `API error ${res.status}`)
+    const err = new Error(body.error || `API error ${res.status}`)
+    // Forward non-auth backend failures to Sentry (no-op when DSN unset).
+    // 401 already gets its own session-expiry handler above.
+    if (res.status !== 401) {
+      captureError(err, { path, status: res.status, method: opts.method ?? 'GET' })
+    }
+    throw err
   }
 
   return res.json()
@@ -60,14 +68,66 @@ export interface LoginResponse {
   user: AuthUser
 }
 
+export interface SsoDiscoverResponse {
+  ssoAvailable: boolean
+  connectionId?: string
+  providerName?: string
+}
+
+export type LoginOrMfaResponse =
+  | (LoginResponse & { mfaRequired?: false })
+  | { mfaRequired: true; tempToken: string }
+
+export interface MfaEnrollResponse {
+  otpauthUri: string
+  secret: string
+  recoveryCodes: string[]
+}
+
+export interface MfaStatusResponse {
+  enrolled: boolean
+  enabled: boolean
+  lastUsedAt: string | null
+}
+
 export const auth = {
   login: (email: string, password: string) =>
-    request<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+    request<LoginOrMfaResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
 
-  register: (data: { email: string; name: string; password: string; inviteToken?: string }) =>
+  ssoDiscover: (email: string) =>
+    request<SsoDiscoverResponse>(`/auth/sso/discover?email=${encodeURIComponent(email)}`),
+
+  ssoInitiate: (body: { email?: string; connectionId?: string; organisationId?: string }) =>
+    request<{ authorizationUrl: string }>('/auth/sso/initiate', { method: 'POST', body: JSON.stringify(body) }),
+
+  register: (data: { email: string; name: string; password: string; workspaceName?: string; inviteToken?: string }) =>
     request<LoginResponse>('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
 
   me: () => request<AuthUser>('/auth/me'),
+
+  // ── Password reset ──
+  forgotPassword: (email: string) =>
+    request<{ ok: true }>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+
+  resetPassword: (token: string, password: string) =>
+    request<{ ok: true }>('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password }) }),
+
+  // ── TOTP MFA ──
+  mfaStatus: () => request<MfaStatusResponse>('/auth/mfa/status'),
+
+  mfaEnroll: () => request<MfaEnrollResponse>('/auth/mfa/enroll', { method: 'POST' }),
+
+  mfaVerifyEnroll: (code: string) =>
+    request<{ ok: true }>('/auth/mfa/verify-enroll', { method: 'POST', body: JSON.stringify({ code }) }),
+
+  mfaVerify: (tempToken: string, code: string) =>
+    request<LoginResponse & { usedRecoveryCode?: boolean }>('/auth/mfa/verify', {
+      method: 'POST',
+      body: JSON.stringify({ tempToken, code }),
+    }),
+
+  mfaDisable: (password: string) =>
+    request<{ ok: true }>('/auth/mfa/disable', { method: 'POST', body: JSON.stringify({ password }) }),
 }
 
 // ── Users ─────────────────────────────────
@@ -609,6 +669,163 @@ export const nexus = {
     request<{ value_hash: string; status: string }>(`/blockchain?view=hash&data_value_id=${encodeURIComponent(data_value_id)}`),
 }
 
+// ── AI Drafting ──────────────────────────
+export interface AiDraftUsage {
+  tokensIn?: number
+  tokensOut?: number
+  cached?: number
+}
+
+export interface AiDraftResponse {
+  text: string
+  usage: AiDraftUsage
+}
+
+export const ai = {
+  draft: (data: { framework: string; section: string; tone?: string }) =>
+    request<AiDraftResponse>('/ai/draft', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+}
+
+// ── SCIM tokens ──────────────────────────
+export interface ScimToken {
+  id: string
+  prefix: string
+  defaultRoleSlug: string
+  isActive: boolean
+  createdAt: string
+  lastUsedAt: string | null
+}
+
+export interface ScimTokenCreated extends ScimToken {
+  token: string
+  warning: string
+}
+
+export const scim = {
+  list: () => request<ScimToken[]>('/admin/scim-tokens'),
+  create: (defaultRoleSlug?: string) =>
+    request<ScimTokenCreated>('/admin/scim-tokens', {
+      method: 'POST',
+      body: JSON.stringify({ defaultRoleSlug }),
+    }),
+  revoke: (id: string) =>
+    request<{ ok: boolean }>(`/admin/scim-tokens?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+}
+
+// ── Programmatic API keys ────────────────
+export interface ApiKey {
+  id: string
+  name: string
+  prefix: string
+  scopes: string[]
+  expiresAt: string | null
+  lastUsedAt: string | null
+  isActive: boolean
+  createdAt: string
+}
+
+export interface ApiKeyListResponse {
+  standardScopes: string[]
+  keys: ApiKey[]
+}
+
+export interface ApiKeyCreated {
+  token: string
+  warning: string
+  key: ApiKey
+}
+
+export const apiKeys = {
+  list: () => request<ApiKeyListResponse>('/admin/api-keys'),
+  create: (data: { name: string; scopes: string[]; expiresInDays?: number }) =>
+    request<ApiKeyCreated>('/admin/api-keys', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  revoke: (id: string) =>
+    request<{ ok: boolean }>(`/admin/api-keys?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+}
+
+// ── Health / system status ───────────────
+export interface HealthResponse {
+  ok: boolean
+  timestamp: string
+  version: string
+  region: string
+  db: { ok: boolean; latencyMs?: number; error?: string }
+  integrations: {
+    email:      { configured: boolean; provider: 'resend' | null }
+    sso:        { configured: boolean; provider: 'workos' | null }
+    ai:         { configured: boolean; provider: 'claude' | null }
+    sentry:     { configured: boolean }
+    euRegion:   { configured: boolean }
+    apacRegion: { configured: boolean }
+  }
+}
+
+export const system = {
+  /** Public — no auth header. Used by the admin system-status page. */
+  health: async (): Promise<HealthResponse> => {
+    const res = await fetch('/api/health')
+    if (!res.ok && res.status !== 503) throw new Error(`health probe failed: ${res.status}`)
+    return res.json()
+  },
+}
+
+// ── ERP Connectors ───────────────────────
+export interface ConnectorTemplate {
+  id: string
+  name: string
+  source: 'sap_s4hana' | 'netsuite' | 'snowflake' | 'generic_csv'
+  description: string | null
+  scope: number | null
+  category: string | null
+  mapping: Record<string, string>
+  required_columns: string[]
+  optional_columns: string[]
+  emission_factor_lookup: Record<string, unknown> | null
+  is_system: boolean
+  created_at: string
+}
+
+export interface ConnectorImportResult {
+  ok: boolean
+  importId: string
+  total: number
+  imported: number
+  failed: number
+  errors: Array<{ row: number; error: string }>
+}
+
+export interface ConnectorImportSummary {
+  id: string
+  template_id: string | null
+  template_name: string | null
+  template_source: string | null
+  file_name: string
+  rows_total: number
+  rows_imported: number
+  rows_failed: number
+  status: 'pending' | 'processing' | 'complete' | 'failed'
+  errors: Array<{ row: number; error: string }>
+  imported_by: string | null
+  imported_by_name: string | null
+  created_at: string
+}
+
+export const connectors = {
+  templates: (params?: { source?: string; scope?: number }) => {
+    const qs = params ? '?' + new URLSearchParams(Object.entries(params).filter(([,v]) => v != null).map(([k,v]) => [k, String(v)])).toString() : ''
+    return request<ConnectorTemplate[]>(`/connectors/templates${qs}`)
+  },
+  import: (data: { templateId: string; fileName: string; rows: Record<string, string>[]; mappingOverride?: Record<string, string> }) =>
+    request<ConnectorImportResult>('/connectors/import', { method: 'POST', body: JSON.stringify(data) }),
+  imports: () => request<ConnectorImportSummary[]>('/connectors/imports'),
+}
+
 // ── Audit Log ────────────────────────────
 export interface ApiAuditEntry {
   id: string
@@ -622,9 +839,71 @@ export interface ApiAuditEntry {
   created_at: string
 }
 
+export interface AuditExplorerParams {
+  from?: string
+  to?: string
+  actorId?: string
+  actions?: string[]
+  resourceTypes?: string[]
+  limit?: number
+  offset?: number
+}
+export interface AuditExplorerEntry {
+  id: string
+  user_id: string | null
+  user_name: string | null
+  user_email: string | null
+  action: string
+  resource_type: string
+  resource_id: string | null
+  details: Record<string, unknown> | null
+  ip_address: string | null
+  created_at: string
+}
+export interface AuditExplorerResponse {
+  rows: AuditExplorerEntry[]
+  total: number
+  limit: number
+  offset: number
+}
+
+function auditQs(params?: AuditExplorerParams): string {
+  if (!params) return ''
+  const p = new URLSearchParams()
+  if (params.from) p.set('from', params.from)
+  if (params.to) p.set('to', params.to)
+  if (params.actorId) p.set('actorId', params.actorId)
+  if (params.actions && params.actions.length) p.set('actions', params.actions.join(','))
+  if (params.resourceTypes && params.resourceTypes.length) p.set('resourceTypes', params.resourceTypes.join(','))
+  if (params.limit != null) p.set('limit', String(params.limit))
+  if (params.offset != null) p.set('offset', String(params.offset))
+  const s = p.toString()
+  return s ? '?' + s : ''
+}
+
 export const auditLog = {
+  // Legacy shape — narrow list filter, used by dashboard/anomaly screens.
   list: (params?: { resource_type?: string; user_id?: string }) => {
     const qs = params ? '?' + new URLSearchParams(Object.entries(params).filter(([,v]) => v != null).map(([k,v]) => [k, String(v)])).toString() : ''
     return request<ApiAuditEntry[]>(`/audit${qs}`)
   },
+  // Full explorer — paginated, multi-filter. Used by /admin/audit.
+  explore: (params?: AuditExplorerParams) =>
+    request<AuditExplorerResponse>(`/audit${auditQs(params)}`),
+}
+
+/**
+ * CSV download for the audit explorer. Re-uses the bearer-auth `request`
+ * pipeline via fetch directly (since `request` JSON-decodes the response).
+ */
+export async function downloadAuditCsv(params?: AuditExplorerParams): Promise<Blob> {
+  const token = localStorage.getItem('aeiforo_token')
+  const qs = auditQs(params)
+  const sep = qs ? '&' : '?'
+  const url = `/api/audit${qs}${sep}format=csv`
+  const res = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  })
+  if (!res.ok) throw new Error(`Audit CSV export failed (${res.status})`)
+  return res.blob()
 }

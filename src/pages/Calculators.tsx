@@ -94,7 +94,7 @@ export default function Calculators() {
         <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)]">Calculators</h1>
         <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1">
           Typed calculators wired to specific GRI line items. Each calculator's inputs, formula and methodology match
-          how the published PTTGC SPD derives that cell.
+          how the published SPD derives that cell.
         </p>
       </header>
 

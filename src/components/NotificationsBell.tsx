@@ -15,8 +15,10 @@ export default function NotificationsBell() {
   const [open, setOpen] = useState(false)
   const [notes, setNotes] = useState<Notification[]>([])
   const [loading, setLoading] = useState(false)
+  const [focusIdx, setFocusIdx] = useState(-1)
   const navigate = useNavigate()
   const panelRef = useRef<HTMLDivElement>(null)
+  const rowRefs = useRef<Array<HTMLButtonElement | null>>([])
 
   const loadCount = async () => {
     try { setUnread(await orgStore.unreadNotificationCount()) } catch { /* silent */ }
@@ -31,18 +33,30 @@ export default function NotificationsBell() {
   const openPanel = async () => {
     setOpen(true)
     setLoading(true)
+    setFocusIdx(-1)
     try {
-      const rows = await orgStore.listNotifications()
-      setNotes(rows)
+      // Uses the paginated /api/notifications endpoint so we can show the
+      // latest 20 and link to the full inbox at /inbox.
+      const res = await orgStore.inboxNotifications({ limit: 20, offset: 0 })
+      setNotes(res.notifications)
     } catch { /* silent */ }
     setLoading(false)
   }
 
   const markAll = async () => {
     try {
-      await orgStore.markNotificationRead('all')
+      await orgStore.markAllNotificationsRead()
       await loadCount()
       setNotes(n => n.map(x => ({ ...x, read_at: new Date().toISOString() })))
+    } catch { /* silent */ }
+  }
+
+  const markOne = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    try {
+      await orgStore.markNotificationRead(id)
+      await loadCount()
+      setNotes(n => n.map(x => x.id === id ? { ...x, read_at: new Date().toISOString() } : x))
     } catch { /* silent */ }
   }
 
@@ -67,11 +81,47 @@ export default function NotificationsBell() {
     return () => { clearTimeout(t); document.removeEventListener('click', onClick) }
   }, [open])
 
+  // Close on Escape + Up/Down arrow row navigation + Enter to open. WCAG 2.1.2.
+  useEffect(() => {
+    if (!open) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setOpen(false); return }
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setFocusIdx(i => {
+          const ni = Math.min(notes.length - 1, i + 1)
+          rowRefs.current[ni]?.focus()
+          return ni
+        })
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setFocusIdx(i => {
+          const ni = Math.max(0, i - 1)
+          rowRefs.current[ni]?.focus()
+          return ni
+        })
+      } else if (e.key === 'Enter' && focusIdx >= 0 && notes[focusIdx]) {
+        e.preventDefault()
+        void pick(notes[focusIdx])
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+    // Safe: `pick` is a stable function closed over via the current focusIdx/notes
+    // snapshot. Adding it would re-register the listener on every render without
+    // any behavioural change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, notes, focusIdx])
+
   return (
     <div className="relative">
       <button
         onClick={() => open ? setOpen(false) : openPanel()}
-        className="relative w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer"
+        aria-label={`Notifications, ${unread} unread`}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        className="relative w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)] transition-all cursor-pointer"
         title="Notifications"
       >
         <Bell className="w-4 h-4" />
@@ -89,6 +139,9 @@ export default function NotificationsBell() {
         {open && (
           <motion.div
             ref={panelRef}
+            role="dialog"
+            aria-modal="false"
+            aria-labelledby="notifications-heading"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
@@ -97,7 +150,7 @@ export default function NotificationsBell() {
           >
             <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] flex items-center justify-between">
               <div>
-                <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">Notifications</h3>
+                <h3 id="notifications-heading" className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">Notifications</h3>
                 <p className="text-[10px] text-[var(--text-tertiary)]">{unread} unread</p>
               </div>
               {unread > 0 && (
@@ -116,24 +169,40 @@ export default function NotificationsBell() {
                 <div className="text-[10px] text-[var(--text-tertiary)] mt-0.5">Assignments, reviews and approvals show up here.</div>
               </div>
             ) : (
-              <ul className="max-h-[480px] overflow-y-auto divide-y divide-[var(--border-subtle)]">
-                {notes.map(n => (
-                  <li key={n.id}>
-                    <button
-                      onClick={() => pick(n)}
-                      className={`w-full text-left px-4 py-2.5 hover:bg-[var(--bg-secondary)] transition-colors ${!n.read_at ? 'bg-[var(--color-brand-soft)]/30' : ''}`}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${!n.read_at ? 'bg-[var(--color-brand)]' : 'bg-transparent'}`} />
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand)]">{n.kind.replace('_', ' ')}</span>
-                        <span className="ml-auto text-[9px] text-[var(--text-tertiary)]">{relativeTime(n.created_at)}</span>
-                      </div>
-                      <div className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)]">{n.subject}</div>
-                      {n.body && <div className="text-[10px] text-[var(--text-tertiary)] mt-0.5 line-clamp-2">{n.body}</div>}
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <ul className="max-h-[420px] overflow-y-auto divide-y divide-[var(--border-subtle)]">
+                  {notes.map((n, idx) => (
+                    <li key={n.id}>
+                      <button
+                        ref={el => (rowRefs.current[idx] = el)}
+                        onClick={() => pick(n)}
+                        onFocus={() => setFocusIdx(idx)}
+                        className={`w-full text-left px-4 py-2.5 hover:bg-[var(--bg-secondary)] focus:bg-[var(--bg-secondary)] focus:outline-none transition-colors ${!n.read_at ? 'bg-[var(--color-brand-soft)]/30' : ''}`}
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${!n.read_at ? 'bg-[var(--color-brand)]' : 'bg-transparent'}`} />
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand)]">{n.kind.replace(/_/g, ' ')}</span>
+                          <span className="ml-auto text-[9px] text-[var(--text-tertiary)]">{relativeTime(n.created_at)}</span>
+                          {!n.read_at && (
+                            <button
+                              onClick={(e) => markOne(n.id, e)}
+                              className="text-[9px] font-semibold text-[var(--color-brand)] hover:underline"
+                            >Mark read</button>
+                          )}
+                        </div>
+                        <div className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)]">{n.subject}</div>
+                        {n.body && <div className="text-[10px] text-[var(--text-tertiary)] mt-0.5 line-clamp-2">{n.body}</div>}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <div className="px-4 py-2 border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)]/30 text-center">
+                  <button
+                    onClick={() => { setOpen(false); navigate('/inbox') }}
+                    className="text-[10px] font-semibold text-[var(--color-brand)] hover:underline"
+                  >View all notifications</button>
+                </div>
+              </>
             )}
           </motion.div>
         )}

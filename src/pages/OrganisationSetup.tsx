@@ -89,16 +89,16 @@ const FRAMEWORK_LIST = [
 ]
 
 const DEMO_GROUPS = [
-  { name: 'PTTGC — Chemicals', subsidiaries: 12, subdivisions: 34 },
-  { name: 'PTTGC — Polymers', subsidiaries: 8, subdivisions: 22 },
-  { name: 'PTTGC — Green Chemicals', subsidiaries: 4, subdivisions: 11 },
+  { name: 'Demo Co — Chemicals', subsidiaries: 12, subdivisions: 34 },
+  { name: 'Demo Co — Polymers', subsidiaries: 8, subdivisions: 22 },
+  { name: 'Demo Co — Green Chemicals', subsidiaries: 4, subdivisions: 11 },
 ]
 
 const DEMO_SUBDIVISIONS = [
-  { name: 'Map Ta Phut Olefins Plant', group: 'Chemicals', country: 'TH', type: 'Manufacturing', sources: 18 },
-  { name: 'Rayong Aromatics Complex', group: 'Chemicals', country: 'TH', type: 'Refinery', sources: 24 },
-  { name: 'Nanjing PTTGC JV', group: 'Polymers', country: 'CN', type: 'Joint Venture', sources: 9 },
-  { name: 'Bangkok HQ Office', group: 'Green Chemicals', country: 'TH', type: 'Office', sources: 3 },
+  { name: 'Olefins Plant Beta', group: 'Chemicals', country: 'GB', type: 'Manufacturing', sources: 18 },
+  { name: 'Aromatics Complex Gamma', group: 'Chemicals', country: 'GB', type: 'Refinery', sources: 24 },
+  { name: 'Polymers JV', group: 'Polymers', country: 'GB', type: 'Joint Venture', sources: 9 },
+  { name: 'HQ Office', group: 'Green Chemicals', country: 'GB', type: 'Office', sources: 3 },
 ]
 
 const SOURCE_TYPES = [
@@ -338,8 +338,8 @@ function TenantConfig() {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-4">
-        <Input label="Company Name" defaultValue="PTT Global Chemical PCL" />
-        <Input label="Trading Name" defaultValue="PTTGC" />
+        <Input label="Company Name" defaultValue="Demo Co PLC" />
+        <Input label="Trading Name" defaultValue="Demo Co" />
       </div>
       <div className="grid grid-cols-3 gap-4">
         <Select

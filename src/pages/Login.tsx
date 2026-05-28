@@ -1,10 +1,11 @@
-import { FormEvent, useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Lock, Mail, AlertCircle, Loader2, ArrowRight, Leaf, Shield, Zap, BarChart3, Globe, User } from 'lucide-react'
+import { FormEvent, useEffect, useRef, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Lock, Mail, AlertCircle, Loader2, ArrowRight, Leaf, Shield, Zap, BarChart3, Globe, User, Building2, KeyRound } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { SplineScene } from '../components/SplineScene'
 import { Spotlight } from '../components/Spotlight'
 import { homeRouteFor } from '../lib/rbac'
+import { auth as authApi, setToken } from '../lib/api'
 
 /**
  * Shortcut accounts for the defined roles. All six are real users in Neon
@@ -41,16 +42,28 @@ const features = [
 ]
 
 export default function Login() {
-  const { login, register, user } = useAuth()
+  const { login, register, user, refreshUser } = useAuth()
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
+  const [workspaceName, setWorkspaceName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [quickIdx, setQuickIdx] = useState<number | null>(null)
+  // Step-up MFA — when login returns mfaRequired we collect a TOTP code.
+  const [mfaTempToken, setMfaTempToken] = useState<string | null>(null)
+  const [mfaCode, setMfaCode] = useState('')
+  const [mfaLoading, setMfaLoading] = useState(false)
+  // SSO discovery — when the user types an enterprise email we ask the API
+  // whether their domain has a WorkOS connection configured. If so, the form
+  // hides the password and surfaces a "Continue with SSO" CTA instead.
+  const [ssoAvailable, setSsoAvailable] = useState(false)
+  const [ssoConnectionId, setSsoConnectionId] = useState<string | null>(null)
+  const [ssoLoading, setSsoLoading] = useState(false)
+  const ssoDebounce = useRef<number | null>(null)
 
   // Surface the "expired" banner when the API client bounces us here after a 401.
   useEffect(() => {
@@ -58,6 +71,76 @@ export default function Login() {
       setError('Your session expired. Please sign in again.')
     }
   }, [params])
+
+  // Debounced SSO discovery on email input. Quiet failure is fine — if the
+  // domain isn't SSO-enabled we just show the password field.
+  useEffect(() => {
+    if (mode !== 'login') {
+      setSsoAvailable(false); setSsoConnectionId(null)
+      return
+    }
+    const at = email.indexOf('@')
+    const hasDomain = at > 0 && email.length > at + 2
+    if (!hasDomain) {
+      setSsoAvailable(false); setSsoConnectionId(null)
+      return
+    }
+    if (ssoDebounce.current) window.clearTimeout(ssoDebounce.current)
+    ssoDebounce.current = window.setTimeout(async () => {
+      try {
+        const res = await authApi.ssoDiscover(email)
+        if (res.ssoAvailable && res.connectionId) {
+          setSsoAvailable(true); setSsoConnectionId(res.connectionId)
+        } else {
+          setSsoAvailable(false); setSsoConnectionId(null)
+        }
+      } catch {
+        setSsoAvailable(false); setSsoConnectionId(null)
+      }
+    }, 400)
+    return () => {
+      if (ssoDebounce.current) window.clearTimeout(ssoDebounce.current)
+    }
+  }, [email, mode])
+
+  const handleSsoContinue = async (overrideConnectionId?: string) => {
+    setError(null); setSsoLoading(true)
+    try {
+      const body: { email?: string; connectionId?: string } = {}
+      if (overrideConnectionId) body.connectionId = overrideConnectionId
+      else if (ssoConnectionId) body.connectionId = ssoConnectionId
+      else if (email) body.email = email
+      const { authorizationUrl } = await authApi.ssoInitiate(body)
+      window.location.assign(authorizationUrl)
+    } catch (e) {
+      setSsoLoading(false)
+      setError(e instanceof Error ? e.message : 'Could not start SSO sign-in.')
+    }
+  }
+
+  /**
+   * Live-API login that handles the MFA gate. Returns:
+   *   - 'ok' on full success (session set in context)
+   *   - 'mfa' when a TOTP code is required (tempToken stored in state)
+   *   - 'fail' on error (error state set)
+   */
+  const liveLogin = async (loginEmail: string, loginPassword: string): Promise<'ok' | 'mfa' | 'fail'> => {
+    try {
+      const res = await authApi.login(loginEmail, loginPassword)
+      if ('mfaRequired' in res && res.mfaRequired) {
+        setMfaTempToken(res.tempToken)
+        return 'mfa'
+      }
+      // Normal session — push the token + hydrate the user via /me so the
+      // AuthContext gets a User object the same way the SSO callback does.
+      setToken(res.token)
+      await refreshUser()
+      return 'ok'
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Sign-in failed.')
+      return 'fail'
+    }
+  }
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -67,16 +150,22 @@ export default function Login() {
     if (mode === 'register') {
       if (!name.trim()) { setError('Name is required.'); setLoading(false); return }
       if (password.length < 6) { setError('Password must be at least 6 characters.'); setLoading(false); return }
-      const ok = await register({ email, name, password })
+      const ok = await register({
+        email,
+        name,
+        password,
+        workspaceName: workspaceName.trim() || undefined,
+      })
       setLoading(false)
       if (!ok) { setError('Registration failed. Email may already exist or DB not connected.'); return }
       navigate(homeRouteFor(user), { replace: true })
       return
     }
 
-    const ok = await login(email, password)
+    const outcome = await liveLogin(email, password)
     setLoading(false)
-    if (!ok) { setError('Invalid credentials.'); return }
+    if (outcome === 'fail') return
+    if (outcome === 'mfa') return // panel will render below
     navigate(homeRouteFor(user), { replace: true })
   }
 
@@ -87,11 +176,39 @@ export default function Login() {
     setPassword(SHARED_PASSWORD)
     setError(null)
     setLoading(true)
+    // Demo tile path still goes through the context login for now — demo
+    // users don't have MFA enabled, so this short-circuits cleanly.
     const ok = await login(acc.email, SHARED_PASSWORD)
     setLoading(false)
     setQuickIdx(null)
     if (!ok) { setError(`Couldn't sign in as ${acc.email}. Check that the backend is running and the user is seeded.`); return }
     navigate(homeRouteFor(user), { replace: true })
+  }
+
+  const handleMfaSubmit = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!mfaTempToken) return
+    setError(null)
+    setMfaLoading(true)
+    try {
+      const res = await authApi.mfaVerify(mfaTempToken, mfaCode.trim())
+      setToken(res.token)
+      await refreshUser()
+      setMfaTempToken(null)
+      setMfaCode('')
+      navigate(homeRouteFor(user), { replace: true })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Invalid code.')
+    } finally {
+      setMfaLoading(false)
+    }
+  }
+
+  const cancelMfa = () => {
+    setMfaTempToken(null)
+    setMfaCode('')
+    setPassword('')
+    setError(null)
   }
 
   return (
@@ -200,32 +317,90 @@ export default function Login() {
             </div>
 
             <div>
-              <h2 className="text-[20px] font-display font-bold text-white tracking-tight leading-none">
-                {mode === 'login' ? 'Sign in · เข้าสู่ระบบ' : 'Create account'}
+              <h2 id="form-title" className="text-[20px] font-display font-bold text-white tracking-tight leading-none">
+                {mfaTempToken ? 'Two-factor code' : mode === 'login' ? 'Sign in · เข้าสู่ระบบ' : 'Create account'}
               </h2>
               <p className="mt-1 text-[12px] text-white/40">
-                {mode === 'login'
+                {mfaTempToken
+                  ? 'Enter the 6-digit code from your authenticator app, or a recovery code.'
+                  : mode === 'login'
                   ? 'Pick a role, or enter credentials.'
-                  : 'Register with an admin invite.'}
+                  : 'Create your workspace — you become its admin.'}
               </p>
             </div>
 
-            {mode === 'login' && (
+            {/* ── MFA step-up panel ── */}
+            {mfaTempToken && (
+              <>
+                {error && (
+                  <div role="alert" className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-[12px] text-red-300">
+                    <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                    <p>{error}</p>
+                  </div>
+                )}
+                <form onSubmit={handleMfaSubmit} className="space-y-3">
+                  <div>
+                    <label htmlFor="mfa-code" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">
+                      Authentication code
+                    </label>
+                    <div className="relative">
+                      <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                      <input
+                        id="mfa-code"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        autoFocus
+                        value={mfaCode}
+                        onChange={(e) => setMfaCode(e.target.value)}
+                        placeholder="123456"
+                        className="w-full h-10 pl-10 pr-4 rounded-lg border border-white/10 bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+                      />
+                    </div>
+                    <p className="mt-1.5 text-[10px] text-white/30">
+                      Lost your device? Use one of your saved recovery codes.
+                    </p>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={mfaLoading || mfaCode.trim().length < 6}
+                    className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[13px] font-semibold hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 transition-all"
+                  >
+                    {mfaLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><span>Verify and sign in</span><ArrowRight className="w-4 h-4" /></>}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelMfa}
+                    className="w-full text-center text-[12px] text-white/40 hover:text-emerald-400 transition-colors"
+                  >
+                    Cancel — use a different account
+                  </button>
+                </form>
+              </>
+            )}
+
+            {/* SSO button — primary CTA for enterprise users. Hidden during MFA step-up. */}
+            {!mfaTempToken && mode === 'login' && (
               <button
                 type="button"
-                disabled
-                title="SSO integration arrives Q2 — Azure AD, Okta, and PTT Group IDaaS (SAML 2.0 + OIDC)"
-                className="w-full h-10 rounded-[8px] flex items-center justify-center gap-2 text-[13px] font-semibold text-white/70 bg-white/[0.04] border border-white/[0.08] cursor-not-allowed"
+                onClick={() => handleSsoContinue()}
+                disabled={ssoLoading || loading}
+                aria-label="Continue with single sign-on"
+                aria-busy={ssoLoading}
+                title="Sign in via your enterprise IdP (Azure AD, Okta, Google Workspace, etc.)"
+                className="w-full h-10 rounded-[8px] flex items-center justify-center gap-2 text-[13px] font-semibold text-white bg-white/[0.06] border border-white/[0.12] hover:bg-white/[0.10] hover:border-emerald-400/40 transition-all disabled:opacity-50 cursor-pointer"
               >
-                <span className="w-4 h-4 rounded-full bg-white/10 flex items-center justify-center text-[9px] font-bold">SSO</span>
+                {ssoLoading
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <span className="w-4 h-4 rounded-full bg-emerald-400/20 text-emerald-300 flex items-center justify-center text-[9px] font-bold">SSO</span>}
                 Continue with enterprise SSO
-                <span className="text-[10px] font-medium text-white/40 ml-1">· Q2 2026</span>
               </button>
             )}
 
             {/* Quick-login role tiles — real auth against Neon. Hidden in
-                production builds where VITE_DEMO_PASSWORD isn't set. */}
-            {mode === 'login' && DEMO_TILES_ENABLED && (
+                production builds where VITE_DEMO_PASSWORD isn't set, and
+                hidden during MFA step-up. */}
+            {!mfaTempToken && mode === 'login' && DEMO_TILES_ENABLED && (
               <>
                 <div className="grid grid-cols-3 gap-1.5">
                   {ROLE_ACCOUNTS.map((acc, i) => {
@@ -236,6 +411,8 @@ export default function Login() {
                         type="button"
                         onClick={() => handleQuickLogin(i)}
                         disabled={loading}
+                        aria-label={`Quick sign-in as ${acc.label}`}
+                        aria-busy={isActive}
                         className={`relative flex flex-col items-start p-2.5 rounded-lg border text-left
                           transition-all duration-200 cursor-pointer disabled:opacity-50 group
                           ${isActive
@@ -264,55 +441,123 @@ export default function Login() {
               </>
             )}
 
-            {error && (
-              <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-[12px] text-red-300">
+            {!mfaTempToken && error && (
+              <div
+                role="alert"
+                aria-live="polite"
+                id="login-error"
+                className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-[12px] text-red-300"
+              >
                 <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
                 <p>{error}</p>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} noValidate className="space-y-3">
+            {!mfaTempToken && (
+            <form onSubmit={handleSubmit} noValidate aria-labelledby="form-title" className="space-y-3">
               <div>
                 <label htmlFor="email" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">Email</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                   <input
                     id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                    aria-required="true"
+                    aria-invalid={error ? true : undefined}
+                    aria-describedby={error ? 'login-error' : undefined}
                     placeholder="user@company.com"
                     className="w-full h-10 pl-10 pr-4 rounded-lg border border-white/10 bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all hover:border-white/20"
                   />
                 </div>
               </div>
               {mode === 'register' && (
-                <div>
-                  <label htmlFor="name" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">Full Name</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                    <input
-                      id="name" type="text" value={name} onChange={(e) => setName(e.target.value)}
-                      placeholder="John Smith"
-                      className="w-full h-10 pl-10 pr-4 rounded-lg border border-white/10 bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all hover:border-white/20"
-                    />
+                <>
+                  <div>
+                    <label htmlFor="name" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">Full Name</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                      <input
+                        id="name" type="text" value={name} onChange={(e) => setName(e.target.value)}
+                        aria-required="true"
+                        aria-invalid={error ? true : undefined}
+                        aria-describedby={error ? 'login-error' : undefined}
+                        placeholder="John Smith"
+                        className="w-full h-10 pl-10 pr-4 rounded-lg border border-white/10 bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all hover:border-white/20"
+                      />
+                    </div>
                   </div>
-                </div>
+                  <div>
+                    <label htmlFor="workspace" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">
+                      Workspace <span className="text-white/30 normal-case tracking-normal">(optional)</span>
+                    </label>
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                      <input
+                        id="workspace" type="text" value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)}
+                        placeholder="Acme Sustainability"
+                        className="w-full h-10 pl-10 pr-4 rounded-lg border border-white/10 bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all hover:border-white/20"
+                      />
+                    </div>
+                  </div>
+                </>
               )}
-              <div>
-                <label htmlFor="password" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                  <input
-                    id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                    placeholder={mode === 'register' ? 'Min. 6 characters' : ''}
-                    className="w-full h-10 pl-10 pr-4 rounded-lg border border-white/10 bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all hover:border-white/20"
-                  />
+              {/* When SSO is wired up for this email's domain, hide password
+                  entry entirely and route the user via the IdP. They can still
+                  flip back to a password sign-in if needed. */}
+              {mode === 'login' && ssoAvailable ? (
+                <div className="space-y-2">
+                  <div className="p-3 rounded-lg bg-emerald-400/[0.06] border border-emerald-400/20 text-[12px] text-emerald-200">
+                    Single sign-on is enabled for this email's organisation. Continue via your enterprise identity provider.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleSsoContinue()}
+                    disabled={ssoLoading}
+                    className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[13px] font-semibold hover:from-emerald-400 hover:to-teal-400 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer shadow-[0_0_20px_-6px_rgba(52,211,153,0.6)]"
+                  >
+                    {ssoLoading
+                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                      : <><span>Continue with SSO</span><ArrowRight className="w-4 h-4" /></>}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setSsoAvailable(false); setSsoConnectionId(null) }}
+                    className="w-full text-center text-[11px] text-white/40 hover:text-emerald-400 transition-colors cursor-pointer"
+                  >
+                    Use password instead
+                  </button>
                 </div>
-              </div>
-              <button
-                type="submit" disabled={loading}
-                className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[13px] font-semibold hover:from-emerald-400 hover:to-teal-400 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer shadow-[0_0_20px_-6px_rgba(52,211,153,0.6)]"
-              >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><span>{mode === 'login' ? 'Sign in' : 'Create Account'}</span><ArrowRight className="w-4 h-4" /></>}
-              </button>
+              ) : (
+                <>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label htmlFor="password" className="text-[11px] font-medium text-white/50 uppercase tracking-wider">Password</label>
+                      {mode === 'login' && (
+                        <Link to="/forgot-password" className="text-[11px] text-emerald-400 hover:text-emerald-300 transition-colors">
+                          Forgot password?
+                        </Link>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                      <input
+                        id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                        aria-required="true"
+                        aria-invalid={error ? true : undefined}
+                        aria-describedby={error ? 'login-error' : undefined}
+                        placeholder={mode === 'register' ? 'Min. 6 characters' : ''}
+                        className="w-full h-10 pl-10 pr-4 rounded-lg border border-white/10 bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all hover:border-white/20"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    type="submit" disabled={loading}
+                    aria-busy={loading}
+                    className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[13px] font-semibold hover:from-emerald-400 hover:to-teal-400 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer shadow-[0_0_20px_-6px_rgba(52,211,153,0.6)]"
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><span>{mode === 'login' ? 'Sign in' : 'Create Account'}</span><ArrowRight className="w-4 h-4" /></>}
+                  </button>
+                </>
+              )}
               <button
                 type="button"
                 onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(null) }}
@@ -321,6 +566,7 @@ export default function Login() {
                 {mode === 'login' ? 'Need an account? Create one' : 'Already have an account? Sign in'}
               </button>
             </form>
+            )}
           </div>
         </div>
         </div>
@@ -331,7 +577,7 @@ export default function Login() {
           <Spotlight className="-top-20 -left-10" fill="rgba(110, 231, 183, 0.8)" />
 
           {/* The 3D scene — visible, interactive, full-bleed */}
-          <div className="absolute inset-0 z-0">
+          <div className="absolute inset-0 z-0" aria-hidden="true">
             <SplineScene
               scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
               className="w-full h-full"

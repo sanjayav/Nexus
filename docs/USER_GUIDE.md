@@ -1,6 +1,6 @@
 # Aeiforo Nexus — Client Walkthrough
 
-A practical end-to-end guide for navigating Aeiforo Nexus, from first login to publishing an assured sustainability report. Written for evaluators (PTTGC, audit teams, sustainability officers) who want to drive the product themselves rather than watch a demo.
+A practical end-to-end guide for navigating Aeiforo Nexus, from first login to publishing an assured sustainability report. Written for evaluators (clients, audit teams, sustainability officers) who want to drive the product themselves rather than watch a demo.
 
 > **Tip — drive it like the role would.** Most pages do different things depending on who's signed in. The "Switch role" panel on the **Admin → Users & Roles** page lets you hop between perspectives in one click without logging out.
 
@@ -32,7 +32,7 @@ Enterprise SSO (Azure AD, Okta, IDaaS) is on the roadmap — the button is shown
 
 When you sign in as **Platform Admin** for the first time, the workspace is **empty by default**. The Dashboard shows one card:
 
-> **Load PTT Global Chemical sample data** — single click to pre-fill an org tree, climate targets, materiality matrix, and FY2025 cycle so you can demo every flow in seconds.
+> **Load demo sample data** — single click to pre-fill an org tree, climate targets, materiality matrix, and FY2025 cycle so you can demo every flow in seconds.
 
 **Two paths from here:**
 
@@ -55,7 +55,7 @@ Already loaded the sample? On the **Onboarding** page (`/onboarding`), click the
 
 ## 3. End-to-end demo flow
 
-The "golden path" PTTGC's evaluators usually want to see, role by role.
+The "golden path" client evaluators usually want to see, role by role.
 
 ### Step 1 — Admin sets up (one-time)
 1. Sign in as **ADM**.
@@ -74,7 +74,7 @@ The "golden path" PTTGC's evaluators usually want to see, role by role.
 
 ### Step 3 — Run the Performance Data report
 1. Open **Report → Performance data**.
-2. Page renders the PTTGC PDF format: Financial / Manufacture / Human / Social / Natural Capital + JV section, year columns 2022–2025.
+2. Page renders the SPD PDF format: Financial / Manufacture / Human / Social / Natural Capital + JV section, year columns 2022–2025.
 3. Click **Add reporting year** → year defaults to 2026. Either:
    - Click "**generate sample 2026 data (demo)**" inside the modal for an instant column, OR
    - **Download Excel template** → fill in your real values → drop the file. Each row matches by `id`, `GRI`, or label.
@@ -123,7 +123,7 @@ The left rail organises pages into 6 collapsible sections. Items hidden behind *
 
 ### Report
 - **Publish centre** — generates the auditor-grade PDF, runs the Excel-import-to-approve flow, manages assurance.
-- **Performance data** — the PTTGC-format performance report with dynamic year columns.
+- **Performance data** — the SPD-format performance report with dynamic year columns.
 - **GRI index** _(advanced)_ — table-of-contents view of every disclosure.
 - **Analytics** — drill-down dashboards by entity / scope / framework.
 - **Anomalies** — z-score, peer-deviation, YoY-spike flags on the data review queue.
@@ -344,15 +344,15 @@ Look at the error string under the failure card. If it mentions `invalid input s
 
 ## 11. Beyond the demo — what would happen in a real deployment
 
-This guide covers the demo build. For a production rollout to PTTGC's live data:
+This guide covers the demo build. For a production rollout to a client's live data:
 
 - **Multi-tenant isolation** — each org gets its own `organisations` row; row-level access in every API query is keyed off the JWT's `org` claim.
-- **SSO** — Azure AD, Okta, or PTT Group IDaaS over SAML 2.0 / OIDC. Login tiles are demo-only; real users SSO in.
-- **Data residency** — Neon supports region pinning. PTTGC data can stay in AP-Singapore.
+- **SSO** — Azure AD, Okta, or the client's IDaaS over SAML 2.0 / OIDC. Login tiles are demo-only; real users SSO in.
+- **Data residency** — Neon supports region pinning. Client data can be pinned to a chosen region.
 - **Connector setup** — SAP HANA, Maximo, Salesforce, IoT/CEMS streams; built into the **Data Collection** module.
-- **Calculator coverage** — extend the registry in `src/calculators/registry.ts` with PTTGC-specific formulas (e.g. petrochemical-specific intensity ratios).
+- **Calculator coverage** — extend the registry in `src/calculators/registry.ts` with client-specific formulas (e.g. petrochemical-specific intensity ratios).
 - **Approval chain** — current setup is two-stage (Subsidiary Lead → GSO). Three-stage and four-stage approval are configurable per disclosure.
-- **Translations** — UI is English; Thai (and other languages) added via the framework's i18n layer.
+- **Translations** — UI is English; other languages added via the framework's i18n layer.
 
 ---
 

@@ -196,32 +196,32 @@ function NewPeriodDrawer({ onClose, onSaved }: { onClose: () => void; onSaved: (
         <h2 className="font-display text-[var(--text-xl)] font-bold mb-5">New reporting period</h2>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <label className="block">
+            <label htmlFor="period-year" className="block">
               <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Year</span>
-              <input type="number" value={year} onChange={e => setYear(Number(e.target.value))} className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]" />
+              <input id="period-year" type="number" value={year} onChange={e => setYear(Number(e.target.value))} className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]" />
             </label>
-            <label className="block">
+            <label htmlFor="period-label" className="block">
               <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Label</span>
-              <input value={label} onChange={e => setLabel(e.target.value)} className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]" />
+              <input id="period-label" value={label} onChange={e => setLabel(e.target.value)} className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]" />
             </label>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <label className="block">
+            <label htmlFor="period-start" className="block">
               <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Start</span>
-              <input type="date" value={start} onChange={e => setStart(e.target.value)} className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]" />
+              <input id="period-start" type="date" value={start} onChange={e => setStart(e.target.value)} className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]" />
             </label>
-            <label className="block">
+            <label htmlFor="period-end" className="block">
               <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">End</span>
-              <input type="date" value={end} onChange={e => setEnd(e.target.value)} className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]" />
+              <input id="period-end" type="date" value={end} onChange={e => setEnd(e.target.value)} className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]" />
             </label>
           </div>
-          <label className="block">
+          <label htmlFor="period-deadline" className="block">
             <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Submission deadline</span>
-            <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]" />
+            <input id="period-deadline" type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]" />
           </label>
-          <label className="block">
+          <label htmlFor="period-notes" className="block">
             <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Notes (optional)</span>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)] resize-none" />
+            <textarea id="period-notes" value={notes} onChange={e => setNotes(e.target.value)} rows={3} className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)] resize-none" />
           </label>
         </div>
         <div className="flex gap-2 mt-6 pt-4 border-t border-[var(--border-subtle)]">

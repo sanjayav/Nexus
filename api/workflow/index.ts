@@ -6,6 +6,7 @@ import {
   emitAuditEvent, getPlatformRole, getWorkflowRolesForItem,
   type WorkflowRole,
 } from '../_workflow.js'
+import { notify } from '../_notify.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   cors(res, req)
@@ -60,13 +61,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (view === 'review-queue') {
       try {
-        const rows = await sql`
-          SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section
-          FROM data_value dv
-          JOIN questionnaire_item qi ON qi.id = dv.questionnaire_item_id
-          WHERE dv.status = 'submitted'
-          ORDER BY dv.submitted_at ASC
-        `
+        // Queue scoping — v1 heuristic:
+        //   • subsidiary_lead / plant_manager → only items under their entity sub-tree
+        //     (or just their entity, if they have no children). Found via org_members.entity_id.
+        //   • group_sustainability_officer / platform_admin → see everything in the org.
+        //   • Anyone else with no org_members row → empty list (don't error).
+        // TODO(v2): replace the heuristic with a proper recursive CTE walk of org_entities.parent_id
+        //           so the subsidiary-lead scope matches the org tree exactly.
+        const memberRows = await sql`
+          SELECT entity_id, role FROM org_members
+          WHERE org_id = ${token.org} AND lower(email) = ${token.email.toLowerCase()}
+          LIMIT 1
+        ` as Array<{ entity_id: string | null; role: string | null }>
+        const member = memberRows[0]
+        const wideRoles = new Set(['group_sustainability_officer', 'platform_admin'])
+        const seesAll = !member || (member.role ? wideRoles.has(member.role) : false)
+        const noScope = member && !seesAll && !member.entity_id
+
+        if (noScope) return res.status(200).json([])
+
+        const rows = seesAll
+          ? await sql`
+              SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section
+              FROM data_value dv
+              JOIN questionnaire_item qi ON qi.id = dv.questionnaire_item_id
+              WHERE dv.status = 'submitted'
+              ORDER BY dv.submitted_at ASC
+            `
+          : await sql`
+              WITH RECURSIVE subtree AS (
+                SELECT id FROM org_entities WHERE id = ${member!.entity_id}
+                UNION ALL
+                SELECT e.id FROM org_entities e JOIN subtree s ON e.parent_id = s.id
+              )
+              SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section
+              FROM data_value dv
+              JOIN questionnaire_item qi ON qi.id = dv.questionnaire_item_id
+              WHERE dv.status = 'submitted'
+                AND dv.entered_by IN (
+                  SELECT user_id FROM org_members
+                  WHERE org_id = ${token.org} AND entity_id IN (SELECT id FROM subtree)
+                )
+              ORDER BY dv.submitted_at ASC
+            `
         return res.status(200).json(rows)
       } catch (err: unknown) {
         return res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' })
@@ -111,13 +148,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (view === 'approval-queue') {
       try {
-        const rows = await sql`
-          SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section
-          FROM data_value dv
-          JOIN questionnaire_item qi ON qi.id = dv.questionnaire_item_id
-          WHERE dv.status = 'reviewed'
-          ORDER BY dv.reviewed_at ASC
-        `
+        // Same scoping rules as review-queue (v1 heuristic). See comment there.
+        const memberRows = await sql`
+          SELECT entity_id, role FROM org_members
+          WHERE org_id = ${token.org} AND lower(email) = ${token.email.toLowerCase()}
+          LIMIT 1
+        ` as Array<{ entity_id: string | null; role: string | null }>
+        const member = memberRows[0]
+        const wideRoles = new Set(['group_sustainability_officer', 'platform_admin'])
+        const seesAll = !member || (member.role ? wideRoles.has(member.role) : false)
+        const noScope = member && !seesAll && !member.entity_id
+        if (noScope) return res.status(200).json([])
+
+        const rows = seesAll
+          ? await sql`
+              SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section
+              FROM data_value dv
+              JOIN questionnaire_item qi ON qi.id = dv.questionnaire_item_id
+              WHERE dv.status = 'reviewed'
+              ORDER BY dv.reviewed_at ASC
+            `
+          : await sql`
+              WITH RECURSIVE subtree AS (
+                SELECT id FROM org_entities WHERE id = ${member!.entity_id}
+                UNION ALL
+                SELECT e.id FROM org_entities e JOIN subtree s ON e.parent_id = s.id
+              )
+              SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section
+              FROM data_value dv
+              JOIN questionnaire_item qi ON qi.id = dv.questionnaire_item_id
+              WHERE dv.status = 'reviewed'
+                AND dv.entered_by IN (
+                  SELECT user_id FROM org_members
+                  WHERE org_id = ${token.org} AND entity_id IN (SELECT id FROM subtree)
+                )
+              ORDER BY dv.reviewed_at ASC
+            `
         return res.status(200).json(rows)
       } catch (err: unknown) {
         return res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' })
@@ -220,6 +286,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           actorWorkflowRole: null,
         })
         await sql`UPDATE data_value SET value_hash = ${newHash} WHERE id = ${data_value_id}`
+
+        // Notify reviewers — anyone with TL workflow role on this item, or fallback workflow.approve.
+        await notifyReviewers(sql, token.org, rows[0].questionnaire_item_id, token.email, 'review_requested',
+          'Review requested', 'A submission is waiting on you.', '/workflow/review')
+
         return res.status(200).json({ ok: true, value_hash: newHash })
       } catch (err: unknown) {
         return res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' })
@@ -256,6 +327,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           comment,
         })
         await sql`UPDATE data_value SET value_hash = ${newHash} WHERE id = ${data_value_id}`
+
+        if (decision === 'pass') {
+          await notifyApprovers(sql, token.org, rows[0].questionnaire_item_id, token.email,
+            'approval_requested', 'Approval needed', 'A reviewed submission is ready for approval.', '/workflow/approval')
+        } else {
+          await notifySubmitter(sql, token.org, data_value_id, token.email,
+            'rejected', 'Sent back', comment || 'Please review and resubmit.', '/my-tasks')
+        }
+
         return res.status(200).json({ ok: true, new_status: newStatus, value_hash: newHash })
       } catch (err: unknown) {
         return res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' })
@@ -292,6 +372,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           comment,
         })
         await sql`UPDATE data_value SET value_hash = ${newHash} WHERE id = ${data_value_id}`
+
+        await notifySubmitter(sql, token.org, data_value_id, token.email,
+          decision === 'approve' ? 'approved' : 'rejected',
+          decision === 'approve' ? 'Approved' : 'Sent back',
+          decision === 'approve' ? 'Your submission was approved.' : (comment || 'Please review and resubmit.'),
+          '/my-tasks')
+
         return res.status(200).json({ ok: true, new_status: newStatus, value_hash: newHash })
       } catch (err: unknown) {
         return res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' })
@@ -486,4 +573,92 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   return res.status(405).json({ error: 'Method not allowed' })
+}
+
+// ─── Notification helpers for workflow transitions ────────────────────────
+// We look up the people to notify just-in-time so role assignments stay
+// authoritative. Errors are swallowed — workflow must succeed even if mail fails.
+
+async function notifyReviewers(
+  sql: ReturnType<typeof getDb>, orgId: string, questionnaireItemId: string,
+  actorEmail: string, kind: string, subject: string, body: string, route: string,
+): Promise<void> {
+  try {
+    const rows = await sql`
+      SELECT DISTINCT u.email, u.id
+      FROM workflow_role_assignment wra
+      JOIN users u ON u.id = wra.user_id
+      WHERE wra.questionnaire_item_id = ${questionnaireItemId}
+        AND wra.workflow_role = 'TL'
+        AND u.org_id = ${orgId} AND u.is_active = true
+    ` as Array<{ email: string; id: string }>
+    const targets = rows.length > 0 ? rows : await sql`
+      SELECT DISTINCT u.email, u.id
+      FROM users u
+      JOIN user_roles ur ON ur.user_id = u.id
+      JOIN role_permissions rp ON rp.role_id = ur.role_id
+      JOIN permissions p ON p.id = rp.permission_id
+      WHERE u.org_id = ${orgId} AND u.is_active = true
+        AND p.resource = 'workflow' AND p.action = 'approve'
+    ` as Array<{ email: string; id: string }>
+    for (const t of targets) {
+      if (t.email.toLowerCase() === actorEmail.toLowerCase()) continue
+      await notify({ orgId, userId: t.id, toEmail: t.email, kind, subject, body, route })
+    }
+  } catch (err: unknown) {
+    // eslint-disable-next-line no-console
+    console.error('[workflow notifyReviewers]', err instanceof Error ? err.message : err)
+  }
+}
+
+async function notifyApprovers(
+  sql: ReturnType<typeof getDb>, orgId: string, questionnaireItemId: string,
+  actorEmail: string, kind: string, subject: string, body: string, route: string,
+): Promise<void> {
+  try {
+    const rows = await sql`
+      SELECT DISTINCT u.email, u.id
+      FROM workflow_role_assignment wra
+      JOIN users u ON u.id = wra.user_id
+      WHERE wra.questionnaire_item_id = ${questionnaireItemId}
+        AND wra.workflow_role = 'SO'
+        AND u.org_id = ${orgId} AND u.is_active = true
+    ` as Array<{ email: string; id: string }>
+    const targets = rows.length > 0 ? rows : await sql`
+      SELECT DISTINCT u.email, u.id
+      FROM users u
+      JOIN user_roles ur ON ur.user_id = u.id
+      JOIN role_permissions rp ON rp.role_id = ur.role_id
+      JOIN permissions p ON p.id = rp.permission_id
+      WHERE u.org_id = ${orgId} AND u.is_active = true
+        AND p.resource = 'workflow' AND p.action = 'approve'
+    ` as Array<{ email: string; id: string }>
+    for (const t of targets) {
+      if (t.email.toLowerCase() === actorEmail.toLowerCase()) continue
+      await notify({ orgId, userId: t.id, toEmail: t.email, kind, subject, body, route })
+    }
+  } catch (err: unknown) {
+    // eslint-disable-next-line no-console
+    console.error('[workflow notifyApprovers]', err instanceof Error ? err.message : err)
+  }
+}
+
+async function notifySubmitter(
+  sql: ReturnType<typeof getDb>, orgId: string, dataValueId: string,
+  actorEmail: string, kind: string, subject: string, body: string, route: string,
+): Promise<void> {
+  try {
+    const rows = await sql`
+      SELECT u.email, u.id
+      FROM audit_event ae JOIN users u ON u.id = ae.actor_user_id
+      WHERE ae.data_value_id = ${dataValueId} AND ae.event_type = 'submitted'
+      ORDER BY ae.timestamp DESC LIMIT 1
+    ` as Array<{ email: string; id: string }>
+    const t = rows[0]
+    if (!t || t.email.toLowerCase() === actorEmail.toLowerCase()) return
+    await notify({ orgId, userId: t.id, toEmail: t.email, kind, subject, body, route })
+  } catch (err: unknown) {
+    // eslint-disable-next-line no-console
+    console.error('[workflow notifySubmitter]', err instanceof Error ? err.message : err)
+  }
 }

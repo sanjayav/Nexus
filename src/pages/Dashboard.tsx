@@ -237,7 +237,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Empty-workspace CTA: an admin-only "Load PTTGC sample" card. The
+      {/* Empty-workspace CTA: an admin-only "Load demo data" card. The
           SetupGuide widget itself stays hidden on a brand-new workspace —
           this card is the only onboarding affordance until the user clicks. */}
       <DemoSeedCta show={showOnboardingGate} onCompleted={reloadOrgData} />

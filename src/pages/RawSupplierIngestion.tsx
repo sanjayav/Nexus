@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useMemo } from 'react'
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
 import {
   Keyboard,
   FileSpreadsheet,
@@ -129,14 +129,40 @@ export default function RawSupplierIngestion() {
     setParsing(true)
     try {
       const data = await file.arrayBuffer()
-      const workbook = XLSX.read(data, { type: 'array', cellDates: true })
+      const workbook = new ExcelJS.Workbook()
+      await workbook.xlsx.load(data)
 
-      const sheets: ParsedSheet[] = workbook.SheetNames.map((name) => {
-        const ws = workbook.Sheets[name]
-        const json: string[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
-        const headers = (json[0] || []).map((h) => String(h))
-        const rows = json.slice(1).filter((r) => r.some((c) => c !== ''))
-        return { name, headers, rows: rows.map((r) => r.map((c) => String(c))), rowCount: rows.length, colCount: headers.length }
+      // Cell value coercion — mirror the previous XLSX behaviour where
+      // `sheet_to_json` returned everything as a string with `defval: ''`.
+      const toCell = (v: unknown): string => {
+        if (v == null) return ''
+        if (v instanceof Date) return v.toISOString()
+        if (typeof v === 'object') {
+          // exceljs returns rich objects for formulas / hyperlinks / rich text
+          const obj = v as { result?: unknown; text?: unknown; richText?: { text?: unknown }[]; hyperlink?: unknown }
+          if (obj.result != null) return String(obj.result)
+          if (obj.text != null) return String(obj.text)
+          if (Array.isArray(obj.richText)) return obj.richText.map((rt) => String(rt?.text ?? '')).join('')
+          if (obj.hyperlink != null) return String(obj.hyperlink)
+        }
+        return String(v)
+      }
+
+      const sheets: ParsedSheet[] = workbook.worksheets.map((ws) => {
+        const name = ws.name
+        // Build a 2-D array, sized by the actual column extent.
+        const colCount = ws.actualColumnCount || ws.columnCount || 0
+        const grid: string[][] = []
+        ws.eachRow({ includeEmpty: false }, (row) => {
+          const arr: string[] = new Array(colCount).fill('')
+          for (let i = 1; i <= colCount; i++) {
+            arr[i - 1] = toCell(row.getCell(i).value)
+          }
+          grid.push(arr)
+        })
+        const headers = (grid[0] || []).map((h) => String(h))
+        const rows = grid.slice(1).filter((r) => r.some((c) => c !== ''))
+        return { name, headers, rows, rowCount: rows.length, colCount: headers.length }
       })
 
       const uploaded: UploadedFile = {

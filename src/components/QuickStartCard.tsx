@@ -19,7 +19,7 @@ const STEPS: Step[] = [
   {
     num: 1,
     title: 'Import your data',
-    body: 'Drop an Excel, or pre-loaded PTTGC demo data populates the report.',
+    body: 'Drop an Excel, or pre-loaded demo data populates the report.',
     icon: Upload,
     cta: 'Open Performance data',
     route: '/reports/performance',

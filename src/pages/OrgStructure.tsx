@@ -68,10 +68,10 @@ interface BusinessGroup {
    Demo Data
    ═══════════════════════════════════════════ */
 const COMPANY = {
-  name: 'PTT Global Chemical PCL',
-  tradingName: 'PTTGC',
+  name: 'Demo Co PLC',
+  tradingName: 'Demo Co',
   sector: 'Petrochemicals & Refining',
-  country: 'Thailand',
+  country: 'GB',
   boundary: 'Operational Control',
   baseYear: 2019,
   reportingPeriod: 'FY 2025',
@@ -85,7 +85,7 @@ const DEMO_GROUPS: BusinessGroup[] = [
     id: 'g1', name: 'Chemicals', color: 'var(--accent-teal)',
     subsidiaries: [
       {
-        id: 's1', name: 'PTTGC Chemicals Thailand', equity: 100, country: 'Thailand', countryCode: 'TH',
+        id: 's1', name: 'Demo Co Chemicals', equity: 100, country: 'GB', countryCode: 'GB',
         facilities: [
           { id: 'f1', name: 'Map Ta Phut Olefins Plant', country: 'Thailand', countryCode: 'TH', type: 'Manufacturing', grid: 'TH-PEA-Eastern', ef: '0.4999', headcount: 1240, status: 'operational',
             sources: mk([{ n: 'Boilers & Furnaces', t: 'stationary', s: 'S1', c: 'GHG-STAT-v4.2' }, { n: 'Flare Systems', t: 'stationary', s: 'S1', c: 'GHG-STAT-v4.2' }, { n: 'Process Venting', t: 'process', s: 'S1', c: 'GHG-HFC-v1' }, { n: 'Grid Electricity', t: 'electricity', s: 'S2', c: 'GHG-ELEC-v3.1' }, { n: 'Company Vehicles', t: 'mobile', s: 'S1', c: 'GHG-TRANS-v2.7' }]) },
@@ -94,7 +94,7 @@ const DEMO_GROUPS: BusinessGroup[] = [
         ],
       },
       {
-        id: 's2', name: 'PTTGC International (Singapore)', equity: 80, country: 'Singapore', countryCode: 'SG',
+        id: 's2', name: 'Demo Co International (Singapore)', equity: 80, country: 'Singapore', countryCode: 'SG',
         facilities: [
           { id: 'f3', name: 'Jurong Island Terminal', country: 'Singapore', countryCode: 'SG', type: 'Warehouse', grid: 'SG-National', ef: '0.4085', headcount: 120, status: 'operational',
             sources: mk([{ n: 'Refrigeration Units', t: 'fugitive', s: 'S1', c: 'GHG-HFC-v1' }, { n: 'Grid Electricity', t: 'electricity', s: 'S2', c: 'GHG-ELEC-v3.1' }]) },
@@ -106,14 +106,14 @@ const DEMO_GROUPS: BusinessGroup[] = [
     id: 'g2', name: 'Polymers', color: 'var(--accent-blue)',
     subsidiaries: [
       {
-        id: 's3', name: 'PTTGC Polymers Co., Ltd.', equity: 100, country: 'Thailand', countryCode: 'TH',
+        id: 's3', name: 'Demo Co Polymers Ltd.', equity: 100, country: 'GB', countryCode: 'GB',
         facilities: [
           { id: 'f4', name: 'Rayong PE/PP Plant', country: 'Thailand', countryCode: 'TH', type: 'Manufacturing', grid: 'TH-PEA-Eastern', ef: '0.5123', headcount: 650, status: 'operational',
             sources: mk([{ n: 'Extruder Heaters', t: 'stationary', s: 'S1', c: 'GHG-STAT-v4.2' }, { n: 'Pellet Dryers', t: 'stationary', s: 'S1', c: 'GHG-STAT-v4.2' }, { n: 'Grid Electricity', t: 'electricity', s: 'S2', c: 'GHG-ELEC-v3.1' }]) },
         ],
       },
       {
-        id: 's4', name: 'Nanjing PTTGC JV', equity: 51, country: 'China', countryCode: 'CN',
+        id: 's4', name: 'Nanjing JV', equity: 51, country: 'China', countryCode: 'CN',
         facilities: [
           { id: 'f5', name: 'Nanjing Chemical Park', country: 'China', countryCode: 'CN', type: 'Joint Venture', grid: 'CN-ECGD-Jiangsu', ef: '0.7921', headcount: 410, status: 'operational',
             sources: mk([{ n: 'Reactor Furnaces', t: 'stationary', s: 'S1', c: 'GHG-STAT-v4.2' }, { n: 'Process Emissions', t: 'process', s: 'S1', c: 'GHG-HFC-v1' }, { n: 'Grid Electricity', t: 'electricity', s: 'S2', c: 'GHG-ELEC-v3.1' }, { n: 'Fleet Vehicles', t: 'mobile', s: 'S1', c: 'GHG-TRANS-v2.7' }]) },
@@ -125,7 +125,7 @@ const DEMO_GROUPS: BusinessGroup[] = [
     id: 'g3', name: 'Green Chemicals', color: 'var(--accent-green)',
     subsidiaries: [
       {
-        id: 's5', name: 'PTTGC Green Solutions', equity: 100, country: 'Thailand', countryCode: 'TH',
+        id: 's5', name: 'Demo Co Green Solutions', equity: 100, country: 'GB', countryCode: 'GB',
         facilities: [
           { id: 'f6', name: 'Bangkok HQ Office', country: 'Thailand', countryCode: 'TH', type: 'Office', grid: 'TH-MEA-Central', ef: '0.4999', headcount: 280, status: 'operational',
             sources: mk([{ n: 'Grid Electricity', t: 'electricity', s: 'S2', c: 'GHG-ELEC-v3.1' }, { n: 'Company Vehicles', t: 'mobile', s: 'S1', c: 'GHG-TRANS-v2.7' }]) },

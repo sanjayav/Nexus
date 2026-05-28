@@ -1,6 +1,9 @@
-import { Check, Palette, Calendar, BookMarked, Clock, Plus } from 'lucide-react'
+import { useState } from 'react'
+import { Check, Palette, Calendar, BookMarked, Clock, Plus, Download, ShieldCheck, Loader2 } from 'lucide-react'
 import { useTheme, type Theme } from '../theme/ThemeContext'
 import { FRAMEWORKS, useFramework } from '../lib/frameworks'
+import { orgStore } from '../lib/orgStore'
+import MfaSection from '../components/MfaSection'
 
 interface ThemeOption {
   value: Theme
@@ -11,8 +14,8 @@ interface ThemeOption {
 
 const THEMES: ThemeOption[] = [
   {
-    value: 'pttgc-flat',
-    label: 'PTTGC Flat',
+    value: 'demo-flat',
+    label: 'Demo Flat',
     description: 'Default. Teal brand, 8px grid, flat surfaces, WCAG 2.1 AA.',
     swatches: ['#1B6B7B', '#D5E8F0', '#2E7D32', '#E6A817', '#C62828'],
   },
@@ -27,6 +30,24 @@ const THEMES: ThemeOption[] = [
 export default function Settings() {
   const { theme, setTheme } = useTheme()
   const { active: activeFw, enabled, setEnabled } = useFramework()
+  const [exporting, setExporting] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+  const [exportedAt, setExportedAt] = useState<string | null>(() => localStorage.getItem('aeiforo_last_export_at'))
+
+  const downloadExport = async () => {
+    setExporting(true)
+    setExportError(null)
+    try {
+      await orgStore.downloadDataExport()
+      const now = new Date().toISOString()
+      localStorage.setItem('aeiforo_last_export_at', now)
+      setExportedAt(now)
+    } catch (e) {
+      setExportError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const toggleFramework = (id: string) => {
     // Only active (not coming_soon) frameworks can be toggled.
@@ -148,6 +169,8 @@ export default function Settings() {
         </ul>
       </section>
 
+      <MfaSection />
+
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <Palette className="w-4 h-4 text-[var(--text-tertiary)]" />
@@ -156,7 +179,7 @@ export default function Settings() {
           </h2>
         </div>
         <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
-          Switch between the PTTGC-configured flat theme and the legacy Aeiforo Glass UI.
+          Switch between the demo flat theme and the legacy Aeiforo Glass UI.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
@@ -219,12 +242,49 @@ export default function Settings() {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-[var(--text-sm)] font-medium text-[var(--text-primary)]">Active reporting year</div>
-              <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-0.5">FY2026 — inherits structure from PTTGC FY2025</div>
+              <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-0.5">FY2026 — inherits structure from FY2025</div>
             </div>
             <span className="px-2.5 py-1 rounded-[var(--radius-sm)] text-[var(--text-xs)] font-medium bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)]">
               FY2026 · Active
             </span>
           </div>
+        </div>
+      </section>
+
+      {/* GDPR data export — Right to portability (Art. 20). */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-[var(--text-tertiary)]" />
+          <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">
+            Data export (GDPR)
+          </h2>
+        </div>
+        <div className="p-4 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)]">
+          <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+            Download a portable zip of everything we hold for this workspace — users, facilities, activity data,
+            assignments, data values, workflow tasks, notifications, reports, and the audit log. Password hashes,
+            MFA secrets, and SCIM/API token hashes are never included.
+          </p>
+          <div className="flex items-center justify-between mt-4 gap-3 flex-wrap">
+            <div className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
+              {exportedAt
+                ? `Last export: ${new Date(exportedAt).toLocaleString()}`
+                : 'No exports yet.'}
+            </div>
+            <button
+              onClick={downloadExport}
+              disabled={exporting}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold disabled:opacity-50"
+            >
+              {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              {exporting ? 'Building zip…' : 'Download data export'}
+            </button>
+          </div>
+          {exportError && (
+            <div className="mt-3 p-2 rounded-[var(--radius-md)] bg-red-500/10 border border-red-500/30 text-red-400 text-[var(--text-xs)]">
+              {exportError}
+            </div>
+          )}
         </div>
       </section>
     </div>

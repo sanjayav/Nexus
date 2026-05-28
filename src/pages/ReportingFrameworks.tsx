@@ -13,10 +13,15 @@ import {
 import { formatValue, truncateHash } from '../reports/spdTemplate'
 import SetupGuard from '../components/SetupGuard'
 import { Button } from '../design-system'
+import { useFramework } from '../lib/frameworks'
 
 const ACTIVE_YEAR = 2026
 
-const CAPITAL_ORDER = [
+// Top-level section ordering per framework. GRI uses the five capitals; other
+// frameworks (e.g. CSRD ESRS E1, TCFD) use their own disclosure-pillar names
+// that come straight off `questionnaire_item.section`. For non-GRI frameworks
+// we just sort the sections alphabetically by what's in the DB.
+const GRI_CAPITAL_ORDER = [
   'Financial Capital',
   'Manufacture Capital',
   'Human Capital',
@@ -40,12 +45,13 @@ type ScopeFilter = 'group' | 'jv'
 
 /**
  * GRI Questionnaire page — SRD §8.
- * Live tree from nexus.tree(), grouped in the exact hierarchy the PTTGC SPD PDF
+ * Live tree from nexus.tree(), grouped in the exact hierarchy the Demo Co SPD PDF
  * publishes (Capital → Subsection → GRI disclosure → Line item), with per-item
  * FY2026 status chip + 4-year history on expand. Click any item → /data/entry/:id.
  */
 export default function ReportingFrameworks() {
   const navigate = useNavigate()
+  const { active: framework } = useFramework()
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
   const [query, setQuery] = useState('')
   const [scope, setScope] = useState<ScopeFilter>('group')
@@ -57,7 +63,7 @@ export default function ReportingFrameworks() {
     setState({ kind: 'loading' })
     try {
       const [items, reviewQ, approvalQ] = await Promise.all([
-        nexus.tree(),
+        nexus.tree(framework.id),
         nexus.reviewQueue(),
         nexus.approvalQueue(),
       ])
@@ -71,7 +77,7 @@ export default function ReportingFrameworks() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [framework.id])
 
   const fetchHistoryIfNeeded = async (itemId: string) => {
     if (state.kind !== 'ready') return
@@ -99,8 +105,15 @@ export default function ReportingFrameworks() {
           i.section.toLowerCase().includes(q))
       : items
 
-    // Capital → Subsection → GRI code → items
-    return CAPITAL_ORDER.map(capital => {
+    // Capital/Section → Subsection → disclosure code → items.
+    // For GRI use the canonical five-capital order; for any other framework
+    // (CSRD ESRS E1, TCFD, …) use the section names exactly as the DB returns
+    // them, sorted alphabetically so the order is stable.
+    const isGri = framework.id === 'gri'
+    const sectionOrder: readonly string[] = isGri
+      ? GRI_CAPITAL_ORDER
+      : Array.from(new Set(matches.map(i => i.section))).sort()
+    return sectionOrder.map(capital => {
       const inCap = matches.filter(i => i.section === capital)
       const subs = Array.from(new Set(inCap.map(i => i.subsection)))
       return {
@@ -118,7 +131,7 @@ export default function ReportingFrameworks() {
         }),
       }
     }).filter(c => c.subsections.length > 0)
-  }, [state, query, scope])
+  }, [state, query, scope, framework.id])
 
   const stats = useMemo(() => {
     if (state.kind !== 'ready') return { total: 0, approved: 0, pending: 0, notStarted: 0 }
@@ -155,7 +168,7 @@ export default function ReportingFrameworks() {
       <header>
         <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)]">GRI Questionnaire — FY{ACTIVE_YEAR}</h1>
         <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1">
-          Full GRI inventory inherited from the published PTTGC Sustainability Performance Data report — same hierarchy, same line items, same units. Click any row to enter, compute, or pull its FY{ACTIVE_YEAR} value.
+          Full GRI inventory inherited from the published Sustainability Performance Data report — same hierarchy, same line items, same units. Click any row to enter, compute, or pull its FY{ACTIVE_YEAR} value.
         </p>
       </header>
 
@@ -173,7 +186,7 @@ export default function ReportingFrameworks() {
                   : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
-              {s === 'group' ? 'GC Group' : 'JV Parallel'}
+              {s === 'group' ? 'Demo Co' : 'JV Parallel'}
             </button>
           ))}
         </div>

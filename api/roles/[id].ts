@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { getDb } from '../_db.js'
-import { verifyToken, cors } from '../_auth.js'
+import { verifyToken, cors, requirePermission } from '../_auth.js'
+import { audit, auditIp } from '../_audit.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   cors(res, req)
@@ -16,6 +17,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // PUT — update role + permissions
   if (req.method === 'PUT' || req.method === 'PATCH') {
+    // Role mutation → admin.roles.
+    const gate = await requirePermission(req, res, 'admin.roles')
+    if (!gate) return
     const { name, description, permissionIds } = req.body ?? {}
 
     try {
@@ -32,6 +36,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
+      await audit({
+        orgId: token.org,
+        userId: token.sub,
+        action: 'role.update',
+        resourceType: 'role',
+        resourceId: roleId,
+        details: { name, description, permissionIds: permissionIds ?? null },
+        ip: auditIp(req),
+      })
       return res.status(200).json({ ok: true })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Unknown error'
@@ -41,6 +54,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // DELETE — delete role (non-system only)
   if (req.method === 'DELETE') {
+    // Role deletion → admin.roles.
+    const gate = await requirePermission(req, res, 'admin.roles')
+    if (!gate) return
     try {
       const check = await sql`SELECT is_system FROM roles WHERE id = ${roleId} AND org_id = ${token.org}`
       if (check.length === 0) return res.status(404).json({ error: 'Role not found' })

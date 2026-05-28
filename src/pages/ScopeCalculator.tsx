@@ -41,7 +41,7 @@ import {
   formatNumber,
   formatEmissions,
   MonthlyEmission,
-} from '../data/pttgcData'
+} from '../data/demoData'
 import BlockchainProof from '../components/BlockchainProof'
 
 type ScopeTab = 'scope1' | 'scope2' | 'scope3'
@@ -143,7 +143,7 @@ export default function ScopeCalculator() {
   const openProof = (dataPoint: string) => {
     setProofData({
       dataPoint,
-      facility: selectedFacility === 'all' ? 'GC Group (All)' : FACILITIES.find(f => f.id === selectedFacility)?.name || '',
+      facility: selectedFacility === 'all' ? 'Demo Co (All)' : FACILITIES.find(f => f.id === selectedFacility)?.name || '',
     })
     setProofOpen(true)
   }

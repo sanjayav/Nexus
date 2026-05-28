@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   ClipboardList, Search, Plus, Trash2, Calendar, Factory,
   PencilLine, Calculator as CalcIcon, Plug, AlertCircle, Loader2, Filter, FileText,
-  List, Columns, GitBranch, ChevronDown, Network as NetworkIcon,
+  List, Columns, GitBranch, ChevronDown, Network as NetworkIcon, Users,
 } from 'lucide-react'
 import { orgStore, type OrgEntity, type OrgMember, type QuestionAssignment, type ResponseType } from '../lib/orgStore'
 import { nexus, type NexusQuestionnaireItem } from '../lib/api'
@@ -39,6 +39,9 @@ export default function AssignmentManager() {
   const [view, setView] = useState<'list' | 'kanban' | 'tree' | 'network'>(() => (localStorage.getItem('aeiforo_assignment_view') as any) || 'list')
   useEffect(() => { localStorage.setItem('aeiforo_assignment_view', view) }, [view])
 
+  // bulk-assign modal
+  const [bulkOpen, setBulkOpen] = useState(false)
+
   // new-assignment drawer
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [pickedQuestion, setPickedQuestion] = useState<NexusQuestionnaireItem | null>(null)
@@ -69,6 +72,8 @@ export default function AssignmentManager() {
       await refresh()
       setLoading(false)
     })()
+  // Safe: `refresh` is a closure declared in component scope; we only want to
+  // re-fetch when the active framework changes, not on every render.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [framework.id])
 
@@ -178,13 +183,32 @@ export default function AssignmentManager() {
             Each {framework.code} line item goes to the person closest to the data. They see it in <strong>My Tasks</strong> next time they sign in.
           </p>
         </div>
-        <button
-          onClick={openDrawer}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] transition-colors shadow-sm"
-        >
-          <Plus className="w-4 h-4" /> New assignment
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setBulkOpen(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] border border-[var(--color-brand)] text-[var(--color-brand)] text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand)]/10 transition-colors"
+          >
+            <Users className="w-4 h-4" /> Bulk assign
+          </button>
+          <button
+            onClick={openDrawer}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" /> New assignment
+          </button>
+        </div>
       </header>
+
+      {bulkOpen && (
+        <BulkAssignModal
+          frameworkId={framework.id}
+          entities={entities}
+          members={members}
+          questions={questions}
+          onClose={() => setBulkOpen(false)}
+          onDone={async () => { setBulkOpen(false); await refresh() }}
+        />
+      )}
 
       <div className="grid grid-cols-4 gap-3 mb-5">
         <Stat label="Total" value={stats.total} tone="neutral" />
@@ -287,13 +311,13 @@ export default function AssignmentManager() {
           <table className="w-full text-[var(--text-sm)]">
             <thead>
               <tr className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] bg-[var(--bg-secondary)]">
-                <th className="text-left px-4 py-2.5 font-semibold">GRI · Line item</th>
-                <th className="text-left px-4 py-2.5 font-semibold">Plant / entity</th>
-                <th className="text-left px-4 py-2.5 font-semibold">Assignee</th>
-                <th className="text-left px-3 py-2.5 font-semibold">Mode</th>
-                <th className="text-left px-3 py-2.5 font-semibold">Due</th>
-                <th className="text-left px-3 py-2.5 font-semibold">Status</th>
-                <th className="px-3 py-2.5" />
+                <th scope="col" className="text-left px-4 py-2.5 font-semibold">GRI · Line item</th>
+                <th scope="col" className="text-left px-4 py-2.5 font-semibold">Plant / entity</th>
+                <th scope="col" className="text-left px-4 py-2.5 font-semibold">Assignee</th>
+                <th scope="col" className="text-left px-3 py-2.5 font-semibold">Mode</th>
+                <th scope="col" className="text-left px-3 py-2.5 font-semibold">Due</th>
+                <th scope="col" className="text-left px-3 py-2.5 font-semibold">Status</th>
+                <th scope="col" className="px-3 py-2.5"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-subtle)]">
@@ -1454,5 +1478,225 @@ function NetworkNodeSvg({ node, brand, hovered, onHover, index }: {
         </text>
       )}
     </motion.g>
+  )
+}
+
+// ── Bulk-assign modal ──────────────────────────────────────────────
+function BulkAssignModal({
+  frameworkId, entities, members, questions, onClose, onDone,
+}: {
+  frameworkId: string
+  entities: OrgEntity[]
+  members: OrgMember[]
+  questions: NexusQuestionnaireItem[]
+  onClose: () => void
+  onDone: () => Promise<void> | void
+}) {
+  const [entityId, setEntityId] = useState<string>('')
+  const [assigneeMemberId, setAssigneeMemberId] = useState<string>('')
+  const [dueDate, setDueDate] = useState<string>('')
+  const [sectionPicks, setSectionPicks] = useState<Set<string>>(new Set())
+  const [reviewerEmail, setReviewerEmail] = useState<string>('')
+  const [approverEmail, setApproverEmail] = useState<string>('')
+  const [submitting, setSubmitting] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+  const [done, setDone] = useState<{ created: number; skipped: number } | null>(null)
+
+  // Distinct sections in the loaded questionnaire — gives the admin a quick
+  // "all ESRS E1" style toggle without having to know GRI code prefixes.
+  const allSections = useMemo(() => {
+    const s = new Set<string>()
+    for (const q of questions) if (q.section) s.add(q.section)
+    return Array.from(s).sort()
+  }, [questions])
+
+  const matchedCount = useMemo(() => {
+    if (sectionPicks.size === 0) return questions.length
+    return questions.filter(q => q.section && sectionPicks.has(q.section)).length
+  }, [questions, sectionPicks])
+
+  const tooMany = matchedCount > 500
+
+  const toggleSection = (s: string) => {
+    setSectionPicks(prev => {
+      const next = new Set(prev)
+      if (next.has(s)) next.delete(s); else next.add(s)
+      return next
+    })
+  }
+
+  const memberById = useMemo(() => new Map(members.map(m => [m.id, m])), [members])
+
+  const submit = async () => {
+    setErr(null)
+    const m = memberById.get(assigneeMemberId)
+    if (!m) { setErr('Pick an assignee'); return }
+    if (tooMany) { setErr('Narrow the filter — bulk-assign is capped at 500 items.'); return }
+    setSubmitting(true)
+    try {
+      const sections = Array.from(sectionPicks)
+      const res = await orgStore.bulkAssign({
+        framework_id: frameworkId,
+        entity_id: entityId || undefined,
+        filter: sections.length > 0 ? { sections } : undefined,
+        assignee_email: m.email,
+        assignee_name: m.name,
+        due_date: dueDate || undefined,
+        reviewer_email: reviewerEmail || undefined,
+        approver_email: approverEmail || undefined,
+      })
+      setDone({ created: res.totalCreated, skipped: res.totalSkipped })
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="bg-[var(--bg-primary)] rounded-[var(--radius-lg)] border border-[var(--border-default)] w-full max-w-lg p-5 shadow-xl max-h-[90vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">Setup helper</div>
+        <h3 className="font-display text-[20px] font-bold text-[var(--text-primary)]">Bulk-assign questionnaire items</h3>
+        <p className="text-[var(--text-xs)] text-[var(--text-secondary)] mt-1 mb-4">
+          Hand entire sections to one person with a single click. Existing assignments are skipped (no overwrites).
+          Cap: 500 items per call.
+        </p>
+
+        {done ? (
+          <div className="space-y-3">
+            <div className="p-4 rounded-[var(--radius-md)] bg-[var(--accent-green-light)] border border-[var(--status-ok)]/30">
+              <div className="text-[var(--text-sm)] font-semibold text-[var(--status-ok)]">Done</div>
+              <div className="text-[var(--text-xs)] text-[var(--text-secondary)] mt-1">
+                Created <strong>{done.created}</strong> assignment{done.created === 1 ? '' : 's'}; skipped {done.skipped} existing.
+                A summary notification was sent to the assignee.
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <button onClick={() => void onDone()} className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold">
+                Close
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-3">
+              <label className="block">
+                <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Entity (optional — defaults to root)</span>
+                <select
+                  value={entityId}
+                  onChange={e => setEntityId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                >
+                  <option value="">— org root —</option>
+                  {entities.map(e => (
+                    <option key={e.id} value={e.id}>{e.name}{e.code ? ` (${e.code})` : ''}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Assignee *</span>
+                <select
+                  value={assigneeMemberId}
+                  onChange={e => setAssigneeMemberId(e.target.value)}
+                  className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                >
+                  <option value="">— pick a person —</option>
+                  {members.map(m => (
+                    <option key={m.id} value={m.id}>{m.name} · {m.email}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Due date</span>
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={e => setDueDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                />
+              </label>
+
+              <div>
+                <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">
+                  Sections (leave empty for the whole framework — {questions.length} items)
+                </span>
+                <div className="flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto p-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)]">
+                  {allSections.map(s => {
+                    const on = sectionPicks.has(s)
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => toggleSection(s)}
+                        className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${
+                          on
+                            ? 'bg-[var(--color-brand)] text-white border-[var(--color-brand)]'
+                            : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-default)]'
+                        }`}
+                      >{s}</button>
+                    )
+                  })}
+                  {allSections.length === 0 && (
+                    <span className="text-[10px] text-[var(--text-tertiary)]">No sections in the loaded questionnaire.</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Reviewer email (optional)</span>
+                  <input
+                    type="email"
+                    value={reviewerEmail}
+                    onChange={e => setReviewerEmail(e.target.value)}
+                    className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                    placeholder="reviewer@example.com"
+                  />
+                </label>
+                <label className="block">
+                  <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Approver email (optional)</span>
+                  <input
+                    type="email"
+                    value={approverEmail}
+                    onChange={e => setApproverEmail(e.target.value)}
+                    className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                    placeholder="approver@example.com"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <div className={`mt-3 p-2 rounded-[var(--radius-md)] text-[var(--text-xs)] ${tooMany ? 'bg-red-500/10 text-red-400 border border-red-500/30' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border-subtle)]'}`}>
+              <strong>{matchedCount}</strong> item{matchedCount === 1 ? '' : 's'} matched.
+              {tooMany && ' Cap is 500/call — narrow the section filter.'}
+            </div>
+
+            {err && (
+              <div className="mt-3 p-2 rounded-[var(--radius-md)] bg-red-500/10 border border-red-500/30 text-red-400 text-[var(--text-xs)]">{err}</div>
+            )}
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button onClick={onClose} className="px-3 py-2 rounded-[var(--radius-md)] text-[var(--text-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">
+                Cancel
+              </button>
+              <button
+                onClick={submit}
+                disabled={submitting || !assigneeMemberId || tooMany}
+                className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold disabled:opacity-50 inline-flex items-center gap-1.5"
+              >
+                {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
+                Assign
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   )
 }

@@ -22,7 +22,7 @@ React + TypeScript SPA for ESG/sustainability reporting. Built with Vite, Tailwi
 - `src/components/AppShell.tsx` — Main layout shell
 - `src/auth/AuthContext.tsx` — Auth context/provider
 - `src/pages/` — Route pages (Dashboard, Reporting, CarbonAccounting, etc.)
-- `src/data/` — Static data (moduleData, pttgcData)
+- `src/data/` — Static data (moduleData, demoData)
 
 ## Conventions
 - Glass UI / Nexus design system aesthetic

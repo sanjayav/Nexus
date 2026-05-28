@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { getDb } from '../_db.js'
-import { verifyToken, cors } from '../_auth.js'
+import { verifyToken, cors, requirePermission } from '../_auth.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   cors(res, req)
@@ -39,6 +39,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // POST — create role
   if (req.method === 'POST') {
+    // Role creation → admin.roles.
+    const gate = await requirePermission(req, res, 'admin.roles')
+    if (!gate) return
     const { name, slug, description, permissionIds } = req.body ?? {}
     if (!name || !slug) return res.status(400).json({ error: 'Name and slug required' })
 

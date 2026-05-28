@@ -581,6 +581,12 @@ function ArtifactCard({ report }: { report: PublishedReport }) {
           <Button variant="secondary" size="md" icon={<ExternalLink className="w-4 h-4" />} onClick={() => window.open(`/verify/${report.verification_token}`, '_blank')}>
             Verify
           </Button>
+          <Button variant="secondary" size="md" icon={<Download className="w-4 h-4" />} onClick={() => orgStore.downloadReportIxbrl(report.id, `${report.framework_id}-${report.period_label.replace(/\s+/g, '')}-v${report.version}.xhtml`)} title="Download iXBRL (ESRS) — XHTML with embedded inline XBRL tags">
+            iXBRL
+          </Button>
+          <Button variant="secondary" size="md" icon={<Download className="w-4 h-4" />} onClick={() => orgStore.downloadReportDocx(report.id, `${report.framework_id}-${report.period_label.replace(/\s+/g, '')}-v${report.version}.docx`)} title="Download editable Word (.docx)">
+            Word
+          </Button>
           <Button variant="brand" size="md" icon={<Download className="w-4 h-4" />} onClick={() => orgStore.downloadReportPdf(report.id, `${report.framework_id}-${report.period_label.replace(/\s+/g, '')}-v${report.version}.pdf`)}>
             Download
           </Button>
@@ -622,6 +628,12 @@ function ReportRow({ report, i }: { report: PublishedReport; i: number }) {
           </a>
           <button onClick={() => orgStore.downloadReportPdf(report.id, `${report.framework_id}-v${report.version}.pdf`)} className="px-2 h-7 inline-flex items-center rounded-[6px] text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title="Download PDF">
             <Download className="w-3.5 h-3.5" />
+          </button>
+          <button onClick={() => orgStore.downloadReportDocx(report.id, `${report.framework_id}-v${report.version}.docx`)} className="px-2 h-7 inline-flex items-center rounded-[6px] text-[11px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title="Download Word (.docx)">
+            Word
+          </button>
+          <button onClick={() => orgStore.downloadReportIxbrl(report.id, `${report.framework_id}-v${report.version}.xhtml`)} className="px-2 h-7 inline-flex items-center rounded-[6px] text-[11px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title="Download iXBRL (ESRS)">
+            iXBRL
           </button>
         </div>
       </td>

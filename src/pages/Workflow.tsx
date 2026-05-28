@@ -200,7 +200,7 @@ export default function Workflow() {
       <section className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">Coverage by capital</h2>
-          <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">Approved ÷ total · GC Group scope</span>
+          <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">Approved ÷ total · Demo Co scope</span>
         </div>
         <div className="space-y-2.5">
           {coverageByCapital.map(c => (
