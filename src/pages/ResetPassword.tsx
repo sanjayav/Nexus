@@ -1,7 +1,23 @@
 import { FormEvent, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Lock, ArrowRight, Loader2, Leaf, CheckCircle2, AlertCircle } from 'lucide-react'
+import { z } from 'zod'
 import { auth as authApi } from '../lib/api'
+
+/**
+ * Field-level reset-password schema. `superRefine` lets us attach the
+ * "passwords do not match" error to the confirm field rather than the form.
+ */
+const resetSchema = z.object({
+  password: z.string().min(6, 'Password must be at least 6 characters.'),
+  confirm: z.string(),
+}).superRefine((v, ctx) => {
+  if (v.password !== v.confirm) {
+    ctx.addIssue({ code: 'custom', path: ['confirm'], message: 'Passwords do not match.' })
+  }
+})
+type ResetForm = z.infer<typeof resetSchema>
+type FieldErr = Partial<Record<keyof ResetForm, string>>
 
 /**
  * /reset-password?token=… — public page. Token arrives in the query string
@@ -15,22 +31,47 @@ export default function ResetPassword() {
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<FieldErr>({})
+  const [touched, setTouched] = useState<Partial<Record<keyof ResetForm, boolean>>>({})
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
 
   const tokenMissing = token.length === 0
 
+  // Live validation — we run the schema on every keystroke once the field
+  // has been blurred so the user sees errors clear in real time.
+  const validate = (form: ResetForm): FieldErr => {
+    const result = resetSchema.safeParse(form)
+    if (result.success) return {}
+    const out: FieldErr = {}
+    const issues = (result.error as unknown as { issues?: { path: (string | number)[]; message: string }[] }).issues ?? []
+    for (const iss of issues) {
+      const k = iss.path[0] as keyof ResetForm
+      if (!out[k]) out[k] = iss.message
+    }
+    return out
+  }
+
+  const onBlur = (k: keyof ResetForm) => () => {
+    setTouched(t => ({ ...t, [k]: true }))
+    setFieldErrors(validate({ password, confirm }))
+  }
+
+  // Recompute errors as user types (only revealing those whose field is touched).
+  const refreshErrors = (next: Partial<ResetForm>) => {
+    const merged = { password, confirm, ...next }
+    setFieldErrors(validate(merged))
+  }
+
+  const isValid = Object.keys(validate({ password, confirm })).length === 0
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.')
-      return
-    }
-    if (password !== confirm) {
-      setError('Passwords do not match.')
-      return
-    }
+    setTouched({ password: true, confirm: true })
+    const errs = validate({ password, confirm })
+    setFieldErrors(errs)
+    if (Object.keys(errs).length) return
     setLoading(true)
     try {
       await authApi.resetPassword(token, password)
@@ -63,7 +104,7 @@ export default function ResetPassword() {
             <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
               <Leaf className="w-4 h-4 text-white" />
             </div>
-            <span className="text-[17px] font-display font-bold text-white">Aeiforo</span>
+            <span className="text-[17px] font-display font-bold text-white">Nexus</span>
           </div>
 
           {tokenMissing ? (
@@ -115,13 +156,21 @@ export default function ResetPassword() {
                       id="pw"
                       type="password"
                       value={password}
-                      onChange={e => setPassword(e.target.value)}
+                      onChange={e => { setPassword(e.target.value); refreshErrors({ password: e.target.value }) }}
+                      onBlur={onBlur('password')}
+                      aria-invalid={!!(touched.password && fieldErrors.password)}
+                      aria-describedby={touched.password && fieldErrors.password ? 'pw-err' : undefined}
                       required
                       minLength={6}
                       placeholder="Min. 6 characters"
-                      className="w-full h-10 pl-10 pr-4 rounded-lg border border-white/10 bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+                      className={`w-full h-10 pl-10 pr-4 rounded-lg border bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent ${
+                        touched.password && fieldErrors.password ? 'border-red-500/60' : 'border-white/10'
+                      }`}
                     />
                   </div>
+                  {touched.password && fieldErrors.password && (
+                    <p id="pw-err" className="mt-1 text-[11px] text-red-300">{fieldErrors.password}</p>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="pw2" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">
@@ -133,17 +182,25 @@ export default function ResetPassword() {
                       id="pw2"
                       type="password"
                       value={confirm}
-                      onChange={e => setConfirm(e.target.value)}
+                      onChange={e => { setConfirm(e.target.value); refreshErrors({ confirm: e.target.value }) }}
+                      onBlur={onBlur('confirm')}
+                      aria-invalid={!!(touched.confirm && fieldErrors.confirm)}
+                      aria-describedby={touched.confirm && fieldErrors.confirm ? 'pw2-err' : undefined}
                       required
                       minLength={6}
-                      className="w-full h-10 pl-10 pr-4 rounded-lg border border-white/10 bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+                      className={`w-full h-10 pl-10 pr-4 rounded-lg border bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent ${
+                        touched.confirm && fieldErrors.confirm ? 'border-red-500/60' : 'border-white/10'
+                      }`}
                     />
                   </div>
+                  {touched.confirm && fieldErrors.confirm && (
+                    <p id="pw2-err" className="mt-1 text-[11px] text-red-300">{fieldErrors.confirm}</p>
+                  )}
                 </div>
 
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !isValid}
                   className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[13px] font-semibold hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 transition-all"
                 >
                   {loading ? (

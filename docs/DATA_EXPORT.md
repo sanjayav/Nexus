@@ -80,7 +80,7 @@ endpoint's `SELECT` list is allow-listed.
 ## Importing into another system
 
 The files are plain JSON — each is an array of row objects matching the source
-column shape. To re-ingest into an Aeiforo-compatible target, replay them in
+column shape. To re-ingest into a Nexus-compatible target, replay them in
 this order:
 
 1. `facilities.json` (parent of activity data)

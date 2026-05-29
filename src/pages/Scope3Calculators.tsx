@@ -10,6 +10,7 @@ import {
 } from '../calculators/scope3'
 import { facilities as facilitiesApi, type ApiFacility } from '../lib/api'
 import { orgStore } from '../lib/orgStore'
+import JargonTooltip from '../components/JargonTooltip'
 
 export default function Scope3CalculatorsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -22,7 +23,7 @@ export default function Scope3CalculatorsPage() {
     <div className="animate-fade-in">
       <header className="mb-5">
         <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
-          <Calculator className="w-3 h-3" /> Scope 3 · GHG Protocol Corporate Value Chain
+          <Calculator className="w-3 h-3" /> <JargonTooltip term="Scope 3" iconOnly /> Scope 3 · <JargonTooltip term="GHG" iconOnly /> GHG Protocol Corporate Value Chain
         </div>
         <h1 className="font-display text-[28px] font-bold text-[var(--text-primary)] mt-1">Scope 3 calculators</h1>
         <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1 max-w-3xl">

@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Scale, Plus, Loader2, Save, Check, AlertTriangle } from 'lucide-react'
+import EmptyState from '../components/EmptyState'
 import {
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   ReferenceLine, LabelList,
 } from 'recharts'
 import { useFramework } from '../lib/frameworks'
 import { FrameworkBadge } from '../components/FrameworkBadge'
+import JargonTooltip from '../components/JargonTooltip'
 
 // ─── Types mirroring server ───────────────────────────────
 interface Topic {
@@ -125,7 +127,7 @@ export default function Materiality() {
       <motion.header initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between mb-5">
         <div>
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
-            <Scale className="w-3 h-3" /> Double Materiality Assessment · CSRD / ESRS
+            <Scale className="w-3 h-3" /> <JargonTooltip term="DMA" iconOnly /> Double Materiality Assessment · <JargonTooltip term="CSRD" iconOnly /> CSRD / <JargonTooltip term="ESRS" iconOnly /> ESRS
           </div>
           <div className="flex items-center gap-2 mt-1">
             <h1 className="font-display text-[28px] font-bold text-[var(--text-primary)]">Materiality assessment</h1>
@@ -308,7 +310,14 @@ function TopicsTab({ topics, reload, framework }: { topics: Topic[]; reload: () 
               </tr>
             ))}
             {topics.length === 0 && (
-              <tr><td colSpan={8} className="text-center py-6 text-[var(--text-tertiary)]">No topics yet. Add one from the CSRD universe above or create a custom topic.</td></tr>
+              <tr><td colSpan={8} className="text-[var(--text-tertiary)] p-0">
+                <EmptyState
+                  icon={Scale}
+                  title="No material topics yet"
+                  body="Pick from the CSRD topic universe above or add a custom topic to start your double-materiality assessment."
+                  density="compact"
+                />
+              </td></tr>
             )}
           </tbody>
         </table>

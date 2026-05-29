@@ -1,0 +1,103 @@
+{
+  "common": {
+    "save": "บันทึก",
+    "cancel": "ยกเลิก",
+    "delete": "ลบ",
+    "edit": "แก้ไข",
+    "close": "ปิด",
+    "loading": "กำลังโหลด…",
+    "error": "เกิดข้อผิดพลาด",
+    "search": "ค้นหา",
+    "all": "ทั้งหมด",
+    "yes": "ใช่",
+    "no": "ไม่",
+    "back": "กลับ",
+    "next": "ถัดไป",
+    "submit": "ส่ง",
+    "ok": "ตกลง",
+    "actions": "การดำเนินการ",
+    "status": "สถานะ",
+    "details": "รายละเอียด"
+  },
+  "nav": {
+    "dashboard": "แดชบอร์ด",
+    "myTasks": "งานของฉัน",
+    "calculators": "เครื่องคำนวณ",
+    "data": "การจัดเก็บข้อมูล",
+    "workflow": "Workflow",
+    "reports": "รายงาน",
+    "analytics": "การวิเคราะห์",
+    "admin": "ผู้ดูแลระบบ",
+    "settings": "ตั้งค่า",
+    "auditLog": "บันทึกการตรวจสอบ",
+    "logout": "ออกจากระบบ",
+    "search": "ค้นหา หรือไปยัง…"
+  },
+  "login": {
+    "signIn": "เข้าสู่ระบบ",
+    "email": "อีเมล",
+    "password": "รหัสผ่าน",
+    "forgotPassword": "ลืมรหัสผ่าน?",
+    "signInWithSso": "เข้าสู่ระบบด้วย SSO",
+    "rememberMe": "จดจำการเข้าสู่ระบบ",
+    "welcome": "ยินดีต้อนรับกลับ",
+    "subtitle": "เข้าสู่พื้นที่ทำงาน Nexus ของคุณ"
+  },
+  "myTasks": {
+    "title": "งานของฉัน",
+    "subtitle": "นี่คือสิ่งที่คุณต้องดำเนินการ",
+    "filterAll": "ทั้งหมด",
+    "filterOverdue": "เกินกำหนด",
+    "filterPending": "ยังไม่เริ่ม",
+    "filterInProgress": "กำลังดำเนินการ",
+    "filterSubmitted": "ส่งแล้ว",
+    "filterApproved": "อนุมัติแล้ว",
+    "empty": "ยังไม่มีงานที่มอบหมาย",
+    "dueThisWeek": "ครบกำหนดสัปดาห์นี้ {{count}} รายการ",
+    "total": "ทั้งหมด {{count}} รายการ"
+  },
+  "savedViews": {
+    "label": "มุมมอง",
+    "default": "ค่าเริ่มต้น",
+    "saveAs": "บันทึกเป็น…",
+    "nameLabel": "ชื่อ",
+    "shareLabel": "แชร์ให้องค์กรของฉัน",
+    "defaultLabel": "ตั้งเป็นค่าเริ่มต้นของหน้านี้",
+    "delete": "ลบมุมมอง",
+    "saving": "กำลังบันทึก…",
+    "title": "บันทึกมุมมองปัจจุบัน"
+  },
+  "anomaly": {
+    "title": "การตรวจจับความผิดปกติ",
+    "scanNow": "สแกนทันที",
+    "investigate": "ตรวจสอบ",
+    "markResolved": "แก้ไขแล้ว",
+    "dismiss": "ปิดการแจ้งเตือน",
+    "status": {
+      "open": "เปิด",
+      "investigating": "กำลังตรวจสอบ",
+      "resolved": "แก้ไขแล้ว",
+      "dismissed": "ปิดแล้ว"
+    },
+    "severity": {
+      "info": "ข้อมูล",
+      "warn": "คำเตือน",
+      "critical": "วิกฤต"
+    }
+  },
+  "publicReport": {
+    "header": "Nexus — รายงานความยั่งยืนที่เผยแพร่",
+    "verifyBlockchain": "ยืนยันบน Blockchain",
+    "generated": "สร้างเมื่อ",
+    "lastVerified": "ยืนยันล่าสุดเมื่อ",
+    "passwordRequired": "รายงานนี้มีรหัสผ่านป้องกัน",
+    "passwordPrompt": "ป้อนรหัสผ่านเพื่อดู",
+    "invalid": "ลิงก์นี้ไม่ถูกต้องหรือถูกยกเลิก",
+    "expired": "ลิงก์นี้หมดอายุแล้ว"
+  },
+  "language": {
+    "label": "ภาษา",
+    "en": "English",
+    "th": "ไทย"
+  }
+}

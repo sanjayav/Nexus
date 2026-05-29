@@ -1,7 +1,10 @@
 import { FormEvent, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Mail, ArrowRight, Loader2, Leaf, ArrowLeft, AlertCircle } from 'lucide-react'
+import { z } from 'zod'
 import { auth as authApi } from '../lib/api'
+
+const emailSchema = z.string().trim().email('Enter a valid email address.')
 
 /**
  * /forgot-password — public page (sibling of /login, NOT inside the authed
@@ -10,13 +13,24 @@ import { auth as authApi } from '../lib/api'
  */
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
+  const [touched, setTouched] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Field-level email validation. Surfaces only after blur so the user
+  // isn't yelled at while still typing.
+  const fieldError: string | null = (() => {
+    const r = emailSchema.safeParse(email)
+    return r.success ? null : r.error.issues[0]?.message ?? 'Invalid email.'
+  })()
+  const showFieldError = touched && fieldError
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
+    setTouched(true)
+    if (fieldError) return
     setLoading(true)
     try {
       await authApi.forgotPassword(email.trim().toLowerCase())
@@ -48,7 +62,7 @@ export default function ForgotPassword() {
             <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
               <Leaf className="w-4 h-4 text-white" />
             </div>
-            <span className="text-[17px] font-display font-bold text-white">Aeiforo</span>
+            <span className="text-[17px] font-display font-bold text-white">Nexus</span>
           </div>
 
           {submitted ? (
@@ -94,16 +108,24 @@ export default function ForgotPassword() {
                       type="email"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
+                      onBlur={() => setTouched(true)}
+                      aria-invalid={!!showFieldError}
+                      aria-describedby={showFieldError ? 'email-err' : undefined}
                       required
                       placeholder="user@company.com"
-                      className="w-full h-10 pl-10 pr-4 rounded-lg border border-white/10 bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
+                      className={`w-full h-10 pl-10 pr-4 rounded-lg border bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent ${
+                        showFieldError ? 'border-red-500/60' : 'border-white/10'
+                      }`}
                     />
                   </div>
+                  {showFieldError && (
+                    <p id="email-err" className="mt-1 text-[11px] text-red-300">{fieldError}</p>
+                  )}
                 </div>
 
                 <button
                   type="submit"
-                  disabled={loading || !email}
+                  disabled={loading || !!fieldError}
                   className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[13px] font-semibold hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 transition-all"
                 >
                   {loading ? (

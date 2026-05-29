@@ -1,6 +1,6 @@
-# Aeiforo Nexus — Client Walkthrough
+# Nexus — Client Walkthrough
 
-A practical end-to-end guide for navigating Aeiforo Nexus, from first login to publishing an assured sustainability report. Written for evaluators (clients, audit teams, sustainability officers) who want to drive the product themselves rather than watch a demo.
+A practical end-to-end guide for navigating Nexus (by Aeiforo), from first login to publishing an assured sustainability report. Written for evaluators (clients, audit teams, sustainability officers) who want to drive the product themselves rather than watch a demo.
 
 > **Tip — drive it like the role would.** Most pages do different things depending on who's signed in. The "Switch role" panel on the **Admin → Users & Roles** page lets you hop between perspectives in one click without logging out.
 
@@ -269,10 +269,10 @@ When the GSO clicks **Publish report**, four things happen server-side:
 
 1. **PDF is rendered** from the approved disclosure values, narrative blocks, and metadata. Includes a cover with org branding, framework, period, assurance status, and a QR code.
 2. **SHA-256 hash** of the PDF bytes is computed.
-3. **Hash is anchored** to OpenTimestamps — a public timestamp calendar that records the hash on the Bitcoin blockchain. The proof is independent of Aeiforo.
+3. **Hash is anchored** to OpenTimestamps — a public timestamp calendar that records the hash on the Bitcoin blockchain. The proof is independent of Nexus.
 4. **Hash chain** entry is appended to `blockchain_records` with `previous_hash → new_hash` linkage. Anyone with two records can recompute the chain to prove no row was altered.
 
-A recipient can verify a published PDF without trusting Aeiforo:
+A recipient can verify a published PDF without trusting Nexus:
 1. Compute SHA-256 of the file they received.
 2. Visit `/verify/{verification-token}` (the URL on the cover QR code).
 3. The page shows the registered hash + anchor proof. Match = file hasn't been altered.

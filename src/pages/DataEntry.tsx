@@ -16,6 +16,7 @@ import SetupGuard from '../components/SetupGuard'
 import { Button } from '../design-system'
 import { findCalculator, type CalcDescriptor, type CalcInputValues } from '../calculators/registry'
 import { HistoricalReferencePanel } from '../components/HistoricalReferencePanel'
+import { LinkedDataPanel } from '../components/LinkedDataPanel'
 import { orgStore } from '../lib/orgStore'
 
 const ACTIVE_REPORTING_YEAR_ID = '11000000-0000-0000-0000-000000000026'
@@ -275,6 +276,15 @@ export default function DataEntry() {
               <span className="chip"><span className="text-[var(--text-quaternary)]">Reporting</span><strong className="text-[var(--text-primary)]">{item.reporting_scope === 'jv' ? 'JV parallel' : 'Group'}</strong></span>
             </div>
           </div>
+
+          {/* ──────────────────────────────────────────
+              LINKED DATA — Workiva-style propagation panel.
+              Shows every framework that auto-syncs from this disclosure.
+              ────────────────────────────────────────── */}
+          <LinkedDataPanel
+            questionnaireItemId={item.id}
+            onPeerClick={(peer) => navigate(`/data/entry/${peer.questionnaire_item_id}`)}
+          />
 
           {/* ──────────────────────────────────────────
               COMPARE SOURCES — all references side by side

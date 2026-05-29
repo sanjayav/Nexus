@@ -770,7 +770,7 @@ export default function ScopeCalculator() {
                 <h4 className="text-sm font-semibold text-white mb-2">Assurance & Verification</h4>
                 <ul className="text-xs text-dark-300 space-y-1.5">
                   <li className="flex items-start gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-teal-400 mt-0.5 flex-shrink-0" /> Third-party limited assurance by LRQA (Scope 1 & 2)</li>
-                  <li className="flex items-start gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-teal-400 mt-0.5 flex-shrink-0" /> Blockchain-anchored data provenance via Aeiforo Nexus</li>
+                  <li className="flex items-start gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-teal-400 mt-0.5 flex-shrink-0" /> Blockchain-anchored data provenance via Nexus</li>
                   <li className="flex items-start gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-teal-400 mt-0.5 flex-shrink-0" /> SBTi-aligned target tracking (1.5°C pathway)</li>
                   <li className="flex items-start gap-2"><CheckCircle2 className="w-3.5 h-3.5 text-teal-400 mt-0.5 flex-shrink-0" /> Aligns with CDP, GRI 305, TCFD / IFRS S2 disclosure requirements</li>
                 </ul>

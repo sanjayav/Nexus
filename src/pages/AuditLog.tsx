@@ -1,8 +1,10 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
-import { Download, Filter, ChevronLeft, ChevronRight, ChevronDown, AlertTriangle, Loader2 } from 'lucide-react'
+import { Download, Filter, ChevronLeft, ChevronRight, ChevronDown, AlertTriangle, Loader2, ShieldCheck } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
+import EmptyState from '../components/EmptyState'
 import { Card, Button } from '../design-system'
 import { auditLog, users as usersApi, downloadAuditCsv, type AuditExplorerEntry, type ApiUser } from '../lib/api'
+import SavedViewsBar from '../components/SavedViewsBar'
 
 const PAGE_SIZE = 50
 
@@ -154,6 +156,19 @@ export default function AuditLog() {
         }
       />
 
+      <SavedViewsBar
+        page="audit-log"
+        filters={{ from, to, actorId, actions, resourceTypes }}
+        onApply={(f: { from?: string; to?: string; actorId?: string; actions?: string[]; resourceTypes?: string[] }) => {
+          setOffset(0)
+          if (typeof f.from === 'string') setFrom(f.from)
+          if (typeof f.to === 'string') setTo(f.to)
+          if (typeof f.actorId === 'string') setActorId(f.actorId)
+          if (Array.isArray(f.actions)) setActions(f.actions)
+          if (Array.isArray(f.resourceTypes)) setResourceTypes(f.resourceTypes)
+        }}
+      />
+
       <Card>
         <div className="p-4 border-b border-[var(--border-subtle)] flex items-center gap-2 text-[var(--text-sm)] font-medium text-[var(--text-primary)]">
           <Filter className="w-4 h-4" /> Filters
@@ -269,7 +284,14 @@ export default function AuditLog() {
               {loading && rows.length === 0 ? (
                 <tr><td colSpan={7} className="px-4 py-12 text-center text-[var(--text-tertiary)]"><Loader2 className="w-5 h-5 animate-spin inline" /> Loading…</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-12 text-center text-[var(--text-tertiary)]">No events match these filters.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-0 text-[var(--text-tertiary)]">
+                  <EmptyState
+                    icon={ShieldCheck}
+                    title="No audit events match"
+                    body="Try widening your date range or clearing filters. Every change in the workspace is recorded here for assurance."
+                    density="compact"
+                  />
+                </td></tr>
               ) : rows.map(r => (
                 <Fragment key={r.id}>
                   <tr className="border-t border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">

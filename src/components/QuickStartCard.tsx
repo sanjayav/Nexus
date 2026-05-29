@@ -90,7 +90,7 @@ export default function QuickStartCard() {
           From spreadsheet to assured report
         </h2>
         <p className="text-[13px] text-[var(--text-secondary)] mt-1.5 max-w-2xl leading-relaxed">
-          The fastest path through Aeiforo. Click any step to jump in — you don't have to do them in order.
+          The fastest path through Nexus. Click any step to jump in — you don't have to do them in order.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-5">

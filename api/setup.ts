@@ -21,6 +21,7 @@ import { seedCASB253 } from './_caSb253Seed.js'
 import { seedCASB261 } from './_caSb261Seed.js'
 import { seedEUTaxonomy } from './_euTaxonomySeed.js'
 import { seedConnectorTemplates } from './_connectorSeed.js'
+import { seedConceptMappings } from './_conceptSeed.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   cors(res, req)
@@ -1153,6 +1154,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await seedCASB261(sql)
     await seedEUTaxonomy(sql)
     await seedConnectorTemplates(sql)
+
+    // ═══════════════════════════════════════════
+    // Linked-data propagation — Workiva-style flagship feature.
+    // concept_mappings maps a single conceptual data point (e.g.
+    // 'ghg.scope1.total') onto its representation in every framework, so
+    // when a data_value is approved we can auto-fill peer disclosures.
+    // ═══════════════════════════════════════════
+    await sql`CREATE TABLE IF NOT EXISTS concept_mappings (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      concept_key TEXT NOT NULL,
+      framework_id TEXT NOT NULL,
+      questionnaire_item_id UUID REFERENCES questionnaire_item(id) ON DELETE CASCADE,
+      unit_conversion NUMERIC DEFAULT 1.0,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      UNIQUE(concept_key, framework_id, questionnaire_item_id)
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_concept_mappings_concept ON concept_mappings(concept_key)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_concept_mappings_qi ON concept_mappings(questionnaire_item_id)`
+    // Track auto-fill provenance on data_value. derived_from points at the
+    // source row; is_overridden lets users lock a peer so future propagation skips it.
+    await sql`ALTER TABLE data_value ADD COLUMN IF NOT EXISTS derived_from UUID REFERENCES data_value(id)`
+    await sql`ALTER TABLE data_value ADD COLUMN IF NOT EXISTS is_overridden BOOLEAN DEFAULT false`
+
+    await seedConceptMappings(sql)
 
     // ═══════════════════════════════════════════
     // Rate-limit buckets — DB-backed token bucket shared across serverless

@@ -1,7 +1,7 @@
-# Aeiforo Sustainability Reporting Dashboard
+# Nexus — Sustainability Intelligence Platform (by Aeiforo)
 
 ## Project Overview
-React + TypeScript SPA for ESG/sustainability reporting. Built with Vite, Tailwind CSS, React Router v7, Recharts. Deployed on Vercel.
+Nexus is the platform; Aeiforo is the company that builds it. React + TypeScript SPA for ESG/sustainability reporting. Built with Vite, Tailwind CSS, React Router v7, Recharts. Deployed on Vercel as `nexus.aeiforo.co.uk`.
 
 ## Tech Stack
 - **Framework**: React 18 + TypeScript

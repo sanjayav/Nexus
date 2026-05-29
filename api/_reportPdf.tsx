@@ -83,7 +83,7 @@ export interface ReportInput {
   publishedAt: string
 }
 
-// ─── Design tokens (mirror the Aeiforo brand) ──────────────────
+// ─── Design tokens (mirror the Nexus brand) ──────────────────
 
 const colors = {
   brand: '#1B6B7B',
@@ -655,8 +655,8 @@ export function ReportDocument({ input }: { input: ReportInput }) {
       author={input.publishedBy}
       subject={`${input.framework.name} sustainability disclosure for fiscal year ${input.period.year}`}
       keywords={`ESG, sustainability, ${input.framework.code}, ${input.org.name}`}
-      creator="Aeiforo"
-      producer="Aeiforo ESG Platform"
+      creator="Nexus"
+      producer="Nexus ESG Platform · by Aeiforo"
     >
       <Cover input={input} />
       <TOC input={input} />

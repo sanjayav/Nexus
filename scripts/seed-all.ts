@@ -31,7 +31,6 @@ const STEPS: Array<{ name: string; file: string }> = [
   { name: 'Org structure + users',      file: 'seed-org.ts' },
   { name: 'Data Standard catalogue',    file: 'seed-data-standard.ts' },
   { name: 'TCFD + CSRD questionnaires', file: 'seed-tcfd-csrd.ts' },
-  { name: 'PTTGC branding',             file: 'brand-pttgc.ts' },
   { name: 'Anomaly tables',             file: 'migrate-anomalies.ts' },
   { name: 'Report artifact tables',     file: 'migrate-report-artifacts.ts' },
   { name: 'Realistic historical values', file: 'reseed-realistic-values.ts' },

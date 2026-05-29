@@ -78,7 +78,7 @@ export default function AuditorUpload() {
           <div className="w-9 h-9 rounded-[10px] flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1B6B7B, #1e8e7a)', boxShadow: '0 4px 12px rgba(27,107,123,0.3)' }}>
             <Leaf className="w-4 h-4 text-white" />
           </div>
-          <span className="font-display font-bold tracking-[-0.02em] text-[15px]">Aeiforo</span>
+          <span className="font-display font-bold tracking-[-0.02em] text-[15px]">Nexus</span>
         </a>
         <span className="chip">
           <ShieldCheck className="w-3 h-3" /> Assurance upload
@@ -189,7 +189,7 @@ export default function AuditorUpload() {
       </main>
 
       <footer className="text-center py-8 text-[11.5px] text-[var(--text-tertiary)]">
-        Aeiforo ESG Platform · Secure assurance upload · <a href="/" className="link-underline text-[var(--color-brand)] hover:text-[var(--color-brand-strong)]">aeiforo.com</a>
+        Nexus · Secure assurance upload · Powered by <a href="/" className="link-underline text-[var(--color-brand)] hover:text-[var(--color-brand-strong)]">Aeiforo</a>
       </footer>
     </div>
   )

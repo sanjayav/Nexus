@@ -51,7 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 20 bytes = 160-bit secret — RFC 4226 §4 recommended length for SHA-1 HOTP/TOTP.
     const secret = new OTPAuth.Secret({ size: 20 })
     const totp = new OTPAuth.TOTP({
-      issuer: 'Aeiforo',
+      issuer: 'Nexus',
       label: user.email,
       algorithm: 'SHA1',
       digits: 6,

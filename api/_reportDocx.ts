@@ -212,7 +212,7 @@ export function buildDocx(input: ReportInput, sha256: string): Document {
   }
 
   return new Document({
-    creator: 'Aeiforo Sustainability Reporting',
+    creator: 'Nexus Sustainability Reporting',
     title: `${org.name} ${framework.code} ${period.label}`,
     description: 'Auto-generated sustainability report (DOCX)',
     sections: [titleSection],

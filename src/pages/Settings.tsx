@@ -22,7 +22,7 @@ const THEMES: ThemeOption[] = [
   {
     value: 'glass',
     label: 'Glass UI',
-    description: 'Aeiforo legacy. Soft shadows, blurred surfaces, rounded corners.',
+    description: 'Nexus legacy. Soft shadows, blurred surfaces, rounded corners.',
     swatches: ['#0F7B6F', '#E6F5F0', '#16A34A', '#D97706', '#DC2626'],
   },
 ]
@@ -179,7 +179,7 @@ export default function Settings() {
           </h2>
         </div>
         <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
-          Switch between the demo flat theme and the legacy Aeiforo Glass UI.
+          Switch between the demo flat theme and the legacy Nexus Glass UI.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">

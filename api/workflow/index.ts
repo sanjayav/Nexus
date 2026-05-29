@@ -7,6 +7,7 @@ import {
   type WorkflowRole,
 } from '../_workflow.js'
 import { notify } from '../_notify.js'
+import { propagateApprovedValue } from '../_propagate.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   cors(res, req)
@@ -379,7 +380,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           decision === 'approve' ? 'Your submission was approved.' : (comment || 'Please review and resubmit.'),
           '/my-tasks')
 
-        return res.status(200).json({ ok: true, new_status: newStatus, value_hash: newHash })
+        // Linked-data propagation — on approval, auto-fill every peer
+        // framework that shares this concept_key. Idempotent and respects
+        // is_overridden=true. Wrapped in try/catch so a mapping-table issue
+        // can't break the approval workflow.
+        let propagation: { inserted: number; updated: number; skipped: number; conceptKey: string | null } | null = null
+        if (decision === 'approve') {
+          try {
+            propagation = await propagateApprovedValue(sql, data_value_id)
+          } catch (propErr) {
+            // Approval already committed — surface but don't fail the request.
+            console.error('[propagation] failed for', data_value_id, propErr)
+          }
+        }
+
+        return res.status(200).json({ ok: true, new_status: newStatus, value_hash: newHash, propagation })
       } catch (err: unknown) {
         return res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' })
       }

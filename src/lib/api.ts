@@ -2,6 +2,9 @@ import { captureError } from './sentry'
 
 const API_BASE = '/api'
 
+// NOTE: localStorage keys keep the `aeiforo_*` prefix for backwards compatibility.
+// The product is rebranded to "Nexus", but renaming these keys would log every
+// existing user out on first deploy. Brand change is display-only.
 function getToken(): string | null {
   return localStorage.getItem('aeiforo_token')
 }
@@ -667,6 +670,36 @@ export const nexus = {
 
   hash: (data_value_id: string) =>
     request<{ value_hash: string; status: string }>(`/blockchain?view=hash&data_value_id=${encodeURIComponent(data_value_id)}`),
+}
+
+// ── Concept mappings (linked-data propagation) ──────────────
+export interface ConceptPeer {
+  id: string
+  concept_key: string
+  framework_id: string
+  questionnaire_item_id: string
+  unit_conversion: number
+  gri_code: string | null
+  line_item: string | null
+  unit: string | null
+  section: string | null
+}
+
+export interface ConceptMappingsResp {
+  concept_key: string | null
+  mappings: ConceptPeer[]
+}
+
+export const conceptMappings = {
+  forQuestion: (questionnaire_item_id: string) =>
+    request<ConceptMappingsResp>(`/concept-mappings?questionnaire_item_id=${encodeURIComponent(questionnaire_item_id)}`),
+  forConcept: (concept_key: string) =>
+    request<ConceptMappingsResp>(`/concept-mappings?concept_key=${encodeURIComponent(concept_key)}`),
+  override: (data_value_id: string) =>
+    request<{ ok: true; id: string; is_overridden: boolean; derived_from: string | null }>('/concept-mappings', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'override', data_value_id }),
+    }),
 }
 
 // ── AI Drafting ──────────────────────────

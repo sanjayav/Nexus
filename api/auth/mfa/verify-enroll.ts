@@ -42,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const secretBase32 = decrypt(rows[0].secret_enc)
     const totp = new OTPAuth.TOTP({
-      issuer: 'Aeiforo',
+      issuer: 'Nexus',
       label: token.email,
       algorithm: 'SHA1',
       digits: 6,

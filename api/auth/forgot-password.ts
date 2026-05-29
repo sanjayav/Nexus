@@ -70,12 +70,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     void sendEmail({
       to: user.email,
-      subject: 'Reset your Aeiforo password',
+      subject: 'Reset your Nexus password',
       html: `
         <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#0f1419">
           <h2 style="color:#0F7B6F;margin:0 0 12px">Reset your password</h2>
           <p>Hi ${user.name},</p>
-          <p>We received a request to reset your Aeiforo password. Click the button below to choose a new one. The link expires in 30 minutes.</p>
+          <p>We received a request to reset your Nexus password. Click the button below to choose a new one. The link expires in 30 minutes.</p>
           <p style="margin:24px 0">
             <a href="${resetUrl}" style="display:inline-block;background:#0F7B6F;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600">Reset password</a>
           </p>
@@ -83,7 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           <p style="font-size:12px;color:#666;word-break:break-all">Direct link: ${resetUrl}</p>
         </div>
       `,
-      text: `Reset your Aeiforo password: ${resetUrl}\n\nThe link expires in 30 minutes. If you didn't request this, ignore this email.`,
+      text: `Reset your Nexus password: ${resetUrl}\n\nThe link expires in 30 minutes. If you didn't request this, ignore this email.`,
     }).catch((err: unknown) => {
       // eslint-disable-next-line no-console
       console.error('[forgot-password] email send failed:', err instanceof Error ? err.message : err)

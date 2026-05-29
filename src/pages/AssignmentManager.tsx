@@ -6,12 +6,15 @@ import {
   List, Columns, GitBranch, ChevronDown, Network as NetworkIcon, Users,
 } from 'lucide-react'
 import { orgStore, type OrgEntity, type OrgMember, type QuestionAssignment, type ResponseType } from '../lib/orgStore'
+import EmptyState from '../components/EmptyState'
+import JargonTooltip from '../components/JargonTooltip'
 import { nexus, type NexusQuestionnaireItem } from '../lib/api'
 import { findCalculator } from '../calculators/registry'
 import { useAuth } from '../auth/AuthContext'
 import JourneyBar from '../components/JourneyBar'
 import { FrameworkBadge } from '../components/FrameworkBadge'
 import { useFramework } from '../lib/frameworks'
+import SavedViewsBar from '../components/SavedViewsBar'
 
 const MODES = ['Manual', 'Calculator', 'Connector'] as const
 type Mode = typeof MODES[number]
@@ -180,7 +183,8 @@ export default function AssignmentManager() {
             <FrameworkBadge size="md" />
           </div>
           <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1">
-            Each {framework.code} line item goes to the person closest to the data. They see it in <strong>My Tasks</strong> next time they sign in.
+            Each {framework.code} line item goes to the person closest to the data — controlled by <JargonTooltip term="RBAC" />.
+            They see it in <strong>My Tasks</strong> next time they sign in.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -216,6 +220,18 @@ export default function AssignmentManager() {
         <Stat label="In review" value={stats.inFlight} tone="pending" />
         <Stat label="Not started" value={stats.notStarted} tone="draft" />
       </div>
+
+      {/* Saved views */}
+      <SavedViewsBar
+        page="assignment-manager"
+        filters={{ query, filterStatus, filterEntity }}
+        onApply={(f: { query?: string; filterStatus?: QuestionAssignment['status'] | 'all'; filterEntity?: string }) => {
+          if (typeof f.query === 'string') setQuery(f.query)
+          if (f.filterStatus) setFilterStatus(f.filterStatus)
+          if (f.filterEntity) setFilterEntity(f.filterEntity)
+        }}
+        className="mb-3"
+      />
 
       {/* Filters */}
       <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -275,19 +291,17 @@ export default function AssignmentManager() {
       {loading ? (
         <div className="py-20 flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-[var(--color-brand)]" /></div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)] py-14 text-center">
-          <ClipboardList className="w-10 h-10 mx-auto text-[var(--text-tertiary)] mb-2" />
-          <h3 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">
-            {assignments.length === 0 ? 'No assignments yet' : 'No results'}
-          </h3>
-          <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1 max-w-sm mx-auto">
-            {assignments.length === 0 ? 'Create your first assignment — pick a GRI question and hand it to a plant.' : 'Try different filters.'}
-          </p>
-          {assignments.length === 0 && (
-            <button onClick={openDrawer} className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold">
-              <Plus className="w-4 h-4" /> Create assignment
-            </button>
-          )}
+        <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)]">
+          <EmptyState
+            icon={ClipboardList}
+            title={assignments.length === 0 ? 'No assignments yet' : 'No results match these filters'}
+            body={assignments.length === 0
+              ? 'Click "Bulk assign" to distribute disclosures to your team, or create them one at a time.'
+              : 'Clear filters above or pick a different framework / status.'}
+            cta={assignments.length === 0
+              ? { label: 'Create assignment', onClick: openDrawer }
+              : undefined}
+          />
         </div>
       ) : view === 'kanban' ? (
         <KanbanView

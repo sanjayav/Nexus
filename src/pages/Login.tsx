@@ -1,7 +1,20 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Lock, Mail, AlertCircle, Loader2, ArrowRight, Leaf, Shield, Zap, BarChart3, Globe, User, Building2, KeyRound } from 'lucide-react'
+import { z } from 'zod'
 import { useAuth } from '../auth/AuthContext'
+
+/**
+ * Register-form schema. Field-level errors are derived from this and shown
+ * inline beneath each input (login mode keeps the existing top-level
+ * "error" banner since the server is the source of truth for bad creds).
+ */
+const registerSchema = z.object({
+  email: z.string().trim().email('Enter a valid email address.'),
+  name: z.string().trim().min(2, 'Name needs at least 2 characters.'),
+  password: z.string().min(6, 'Password must be at least 6 characters.'),
+})
+type RegisterFieldErrors = Partial<Record<'email' | 'name' | 'password', string>>
 import { SplineScene } from '../components/SplineScene'
 import { Spotlight } from '../components/Spotlight'
 import { homeRouteFor } from '../lib/rbac'
@@ -51,6 +64,22 @@ export default function Login() {
   const [name, setName] = useState('')
   const [workspaceName, setWorkspaceName] = useState('')
   const [error, setError] = useState<string | null>(null)
+  // Register-mode inline validation state. Errors keyed by field; we only
+  // surface an error once the field has been blurred (`touched`) so the
+  // user isn't yelled at while still typing.
+  const [touched, setTouched] = useState<Partial<Record<'email' | 'name' | 'password', boolean>>>({})
+  const registerErrors: RegisterFieldErrors = (() => {
+    if (mode !== 'register') return {}
+    const r = registerSchema.safeParse({ email, name, password })
+    if (r.success) return {}
+    const out: RegisterFieldErrors = {}
+    for (const iss of r.error.issues) {
+      const k = iss.path[0] as 'email' | 'name' | 'password' | undefined
+      if (k && !out[k]) out[k] = iss.message
+    }
+    return out
+  })()
+  const registerValid = Object.keys(registerErrors).length === 0
   const [loading, setLoading] = useState(false)
   const [quickIdx, setQuickIdx] = useState<number | null>(null)
   // Step-up MFA — when login returns mfaRequired we collect a TOTP code.
@@ -148,8 +177,8 @@ export default function Login() {
     setLoading(true)
 
     if (mode === 'register') {
-      if (!name.trim()) { setError('Name is required.'); setLoading(false); return }
-      if (password.length < 6) { setError('Password must be at least 6 characters.'); setLoading(false); return }
+      setTouched({ email: true, name: true, password: true })
+      if (!registerValid) { setLoading(false); return }
       const ok = await register({
         email,
         name,
@@ -295,11 +324,11 @@ export default function Login() {
               <Leaf className="w-[18px] h-[18px] text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-[15px] font-display font-bold tracking-tight block text-white leading-tight">Aeiforo</span>
+              <span className="text-[15px] font-display font-bold tracking-tight block text-white leading-tight">Nexus</span>
               <span className="text-[10px] text-white/40 font-medium tracking-wide">
-                Real-time carbon accounting &{' '}
+                Sustainability Intelligence Platform ·{' '}
                 <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text" style={{ WebkitTextFillColor: 'transparent' }}>
-                  ESG reporting
+                  by Aeiforo
                 </span>
               </span>
             </div>
@@ -313,7 +342,7 @@ export default function Login() {
               <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[var(--accent-teal)] to-emerald-600 flex items-center justify-center shadow-sm">
                 <Leaf className="w-4 h-4 text-white" />
               </div>
-              <span className="text-[17px] font-display font-bold text-white">Aeiforo</span>
+              <span className="text-[17px] font-display font-bold text-white">Nexus</span>
             </div>
 
             <div>
@@ -461,13 +490,23 @@ export default function Login() {
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                   <input
                     id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                    onBlur={() => setTouched(t => ({ ...t, email: true }))}
                     aria-required="true"
-                    aria-invalid={error ? true : undefined}
-                    aria-describedby={error ? 'login-error' : undefined}
+                    aria-invalid={mode === 'register' ? !!(touched.email && registerErrors.email) : error ? true : undefined}
+                    aria-describedby={
+                      mode === 'register' && touched.email && registerErrors.email
+                        ? 'email-err'
+                        : error ? 'login-error' : undefined
+                    }
                     placeholder="user@company.com"
-                    className="w-full h-10 pl-10 pr-4 rounded-lg border border-white/10 bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all hover:border-white/20"
+                    className={`w-full h-10 pl-10 pr-4 rounded-lg border bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all hover:border-white/20 ${
+                      mode === 'register' && touched.email && registerErrors.email ? 'border-red-500/60' : 'border-white/10'
+                    }`}
                   />
                 </div>
+                {mode === 'register' && touched.email && registerErrors.email && (
+                  <p id="email-err" className="mt-1 text-[11px] text-red-300">{registerErrors.email}</p>
+                )}
               </div>
               {mode === 'register' && (
                 <>
@@ -477,13 +516,19 @@ export default function Login() {
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                       <input
                         id="name" type="text" value={name} onChange={(e) => setName(e.target.value)}
+                        onBlur={() => setTouched(t => ({ ...t, name: true }))}
                         aria-required="true"
-                        aria-invalid={error ? true : undefined}
-                        aria-describedby={error ? 'login-error' : undefined}
+                        aria-invalid={!!(touched.name && registerErrors.name)}
+                        aria-describedby={touched.name && registerErrors.name ? 'name-err' : undefined}
                         placeholder="John Smith"
-                        className="w-full h-10 pl-10 pr-4 rounded-lg border border-white/10 bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all hover:border-white/20"
+                        className={`w-full h-10 pl-10 pr-4 rounded-lg border bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all hover:border-white/20 ${
+                          touched.name && registerErrors.name ? 'border-red-500/60' : 'border-white/10'
+                        }`}
                       />
                     </div>
+                    {touched.name && registerErrors.name && (
+                      <p id="name-err" className="mt-1 text-[11px] text-red-300">{registerErrors.name}</p>
+                    )}
                   </div>
                   <div>
                     <label htmlFor="workspace" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">
@@ -541,16 +586,26 @@ export default function Login() {
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                       <input
                         id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                        onBlur={() => setTouched(t => ({ ...t, password: true }))}
                         aria-required="true"
-                        aria-invalid={error ? true : undefined}
-                        aria-describedby={error ? 'login-error' : undefined}
+                        aria-invalid={mode === 'register' ? !!(touched.password && registerErrors.password) : error ? true : undefined}
+                        aria-describedby={
+                          mode === 'register' && touched.password && registerErrors.password
+                            ? 'pw-err'
+                            : error ? 'login-error' : undefined
+                        }
                         placeholder={mode === 'register' ? 'Min. 6 characters' : ''}
-                        className="w-full h-10 pl-10 pr-4 rounded-lg border border-white/10 bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all hover:border-white/20"
+                        className={`w-full h-10 pl-10 pr-4 rounded-lg border bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all hover:border-white/20 ${
+                          mode === 'register' && touched.password && registerErrors.password ? 'border-red-500/60' : 'border-white/10'
+                        }`}
                       />
                     </div>
+                    {mode === 'register' && touched.password && registerErrors.password && (
+                      <p id="pw-err" className="mt-1 text-[11px] text-red-300">{registerErrors.password}</p>
+                    )}
                   </div>
                   <button
-                    type="submit" disabled={loading}
+                    type="submit" disabled={loading || (mode === 'register' && !registerValid)}
                     aria-busy={loading}
                     className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[13px] font-semibold hover:from-emerald-400 hover:to-teal-400 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer shadow-[0_0_20px_-6px_rgba(52,211,153,0.6)]"
                   >
@@ -560,7 +615,7 @@ export default function Login() {
               )}
               <button
                 type="button"
-                onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(null) }}
+                onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(null); setTouched({}) }}
                 className="w-full text-center text-[12px] text-white/40 hover:text-emerald-400 transition-colors cursor-pointer"
               >
                 {mode === 'login' ? 'Need an account? Create one' : 'Already have an account? Sign in'}

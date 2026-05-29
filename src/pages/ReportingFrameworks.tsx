@@ -14,6 +14,7 @@ import { formatValue, truncateHash } from '../reports/spdTemplate'
 import SetupGuard from '../components/SetupGuard'
 import { Button } from '../design-system'
 import { useFramework } from '../lib/frameworks'
+import JargonTooltip from '../components/JargonTooltip'
 
 const ACTIVE_YEAR = 2026
 
@@ -166,7 +167,9 @@ export default function ReportingFrameworks() {
   return (
     <div className="space-y-5 animate-fade-in">
       <header>
-        <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)]">GRI Questionnaire — FY{ACTIVE_YEAR}</h1>
+        <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)]">
+          <JargonTooltip term="GRI" iconOnly /> GRI Questionnaire — FY{ACTIVE_YEAR}
+        </h1>
         <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1">
           Full GRI inventory inherited from the published Sustainability Performance Data report — same hierarchy, same line items, same units. Click any row to enter, compute, or pull its FY{ACTIVE_YEAR} value.
         </p>

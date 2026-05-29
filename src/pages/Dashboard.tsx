@@ -43,6 +43,18 @@ export default function Dashboard() {
   const hasEntities = (orgData?.entities.length ?? 0) > 0
   const showOnboardingGate = role === 'platform_admin' && !hasEntities && orgData !== null
 
+  // First-run wizard: a brand-new admin with zero entities AND who hasn't
+  // dismissed the welcome flow is bounced into /welcome. Honours the
+  // localStorage flag so reset / "Skip for now" stays sticky.
+  useEffect(() => {
+    if (!showOnboardingGate) return
+    try {
+      const orgId = (user as unknown as { org_id?: string | null } | null)?.org_id ?? 'default'
+      const done = localStorage.getItem(`aeiforo_onboarding_done_${orgId}`) === '1'
+      if (!done) navigate('/welcome', { replace: true })
+    } catch { /* ignore */ }
+  }, [showOnboardingGate, navigate, user])
+
   const assignments = useMemo(() => {
     if (!orgData) return [] as QuestionAssignment[]
     return orgData.assignments.filter(a => a.framework_id === framework.id)

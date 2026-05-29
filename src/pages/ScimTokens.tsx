@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { KeyRound, Copy, Check, Trash2, AlertTriangle, Plus, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
+import { KeyRound, Copy, Check, Trash2, AlertTriangle, Plus, Loader2, ChevronDown, ChevronUp, Shield } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
+import EmptyState from '../components/EmptyState'
 import { Card, Button, Badge } from '../design-system'
 import { scim, type ScimToken, type ScimTokenCreated } from '../lib/api'
 
@@ -201,7 +202,12 @@ export default function ScimTokens() {
             <Loader2 className="w-4 h-4 animate-spin" /> Loading…
           </div>
         ) : tokens.length === 0 ? (
-          <div className="text-[13px] text-[var(--text-tertiary)] py-6">No SCIM tokens yet. Generate one above to get started.</div>
+          <EmptyState
+            icon={Shield}
+            title="No SCIM tokens yet"
+            body="Generate a bearer token above and paste it into your IdP (Azure AD, Okta, Google Workspace) to start auto-provisioning users."
+            density="compact"
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">

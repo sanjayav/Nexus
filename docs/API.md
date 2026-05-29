@@ -1,7 +1,7 @@
-# Aeiforo programmatic API
+# Nexus programmatic API
 
-This document covers programmatic access to the Aeiforo Sustainability
-Reporting platform via API keys. API keys are intended for CI pipelines,
+This document covers programmatic access to Nexus (by Aeiforo), the
+Sustainability Intelligence Platform, via API keys. API keys are intended for CI pipelines,
 BI tools, and ERP push connectors. They are distinct from SCIM tokens
 (which are only for identity-provider user sync).
 

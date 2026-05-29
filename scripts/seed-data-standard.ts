@@ -1,14 +1,14 @@
 /**
  * ESG Data Standard migration + seed.
  *
- * Addresses PTTGC priorities #1 (standardize), #4 (cadence), #6 (ownership):
+ * Addresses tenant priorities #1 (standardize), #4 (cadence), #6 (ownership):
  *   · canonical definition per disclosure (what counts, what doesn't)
  *   · calc_method (how to compute it, which EF source)
  *   · cadence (collection frequency)
  *   · data_owner_role / reviewer_role / approver_role
  *
  * Idempotent. Seeds ~25 high-traffic GRI + TCFD + CSRD disclosures with
- * real-world text a PTTGC sustainability officer would recognise.
+ * real-world text a sustainability officer would recognise.
  */
 import { neon } from '@neondatabase/serverless'
 import { config as loadEnv } from 'dotenv'
@@ -55,7 +55,7 @@ const STANDARDS: StandardEntry[] = [
   },
   {
     gri_code_prefix: '305-3',
-    definition: 'Other indirect (Scope 3) GHG emissions from the organisation\'s value chain — 15 categories per GHG Protocol Scope 3 Standard. Relevant for PTTGC: Cat-1 purchased goods & services, Cat-4 upstream transport, Cat-11 use of sold products, Cat-12 end-of-life.',
+    definition: 'Other indirect (Scope 3) GHG emissions from the organisation\'s value chain — 15 categories per GHG Protocol Scope 3 Standard. Typically material categories: Cat-1 purchased goods & services, Cat-4 upstream transport, Cat-11 use of sold products, Cat-12 end-of-life.',
     calc_method: 'Per category: physical flow × category-specific EF (spend-based for Cat-1 upstream, product LCA for Cat-11). Screen 15 categories annually; report material ones (>5% of total Scope 3).',
     cadence: 'annual',
     owner_role: 'group_sustainability_officer',

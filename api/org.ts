@@ -198,6 +198,77 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
+  // Public read-only report — token-gated, optional password, returns only
+  // published-report shape (no draft values, no internal comments).
+  if (publicView === 'public-report') {
+    try {
+      const tokenStr = String(req.query.token || '')
+      if (!tokenStr) return res.status(400).json({ error: 'token required' })
+      const linkRows = await sql`
+        SELECT id, org_id, report_id, expires_at, password_hash, is_active, view_count
+        FROM report_share_links WHERE token = ${tokenStr}
+        LIMIT 1
+      ` as Array<{ id: string; org_id: string; report_id: string | null; expires_at: string | null; password_hash: string | null; is_active: boolean; view_count: number }>
+      if (linkRows.length === 0) return res.status(404).json({ error: 'Invalid link' })
+      const link = linkRows[0]
+      if (!link.is_active) return res.status(410).json({ error: 'This link has been revoked' })
+      if (link.expires_at && new Date(link.expires_at).getTime() < Date.now()) {
+        return res.status(410).json({ error: 'This link has expired' })
+      }
+      if (link.password_hash) {
+        const provided = String(req.query.p || '')
+        if (!provided) return res.status(401).json({ error: 'Password required', password_required: true })
+        const bcrypt = await import('bcryptjs')
+        const ok = await bcrypt.default.compare(provided, link.password_hash)
+        if (!ok) return res.status(401).json({ error: 'Invalid password', password_required: true })
+      }
+      // Load the published report — pull only the fields safe to disclose.
+      // (No internal comments, no draft values.)
+      let report: Record<string, unknown> | null = null
+      if (link.report_id) {
+        const rows = await sql`
+          SELECT ra.id, ra.framework_id, ra.version, ra.published_at, ra.is_draft,
+                 ra.pdf_sha256, ra.page_count, ra.anchor_tip_hash, ra.anchored_at,
+                 ra.verification_token,
+                 rp.label AS period_label, rp.year AS period_year,
+                 o.name AS org_name,
+                 u.name AS published_by_name,
+                 ar.auditor_firm, ar.signed_by, ar.signed_at, ar.opinion_type, ar.isae_reference
+          FROM report_artifacts ra
+          LEFT JOIN reporting_periods rp ON rp.id = ra.period_id
+          LEFT JOIN organisations o ON o.id = ra.org_id
+          LEFT JOIN users u ON u.id = ra.published_by
+          LEFT JOIN assurance_requests ar ON ar.id = ra.assurance_request_id AND ar.status = 'signed'
+          WHERE ra.id = ${link.report_id} AND ra.org_id = ${link.org_id} AND ra.is_draft = false
+          LIMIT 1
+        ` as Array<Record<string, unknown>>
+        if (rows.length === 0) return res.status(404).json({ error: 'Report no longer published' })
+        report = rows[0]
+        // Pull approved (non-draft) disclosure values for this period+framework.
+        const sections = await sql`
+          SELECT gri_code, line_item, value, unit, narrative_body, response_type
+          FROM question_assignments
+          WHERE org_id = ${link.org_id}
+            AND framework_id = ${report.framework_id as string}
+            AND period_id = (SELECT period_id FROM report_artifacts WHERE id = ${link.report_id})
+            AND status = 'approved'
+          ORDER BY gri_code, line_item
+        ` as Array<{ gri_code: string; line_item: string; value: number | null; unit: string | null; narrative_body: string | null; response_type: string }>
+        report.sections = sections
+      }
+      // Bump view counter (best-effort).
+      await sql`UPDATE report_share_links SET view_count = view_count + 1 WHERE id = ${link.id}`.catch(() => {})
+      return res.status(200).json({
+        ok: true,
+        view_count: link.view_count + 1,
+        password_protected: !!link.password_hash,
+        report,
+      })
+    } catch (e) {
+      return res.status(500).json({ error: e instanceof Error ? e.message : 'Load failed' })
+    }
+  }
+
   // ─── Authenticated endpoints ─────────────────────────────────
   const token = await verifyToken(req)
   if (!token) return res.status(401).json({ error: 'Unauthorized' })
@@ -248,6 +319,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               ORDER BY MIN(framework_id), MIN(section), gri_code, line_item
             `
         return res.status(200).json(rows)
+      }
+      if (view === 'saved-views') {
+        // List the user's private saved views + any org-shared views for this page.
+        const page = String(req.query.page || '')
+        if (!page) return res.status(400).json({ error: 'page required' })
+        const rows = await sql`
+          SELECT id, page, name, filters, is_default, is_shared, user_id, created_at, updated_at
+          FROM saved_views
+          WHERE org_id = ${orgId}
+            AND page = ${page}
+            AND (user_id = ${token.sub} OR is_shared = true)
+          ORDER BY is_default DESC, name ASC
+        ` as Array<{ id: string; page: string; name: string; filters: unknown; is_default: boolean; is_shared: boolean; user_id: string; created_at: string; updated_at: string }>
+        return res.status(200).json(rows.map(r => ({
+          ...r,
+          owned_by_me: r.user_id === token.sub,
+        })))
       }
       if (view === 'tenant-brand') {
         const rows = await sql`
@@ -798,6 +886,110 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await sql`DELETE FROM org_targets              WHERE org_id = ${orgId}`.catch(() => {})
         await sql`DELETE FROM org_members              WHERE org_id = ${orgId}`.catch(() => {})
         await sql`DELETE FROM org_entities             WHERE org_id = ${orgId}`.catch(() => {})
+        return res.status(200).json({ ok: true })
+      }
+
+      // ─── Saved views ──────────────────────────────────────
+      if (action === 'save-view') {
+        const page = String(req.body?.page ?? '').slice(0, 100)
+        const name = String(req.body?.name ?? '').trim().slice(0, 200)
+        const filters = req.body?.filters
+        const isShared = Boolean(req.body?.is_shared)
+        const isDefault = Boolean(req.body?.is_default)
+        if (!page || !name) return res.status(400).json({ error: 'page and name required' })
+        if (filters === undefined || filters === null) return res.status(400).json({ error: 'filters required' })
+        // If user sets a new default, clear other defaults for (user, page).
+        if (isDefault) {
+          await sql`UPDATE saved_views SET is_default = false WHERE user_id = ${token.sub} AND page = ${page}`
+        }
+        const rows = await sql`
+          INSERT INTO saved_views (org_id, user_id, page, name, filters, is_shared, is_default)
+          VALUES (${orgId}, ${token.sub}, ${page}, ${name}, ${JSON.stringify(filters)}::jsonb, ${isShared}, ${isDefault})
+          RETURNING id, page, name, filters, is_default, is_shared, user_id, created_at, updated_at
+        ` as Array<Record<string, unknown>>
+        const r = rows[0]
+        return res.status(201).json({ ...r, owned_by_me: true })
+      }
+      if (action === 'delete-saved-view') {
+        const id = String(req.body?.id ?? '')
+        if (!id) return res.status(400).json({ error: 'id required' })
+        // Only the owner can delete. Shared views remain visible to others.
+        const del = await sql`
+          DELETE FROM saved_views WHERE id = ${id} AND user_id = ${token.sub} AND org_id = ${orgId}
+          RETURNING id
+        ` as Array<{ id: string }>
+        if (del.length === 0) return res.status(404).json({ error: 'Not found' })
+        return res.status(200).json({ ok: true })
+      }
+
+      // ─── Anomaly status ───────────────────────────────────
+      if (action === 'update-anomaly-status') {
+        const gate = await requirePermission(req, res, 'analytics.view')
+        if (!gate) return
+        const key = String(req.body?.anomaly_key ?? '').slice(0, 400)
+        const status = String(req.body?.status ?? '')
+        const note = req.body?.note ? String(req.body.note).slice(0, 2000) : null
+        const allowed = ['open', 'investigating', 'resolved', 'dismissed']
+        if (!key) return res.status(400).json({ error: 'anomaly_key required' })
+        if (!allowed.includes(status)) return res.status(400).json({ error: 'status must be one of ' + allowed.join(', ') })
+        const rows = await sql`
+          INSERT INTO anomaly_status (org_id, anomaly_key, status, note, changed_by)
+          VALUES (${orgId}, ${key}, ${status}, ${note}, ${token.sub})
+          ON CONFLICT (org_id, anomaly_key) DO UPDATE
+            SET status = EXCLUDED.status, note = EXCLUDED.note,
+                changed_by = EXCLUDED.changed_by, changed_at = now()
+          RETURNING id, anomaly_key, status, note, changed_at
+        ` as Array<Record<string, unknown>>
+        await audit({
+          orgId, userId: token.sub, action: 'anomaly.status_change',
+          resourceType: 'anomaly', resourceId: key,
+          details: { status, note }, ip: auditIp(req),
+        })
+        return res.status(200).json(rows[0])
+      }
+
+      // ─── Public report share links ────────────────────────
+      if (action === 'create-share-link') {
+        const gate = await requirePermission(req, res, 'reports.publish')
+        if (!gate) return
+        const reportId = req.body?.reportId ? String(req.body.reportId) : null
+        const expiresInDays = Number(req.body?.expiresInDays ?? 0)
+        const password = req.body?.password ? String(req.body.password) : null
+        const token_str = crypto.randomBytes(24).toString('base64url')
+        let passwordHash: string | null = null
+        if (password) {
+          const bcrypt = await import('bcryptjs')
+          passwordHash = await bcrypt.default.hash(password, 10)
+        }
+        const expiresAt = expiresInDays > 0
+          ? new Date(Date.now() + expiresInDays * 86400_000).toISOString()
+          : null
+        const rows = await sql`
+          INSERT INTO report_share_links (org_id, report_id, token, expires_at, password_hash, created_by)
+          VALUES (${orgId}, ${reportId}, ${token_str}, ${expiresAt}, ${passwordHash}, ${token.sub})
+          RETURNING id, token, expires_at, created_at
+        ` as Array<{ id: string; token: string; expires_at: string | null; created_at: string }>
+        const r = rows[0]
+        await audit({
+          orgId, userId: token.sub, action: 'report.share_link_created',
+          resourceType: 'report', resourceId: reportId,
+          details: { share_id: r.id, expires_at: r.expires_at, password_protected: !!passwordHash },
+          ip: auditIp(req),
+        })
+        return res.status(201).json({
+          id: r.id,
+          token: r.token,
+          url: `/public/report/${r.token}`,
+          expires_at: r.expires_at,
+          created_at: r.created_at,
+        })
+      }
+      if (action === 'revoke-share-link') {
+        const gate = await requirePermission(req, res, 'reports.publish')
+        if (!gate) return
+        const id = String(req.body?.id ?? '')
+        if (!id) return res.status(400).json({ error: 'id required' })
+        await sql`UPDATE report_share_links SET is_active = false WHERE id = ${id} AND org_id = ${orgId}`
         return res.status(200).json({ ok: true })
       }
 

@@ -39,11 +39,11 @@ async function main() {
 
   // ── Entities ────────────────────────────────────────
   const entities = [
-    [E.group,     null,        'group',         'PTT Global Chemical PCL',             'PTTGC',    'Thailand',  null, 'Petrochemicals'],
+    [E.group,     null,        'group',         'Demo Chemicals Group PCL',            'DCG',      'Thailand',  null, 'Petrochemicals'],
     [E.bu_chem,   E.group,     'business_unit', 'Chemicals',                            'CHEM',     'Thailand',  null, null],
     [E.bu_poly,   E.group,     'business_unit', 'Polymers & Specialty',                 'POLY',     'Thailand',  null, null],
-    [E.sub_cth,   E.bu_chem,   'subsidiary',    'PTTGC Chemicals Thailand',             'GC-TH',    'Thailand',  100,  null],
-    [E.sub_intl,  E.bu_chem,   'subsidiary',    'PTTGC International (Singapore)',      'GC-SG',    'Singapore', 80,   null],
+    [E.sub_cth,   E.bu_chem,   'subsidiary',    'Demo Chemicals Thailand',              'DC-TH',    'Thailand',  100,  null],
+    [E.sub_intl,  E.bu_chem,   'subsidiary',    'Demo Chemicals International (SG)',    'DC-SG',    'Singapore', 80,   null],
     [E.sub_poly,  E.bu_poly,   'subsidiary',    'Thai Polyethylene Co.',                'TPE',      'Thailand',  100,  null],
     [E.plant_mtp, E.sub_cth,   'plant',         'Map Ta Phut Olefins Plant',            'MTP-OLE',  'Thailand',  null, null],
     [E.plant_ray, E.sub_cth,   'plant',         'Rayong Aromatics Complex',             'RAY-ARO',  'Thailand',  null, null],
@@ -97,7 +97,7 @@ async function main() {
   ` as Array<{ id: string; gri_code: string; line_item: string; unit: string | null }>
 
   if (griQuestions.length === 0) {
-    console.error('  ✗ No GRI 305/303 questions in DB. Run /api/setup first (it seeds PTTGC questionnaire items).')
+    console.error('  ✗ No GRI 305/303 questions in DB. Run /api/setup first (it seeds the questionnaire items).')
     return
   }
 

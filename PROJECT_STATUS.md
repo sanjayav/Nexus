@@ -1,9 +1,17 @@
-# Aeiforo Sustainability Reporting Dashboard — Build Status
+# Nexus (by Aeiforo) — Build Status
 
-**As of:** 2026-04-21
+**As of:** 2026-05-29
 **Owner:** sanjay.v@marklytics.co.uk
 **Repo:** `/Users/kick/Desktop/Aeiforo/reporting dash`
+**Product:** Nexus — Sustainability Intelligence Platform. Aeiforo is the company that builds it.
 **Stage:** Working prototype with frontend + backend API + Neon Postgres schema. Deployed on Vercel.
+
+## Brand follow-ups
+
+- Demo user emails (`@aeiforo.com`) remain unchanged — they are seeded into the live DB; renaming would lock testers out until a reseed.
+- Demo organisation seed row in `api/setup.ts` keeps name "Aeiforo Demo" / slug `aeiforo-demo` (URL contract).
+- `localStorage` keys keep the `aeiforo_*` prefix for backwards compatibility (renaming would invalidate every active session on deploy).
+- Env vars (`VITE_DEMO_PASSWORD`, `AEIFORO_DEMO_PASSWORD`, `EMAIL_FROM`, etc.) remain stable.
 
 ---
 

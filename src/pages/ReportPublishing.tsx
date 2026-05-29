@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import {
   Download, Send, Loader2, CheckCircle2, AlertCircle,
   Shield, Hash, Clock, FileText, ShieldCheck, Copy, ExternalLink, RotateCw, X, BadgeCheck,
-  FileSpreadsheet, Sparkles,
+  FileSpreadsheet, Sparkles, Share2,
 } from 'lucide-react'
 import { useOrgData } from '../lib/useOrgData'
 import { useFramework } from '../lib/frameworks'
@@ -37,6 +37,7 @@ export default function ReportPublishing() {
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<{ totals: EmissionsTotals; updated: number; failed: number } | null>(null)
   const [autoPublishAfterImport, setAutoPublishAfterImport] = useState(false)
+  const [shareDialogReport, setShareDialogReport] = useState<PublishedReport | null>(null)
 
   const load = async () => {
     setState('loading')
@@ -221,6 +222,13 @@ export default function ReportPublishing() {
 
       {publishBanner && <PublishBanner banner={publishBanner} onClose={() => setPublishBanner(null)} />}
 
+      {shareDialogReport && (
+        <ShareDialog
+          report={shareDialogReport}
+          onClose={() => setShareDialogReport(null)}
+        />
+      )}
+
       {importResult && (
         <ImportResultBanner
           result={importResult}
@@ -265,7 +273,7 @@ export default function ReportPublishing() {
                   The PDF is generated server-side and each page includes verification on the footer. The cover carries a QR code and a{' '}
                   <JargonTooltip term="SHA-256">A 256-bit cryptographic fingerprint of the PDF. Any change to the file — even a single character — produces a different hash, so recipients can prove the file hasn't been altered.</JargonTooltip>
                   {' '}hash anchored to a{' '}
-                  <JargonTooltip term="public timestamp calendar">An external service (OpenTimestamps) that records the hash on the Bitcoin blockchain at a specific moment, providing a tamper-evident proof that the report existed in this exact form on a given date — without trusting Aeiforo or any single party.</JargonTooltip>
+                  <JargonTooltip term="public timestamp calendar">An external service (OpenTimestamps) that records the hash on the Bitcoin blockchain at a specific moment, providing a tamper-evident proof that the report existed in this exact form on a given date — without trusting Nexus or any single party.</JargonTooltip>
                   {' '}— any recipient can confirm the file hasn't been modified.
                 </p>
                 <div className="mt-5 max-w-md">
@@ -303,7 +311,7 @@ export default function ReportPublishing() {
       {latestForPeriod && (
         <section>
           <SectionHeader kicker="Latest artifact" title={`Version ${latestForPeriod.version}`} subtitle={`Published ${new Date(latestForPeriod.published_at).toLocaleString()}. Hash anchored to OpenTimestamps.`} />
-          <ArtifactCard report={latestForPeriod} />
+          <ArtifactCard report={latestForPeriod} onShare={setShareDialogReport} />
         </section>
       )}
 
@@ -330,7 +338,7 @@ export default function ReportPublishing() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-subtle)]">
-                {reports.map((r, i) => <ReportRow key={r.id} report={r} i={i} />)}
+                {reports.map((r, i) => <ReportRow key={r.id} report={r} i={i} onShare={setShareDialogReport} />)}
               </tbody>
             </table>
           </div>
@@ -547,7 +555,7 @@ function PublishBanner({ banner, onClose }: { banner: { verify_url: string; sha2
   )
 }
 
-function ArtifactCard({ report }: { report: PublishedReport }) {
+function ArtifactCard({ report, onShare }: { report: PublishedReport; onShare: (r: PublishedReport) => void }) {
   return (
     <motion.div {...popIn(0)} className="surface-paper p-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -587,6 +595,9 @@ function ArtifactCard({ report }: { report: PublishedReport }) {
           <Button variant="secondary" size="md" icon={<Download className="w-4 h-4" />} onClick={() => orgStore.downloadReportDocx(report.id, `${report.framework_id}-${report.period_label.replace(/\s+/g, '')}-v${report.version}.docx`)} title="Download editable Word (.docx)">
             Word
           </Button>
+          <Button variant="secondary" size="md" icon={<Share2 className="w-4 h-4" />} onClick={() => onShare(report)} title="Create a public share link">
+            Share publicly
+          </Button>
           <Button variant="brand" size="md" icon={<Download className="w-4 h-4" />} onClick={() => orgStore.downloadReportPdf(report.id, `${report.framework_id}-${report.period_label.replace(/\s+/g, '')}-v${report.version}.pdf`)}>
             Download
           </Button>
@@ -596,7 +607,7 @@ function ArtifactCard({ report }: { report: PublishedReport }) {
   )
 }
 
-function ReportRow({ report, i }: { report: PublishedReport; i: number }) {
+function ReportRow({ report, i, onShare }: { report: PublishedReport; i: number; onShare: (r: PublishedReport) => void }) {
   return (
     <motion.tr {...slideInLeft(i)} className="hover:bg-[var(--bg-secondary)]">
       <td className="px-5 py-3">
@@ -634,6 +645,9 @@ function ReportRow({ report, i }: { report: PublishedReport; i: number }) {
           </button>
           <button onClick={() => orgStore.downloadReportIxbrl(report.id, `${report.framework_id}-v${report.version}.xhtml`)} className="px-2 h-7 inline-flex items-center rounded-[6px] text-[11px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title="Download iXBRL (ESRS)">
             iXBRL
+          </button>
+          <button onClick={() => onShare(report)} className="px-2 h-7 inline-flex items-center rounded-[6px] text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title="Share publicly">
+            <Share2 className="w-3.5 h-3.5" />
           </button>
         </div>
       </td>
@@ -838,5 +852,115 @@ function Field({ label, placeholder, value, onChange, type = 'text', as = 'input
         />
       )}
     </label>
+  )
+}
+
+/**
+ * Generates a public token for a published report. The token is revealed
+ * ONCE — copying it is the user's responsibility. We never round-trip the
+ * password back to the client (server stores a bcrypt hash only).
+ */
+function ShareDialog({ report, onClose }: { report: PublishedReport; onClose: () => void }) {
+  const [expiresInDays, setExpiresInDays] = useState<number>(30)
+  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [result, setResult] = useState<{ token: string; url: string; expires_at: string | null } | null>(null)
+
+  const generate = async () => {
+    setBusy(true); setError(null)
+    try {
+      const r = await orgStore.createShareLink({
+        reportId: report.id,
+        expiresInDays: expiresInDays > 0 ? expiresInDays : undefined,
+        password: password || undefined,
+      })
+      // Build a full URL so the user can copy-paste with origin intact.
+      const fullUrl = `${window.location.origin}${r.url}`
+      setResult({ token: r.token, url: fullUrl, expires_at: r.expires_at })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to create share link')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label="Share report publicly">
+      <div className="surface-paper p-6 w-full max-w-lg space-y-4">
+        <header className="flex items-center justify-between">
+          <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)]">Share report publicly</h3>
+          <button type="button" onClick={onClose} className="p-1 rounded hover:bg-[var(--bg-tertiary)]" aria-label="Close">
+            <X className="w-4 h-4" />
+          </button>
+        </header>
+        <p className="text-[12.5px] text-[var(--text-secondary)]">
+          Generate a token-protected, read-only URL anyone with the link can view. No login required.
+          The link can be revoked at any time from the audit log.
+        </p>
+        {!result && (
+          <>
+            <label className="block">
+              <span className="text-[12px] font-semibold text-[var(--text-secondary)]">Expires after (days, 0 = never)</span>
+              <input
+                type="number"
+                min={0}
+                max={365}
+                value={expiresInDays}
+                onChange={(e) => setExpiresInDays(Number(e.target.value))}
+                className="mt-1 w-full px-3 py-2 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] text-[14px]"
+              />
+            </label>
+            <label className="block">
+              <span className="text-[12px] font-semibold text-[var(--text-secondary)]">Optional password</span>
+              <input
+                type="text"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Leave blank for no password"
+                className="mt-1 w-full px-3 py-2 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] text-[14px]"
+              />
+            </label>
+            {error && <div className="text-[12px] text-[var(--accent-red)]">{error}</div>}
+            <footer className="flex items-center justify-end gap-2 pt-2">
+              <button type="button" onClick={onClose} className="chip">Cancel</button>
+              <button type="button" onClick={generate} disabled={busy} className="chip chip-active">
+                {busy ? 'Generating…' : 'Generate share link'}
+              </button>
+            </footer>
+          </>
+        )}
+        {result && (
+          <div className="space-y-3">
+            <div className="text-[12.5px] text-[var(--text-primary)] font-semibold">Share link ready</div>
+            <div className="flex items-center gap-1.5">
+              <code className="flex-1 font-mono text-[11.5px] text-[var(--color-brand-strong)] bg-[var(--bg-secondary)] px-2 py-2 rounded-[6px] border border-[var(--border-subtle)] truncate">
+                {result.url}
+              </code>
+              <button
+                type="button"
+                onClick={() => navigator.clipboard.writeText(result.url)}
+                className="chip inline-flex items-center gap-1"
+              >
+                <Copy className="w-3 h-3" /> Copy
+              </button>
+            </div>
+            {result.expires_at && (
+              <div className="text-[11.5px] text-[var(--text-tertiary)]">
+                Expires {new Date(result.expires_at).toLocaleString()}
+              </div>
+            )}
+            {password && (
+              <div className="text-[11.5px] text-[var(--text-tertiary)]">
+                Password protection active. Share the password through a separate channel.
+              </div>
+            )}
+            <footer className="flex items-center justify-end gap-2 pt-2">
+              <button type="button" onClick={onClose} className="chip chip-active">Done</button>
+            </footer>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }

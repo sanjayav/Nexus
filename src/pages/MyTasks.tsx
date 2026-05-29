@@ -8,6 +8,8 @@ import { useAuth } from '../auth/AuthContext'
 import { orgStore, type QuestionAssignment, type OrgEntity, type OrgMember } from '../lib/orgStore'
 import { nexus, type NexusQuestionnaireItem } from '../lib/api'
 import { findCalculator, type CalcDescriptor, type CalcInputValues } from '../calculators/registry'
+import EmptyState from '../components/EmptyState'
+import JargonTooltip from '../components/JargonTooltip'
 import { resolveRole, ROLE_CATALOG } from '../lib/rbac'
 import PipelineJourney, { NextAction } from '../components/PipelineJourney'
 import { computePipeline, focusStage } from '../lib/journey'
@@ -15,6 +17,7 @@ import { useOrgData } from '../lib/useOrgData'
 import { useNavigate } from 'react-router-dom'
 import { useFramework, getFramework } from '../lib/frameworks'
 import CommentThread from '../components/CommentThread'
+import SavedViewsBar from '../components/SavedViewsBar'
 
 type FilterState = 'all' | 'overdue' | 'pending' | 'in_progress' | 'submitted' | 'approved'
 
@@ -225,6 +228,14 @@ export default function MyTasks() {
         </div>
       )}
 
+      {/* Saved views — Workiva-style named filter snapshots */}
+      <SavedViewsBar
+        page="my-tasks"
+        filters={{ filter } as { filter: FilterState }}
+        onApply={(f) => setFilter((f.filter as FilterState) ?? 'all')}
+        className="mb-3"
+      />
+
       {/* Tabs */}
       <div role="toolbar" aria-label="Filter assignments" className="flex items-center gap-2 mb-4">
         {(['all', 'overdue', 'pending', 'in_progress', 'submitted', 'approved'] as FilterState[]).map(f => {
@@ -308,14 +319,14 @@ function RingStat({ pct, label }: { pct: number; label: string }) {
 
 function EmptyList({ total, filter }: { total: number; filter: FilterState }) {
   return (
-    <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)] py-14 text-center">
-      <ClipboardList className="w-10 h-10 mx-auto text-[var(--text-tertiary)] mb-2" />
-      <h3 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">
-        {total === 0 ? 'No assignments yet' : `Nothing ${filter === 'all' ? '' : 'in this bucket'}`}
-      </h3>
-      <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1">
-        {total === 0 ? 'Your admin hasn\'t assigned you GRI line items yet.' : 'Try a different tab.'}
-      </p>
+    <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)]">
+      <EmptyState
+        icon={ClipboardList}
+        title={total === 0 ? 'No assignments yet' : `Nothing ${filter === 'all' ? 'in view' : 'in this bucket'}`}
+        body={total === 0
+          ? "Your admin hasn't assigned you GRI line items yet. They will land here as soon as they do."
+          : 'Switch tabs or clear filters to see other items.'}
+      />
     </div>
   )
 }
@@ -794,7 +805,7 @@ function NarrativeAnswerPanel({
         </div>
 
         <div className="rounded-[var(--radius-md)] border border-[var(--color-brand)]/20 bg-[var(--color-brand-soft)]/30 p-3 text-[10px] text-[var(--color-brand-strong)]">
-          ✍ This is a <strong>narrative disclosure</strong> (GRI 2 / GRI 3 management approach). Write a factual description — policies, governance, how the topic is managed. Plain-text is fine; line breaks preserved.
+          ✍ This is a <strong>narrative disclosure</strong> (<JargonTooltip term="GRI" iconOnly /> GRI 2 / GRI 3 management approach). Write a factual description — policies, governance, how the topic is managed. Plain-text is fine; line breaks preserved.
         </div>
 
         <div>

@@ -2,14 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   AlertOctagon, AlertTriangle, Info, Shield, TrendingUp,
-  CheckCircle2, FileText, Activity, Filter,
+  CheckCircle2, FileText, Activity, Filter, RotateCw, Eye, XCircle, CircleDot,
 } from 'lucide-react'
-import { orgStore, type AnomalyScanResult, type AnomalyType } from '../lib/orgStore'
+import { orgStore, type AnomalyScanResult, type AnomalyType, type AnomalyStatusValue, type Anomaly, type AnomalySeverity } from '../lib/orgStore'
 import { useAuth } from '../auth/AuthContext'
 import { resolveRole } from '../lib/rbac'
 import PageHeader from '../components/PageHeader'
 import SectionHeader from '../design-system/components/SectionHeader'
 import AnomalyFeed from '../components/AnomalyFeed'
+import SavedViewsBar from '../components/SavedViewsBar'
 import { SkeletonCard } from '../design-system/components/Skeleton'
 import { popIn, riseIn } from '../components/motion'
 
@@ -18,6 +19,9 @@ import { popIn, riseIn } from '../components/motion'
  * to their role (data contributor sees their own, plant manager sees their plant,
  * SO/admin sees the whole org). Suppressions are tracked with reason + actor.
  */
+type StatusFilter = 'all' | AnomalyStatusValue
+type SeverityFilter = 'all' | AnomalySeverity
+
 export default function AnomalyDetection() {
   const { user } = useAuth()
   const role = resolveRole(user)
@@ -26,6 +30,11 @@ export default function AnomalyDetection() {
   const [data, setData] = useState<AnomalyScanResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
+  const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all')
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
+  const [statuses, setStatuses] = useState<Record<string, AnomalyStatusValue>>({})
+  const [busyKey, setBusyKey] = useState<string | null>(null)
+  const [refreshNonce, setRefreshNonce] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -34,7 +43,34 @@ export default function AnomalyDetection() {
       .then(d => { if (!cancelled) { setData(d); setLoading(false) } })
       .catch(e => { if (!cancelled) { setErr(e instanceof Error ? e.message : 'Load failed'); setLoading(false) } })
     return () => { cancelled = true }
-  }, [scope])
+  }, [scope, refreshNonce])
+
+  // Update status for an anomaly — uses POST /api/org action update-anomaly-status.
+  // Stores result locally so the UI flips immediately; the next scan will
+  // also reflect persisted state.
+  const setStatus = async (a: Anomaly, status: AnomalyStatusValue) => {
+    const key = `${a.assignment_id}|${a.anomaly_type}`
+    setBusyKey(key)
+    try {
+      await orgStore.updateAnomalyStatus(key, status)
+      setStatuses(s => ({ ...s, [key]: status }))
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Status update failed')
+    } finally {
+      setBusyKey(null)
+    }
+  }
+
+  const filteredAnomalies = useMemo(() => {
+    if (!data) return [] as Anomaly[]
+    return data.anomalies.filter(a => {
+      if (severityFilter !== 'all' && a.severity !== severityFilter) return false
+      const key = `${a.assignment_id}|${a.anomaly_type}`
+      const status = statuses[key] ?? 'open'
+      if (statusFilter !== 'all' && status !== statusFilter) return false
+      return true
+    })
+  }, [data, severityFilter, statusFilter, statuses])
 
   const byType = useMemo(() => {
     if (!data) return [] as Array<{ type: AnomalyType; count: number }>
@@ -79,9 +115,51 @@ export default function AnomalyDetection() {
             {(role === 'platform_admin' || role === 'group_sustainability_officer' || role === 'auditor') && (
               <ScopeTab active={scope === 'all'} onClick={() => setScope('all')}>Org-wide</ScopeTab>
             )}
+            <button
+              type="button"
+              onClick={() => setRefreshNonce(n => n + 1)}
+              className="chip inline-flex items-center gap-1"
+              title="Re-run the anomaly scan"
+            >
+              <RotateCw className="w-3 h-3" /> Scan now
+            </button>
           </div>
         }
       />
+
+      <SavedViewsBar
+        page="anomalies"
+        filters={{ scope, severityFilter, statusFilter }}
+        onApply={(f: { scope?: 'mine' | 'role' | 'all'; severityFilter?: SeverityFilter; statusFilter?: StatusFilter }) => {
+          if (f.scope) setScope(f.scope)
+          if (f.severityFilter) setSeverityFilter(f.severityFilter)
+          if (f.statusFilter) setStatusFilter(f.statusFilter)
+        }}
+      />
+
+      <div className="flex items-center gap-2 flex-wrap" role="toolbar" aria-label="Anomaly filters">
+        <span className="text-[11px] uppercase tracking-[0.1em] font-bold text-[var(--text-tertiary)]">Severity</span>
+        {(['all', 'critical', 'warn', 'info'] as SeverityFilter[]).map(s => (
+          <button
+            key={s}
+            className={`chip ${severityFilter === s ? 'chip-active' : ''}`}
+            onClick={() => setSeverityFilter(s)}
+          >
+            {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+          </button>
+        ))}
+        <span className="mx-2 w-px h-4 bg-[var(--border-default)]" />
+        <span className="text-[11px] uppercase tracking-[0.1em] font-bold text-[var(--text-tertiary)]">Status</span>
+        {(['all', 'open', 'investigating', 'resolved', 'dismissed'] as StatusFilter[]).map(s => (
+          <button
+            key={s}
+            className={`chip ${statusFilter === s ? 'chip-active' : ''}`}
+            onClick={() => setStatusFilter(s)}
+          >
+            {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+          </button>
+        ))}
+      </div>
 
       {err && <div className="surface-paper p-4 text-[var(--accent-red)]">{err}</div>}
 
@@ -188,10 +266,122 @@ export default function AnomalyDetection() {
       </section>
 
       <section>
+        <SectionHeader
+          kicker="Triage"
+          title="Investigation queue"
+          subtitle="Per-anomaly workflow: investigate, resolve, or dismiss. Status changes are logged to the audit trail."
+        />
+        <div className="surface-paper overflow-hidden">
+          {filteredAnomalies.length === 0 ? (
+            <div className="py-12 text-center text-[12.5px] text-[var(--text-tertiary)]">
+              No anomalies match these filters.
+            </div>
+          ) : (
+            <table className="w-full text-[12.5px]">
+              <thead>
+                <tr className="text-left text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)]">
+                  <th className="px-3 py-2">Severity</th>
+                  <th className="px-3 py-2">Title</th>
+                  <th className="px-3 py-2">Facility</th>
+                  <th className="px-3 py-2">Metric</th>
+                  <th className="px-3 py-2 text-right">Expected → Actual</th>
+                  <th className="px-3 py-2 text-right">Δ%</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAnomalies.slice(0, 50).map(a => {
+                  const key = `${a.assignment_id}|${a.anomaly_type}`
+                  const status = statuses[key] ?? 'open'
+                  const sev = a.severity
+                  const sevBg =
+                    sev === 'critical' ? 'var(--accent-red-light)' :
+                    sev === 'warn' ? 'var(--accent-amber-light)' : 'var(--accent-blue-light)'
+                  const sevFg =
+                    sev === 'critical' ? 'var(--accent-red)' :
+                    sev === 'warn' ? 'var(--accent-amber)' : 'var(--accent-blue)'
+                  const isBusy = busyKey === key
+                  return (
+                    <tr key={key} className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">
+                      <td className="px-3 py-2">
+                        <span className="chip" style={{ background: sevBg, color: sevFg, fontWeight: 600 }}>{sev}</span>
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="font-semibold text-[var(--text-primary)]">{a.headline}</div>
+                        <div className="text-[11px] text-[var(--text-tertiary)]">{labelForType(a.anomaly_type)}</div>
+                      </td>
+                      <td className="px-3 py-2 text-[var(--text-secondary)]">{a.entity_name}</td>
+                      <td className="px-3 py-2">
+                        <span className="font-mono text-[11px] text-[var(--text-tertiary)]">{a.gri_code}</span>
+                        <div className="text-[var(--text-secondary)]">{a.line_item}</div>
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-[var(--text-secondary)]">
+                        {a.prior !== null ? a.prior.toLocaleString() : '—'} → {a.current !== null ? a.current.toLocaleString() : '—'}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {a.delta_pct === null ? '—' : `${a.delta_pct > 0 ? '+' : ''}${a.delta_pct.toFixed(1)}%`}
+                      </td>
+                      <td className="px-3 py-2">
+                        <StatusPill value={status} />
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <div className="inline-flex gap-1">
+                          <button
+                            disabled={isBusy}
+                            onClick={() => setStatus(a, 'investigating')}
+                            className="chip inline-flex items-center gap-1"
+                            title="Mark as investigating"
+                          >
+                            <Eye className="w-3 h-3" /> Investigate
+                          </button>
+                          <button
+                            disabled={isBusy}
+                            onClick={() => setStatus(a, 'resolved')}
+                            className="chip inline-flex items-center gap-1"
+                            title="Mark as resolved"
+                          >
+                            <CheckCircle2 className="w-3 h-3" /> Resolve
+                          </button>
+                          <button
+                            disabled={isBusy}
+                            onClick={() => setStatus(a, 'dismissed')}
+                            className="chip inline-flex items-center gap-1"
+                            title="Dismiss"
+                          >
+                            <XCircle className="w-3 h-3" /> Dismiss
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </section>
+
+      <section>
         <SectionHeader kicker="Feed" title="Live anomaly feed" subtitle="Sorted by severity. Open any flag to land on the disclosure. Suppress with a reason to mark acknowledged." />
         <AnomalyFeed scope={scope} limit={100} title="All flagged disclosures" />
       </section>
     </div>
+  )
+}
+
+function StatusPill({ value }: { value: AnomalyStatusValue }) {
+  const map: Record<AnomalyStatusValue, { bg: string; fg: string; label: string }> = {
+    open:          { bg: 'var(--bg-tertiary)',      fg: 'var(--text-secondary)', label: 'Open' },
+    investigating: { bg: 'var(--accent-blue-light)',fg: 'var(--accent-blue)',    label: 'Investigating' },
+    resolved:      { bg: 'var(--accent-green-light)',fg: 'var(--status-ok)',     label: 'Resolved' },
+    dismissed:     { bg: 'var(--bg-tertiary)',      fg: 'var(--text-tertiary)',  label: 'Dismissed' },
+  }
+  const s = map[value]
+  return (
+    <span className="chip inline-flex items-center gap-1" style={{ background: s.bg, color: s.fg }}>
+      <CircleDot className="w-3 h-3" /> {s.label}
+    </span>
   )
 }
 

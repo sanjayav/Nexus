@@ -93,6 +93,56 @@ CREATE TABLE IF NOT EXISTS invitations (
 );
 
 -- ═══════════════════════════════════════════
+-- Saved views — named filter snapshots per user/page
+-- ═══════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS saved_views (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  page TEXT NOT NULL,
+  name TEXT NOT NULL,
+  filters JSONB NOT NULL,
+  is_default BOOLEAN DEFAULT false,
+  is_shared BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_saved_views_user_page ON saved_views(user_id, page);
+CREATE INDEX IF NOT EXISTS idx_saved_views_org_shared ON saved_views(org_id, is_shared) WHERE is_shared = true;
+
+-- ═══════════════════════════════════════════
+-- Report share links — public read-only report URLs
+-- ═══════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS report_share_links (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+  report_id UUID,
+  token TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ,
+  password_hash TEXT,
+  view_count INTEGER DEFAULT 0,
+  created_by UUID REFERENCES users(id),
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_share_links_token ON report_share_links(token);
+
+-- ═══════════════════════════════════════════
+-- Anomaly status tracking — investigation workflow
+-- ═══════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS anomaly_status (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+  anomaly_key TEXT NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('open','investigating','resolved','dismissed')),
+  note TEXT,
+  changed_by UUID REFERENCES users(id),
+  changed_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (org_id, anomaly_key)
+);
+CREATE INDEX IF NOT EXISTS idx_anomaly_status_org ON anomaly_status(org_id, status);
+
+-- ═══════════════════════════════════════════
 -- Seed: permissions
 -- ═══════════════════════════════════════════
 INSERT INTO permissions (resource, action, description) VALUES

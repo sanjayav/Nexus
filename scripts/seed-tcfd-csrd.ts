@@ -1,7 +1,7 @@
 /**
  * Seed representative TCFD + CSRD E1 disclosures so the framework picker
- * isn't empty during the PTTGC POC. These are the exact disclosure IDs and
- * line-items a PTTGC sustainability officer would expect to see.
+ * isn't empty for the demo tenant. These are the exact disclosure IDs and
+ * line-items a sustainability officer would expect to see.
  */
 import { neon } from '@neondatabase/serverless'
 import { config as loadEnv } from 'dotenv'
@@ -82,14 +82,14 @@ async function main() {
   }
   console.log(`  ✓ TCFD + CSRD E1 → inserted ${inserted}, skipped ${skipped} (already present)`)
 
-  // Enable frameworks for the PTTGC tenant
+  // Enable frameworks for the demo tenant
   for (const fw of ['tcfd', 'csrd-e1']) {
     await sql`
       INSERT INTO org_framework_enablement (org_id, framework_id, enabled, enabled_by)
       VALUES (${ORG}, ${fw}, true, '00000000-0000-0000-0000-000000000100')
       ON CONFLICT (org_id, framework_id) DO UPDATE SET enabled = true
     `
-    console.log(`  ✓ framework ${fw} enabled for PTTGC tenant`)
+    console.log(`  ✓ framework ${fw} enabled for demo tenant`)
   }
 
   // Summary

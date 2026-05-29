@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { KeyRound, Copy, Check, Trash2, AlertTriangle, Plus, Loader2, X } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
+import EmptyState from '../components/EmptyState'
 import { Card, Button, Badge } from '../design-system'
 import { apiKeys, type ApiKey, type ApiKeyCreated } from '../lib/api'
 
@@ -175,9 +176,12 @@ export default function ApiKeys() {
             <Loader2 className="w-4 h-4 animate-spin" /> Loading…
           </div>
         ) : keys.length === 0 ? (
-          <div className="text-[13px] text-[var(--text-tertiary)] py-6">
-            No API keys yet. Generate one to start pushing data programmatically.
-          </div>
+          <EmptyState
+            icon={KeyRound}
+            title="No API keys yet"
+            body="Generate a token above to start pushing data programmatically. Scope each key to the minimum permissions it needs."
+            density="compact"
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">

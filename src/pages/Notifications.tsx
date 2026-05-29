@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bell, CheckCheck, Loader2, Inbox } from 'lucide-react'
 import { orgStore, type Notification } from '../lib/orgStore'
+import EmptyState from '../components/EmptyState'
 
 /**
  * Full notifications inbox. RBAC is enforced server-side — /api/notifications
@@ -150,10 +151,13 @@ export default function NotificationsPage() {
           Loading inbox…
         </div>
       ) : notes.length === 0 ? (
-        <div className="py-16 text-center rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)]">
-          <Inbox className="w-10 h-10 mx-auto text-[var(--text-tertiary)] mb-2" />
-          <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">No notifications</div>
-          <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-1">Assignments, reviews, and approvals show up here.</div>
+        <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)]">
+          <EmptyState
+            icon={Inbox}
+            title="No notifications"
+            body="Assignments, reviews, and approvals will appear here as they happen."
+            cta={{ label: 'Open my tasks', onClick: () => navigate('/my-tasks') }}
+          />
         </div>
       ) : (
         <ul className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] divide-y divide-[var(--border-subtle)] overflow-hidden">

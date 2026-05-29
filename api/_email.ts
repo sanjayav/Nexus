@@ -10,7 +10,7 @@ export interface EmailPayload {
 
 export async function sendEmail(payload: EmailPayload): Promise<{ ok: boolean; error?: string }> {
   const key = process.env.RESEND_API_KEY
-  const from = process.env.EMAIL_FROM ?? 'Aeiforo <notifications@aeiforo.local>'
+  const from = process.env.EMAIL_FROM ?? 'Nexus <notifications@aeiforo.local>'
   if (!key) {
     // eslint-disable-next-line no-console
     console.log('[email] (no RESEND_API_KEY) would send:', payload.subject, '→', payload.to)

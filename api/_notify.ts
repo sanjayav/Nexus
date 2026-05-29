@@ -28,9 +28,9 @@ export async function notify(args: NotifyArgs): Promise<void> {
       <div style="background: white; border-radius: 12px; padding: 28px; border: 1px solid #e6f0ee;">
         <div style="font-size: 18px; font-weight: 600; color: #064e3b; margin-bottom: 8px;">${escapeHtml(args.subject)}</div>
         ${args.body ? `<div style="font-size: 14px; color: #475569; margin-bottom: 20px; line-height: 1.5;">${escapeHtml(args.body)}</div>` : ''}
-        <a href="${fullLink}" style="display: inline-block; padding: 10px 18px; background: #059669; color: white; text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 500;">Open Aeiforo</a>
+        <a href="${fullLink}" style="display: inline-block; padding: 10px 18px; background: #059669; color: white; text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 500;">Open Nexus</a>
       </div>
-      <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 16px;">Aeiforo — Sustainability Reporting</div>
+      <div style="font-size: 11px; color: #94a3b8; text-align: center; margin-top: 16px;">Nexus — Sustainability Intelligence Platform · by Aeiforo</div>
     </div>
   `
 

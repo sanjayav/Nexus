@@ -24,7 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       {
         type: 'oauthbearertoken',
         name: 'OAuth Bearer Token',
-        description: 'Authentication using a long-lived bearer token issued from the Aeiforo admin console.',
+        description: 'Authentication using a long-lived bearer token issued from the Nexus admin console.',
         specUri: 'https://datatracker.ietf.org/doc/html/rfc6750',
         primary: true,
       },

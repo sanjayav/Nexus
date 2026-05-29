@@ -716,12 +716,51 @@ export const orgStore = {
     await req('/org', { method: 'POST', body: JSON.stringify({ action: 'restore-anomaly', assignment_id, anomaly_type }) })
   },
 
+  // ── Saved views ──────────────────────────────────────────────
+  async listSavedViews(page: string): Promise<SavedView[]> {
+    return req<SavedView[]>(`/org?view=saved-views&page=${encodeURIComponent(page)}`)
+  },
+  async saveView(input: { page: string; name: string; filters: unknown; is_shared?: boolean; is_default?: boolean }): Promise<SavedView> {
+    return req<SavedView>('/org', { method: 'POST', body: JSON.stringify({ action: 'save-view', ...input }) })
+  },
+  async deleteSavedView(id: string): Promise<void> {
+    await req('/org', { method: 'POST', body: JSON.stringify({ action: 'delete-saved-view', id }) })
+  },
+
+  // ── Anomaly status ───────────────────────────────────────────
+  async updateAnomalyStatus(anomaly_key: string, status: AnomalyStatusValue, note?: string): Promise<void> {
+    await req('/org', { method: 'POST', body: JSON.stringify({ action: 'update-anomaly-status', anomaly_key, status, note: note ?? null }) })
+  },
+
+  // ── Public report share links ────────────────────────────────
+  async createShareLink(input: { reportId?: string | null; expiresInDays?: number; password?: string }): Promise<{ id: string; token: string; url: string; expires_at: string | null; created_at: string }> {
+    return req('/org', { method: 'POST', body: JSON.stringify({ action: 'create-share-link', ...input }) })
+  },
+  async revokeShareLink(id: string): Promise<void> {
+    await req('/org', { method: 'POST', body: JSON.stringify({ action: 'revoke-share-link', id }) })
+  },
+
   // ── ESG Data Standard ────────────────────────────────────────
   async disclosureStandard(framework_id?: string): Promise<DisclosureStandard[]> {
     const qs = framework_id ? `&framework_id=${encodeURIComponent(framework_id)}` : ''
     return req<DisclosureStandard[]>(`/org?view=disclosure-standard${qs}`)
   },
 }
+
+export interface SavedView {
+  id: string
+  page: string
+  name: string
+  filters: unknown
+  is_default: boolean
+  is_shared: boolean
+  user_id: string
+  owned_by_me: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type AnomalyStatusValue = 'open' | 'investigating' | 'resolved' | 'dismissed'
 
 export interface DisclosureStandard {
   gri_code: string

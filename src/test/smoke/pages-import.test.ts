@@ -26,6 +26,7 @@ const PAGE_MODULES = [
   '../../pages/Dashboard',
   '../../pages/DataEntry',
   '../../pages/DataEntryPicker',
+  '../../pages/DataEntrySpreadsheet',
   '../../pages/DataIngestion',
   '../../pages/DataStandard',
   '../../pages/EFLibrary',

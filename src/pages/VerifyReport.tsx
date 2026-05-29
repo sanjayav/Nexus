@@ -36,7 +36,7 @@ export default function VerifyReport() {
           <div className="w-9 h-9 rounded-[10px] flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1B6B7B, #1e8e7a)', boxShadow: '0 4px 12px rgba(27,107,123,0.3)' }}>
             <Leaf className="w-4 h-4 text-white" />
           </div>
-          <span className="font-display font-bold tracking-[-0.02em] text-[15px]">Aeiforo</span>
+          <span className="font-display font-bold tracking-[-0.02em] text-[15px]">Nexus</span>
         </a>
         <span className="chip">
           <ShieldCheck className="w-3 h-3" /> Public verification
@@ -72,7 +72,7 @@ export default function VerifyReport() {
       </main>
 
       <footer className="text-center py-8 text-[11.5px] text-[var(--text-tertiary)]">
-        Verified via Aeiforo ESG Platform · <a href="/" className="link-underline text-[var(--color-brand)] hover:text-[var(--color-brand-strong)]">aeiforo.com</a>
+        Verified via Nexus · Powered by <a href="/" className="link-underline text-[var(--color-brand)] hover:text-[var(--color-brand-strong)]">Aeiforo</a>
       </footer>
     </div>
   )
@@ -198,7 +198,7 @@ function VerifyResult({ data }: { data: VerifyReportResponse }) {
 
       <div className="text-center pt-2">
         <a href="/" className="text-[12px] text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] inline-flex items-center gap-1 link-underline">
-          Go to Aeiforo platform <ArrowRight className="w-3 h-3" />
+          Go to Nexus platform <ArrowRight className="w-3 h-3" />
         </a>
       </div>
     </motion.div>

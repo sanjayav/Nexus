@@ -48,7 +48,7 @@ interface Plan {
  * The demo story. Each plan becomes one new question_assignments row — but
  * only if the user doesn't already have an assignment on a matching question.
  */
-// Plans use GRI codes that actually exist in the PTTGC seed (2-5..2-30, 302-1, 302-4, 303-x, 305-x, 306-x, 403-x, 405-x).
+// Plans use GRI codes that actually exist in the demo seed (2-5..2-30, 302-1, 302-4, 303-x, 305-x, 306-x, 403-x, 405-x).
 const PLANS: Plan[] = [
   // ── Sarah Chen (fm@) · Plant Manager · Map Ta Phut · 5 new ─────
   { email: 'fm@aeiforo.com',    name: 'Sarah Chen',    entityId: E.plant_mtp,

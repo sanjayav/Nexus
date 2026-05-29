@@ -29,6 +29,7 @@ const AuditorView = lazy(() => import('./pages/AuditorView'))
 const AIReport = lazy(() => import('./pages/AIReport'))
 const DataIngestion = lazy(() => import('./pages/DataIngestion'))
 const DataEntry = lazy(() => import('./pages/DataEntry'))
+const DataEntrySpreadsheet = lazy(() => import('./pages/DataEntrySpreadsheet'))
 const WorkflowQueue = lazy(() => import('./pages/WorkflowQueue'))
 const UsersRoles = lazy(() => import('./pages/UsersRoles'))
 const OrgStructure = lazy(() => import('./pages/OrgStructure'))
@@ -51,7 +52,9 @@ const ApiKeys = lazy(() => import('./pages/ApiKeys'))
 const SystemStatus = lazy(() => import('./pages/SystemStatus'))
 const Connectors = lazy(() => import('./pages/Connectors'))
 const AuditLog = lazy(() => import('./pages/AuditLog'))
+const WelcomeWizard = lazy(() => import('./pages/WelcomeWizard'))
 const NotFound = lazy(() => import('./pages/NotFound'))
+const PublicReport = lazy(() => import('./pages/PublicReport'))
 import { useAuth } from './auth/AuthContext'
 import { homeRouteFor } from './lib/rbac'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -130,6 +133,16 @@ function AppRoutes() {
       </Suspense>
     )
   }
+  // Public read-only report — token gated, no auth, outside AppShell.
+  if (location.pathname.startsWith('/public/report/')) {
+    return (
+      <Suspense fallback={<RouteLoader />}>
+        <Routes>
+          <Route path="/public/report/:token" element={<PublicReport />} />
+        </Routes>
+      </Suspense>
+    )
+  }
 
   return (
     <AppShell>
@@ -149,6 +162,7 @@ function AppRoutes() {
 
           {/* Data collection — redirect legacy picker/entry to My Tasks (canonical flow) */}
           <Route path="/data/entry" element={<Navigate to="/my-tasks" replace />} />
+          <Route path="/data/entry/spreadsheet" element={<ProtectedRoute><DataEntrySpreadsheet /></ProtectedRoute>} />
           <Route path="/data/entry/:questionId" element={<ProtectedRoute><DataEntry /></ProtectedRoute>} />
           <Route path="/data" element={<ProtectedRoute><DataIngestion /></ProtectedRoute>} />
           <Route path="/data/*" element={<ProtectedRoute><DataIngestion /></ProtectedRoute>} />
@@ -178,6 +192,7 @@ function AppRoutes() {
           <Route path="/admin/periods" element={<ProtectedRoute><ReportingPeriods /></ProtectedRoute>} />
           <Route path="/reports/index" element={<ProtectedRoute><ContentIndex /></ProtectedRoute>} />
           <Route path="/onboarding" element={<ProtectedRoute><OrgOnboarding /></ProtectedRoute>} />
+          <Route path="/welcome" element={<ProtectedRoute><WelcomeWizard /></ProtectedRoute>} />
           <Route path="/admin/org/legacy" element={<ProtectedRoute><OrgStructure /></ProtectedRoute>} />
           <Route path="/aggregator" element={<ProtectedRoute><GroupRollup /></ProtectedRoute>} />
 

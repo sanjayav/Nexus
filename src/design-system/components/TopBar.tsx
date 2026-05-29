@@ -1,6 +1,8 @@
-import { Search, LogOut, ChevronDown, Command } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Search, LogOut, ChevronDown, Command, Globe } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext'
 import { useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { FrameworkSelector } from '../../components/FrameworkBadge'
 import NotificationsBell from '../../components/NotificationsBell'
 import { useOpenPalette } from '../../components/AppShell'
@@ -83,6 +85,9 @@ export default function TopBar() {
           </span>
         </button>
 
+        {/* Language switcher */}
+        <LanguageSwitcher />
+
         {/* Live notifications */}
         <NotificationsBell />
 
@@ -113,5 +118,59 @@ export default function TopBar() {
         </button>
       </div>
     </header>
+  )
+}
+
+const LOCALES: Array<{ code: string; label: string }> = [
+  { code: 'en', label: 'English' },
+  { code: 'th', label: 'ไทย' },
+]
+
+function LanguageSwitcher() {
+  const { i18n, t } = useTranslation()
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    const close = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('[data-lang-switcher]')) setOpen(false)
+    }
+    if (open) document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [open])
+
+  const current = LOCALES.find(l => l.code === i18n.language)?.label
+    ?? LOCALES.find(l => i18n.language?.startsWith(l.code))?.label
+    ?? 'English'
+
+  return (
+    <div className="relative" data-lang-switcher>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="inline-flex items-center gap-1.5 h-8 px-2 rounded-[8px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
+        title={t('language.label')}
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
+        <Globe className="w-4 h-4" />
+        <span className="text-[12px] font-medium hidden md:inline">{current}</span>
+      </button>
+      {open && (
+        <div role="menu" className="absolute right-0 top-full mt-1 min-w-[140px] surface-paper p-1 shadow-lg z-50">
+          {LOCALES.map(l => (
+            <button
+              key={l.code}
+              role="menuitem"
+              type="button"
+              onClick={() => { void i18n.changeLanguage(l.code); setOpen(false) }}
+              className={`block w-full text-left px-2 py-1.5 text-[12.5px] rounded hover:bg-[var(--bg-tertiary)] ${i18n.language === l.code ? 'font-semibold text-[var(--color-brand)]' : 'text-[var(--text-secondary)]'}`}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

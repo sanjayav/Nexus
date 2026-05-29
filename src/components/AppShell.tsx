@@ -2,7 +2,7 @@ import { useState, createContext, useContext } from 'react'
 import Sidebar from '../design-system/components/Sidebar'
 import TopBar from '../design-system/components/TopBar'
 import PageTransition from './PageTransition'
-import CommandPalette, { useCommandPalette, useThemeBoot } from './CommandPalette'
+import CommandPalette, { useCommandPalette, useThemeBoot, useTrackRecentNav } from './CommandPalette'
 
 // Expose the command palette opener to any descendant (the TopBar search button uses it).
 const PaletteCtx = createContext<() => void>(() => {})
@@ -12,6 +12,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false)
   const [open, openPalette, closePalette] = useCommandPalette()
   useThemeBoot()
+  useTrackRecentNav()
 
   return (
     <PaletteCtx.Provider value={openPalette}>

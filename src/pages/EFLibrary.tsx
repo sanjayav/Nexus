@@ -26,6 +26,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { Badge, Tabs, Button, Input } from '../design-system'
+import JargonTooltip from '../components/JargonTooltip'
 
 /* ═══════════════════════════════════════════
    Types — DB-backed shape from /api/emission-factors
@@ -214,9 +215,11 @@ export default function EFLibrary() {
               <Database className="w-7 h-7 text-[var(--accent-teal)]" />
             </div>
             <div>
-              <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">Emission Factor Library</h1>
+              <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">
+                <JargonTooltip term="EF" iconOnly /> Emission Factor Library
+              </h1>
               <p className="mt-1 text-[var(--text-sm)] text-[var(--text-tertiary)]">
-                Live factors from DEFRA 2024, EPA 2024, IPCC 2006 / AR5, IEA 2024 — versioned, region-tagged.
+                Live factors from DEFRA 2024, EPA 2024, <JargonTooltip term="IPCC AR5" iconOnly /> IPCC 2006 / AR5, IEA 2024 — versioned, region-tagged.
               </p>
             </div>
           </div>

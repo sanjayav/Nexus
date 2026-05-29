@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Papa from 'papaparse'
 import { Plug, FileUp, AlertTriangle, Check, Loader2, ArrowLeft, Database, Cloud, Layers } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
+import EmptyState from '../components/EmptyState'
 import { Card, Button, Badge } from '../design-system'
 import { connectors, type ConnectorTemplate, type ConnectorImportResult, type ConnectorImportSummary } from '../lib/api'
 
@@ -307,7 +308,12 @@ export default function Connectors() {
           <Badge variant="gray">{imports.length}</Badge>
         </div>
         {imports.length === 0 ? (
-          <div className="text-[13px] text-[var(--text-tertiary)] py-4">No imports yet.</div>
+          <EmptyState
+            icon={Plug}
+            title="No imports yet"
+            body="Pick a source above and upload a CSV — Nexus will auto-map columns to the right disclosure fields."
+            density="compact"
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">

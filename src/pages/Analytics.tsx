@@ -19,6 +19,7 @@ import { AnimatedNumber, formatBig } from '../components/AnimatedNumber'
 import { riseIn, popIn, slideInLeft } from '../components/motion'
 import SectionHeader from '../design-system/components/SectionHeader'
 import { SkeletonCard } from '../design-system/components/Skeleton'
+import EmptyState from '../components/EmptyState'
 
 /**
  * Analytics — every chart and table is computed from live org data.
@@ -273,7 +274,12 @@ export default function Analytics() {
         />
         <motion.div {...popIn(0)} className="surface-paper overflow-hidden">
           {!dqi ? (
-            <div className="p-12 text-center text-[13px] text-[var(--text-tertiary)]">No assignments yet — DQI will populate once you start collecting.</div>
+            <EmptyState
+              icon={CheckCircle2}
+              title="DQI is empty"
+              body="Your Data Quality Index lights up once approved assignments start coming in. Head to My tasks to file the first one."
+              cta={{ label: 'Open my tasks', onClick: () => navigate('/my-tasks') }}
+            />
           ) : (
             <div className="p-6 grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-8 items-center">
               <DqiRing score={dqi.composite} />

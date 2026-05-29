@@ -15,7 +15,7 @@ export interface OrgBrand {
 
 // Sensible fallback — so Sidebar renders before fetch completes.
 const FALLBACK: OrgBrand = {
-  name: 'Aeiforo',
+  name: 'Nexus',
   legal_name: null,
   thai_name: null,
   country: null,

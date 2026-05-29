@@ -1,22 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search, ArrowRight, LayoutDashboard, Inbox, CheckSquare, Shield, Network,
   FileText, BookMarked, BarChart3, AlertTriangle, Calculator as CalcIcon,
   BookOpen, Atom, Sparkles, Calendar, Scale, UserCog, Users, ShieldCheck,
-  Settings, LogOut, Moon, Plus,
+  Settings, LogOut, Moon, Plus, Clock, Library,
 } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { resolveRole, type PlatformRole } from '../lib/rbac'
+import { getActiveFrameworks } from '../lib/frameworks'
 
 interface Command {
   id: string
   label: string
   hint?: string
   icon: typeof Search
-  group: 'Go to' | 'Actions' | 'System'
+  group: 'Go to' | 'Actions' | 'Frameworks' | 'Recent' | 'System'
   roles?: PlatformRole[]
   run: (ctx: { navigate: (p: string) => void; toggleTheme: () => void; logout: () => void }) => void
   keywords?: string
@@ -36,24 +37,78 @@ const COMMANDS: Command[] = [
   { id: 'nav-anomalies',  label: 'Anomalies',         icon: AlertTriangle,   group: 'Go to', run: c => c.navigate('/analytics/anomalies') },
   { id: 'nav-standard',   label: 'Data standard',     icon: BookOpen,        group: 'Go to', run: c => c.navigate('/data/standard') },
   { id: 'nav-calc',       label: 'Calculators',       icon: CalcIcon,        group: 'Go to', run: c => c.navigate('/calculators') },
-  { id: 'nav-ef',         label: 'EF library',        icon: BookOpen,        group: 'Go to', roles: ['platform_admin','group_sustainability_officer'], run: c => c.navigate('/admin/ef-library') },
+  { id: 'nav-scope3',     label: 'Scope 3 calculators', icon: CalcIcon,      group: 'Go to', run: c => c.navigate('/calculators/scope3') },
+  { id: 'nav-ef',         label: 'EF library',        icon: Library,         group: 'Go to', roles: ['platform_admin','group_sustainability_officer'], run: c => c.navigate('/admin/ef-library') },
   { id: 'nav-gwp',        label: 'GWP values',        icon: Atom,            group: 'Go to', roles: ['platform_admin','group_sustainability_officer'], run: c => c.navigate('/admin/gwp') },
   { id: 'nav-setup',      label: 'Setup guide',       icon: Sparkles,        group: 'Go to', roles: ['platform_admin'], run: c => c.navigate('/onboarding') },
+  { id: 'nav-welcome',    label: 'Welcome wizard',    icon: Sparkles,        group: 'Go to', roles: ['platform_admin'], run: c => c.navigate('/welcome') },
   { id: 'nav-periods',    label: 'Reporting cycles',  icon: Calendar,        group: 'Go to', roles: ['platform_admin','group_sustainability_officer'], run: c => c.navigate('/admin/periods') },
   { id: 'nav-mat',        label: 'Materiality',       icon: Scale,           group: 'Go to', roles: ['platform_admin','group_sustainability_officer','subsidiary_lead','narrative_owner'], run: c => c.navigate('/admin/materiality') },
   { id: 'nav-assign',     label: 'Assignments',       icon: UserCog,         group: 'Go to', roles: ['platform_admin','group_sustainability_officer','subsidiary_lead'], run: c => c.navigate('/admin/assignments') },
   { id: 'nav-users',      label: 'Users & roles',     icon: Users,           group: 'Go to', roles: ['platform_admin'], run: c => c.navigate('/admin/users') },
   { id: 'nav-audit',      label: 'Audit trail',       icon: ShieldCheck,     group: 'Go to', roles: ['platform_admin','group_sustainability_officer','auditor'], run: c => c.navigate('/admin/audit') },
+  { id: 'nav-connectors', label: 'Connectors',        icon: Network,         group: 'Go to', roles: ['platform_admin','group_sustainability_officer'], run: c => c.navigate('/data/connectors') },
+  { id: 'nav-inbox',      label: 'Inbox',             icon: Inbox,           group: 'Go to', run: c => c.navigate('/inbox') },
+  { id: 'nav-scim',       label: 'SCIM tokens',       icon: Shield,          group: 'Go to', roles: ['platform_admin'], run: c => c.navigate('/admin/scim'), keywords: 'identity provisioning' },
+  { id: 'nav-apikeys',    label: 'API keys',          icon: Shield,          group: 'Go to', roles: ['platform_admin'], run: c => c.navigate('/admin/api-keys') },
+  { id: 'nav-system',     label: 'System status',     icon: ShieldCheck,     group: 'Go to', roles: ['platform_admin'], run: c => c.navigate('/admin/system-status') },
   { id: 'nav-settings',   label: 'Settings',          icon: Settings,        group: 'Go to', roles: ['platform_admin'], run: c => c.navigate('/settings') },
 
   // Actions
   { id: 'act-new-assign', label: 'New assignment',    icon: Plus,            group: 'Actions', roles: ['platform_admin','group_sustainability_officer','subsidiary_lead'], run: c => c.navigate('/admin/assignments?new=1') },
+  { id: 'act-bulk-assign',label: 'Bulk assign',       icon: UserCog,         group: 'Actions', roles: ['platform_admin','group_sustainability_officer','subsidiary_lead'], run: c => c.navigate('/admin/assignments?bulk=1') },
+  { id: 'act-run-setup',  label: 'Run setup',         icon: Sparkles,        group: 'Actions', roles: ['platform_admin'], run: c => c.navigate('/welcome') },
   { id: 'act-publish',    label: 'Publish report',    icon: FileText,        group: 'Actions', roles: ['platform_admin','group_sustainability_officer'], run: c => c.navigate('/reports') },
+  { id: 'act-new-apikey', label: 'Generate API key',  icon: Plus,            group: 'Actions', roles: ['platform_admin'], run: c => c.navigate('/admin/api-keys?new=1') },
+  { id: 'act-export',     label: 'Download data export', icon: FileText,     group: 'Actions', roles: ['platform_admin','group_sustainability_officer','auditor'], run: c => c.navigate('/reports?export=1') },
+  { id: 'act-toggle-mfa', label: 'Toggle MFA',        icon: Shield,          group: 'Actions', run: c => c.navigate('/settings?mfa=1') },
 
   // System
   { id: 'sys-theme',      label: 'Toggle theme',      hint: 'Light / dark',  icon: Moon, group: 'System', run: c => c.toggleTheme() },
   { id: 'sys-logout',     label: 'Sign out',          icon: LogOut,          group: 'System', run: c => c.logout() },
 ]
+
+// ── Recent navigation persistence ─────────────────────────────
+interface RecentEntry { path: string; label: string; timestamp: number }
+const RECENT_KEY = 'aeiforo_recent_nav'
+const RECENT_MAX = 5
+
+function readRecent(): RecentEntry[] {
+  try {
+    const raw = localStorage.getItem(RECENT_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter(
+      (e): e is RecentEntry =>
+        e && typeof e.path === 'string' && typeof e.label === 'string' && typeof e.timestamp === 'number'
+    ).slice(0, RECENT_MAX)
+  } catch { return [] }
+}
+
+function writeRecent(entries: RecentEntry[]) {
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(entries.slice(0, RECENT_MAX))) } catch { /* ignore */ }
+}
+
+/** Push the current location into the recent-nav stack. Mounted once in AppShell. */
+export function useTrackRecentNav() {
+  const location = useLocation()
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const path = location.pathname
+    if (path === '/login' || path === '/' || path.startsWith('/verify/') || path.startsWith('/assure/')) return
+    // Look up a friendly label from the command catalog if available.
+    const match = COMMANDS.find(c => {
+      // Match by reading the run fn's target path — best-effort, falls back to path.
+      const fn = c.run.toString()
+      return c.group === 'Go to' && fn.includes(`'${path}'`)
+    })
+    const label = match?.label ?? path.replace(/^\//, '').replace(/\//g, ' › ')
+    const now = Date.now()
+    const existing = readRecent().filter(r => r.path !== path)
+    writeRecent([{ path, label, timestamp: now }, ...existing])
+  }, [location.pathname])
+}
 
 export default function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate()
@@ -71,9 +126,42 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
     try { localStorage.setItem('aeiforo_theme', next) } catch { /* ignore */ }
   }
 
+  // Read recent nav on open so the list is always fresh.
+  const [recent, setRecent] = useState<RecentEntry[]>(() => readRecent())
+  useEffect(() => { if (open) setRecent(readRecent()) }, [open])
+
+  // Build the framework commands lazily; the catalog is small enough to map every render.
+  const frameworkCommands: Command[] = useMemo(() => {
+    return getActiveFrameworks().map(f => ({
+      id: `fw-${f.id}`,
+      label: f.name,
+      hint: f.code,
+      icon: BookMarked,
+      group: 'Frameworks' as const,
+      keywords: `${f.code} ${f.body} ${f.coverage.join(' ')}`,
+      run: c => c.navigate(`/reports?framework=${encodeURIComponent(f.id)}`),
+    }))
+  }, [])
+
+  const recentCommands: Command[] = useMemo(() => {
+    return recent.map((r, i) => ({
+      id: `recent-${i}-${r.path}`,
+      label: r.label,
+      hint: r.path,
+      icon: Clock,
+      group: 'Recent' as const,
+      run: c => c.navigate(r.path),
+    }))
+  }, [recent])
+
+  const allCommands = useMemo(
+    () => [...COMMANDS, ...frameworkCommands, ...recentCommands],
+    [frameworkCommands, recentCommands]
+  )
+
   const visible = useMemo(() => {
-    return COMMANDS.filter(c => !c.roles || c.roles.includes(role))
-  }, [role])
+    return allCommands.filter(c => !c.roles || c.roles.includes(role))
+  }, [allCommands, role])
 
   const filtered = useMemo(() => {
     if (!query.trim()) return visible
@@ -86,13 +174,18 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
     )
   }, [visible, query])
 
+  // Render groups in a deliberate order so Recent sits at the top when empty query.
+  const groupOrder: Command['group'][] = ['Recent', 'Go to', 'Frameworks', 'Actions', 'System']
   const grouped = useMemo(() => {
     const m = new Map<string, Command[]>()
     for (const c of filtered) {
       const arr = m.get(c.group) ?? []
       arr.push(c); m.set(c.group, arr)
     }
-    return Array.from(m.entries())
+    return groupOrder.flatMap(g => {
+      const items = m.get(g)
+      return items && items.length ? [[g, items] as const] : []
+    })
   }, [filtered])
 
   useEffect(() => {
@@ -175,7 +268,7 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
                 ref={inputRef}
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder="Search for a page or an action…"
+                placeholder="Search pages, frameworks, actions…"
                 className="flex-1 bg-transparent outline-none text-[13.5px] font-medium text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)]"
               />
               <span className="kbd">esc</span>

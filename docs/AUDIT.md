@@ -63,7 +63,7 @@ No `.eslintrc*` or `eslint.config.*` file in the repo. `package.json` has no `li
 ## 4. Dead code
 `npx ts-prune` reports 206 candidate unused exports.
 
-After filtering the explicitly-orphan files listed in the request (`pttgc*.ts`, `_pttgcSeed.ts`, `brand-pttgc.ts`, `seed-*.ts`):
+After filtering the explicitly-orphan files listed in earlier requests (now removed) and `seed-*.ts`:
 
 Top live-codebase candidates (file:line):
 - `src/auth/IfCan.tsx:13` — `IfCan` exported but unreferenced.
