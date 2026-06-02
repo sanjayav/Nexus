@@ -7,7 +7,7 @@
 
 ## 1. Executive Summary
 
-The Aeiforo reporting dashboard has a **solid foundation** with GRI and MSX questionnaires, RBAC, evidence library, blockchain anchoring, and analytics. To reach **world-class** and serve **Indian**, **GCC**, and **renewable energy** markets, specific enhancements have been identified and implemented.
+Nexus (by Aeiforo) has a **solid foundation** with GRI and MSX questionnaires, RBAC, evidence library, blockchain anchoring, and analytics. To reach **world-class** and serve **Indian**, **GCC**, and **renewable energy** markets, specific enhancements have been identified and implemented.
 
 | Market | Current Fit | After Enhancements |
 |--------|-------------|---------------------|

@@ -731,7 +731,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Seed org
-    await sql`INSERT INTO organisations (id, name, slug, industry, country) VALUES ('00000000-0000-0000-0000-000000000001', 'Aeiforo Demo', 'aeiforo-demo', 'Technology', 'GB') ON CONFLICT DO NOTHING`
+    await sql`INSERT INTO organisations (id, name, slug, industry, country) VALUES ('00000000-0000-0000-0000-000000000001', 'Nexus Demo Workspace', 'nexus-demo', 'Sustainability', 'GB') ON CONFLICT DO NOTHING`
 
     // Seed roles
     const roles = [
