@@ -389,6 +389,10 @@ export default function DisclosureEditor() {
     assignment: activeAssignment,
     onWorkflowAction: handleWorkflowAction,
     workflowBusy,
+    frameworkId,
+    reportingYear: ACTIVE_YEAR,
+    items: state.items,
+    onOpenCell: setActiveCellId,
   }
 
   const editorContent = (

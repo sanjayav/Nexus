@@ -46,8 +46,34 @@ export const handlers = [
     const view = url.searchParams.get('view')
     if (view === 'assignments' || view === 'my-assignments') return HttpResponse.json([])
     if (view === 'comments') return HttpResponse.json([])
+    if (view === 'members') return HttpResponse.json([])
+    if (view === 'entities') return HttpResponse.json([])
     if (view === 'enabled-frameworks') return HttpResponse.json([])
     return HttpResponse.json({ entities: [], members: [] })
+  }),
+  // Generic /api/org POST sink — comment add/resolve/reopen actions in
+  // component tests don't hit a real DB.
+  http.post('/api/org', async ({ request }) => {
+    let body: { action?: string; body?: string; assignment_id?: string } = {}
+    try { body = await request.json() as typeof body } catch { /* empty */ }
+    if (body.action === 'add-comment') {
+      return HttpResponse.json({
+        id: `c-${Date.now()}`,
+        assignment_id: body.assignment_id ?? 'a1',
+        author_user_id: 'u1',
+        author_name: 'Test Admin',
+        author_email: 'admin@aeiforo.com',
+        body: body.body ?? '',
+        kind: 'comment',
+        parent_comment_id: null,
+        mentioned_user_ids: [],
+        is_request_for_review: false,
+        resolved_at: null,
+        resolved_by: null,
+        created_at: new Date().toISOString(),
+      }, { status: 201 })
+    }
+    return HttpResponse.json({ ok: true })
   }),
   http.get('/api/dashboard', () => HttpResponse.json({ kpis: {}, charts: {} })),
 
@@ -151,6 +177,72 @@ export const handlers = [
       usage: { tokensIn: 1200, tokensOut: 180, cached: 0 },
     })
   }),
+
+  // ── AI: gap analysis ──────────────────────────────────────
+  // Returns a deterministic structured payload so the schema test +
+  // component test verify the contract without hitting Claude.
+  http.post('/api/ai/analyze-gaps', async ({ request }) => {
+    const body = await request.json() as { frameworkId: string; reportingYear: number; question: string }
+    return HttpResponse.json({
+      id: '00000000-0000-0000-0000-0000000000aa',
+      analysis: {
+        summary: `For ${body.frameworkId} FY${body.reportingYear}, your portfolio is 60% complete. Three high-impact disclosures remain — Scope 3 Cat 3, biogenic CO₂, and target methodology.`,
+        missingCount: 3,
+        missingItems: [
+          {
+            code: 'E1-6',
+            lineItem: 'Biogenic CO₂ emissions',
+            why_critical: 'Required by ESRS E1-6 §44 for limited assurance. Auditors will flag without it.',
+            estimated_effort: 'low',
+            suggested_owner_role: 'FM',
+          },
+          {
+            code: 'E1-6',
+            lineItem: 'Scope 3 Category 3 — fuel- and energy-related activities',
+            why_critical: 'Material category typically 8-12% of total Scope 3. Omission triggers ESRS-2 disclosure.',
+            estimated_effort: 'medium',
+            suggested_owner_role: 'SO',
+          },
+          {
+            code: 'E1-4',
+            lineItem: 'GHG reduction target methodology',
+            why_critical: 'ESRS E1-4 §34 requires baseline year, target year and scope coverage.',
+            estimated_effort: 'low',
+            suggested_owner_role: 'TL',
+          },
+        ],
+        qualityIssues: [
+          { code: 'E1-6', issue: 'Scope 1 reported but biogenic CO₂ not separated — required for ESRS E1-6.' },
+        ],
+        recommendedNextSteps: [
+          'Add biogenic CO₂ as a separate line item under Scope 1.',
+          'Run the Scope 3 Cat 3 calculator with WTT defaults.',
+          'Document target methodology with baseline year + scope coverage.',
+        ],
+      },
+      cached: false,
+      generatedAt: new Date().toISOString(),
+      coverage: { required: 10, filled: 6, inProgress: 1, missing: 3 },
+      usage: { tokensIn: 2400, tokensOut: 380, cached: 1800 },
+    })
+  }),
+
+  // ── XBRL footnotes ────────────────────────────────────────
+  http.get('/api/footnotes', () =>
+    HttpResponse.json({ footnotes: [] })),
+  http.post('/api/footnotes', async ({ request }) => {
+    const body = await request.json() as { data_value_id: string; footnote_text: string }
+    return HttpResponse.json({
+      footnote: {
+        id: 'fn-mock-1',
+        data_value_id: body.data_value_id,
+        footnote_text: body.footnote_text,
+        created_by: 'u1',
+        created_at: new Date().toISOString(),
+      },
+    }, { status: 201 })
+  }),
+  http.delete('/api/footnotes', () => HttpResponse.json({ ok: true, id: 'fn-mock-1' })),
 ]
 
 export const server = setupServer(...handlers)

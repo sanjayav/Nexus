@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import {
   ShieldCheck,
   Sparkles,
@@ -8,31 +9,29 @@ import {
   KeyRound,
   Table2,
   Globe2,
+  ArrowRight,
+  CheckCircle2,
+  Clock,
+  Banknote,
+  EyeOff,
 } from 'lucide-react'
 import MarketingShell from '../components/marketing/MarketingShell'
-import Hero from '../components/marketing/Hero'
 import LogoCloud from '../components/marketing/LogoCloud'
 import FeatureGrid, { type Feature } from '../components/marketing/FeatureGrid'
 import Testimonial from '../components/marketing/Testimonial'
 import PricingTable from '../components/marketing/PricingTable'
 import FAQ from '../components/marketing/FAQ'
 import CTABand from '../components/marketing/CTABand'
+import { FadeIn, Stagger, StaggerItem } from '../components/MotionPrimitives'
 
 /**
  * Landing — the public home for unauthenticated visitors.
  *
- * Sections (top → bottom):
- *   1. Hero
- *   2. LogoCloud — alpha customers
- *   3. FeatureGrid (3 pillars)
- *   4. Testimonial (placeholder customer quote)
- *   5. FeatureGrid (6 capabilities)
- *   6. PricingTable (teaser)
- *   7. FAQ
- *   8. CTABand
- *
- * Restrained, premium SaaS aesthetic; honours the platform's
- * light/dark theme via design-token CSS vars.
+ * Hero positions Nexus as the antithesis to legacy ESG platforms: published
+ * pricing, 2-day time-to-disclosure, ESG-native. The hero is followed by a
+ * "Legacy vs Nexus" trio of cards (no competitor named — just "legacy"),
+ * then the standard FeatureGrid → Testimonial → Capabilities → Pricing →
+ * FAQ → CTA stack.
  */
 
 const PILLARS: Feature[] = [
@@ -110,15 +109,15 @@ const TIERS = [
 const FAQS = [
   {
     q: 'How does Nexus compare to Workiva?',
-    a: 'We focus narrowly on sustainability reporting — that lets us go deeper on emission factors, supplier data, and framework-specific disclosure logic. Pricing is also a fraction of Workiva for comparable teams.',
+    a: 'We focus narrowly on sustainability reporting — that lets us go deeper on emission factors, supplier data, and framework-specific disclosure logic. Pricing is also a fraction of Workiva for comparable teams. See the full /compare page for an honest head-to-head.',
   },
   {
     q: 'Which frameworks are supported?',
-    a: 'CSRD/ESRS, ISSB (IFRS S1 & S2), GRI Universal + sector, TCFD, CDP (Climate, Water, Forests), SEC climate disclosure, and SASB. We ship new frameworks as they mature.',
+    a: 'CSRD/ESRS, ISSB (IFRS S1 & S2), GRI Universal + sector, TCFD, CDP (Climate, Water, Forests), SEC climate disclosure, and SASB. 24 frameworks in total, with new ones added as they mature.',
   },
   {
     q: "What's the implementation timeline?",
-    a: 'Typical onboarding: 1–2 weeks for a single-entity workspace, 4–6 weeks for a multi-subsidiary group. We do not require professional services — most teams self-serve from the welcome wizard.',
+    a: 'Most teams get a CSRD-ready draft in 48 hours, self-serve. No consultants required, no professional services fees. See /how-it-works for the hour-by-hour breakdown.',
   },
   {
     q: 'Where is data stored?',
@@ -134,10 +133,194 @@ const FAQS = [
   },
 ]
 
+/**
+ * NexusHero — the refreshed hero. Positions Nexus directly against the
+ * "six-month implementation, opaque pricing" status quo without naming
+ * competitors. Two CTAs, a trust band, and a Legacy-vs-Nexus three-card
+ * row underneath.
+ */
+function NexusHero() {
+  return (
+    <section
+      className="relative overflow-hidden"
+      style={{
+        background:
+          'radial-gradient(80% 60% at 20% 0%, color-mix(in srgb, var(--accent-500) 10%, transparent), transparent 70%), ' +
+          'radial-gradient(60% 50% at 90% 30%, color-mix(in srgb, var(--accent-300) 8%, transparent), transparent 70%)',
+      }}
+    >
+      <div className="max-w-[1180px] mx-auto px-5 sm:px-8 pt-16 pb-12 sm:pt-24 sm:pb-16 text-center">
+        <FadeIn>
+          <p
+            className="text-[12px] font-semibold uppercase tracking-[0.18em] mb-5"
+            style={{ color: 'var(--accent-600)' }}
+          >
+            ESG Reporting — Reimagined
+          </p>
+          <h1
+            className="h-display mx-auto max-w-[920px]"
+            style={{
+              fontSize: 'clamp(2.25rem, 5vw, 3.75rem)',
+              color: 'var(--text-primary)',
+              letterSpacing: '-0.025em',
+              lineHeight: 1.05,
+            }}
+          >
+            Disclosures shouldn't take six months.{' '}
+            <span style={{ color: 'var(--accent-600)' }}>
+              Nexus does it in two days.
+            </span>
+          </h1>
+          <p
+            className="mt-6 mx-auto max-w-[680px] text-[17px] leading-relaxed"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            One platform. Every framework — CSRD, ISSB, GRI, TCFD, CDP, SEC, EU
+            Taxonomy, and more. Auditor-ready. Built ESG-first.
+          </p>
+
+          <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              to="/login?mode=register"
+              className="btn-primary"
+              style={{ height: 46, paddingInline: 24, fontSize: 14 }}
+            >
+              Start free
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
+              to="/how-it-works"
+              className="btn-secondary"
+              style={{ height: 46, paddingInline: 22, fontSize: 14 }}
+            >
+              See how it works
+            </Link>
+          </div>
+
+          {/* Trust band */}
+          <div
+            className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12.5px]"
+            style={{ color: 'var(--text-tertiary)' }}
+          >
+            {[
+              'No sales call required',
+              'Transparent pricing',
+              'CSRD-ready in 2 days',
+              '24 frameworks',
+              'Blockchain audit trail',
+            ].map((item, i, arr) => (
+              <span key={item} className="inline-flex items-center gap-x-5">
+                <span className="inline-flex items-center gap-1.5">
+                  <CheckCircle2
+                    className="w-3.5 h-3.5"
+                    style={{ color: 'var(--accent-500)' }}
+                  />
+                  {item}
+                </span>
+                {i < arr.length - 1 && (
+                  <span aria-hidden style={{ color: 'var(--border-default)' }}>
+                    ·
+                  </span>
+                )}
+              </span>
+            ))}
+          </div>
+        </FadeIn>
+      </div>
+
+      {/* Legacy vs Nexus three-card row */}
+      <div className="max-w-[1180px] mx-auto px-5 sm:px-8 pb-20 sm:pb-24">
+        <Stagger className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
+          {[
+            {
+              icon: Clock,
+              label: 'Time to first draft',
+              legacy: '6+ months',
+              nexus: '2 days',
+            },
+            {
+              icon: Banknote,
+              label: 'Implementation cost',
+              legacy: '$100K+ services',
+              nexus: 'No setup fee',
+            },
+            {
+              icon: EyeOff,
+              label: 'Pricing',
+              legacy: 'Quote required',
+              nexus: '£500/mo Team tier',
+            },
+          ].map(({ icon: Icon, label, legacy, nexus }) => (
+            <StaggerItem key={label}>
+              <article
+                className="rounded-[16px] border p-6 h-full"
+                style={{
+                  background: 'var(--bg-primary)',
+                  borderColor: 'var(--border-default)',
+                  boxShadow: 'var(--shadow-card)',
+                }}
+              >
+                <div
+                  className="w-10 h-10 rounded-[10px] flex items-center justify-center mb-4"
+                  style={{
+                    background: 'color-mix(in srgb, var(--accent-500) 12%, transparent)',
+                    color: 'var(--accent-600)',
+                  }}
+                >
+                  <Icon className="w-5 h-5" />
+                </div>
+                <p
+                  className="text-[11px] font-semibold uppercase tracking-[0.14em] mb-3"
+                  style={{ color: 'var(--text-tertiary)' }}
+                >
+                  {label}
+                </p>
+                <div className="space-y-2.5">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span
+                      className="text-[13px]"
+                      style={{ color: 'var(--text-tertiary)' }}
+                    >
+                      Legacy ESG platforms
+                    </span>
+                    <span
+                      className="text-[14px] font-medium line-through"
+                      style={{ color: 'var(--text-tertiary)' }}
+                    >
+                      {legacy}
+                    </span>
+                  </div>
+                  <div
+                    className="flex items-baseline justify-between gap-3 pt-2.5"
+                    style={{ borderTop: '1px solid var(--border-subtle)' }}
+                  >
+                    <span
+                      className="text-[13px] font-semibold"
+                      style={{ color: 'var(--accent-600)' }}
+                    >
+                      Nexus
+                    </span>
+                    <span
+                      className="text-[16px] font-semibold"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      {nexus}
+                    </span>
+                  </div>
+                </div>
+              </article>
+            </StaggerItem>
+          ))}
+        </Stagger>
+      </div>
+    </section>
+  )
+}
+
 export default function Landing() {
   return (
     <MarketingShell>
-      <Hero />
+      <NexusHero />
       <LogoCloud />
       <FeatureGrid
         eyebrow="Why Nexus"
@@ -160,9 +343,9 @@ export default function Landing() {
       <PricingTable tiers={TIERS} compact />
       <FAQ items={FAQS} />
       <CTABand
-        heading="Ready to consolidate your sustainability reporting?"
+        heading="Stop quoting six months. Start in two days."
         primary={{ label: 'Start free trial', to: '/login?mode=register' }}
-        secondary={{ label: 'Talk to sales', to: '/contact' }}
+        secondary={{ label: 'See how it works', to: '/how-it-works' }}
       />
     </MarketingShell>
   )

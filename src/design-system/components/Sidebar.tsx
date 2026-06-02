@@ -76,6 +76,8 @@ const NAV: NavGroup[] = [
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'plant_manager', 'data_contributor'] },
       { path: '/data/evidence',       label: 'Evidence',          icon: Paperclip },
       { path: '/calculators',         label: 'Calculators',       icon: CalcIcon },
+      { path: '/calculators/pcaf',    label: 'PCAF Portfolio',    icon: Scale, pin: true,
+        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead'] },
       { path: '/data/connectors',     label: 'Connectors',        icon: Plug },
       { path: '/data/ef-library',     label: 'Emission factors',  icon: BookOpen,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead'] },

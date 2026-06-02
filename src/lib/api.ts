@@ -924,6 +924,72 @@ export const ai = {
     }),
   listAnomaliesForNarration: () =>
     request<{ anomalies: AiAnomalyListItem[] }>('/ai/narrate-anomaly'),
+  analyzeGaps: (data: AiAnalyzeGapsRequest) =>
+    request<AiAnalyzeGapsResponse>('/ai/analyze-gaps', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+}
+
+// ── AI Gap Analysis (Workiva "ESRS Intelligence" feature) ────────
+export interface AiAnalyzeGapsRequest {
+  frameworkId: string
+  reportingYear: number
+  question: string
+  scope?: 'gaps' | 'coverage' | 'quality' | 'custom'
+  regenerate?: boolean
+}
+
+export interface AiGapMissingItem {
+  code: string
+  lineItem: string
+  why_critical: string
+  estimated_effort: 'low' | 'medium' | 'high'
+  suggested_owner_role?: string
+}
+
+export interface AiGapQualityIssue {
+  code: string
+  issue: string
+}
+
+export interface AiGapAnalysis {
+  summary: string
+  missingCount: number
+  missingItems: AiGapMissingItem[]
+  qualityIssues: AiGapQualityIssue[]
+  recommendedNextSteps: string[]
+}
+
+export interface AiAnalyzeGapsResponse {
+  id?: string | null
+  analysis: AiGapAnalysis
+  cached: boolean
+  generatedAt: string
+  coverage?: { required: number; filled: number; inProgress: number; missing: number }
+  usage: AiDraftUsage
+}
+
+// ── XBRL footnotes (Fact Details panel) ─────────────────────────
+export interface XbrlFootnote {
+  id: string
+  data_value_id: string
+  footnote_text: string
+  created_by: string | null
+  created_at: string
+  author_name?: string | null
+}
+
+export const footnotes = {
+  list: (dataValueId: string) =>
+    request<{ footnotes: XbrlFootnote[] }>(`/footnotes?data_value_id=${encodeURIComponent(dataValueId)}`),
+  create: (dataValueId: string, footnoteText: string) =>
+    request<{ footnote: XbrlFootnote }>('/footnotes', {
+      method: 'POST',
+      body: JSON.stringify({ data_value_id: dataValueId, footnote_text: footnoteText }),
+    }),
+  remove: (id: string) =>
+    request<{ ok: true; id: string }>(`/footnotes?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
 }
 
 export interface AiNarrateAnomalyResponse {
@@ -1170,4 +1236,138 @@ export async function downloadAuditCsv(params?: AuditExplorerParams): Promise<Bl
   })
   if (!res.ok) throw new Error(`Audit CSV export failed (${res.status})`)
   return res.blob()
+}
+
+// ── PCAF Financed Emissions ──────────────
+export type PcafAssetClass =
+  | 'listed_equity'
+  | 'corporate_bond'
+  | 'business_loan'
+  | 'unlisted_equity'
+  | 'project_finance'
+  | 'commercial_real_estate'
+  | 'mortgage'
+  | 'motor_vehicle_loan'
+  | 'sovereign_debt'
+
+export interface PcafCalculateResponse {
+  attributionFactor: number
+  financedScope1?: number
+  financedScope2?: number
+  financedScope3?: number
+  financedTotal: number
+  dataQualityScore: 1 | 2 | 3 | 4 | 5
+  rationale: string
+  warnings: string[]
+  methodologyUrl: string
+}
+
+export interface PcafAsset {
+  id: string
+  org_id: string
+  reporting_year: number
+  asset_class: PcafAssetClass
+  counterparty_name: string
+  counterparty_sector: string | null
+  counterparty_country: string | null
+  outstanding_amount: number | string
+  reporting_currency: string
+  total_value: number | string | null
+  total_value_basis: string | null
+  attribution_factor: number | string
+  reported_emissions_scope1: number | string | null
+  reported_emissions_scope2: number | string | null
+  reported_emissions_scope3: number | string | null
+  estimated_emissions: number | string | null
+  emissions_basis: 'reported' | 'physical_activity_estimate' | 'economic_estimate' | null
+  financed_emissions_scope1: number | string | null
+  financed_emissions_scope2: number | string | null
+  financed_emissions_scope3: number | string | null
+  financed_emissions_total: number | string
+  data_quality_score: number
+  data_quality_rationale: string | null
+  notes: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface PcafPortfolioSummary {
+  reporting_year: number
+  total_financed_emissions: number
+  total_financed_scope1: number
+  total_financed_scope2: number
+  total_financed_scope3: number
+  total_outstanding: number
+  asset_count: number
+  weighted_data_quality: number
+  coverage_reported_pct: number
+  coverage_estimated_pct: number
+  by_asset_class: Array<{
+    asset_class: PcafAssetClass
+    asset_count: number
+    outstanding_total: number
+    financed_total: number
+    financed_scope1: number
+    financed_scope2: number
+    financed_scope3: number
+    weighted_dq: number
+  }>
+  top_emitters: Array<{
+    id: string
+    counterparty_name: string
+    asset_class: PcafAssetClass
+    outstanding_amount: number
+    financed_emissions_total: number
+    data_quality_score: number
+  }>
+}
+
+export interface PcafCreateAssetBody {
+  reportingYear: number
+  assetClass: PcafAssetClass
+  counterpartyName: string
+  counterpartySector?: string
+  counterpartyCountry?: string
+  outstandingAmount: number
+  reportingCurrency?: string
+  totalValue?: number
+  totalValueBasis?: string
+  attributionFactor: number
+  reportedEmissionsScope1?: number
+  reportedEmissionsScope2?: number
+  reportedEmissionsScope3?: number
+  estimatedEmissions?: number
+  emissionsBasis?: 'reported' | 'physical_activity_estimate' | 'economic_estimate'
+  financedEmissionsScope1?: number
+  financedEmissionsScope2?: number
+  financedEmissionsScope3?: number
+  financedEmissionsTotal: number
+  dataQualityScore: 1 | 2 | 3 | 4 | 5
+  dataQualityRationale?: string
+  notes?: string
+}
+
+export const pcaf = {
+  calculate: (body: { assetClass: PcafAssetClass; inputs: Record<string, unknown>; reportingYear: number }) =>
+    request<PcafCalculateResponse>('/pcaf/calculate', { method: 'POST', body: JSON.stringify(body) }),
+  listAssets: (year: number, assetClass?: PcafAssetClass) => {
+    const qs = new URLSearchParams({ year: String(year) })
+    if (assetClass) qs.set('asset_class', assetClass)
+    return request<PcafAsset[]>(`/pcaf/assets?${qs.toString()}`)
+  },
+  createAsset: (body: PcafCreateAssetBody) =>
+    request<PcafAsset>('/pcaf/assets', { method: 'POST', body: JSON.stringify(body) }),
+  deleteAsset: (id: string) =>
+    request<{ ok: boolean; id: string }>(`/pcaf/assets?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  summary: (year: number) =>
+    request<PcafPortfolioSummary>(`/pcaf/portfolio-summary?year=${year}`),
+  syncToScope3: (body: { reportingYear: number; facilityId: string; periodMonth?: number }) =>
+    request<{
+      ok: true
+      activity_data_id: string
+      asset_count: number
+      total_financed_emissions: number
+      weighted_data_quality: number
+    }>('/pcaf/sync-scope3', { method: 'POST', body: JSON.stringify(body) }),
 }

@@ -1,4 +1,5 @@
 import { Check, Minus } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import MarketingShell from '../components/marketing/MarketingShell'
 import PricingTable, { type PricingTier } from '../components/marketing/PricingTable'
 import FAQ from '../components/marketing/FAQ'
@@ -118,10 +119,10 @@ export default function Pricing() {
         <div className="max-w-[920px] mx-auto px-5 sm:px-8 text-center">
           <FadeIn>
             <p
-              className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-4"
+              className="text-[12px] font-semibold uppercase tracking-[0.18em] mb-4"
               style={{ color: 'var(--accent-600)' }}
             >
-              Pricing
+              Published Pricing — No Sales Calls Required
             </p>
             <h1
               className="h-display"
@@ -131,19 +132,72 @@ export default function Pricing() {
                 lineHeight: 1.1,
               }}
             >
-              Simple pricing. Predictable bills.
+              Pricing
             </h1>
             <p
-              className="mt-5 text-[17px] leading-relaxed mx-auto max-w-[640px]"
+              className="mt-5 text-[17px] leading-relaxed mx-auto max-w-[680px]"
               style={{ color: 'var(--text-secondary)' }}
             >
-              No per-disclosure fees. No surprise overages. Pick the tier that fits and grow into it.
+              We publish our prices because we think you should be able to compare us to
+              Workiva, Watershed, Persefoni, and everyone else without booking a demo first.
             </p>
           </FadeIn>
         </div>
       </section>
 
       <PricingTable tiers={TIERS} />
+
+      {/* Why we publish our pricing */}
+      <section className="pt-4 pb-16 sm:pb-20">
+        <div className="max-w-[920px] mx-auto px-5 sm:px-8">
+          <div
+            className="rounded-[16px] border p-7 sm:p-10"
+            style={{
+              background: 'var(--bg-primary)',
+              borderColor: 'var(--border-default)',
+              boxShadow: 'var(--shadow-card)',
+            }}
+          >
+            <p
+              className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-3"
+              style={{ color: 'var(--accent-600)' }}
+            >
+              Why we publish our pricing
+            </p>
+            <h2
+              className="h-section mb-5"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              Transparency is the product.
+            </h2>
+            <div
+              className="space-y-4 text-[15px] leading-relaxed"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <p>
+                Most ESG platforms hide their numbers behind a "Request a demo" button.
+                The reason is simple: they price every customer differently, and they
+                don't want you comparing notes. We think that's the wrong instinct for
+                a category whose job is making companies more transparent.
+              </p>
+              <p>
+                So we publish ours. £0 to start, £500/month for the Team tier, custom
+                for Enterprise. No per-disclosure overages, no implementation tax, no
+                surprise renewal hikes. If you outgrow a tier we'll tell you ahead of
+                renewal — not blindside you with a bill.
+              </p>
+              <p>
+                If you need to procure a budget, you can do the maths from this page.
+                If you want to compare us against{' '}
+                <Link to="/compare" className="underline" style={{ color: 'var(--accent-600)' }}>
+                  Workiva
+                </Link>
+                {' '}or anyone else, you can do that too. That's the point.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Comparison matrix */}
       <section className="pb-20 sm:pb-24">

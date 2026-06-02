@@ -18,6 +18,8 @@ import NexusBrand from '../NexusBrand'
 const NAV_LINKS: { label: string; to: string }[] = [
   { label: 'Features', to: '/features' },
   { label: 'Pricing', to: '/pricing' },
+  { label: 'How it works', to: '/how-it-works' },
+  { label: 'Compare', to: '/compare' },
   { label: 'About', to: '/about' },
   { label: 'Contact', to: '/contact' },
 ]
@@ -33,9 +35,10 @@ const FOOTER_COLS: FooterColumn[] = [
     items: [
       { label: 'Features', to: '/features' },
       { label: 'Pricing', to: '/pricing' },
+      { label: 'How it works', to: '/how-it-works' },
+      { label: 'Compare', to: '/compare' },
       { label: 'Security', to: '#' },
       { label: 'API', to: '#' },
-      { label: 'Changelog', to: '#' },
     ],
   },
   {

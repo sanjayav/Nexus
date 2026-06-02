@@ -8,7 +8,6 @@
 
 const PAGE_MODULES = [
   '../../pages/AIReport',
-  '../../pages/Aggregator',
   '../../pages/Analytics',
   '../../pages/AnomalyDetection',
   '../../pages/ApiKeys',
@@ -19,11 +18,9 @@ const PAGE_MODULES = [
   '../../pages/AuditorView',
   '../../pages/BlockchainAudit',
   '../../pages/Calculators',
-  '../../pages/CarbonAccounting',
   '../../pages/ClimateTargets',
   '../../pages/Connectors',
   '../../pages/ContentIndex',
-  '../../pages/Dashboard',
   '../../pages/DataEntry',
   '../../pages/DataEntryPicker',
   '../../pages/DataEntrySpreadsheet',

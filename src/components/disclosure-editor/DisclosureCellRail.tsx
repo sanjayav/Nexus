@@ -1,18 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Loader2, FileText, Link2, ShieldCheck, AlertTriangle, ExternalLink,
+  Loader2, FileText, ShieldCheck,
   CheckCircle2, XCircle, Send, Sparkles, Clock, History, Paperclip, Upload, X,
+  ScrollText, MessageSquare,
 } from 'lucide-react'
 import type { NexusQuestionnaireItem, NexusEvidence, NexusAuditEvent } from '../../lib/api'
-import { nexus, conceptMappings, type ConceptPeer } from '../../lib/api'
+import { nexus } from '../../lib/api'
 import type { QuestionAssignment } from '../../lib/orgStore'
 import { useAuth } from '../../auth/AuthContext'
 import { hasPermission } from '../../lib/rbac'
-import { getFramework } from '../../lib/frameworks'
 import CommentThread from '../CommentThread'
 import { FadeIn } from '../MotionPrimitives'
 import { riseIn } from '../motion'
+import FactDetailsPanel from './FactDetailsPanel'
+import GapAnalysisPanel from './GapAnalysisPanel'
 
 /**
  * Right-rail surface for the currently-selected disclosure cell. Loads its
@@ -31,7 +33,16 @@ export interface DisclosureCellRailProps {
    * so the mobile editor shell can mount the same surface inside a tab pane.
    */
   variant?: 'desktop' | 'inline'
+  /** Framework + year context used by the FactDetailsPanel + GapAnalysisPanel. */
+  frameworkId: string
+  reportingYear: number
+  /** All questionnaire items in the framework — used by gap-analysis "Open" buttons. */
+  items: NexusQuestionnaireItem[]
+  /** Caller focuses a cell from the gap-analysis "Open" CTA. */
+  onOpenCell?: (questionnaireItemId: string) => void
 }
+
+type RailTab = 'fact' | 'comments' | 'gap'
 
 const STATUS_LABEL: Record<QuestionAssignment['status'], string> = {
   not_started: 'Not started',
@@ -53,6 +64,7 @@ const STATUS_PILL: Record<QuestionAssignment['status'], string> = {
 
 export default function DisclosureCellRail({
   item, assignment, onWorkflowAction, workflowBusy = false, variant = 'desktop',
+  frameworkId, reportingYear, items, onOpenCell,
 }: DisclosureCellRailProps) {
   const inline = variant === 'inline'
   const asideClass = inline
@@ -60,46 +72,108 @@ export default function DisclosureCellRail({
     : 'hidden xl:flex flex-col w-[340px] flex-shrink-0 border-l border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 sticky top-[68px] self-start overflow-y-auto'
   const asideStyle = inline ? undefined : { height: 'calc(100vh - 68px)' }
 
+  // Tab state lives at the rail level so switching cells preserves the active tab.
+  const [tab, setTab] = useState<RailTab>('fact')
+
   return (
     <aside
       className={asideClass}
       style={asideStyle}
       aria-label="Cell detail"
     >
+      <RailTabs tab={tab} onChange={setTab} disabled={!item} />
       {!item ? (
         <div className="flex flex-col items-center justify-center h-full px-6 py-12 text-center text-[var(--text-sm)] text-[var(--text-tertiary)]">
           <div className="w-10 h-10 mb-3 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center">
             <FileText className="w-4 h-4 text-[var(--text-tertiary)]" />
           </div>
-          Select a disclosure to see linked data, evidence, comments and audit history.
+          {tab === 'gap'
+            ? 'Switch to the document or pick a disclosure to use Gap Analysis context.'
+            : 'Select a disclosure to see fact details, comments and audit history.'}
         </div>
-      ) : (
+      ) : tab === 'fact' ? (
         <CellPanel
           item={item}
           assignment={assignment}
           onWorkflowAction={onWorkflowAction}
           workflowBusy={workflowBusy}
+          frameworkId={frameworkId}
+          reportingYear={reportingYear}
+        />
+      ) : tab === 'comments' ? (
+        <div className="p-5">
+          {assignment ? (
+            <CommentThread assignmentId={assignment.id} />
+          ) : (
+            <p className="text-[11px] text-[var(--text-tertiary)] italic">
+              Enter a value to start a discussion thread.
+            </p>
+          )}
+        </div>
+      ) : (
+        <GapAnalysisPanel
+          frameworkId={frameworkId}
+          reportingYear={reportingYear}
+          items={items}
+          onOpenCell={onOpenCell}
         />
       )}
     </aside>
   )
 }
 
+function RailTabs({
+  tab, onChange, disabled,
+}: { tab: RailTab; onChange: (t: RailTab) => void; disabled?: boolean }) {
+  const tabs: Array<{ key: RailTab; label: string; icon: typeof ScrollText }> = [
+    { key: 'fact', label: 'Cell', icon: ScrollText },
+    { key: 'comments', label: 'Comments', icon: MessageSquare },
+    { key: 'gap', label: 'Gap Analysis', icon: Sparkles },
+  ]
+  return (
+    <div role="tablist" className="flex items-center border-b border-[var(--border-subtle)] bg-[var(--bg-primary)] sticky top-0 z-10">
+      {tabs.map(t => {
+        const active = tab === t.key
+        const Icon = t.icon
+        return (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            data-testid={`rail-tab-${t.key}`}
+            onClick={() => onChange(t.key)}
+            disabled={disabled && t.key !== 'gap'}
+            className={`flex-1 flex items-center justify-center gap-1 h-9 text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+              active
+                ? 'text-[var(--color-brand)] border-b-2 border-[var(--color-brand)]'
+                : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] border-b-2 border-transparent'
+            } disabled:opacity-40 disabled:cursor-not-allowed`}
+          >
+            <Icon className="w-3 h-3" />
+            {t.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 function CellPanel({
-  item, assignment, onWorkflowAction, workflowBusy,
+  item, assignment, onWorkflowAction, workflowBusy, frameworkId, reportingYear,
 }: {
   item: NexusQuestionnaireItem
   assignment: QuestionAssignment | null
   onWorkflowAction: (action: 'submit' | 'approve' | 'reject') => Promise<void>
   workflowBusy: boolean
+  frameworkId: string
+  reportingYear: number
 }) {
   const { permissions } = useAuth()
   const canSubmit = hasPermission(permissions, 'data.upload')
   const canReview = hasPermission(permissions, 'workflow.approve')
   const status = assignment?.status ?? 'not_started'
 
-  const [peers, setPeers] = useState<ConceptPeer[]>([])
-  const [conceptKey, setConceptKey] = useState<string | null>(null)
   const [evidence, setEvidence] = useState<NexusEvidence[]>([])
   const [trail, setTrail] = useState<NexusAuditEvent[]>([])
   const [loading, setLoading] = useState(true)
@@ -137,19 +211,11 @@ function CellPanel({
     setLoading(true)
     const dataValueId = assignment?.id ?? null
     Promise.allSettled([
-      conceptMappings.forQuestion(item.id),
       dataValueId ? nexus.listEvidence(dataValueId) : Promise.resolve([] as NexusEvidence[]),
       dataValueId ? nexus.trail(dataValueId) : Promise.resolve([] as NexusAuditEvent[]),
     ]).then(results => {
       if (cancelled) return
-      const [mapRes, evRes, trRes] = results
-      if (mapRes.status === 'fulfilled') {
-        setPeers(mapRes.value.mappings.filter(p => p.questionnaire_item_id !== item.id))
-        setConceptKey(mapRes.value.concept_key)
-      } else {
-        setPeers([])
-        setConceptKey(null)
-      }
+      const [evRes, trRes] = results
       setEvidence(evRes.status === 'fulfilled' ? evRes.value : [])
       setTrail(trRes.status === 'fulfilled' ? trRes.value : [])
       setLoading(false)
@@ -158,7 +224,6 @@ function CellPanel({
   }, [item.id, assignment?.id])
 
   const overdue = assignment?.is_overdue && assignment.due_date
-  const isOverridden = false // wiring point — once /api/concept-mappings exposes per-cell flag
 
   return (
     <motion.div key={item.id} {...riseIn(0)} className="flex flex-col gap-5 p-5">
@@ -212,7 +277,7 @@ function CellPanel({
         )}
       </section>
 
-      {/* Metadata */}
+      {/* Metadata (assignment) */}
       <section className="space-y-1.5 text-[11px]">
         <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">Metadata</div>
         {assignment ? (
@@ -235,38 +300,14 @@ function CellPanel({
         )}
       </section>
 
-      {/* Linked data */}
-      <section>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">Linked to</span>
-          {conceptKey && (
-            <span className="text-[9px] font-mono text-[var(--text-tertiary)] truncate max-w-[140px]">{conceptKey}</span>
-          )}
-        </div>
-        {loading ? (
-          <Loader2 className="w-3 h-3 animate-spin text-[var(--text-tertiary)]" />
-        ) : peers.length === 0 ? (
-          <p className="text-[11px] text-[var(--text-tertiary)] italic">Not linked to any other framework.</p>
-        ) : (
-          <ul className="space-y-1">
-            {peers.map(p => (
-              <li key={p.id}>
-                <span className="flex items-center gap-1.5 px-2 h-7 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[10px]">
-                  <Link2 className="w-3 h-3 text-[var(--color-brand)] flex-shrink-0" />
-                  <span className="font-semibold text-[var(--text-secondary)]">{frameworkLabel(p.framework_id)}</span>
-                  <span className="font-mono text-[var(--text-tertiary)] truncate">{p.gri_code}</span>
-                  <ExternalLink className="w-2.5 h-2.5 text-[var(--text-tertiary)] ml-auto" />
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-        {isOverridden && (
-          <div className="inline-flex items-center gap-1 mt-2 px-2 h-5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-semibold">
-            <AlertTriangle className="w-3 h-3" /> Locally overridden
-          </div>
-        )}
-      </section>
+      {/* Fact Details — concept, dimensions, fiscal period, source value,
+          XBRL footnotes and "other fact locations" peers. */}
+      <FactDetailsPanel
+        item={item}
+        assignment={assignment}
+        reportingYear={reportingYear}
+        currentFrameworkId={frameworkId}
+      />
 
       {/* Evidence */}
       <section>
@@ -324,14 +365,6 @@ function CellPanel({
           }}
           onClose={() => setFlyoutOpen(false)}
         />
-      )}
-
-      {/* Comments */}
-      {assignment && (
-        <section>
-          <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-2">Discussion</div>
-          <CommentThread assignmentId={assignment.id} />
-        </section>
       )}
 
       {/* Audit trail */}
@@ -493,6 +526,3 @@ function Meta({ label, value, valueClass = '' }: { label: string; value: string;
   )
 }
 
-function frameworkLabel(id: string): string {
-  return getFramework(id)?.code ?? id.toUpperCase()
-}

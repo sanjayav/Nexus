@@ -579,6 +579,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ON notifications(recipient_email, read_at)`
 
     // ═══════════════════════════════════════════
+    // Assignment comments — discussion threads on each questionnaire
+    // assignment. Workiva-grade: supports threaded replies (one level deep),
+    // @mentions, resolve/reopen, and "request for review" flagging.
+    // ═══════════════════════════════════════════
+    await sql`CREATE TABLE IF NOT EXISTS assignment_comments (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      assignment_id UUID NOT NULL REFERENCES question_assignments(id) ON DELETE CASCADE,
+      author_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+      author_name TEXT NOT NULL,
+      author_email TEXT NOT NULL,
+      body TEXT NOT NULL,
+      kind TEXT NOT NULL DEFAULT 'comment' CHECK (kind IN ('comment','review_decision','approval_decision','rejection_reason','system')),
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`
+    // Additive columns for the threaded-comments upgrade — safe to re-run on
+    // pre-existing DBs that already have the base assignment_comments table.
+    await sql`ALTER TABLE assignment_comments ADD COLUMN IF NOT EXISTS parent_comment_id UUID REFERENCES assignment_comments(id) ON DELETE CASCADE`
+    await sql`ALTER TABLE assignment_comments ADD COLUMN IF NOT EXISTS mentioned_user_ids UUID[] DEFAULT ARRAY[]::UUID[]`
+    await sql`ALTER TABLE assignment_comments ADD COLUMN IF NOT EXISTS is_request_for_review BOOLEAN DEFAULT false`
+    await sql`ALTER TABLE assignment_comments ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ`
+    await sql`ALTER TABLE assignment_comments ADD COLUMN IF NOT EXISTS resolved_by UUID REFERENCES users(id)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_comments_assignment ON assignment_comments(assignment_id, created_at)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_comments_parent ON assignment_comments(parent_comment_id)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_comments_unresolved ON assignment_comments(assignment_id, resolved_at) WHERE resolved_at IS NULL`
+
+    // ═══════════════════════════════════════════
     // Emission factors — DB-backed library replacing the static mock.
     // ═══════════════════════════════════════════
     await sql`CREATE TABLE IF NOT EXISTS emission_factors (
@@ -1294,6 +1320,86 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       digest_frequency TEXT DEFAULT 'daily' CHECK (digest_frequency IN ('none','daily','weekly')),
       updated_at TIMESTAMPTZ DEFAULT now()
     )`
+
+    // ═══════════════════════════════════════════
+    // AI Gap Analysis — Claude-backed framework completeness audit. Persisted
+    // so repeat calls within the same window (same org + framework + year)
+    // return the cached row instead of re-billing Claude. raw_response holds
+    // the structured tool-call payload (summary, missingItems, qualityIssues,
+    // recommendedNextSteps) for audit + UI re-render.
+    // ═══════════════════════════════════════════
+    await sql`CREATE TABLE IF NOT EXISTS ai_gap_analyses (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      framework_id TEXT NOT NULL,
+      reporting_year INTEGER NOT NULL,
+      question TEXT,
+      summary TEXT,
+      missing_count INTEGER,
+      raw_response JSONB,
+      model TEXT,
+      tokens_in INTEGER,
+      tokens_out INTEGER,
+      cached_tokens INTEGER,
+      created_by UUID REFERENCES users(id),
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_gap_analyses_org_framework
+      ON ai_gap_analyses(org_id, framework_id, reporting_year, created_at DESC)`
+
+    // ═══════════════════════════════════════════
+    // XBRL footnotes — per data_value annotations surfaced in the Fact Details
+    // panel ("Workiva XBRL UX"). Strings only — links + formatting handled in UI.
+    // ═══════════════════════════════════════════
+    await sql`CREATE TABLE IF NOT EXISTS xbrl_footnotes (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      data_value_id UUID REFERENCES data_value(id) ON DELETE CASCADE,
+      footnote_text TEXT NOT NULL,
+      created_by UUID REFERENCES users(id),
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_xbrl_footnotes_value ON xbrl_footnotes(data_value_id)`
+
+    // ═══════════════════════════════════════════
+    // PCAF Financed Emissions — Scope 3 Cat 15 portfolio measurement for
+    // financial institutions. One row per asset/loan/investment, computed
+    // via the per-asset-class calculators in src/calculators/pcaf/.
+    // ═══════════════════════════════════════════
+    await sql`CREATE TABLE IF NOT EXISTS pcaf_assets (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      reporting_year INTEGER NOT NULL,
+      asset_class TEXT NOT NULL CHECK (asset_class IN (
+        'listed_equity', 'corporate_bond', 'business_loan', 'unlisted_equity',
+        'project_finance', 'commercial_real_estate', 'mortgage',
+        'motor_vehicle_loan', 'sovereign_debt'
+      )),
+      counterparty_name TEXT NOT NULL,
+      counterparty_sector TEXT,
+      counterparty_country TEXT,
+      outstanding_amount NUMERIC NOT NULL,
+      reporting_currency TEXT DEFAULT 'USD',
+      total_value NUMERIC,
+      total_value_basis TEXT,
+      attribution_factor NUMERIC,
+      reported_emissions_scope1 NUMERIC,
+      reported_emissions_scope2 NUMERIC,
+      reported_emissions_scope3 NUMERIC,
+      estimated_emissions NUMERIC,
+      emissions_basis TEXT,
+      financed_emissions_scope1 NUMERIC,
+      financed_emissions_scope2 NUMERIC,
+      financed_emissions_scope3 NUMERIC,
+      financed_emissions_total NUMERIC,
+      data_quality_score INTEGER CHECK (data_quality_score BETWEEN 1 AND 5),
+      data_quality_rationale TEXT,
+      notes TEXT,
+      created_by UUID REFERENCES users(id),
+      created_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now()
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_pcaf_org_year ON pcaf_assets(org_id, reporting_year)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_pcaf_asset_class ON pcaf_assets(asset_class)`
 
     return res.status(200).json({ ok: true, message: 'Database setup complete — tables created and seeded' })
   } catch (err: unknown) {

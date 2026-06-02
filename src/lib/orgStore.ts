@@ -121,7 +121,20 @@ export interface AssignmentComment {
   author_email: string
   body: string
   kind: 'comment' | 'review_decision' | 'approval_decision' | 'rejection_reason' | 'system'
+  parent_comment_id: string | null
+  mentioned_user_ids: string[] | null
+  is_request_for_review: boolean | null
+  resolved_at: string | null
+  resolved_by: string | null
   created_at: string
+}
+
+export interface AddCommentInput {
+  body: string
+  kind?: AssignmentComment['kind']
+  parent_comment_id?: string
+  mentioned_user_emails?: string[]
+  is_request_for_review?: boolean
 }
 
 export interface Notification {
@@ -437,10 +450,38 @@ export const orgStore = {
   async listComments(assignmentId: string): Promise<AssignmentComment[]> {
     return req<AssignmentComment[]>(`/org?view=comments&assignment_id=${encodeURIComponent(assignmentId)}`)
   },
-  async addComment(assignmentId: string, body: string, kind?: AssignmentComment['kind']): Promise<AssignmentComment> {
+  async addComment(
+    assignmentId: string,
+    bodyOrInput: string | AddCommentInput,
+    kind?: AssignmentComment['kind'],
+  ): Promise<AssignmentComment> {
+    // Back-compat: keep the (id, string, kind?) overload for legacy callers.
+    const input: AddCommentInput = typeof bodyOrInput === 'string'
+      ? { body: bodyOrInput, kind }
+      : bodyOrInput
     return req<AssignmentComment>('/org', {
       method: 'POST',
-      body: JSON.stringify({ action: 'add-comment', assignment_id: assignmentId, body, kind }),
+      body: JSON.stringify({
+        action: 'add-comment',
+        assignment_id: assignmentId,
+        body: input.body,
+        kind: input.kind,
+        parent_comment_id: input.parent_comment_id,
+        mentioned_user_emails: input.mentioned_user_emails,
+        is_request_for_review: input.is_request_for_review,
+      }),
+    })
+  },
+  async resolveComment(id: string): Promise<void> {
+    await req('/org', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'resolve-comment', id }),
+    })
+  },
+  async reopenComment(id: string): Promise<void> {
+    await req('/org', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'reopen-comment', id }),
     })
   },
 

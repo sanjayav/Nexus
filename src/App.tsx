@@ -3,13 +3,12 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { Toaster } from 'sonner'
 import AppShell from './components/AppShell'
 import RouteLoader from './components/RouteLoader'
-// Login + Dashboard stay eagerly imported: Login is the entry point and we
-// want it instant; Dashboard is the first authed page so the redirect after
-// login shouldn't flash a spinner. Everything else is route-level split.
+// Login + MyDay stay eagerly imported: Login is the entry point and we want
+// it instant; MyDay is the first authed page so the redirect after login
+// shouldn't flash a spinner. Everything else is route-level split.
 import Login from './pages/Login'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
-import Dashboard from './pages/Dashboard'
 import MyDay from './pages/MyDay'
 
 // ── Route-level lazy chunks ──────────────────────────────
@@ -18,8 +17,8 @@ import MyDay from './pages/MyDay'
 // ReportPreview, Analytics, ...) used to all land in the index bundle.
 const Calculators = lazy(() => import('./pages/Calculators'))
 const Scope3CalculatorsPage = lazy(() => import('./pages/Scope3Calculators'))
+const PcafPortfolio = lazy(() => import('./pages/PcafPortfolio'))
 const Workflow = lazy(() => import('./pages/Workflow'))
-const Aggregator = lazy(() => import('./pages/Aggregator'))
 const AnomalyDetection = lazy(() => import('./pages/AnomalyDetection'))
 const Analytics = lazy(() => import('./pages/Analytics'))
 const BlockchainAudit = lazy(() => import('./pages/BlockchainAudit'))
@@ -68,6 +67,8 @@ const About = lazy(() => import('./pages/About'))
 const Features = lazy(() => import('./pages/Features'))
 const Pricing = lazy(() => import('./pages/Pricing'))
 const Contact = lazy(() => import('./pages/Contact'))
+const HowItWorks = lazy(() => import('./pages/HowItWorks'))
+const Compare = lazy(() => import('./pages/Compare'))
 import { useAuth } from './auth/AuthContext'
 import { homeRouteFor } from './lib/rbac'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -78,19 +79,6 @@ function ProtectedRoute({ children }: { children: JSX.Element }) {
   const { isAuthenticated } = useAuth()
   if (!isAuthenticated) return <Navigate to="/login" replace />
   return children
-}
-
-// Placeholder for routes that don't have a page yet
-function Placeholder({ title }: { title: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center h-full min-h-[400px]">
-      <div className="w-16 h-16 rounded-[var(--radius-xl)] bg-[var(--bg-tertiary)] flex items-center justify-center mb-4">
-        <span className="text-2xl">🚧</span>
-      </div>
-      <h2 className="font-display text-[var(--text-2xl)] font-semibold text-[var(--text-primary)] mb-2">{title}</h2>
-      <p className="text-[var(--text-sm)] text-[var(--text-tertiary)]">This module is being built. Coming soon.</p>
-    </div>
-  )
 }
 
 function AppRoutes() {
@@ -129,15 +117,24 @@ function AppRoutes() {
   // visitors. Sub-pages render for everyone (logged in OR out) so existing
   // users can still hit /pricing for billing reference. The authed AppShell
   // sits behind these; we mount the marketing pages outside it.
-  const MARKETING_PATHS = new Set(['/about', '/features', '/pricing', '/contact'])
+  const MARKETING_PATHS = new Set([
+    '/about',
+    '/features',
+    '/pricing',
+    '/contact',
+    '/how-it-works',
+    '/compare',
+  ])
   if (MARKETING_PATHS.has(location.pathname)) {
     return (
       <Suspense fallback={<RouteLoader />}>
         <Routes>
-          <Route path="/about"    element={<About />} />
-          <Route path="/features" element={<Features />} />
-          <Route path="/pricing"  element={<Pricing />} />
-          <Route path="/contact"  element={<Contact />} />
+          <Route path="/about"        element={<About />} />
+          <Route path="/features"     element={<Features />} />
+          <Route path="/pricing"      element={<Pricing />} />
+          <Route path="/contact"      element={<Contact />} />
+          <Route path="/how-it-works" element={<HowItWorks />} />
+          <Route path="/compare"      element={<Compare />} />
         </Routes>
       </Suspense>
     )
@@ -204,11 +201,9 @@ function AppRoutes() {
           <Route path="/my-day" element={<ProtectedRoute><MyDay /></ProtectedRoute>} />
 
           {/* Core Modules */}
-          {/* /dashboard now redirects to MyDay — the legacy Dashboard component
-              is still bundled (lazily) so deep links and the test suite can
-              still reach it via direct import, but the URL points home. */}
+          {/* /dashboard is a legacy alias — redirect to MyDay. The old
+              Dashboard page has been removed; /dashboard/legacy is gone. */}
           <Route path="/dashboard" element={<Navigate to="/" replace />} />
-          <Route path="/dashboard/legacy" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/my-tasks" element={<ProtectedRoute><MyTasks /></ProtectedRoute>} />
           <Route path="/work/calendar" element={<ProtectedRoute><WorkCalendar /></ProtectedRoute>} />
           <Route path="/work/review" element={<ProtectedRoute><WorkflowQueue kind="review" /></ProtectedRoute>} />
@@ -217,7 +212,8 @@ function AppRoutes() {
           {/* Legacy — kept for deep links, surfaced only for admin paths */}
           <Route path="/calculators" element={<ProtectedRoute><Calculators /></ProtectedRoute>} />
           <Route path="/calculators/scope3" element={<ProtectedRoute><Scope3CalculatorsPage /></ProtectedRoute>} />
-          <Route path="/calculators/:moduleId" element={<ProtectedRoute><Placeholder title="Calculator Module" /></ProtectedRoute>} />
+          <Route path="/calculators/pcaf" element={<ProtectedRoute><PcafPortfolio /></ProtectedRoute>} />
+          <Route path="/data/pcaf" element={<ProtectedRoute><PcafPortfolio /></ProtectedRoute>} />
           <Route path="/questionnaires" element={<Navigate to="/reports" replace />} />
 
           {/* Data collection — redirect legacy picker/entry to My Tasks (canonical flow) */}
@@ -230,7 +226,6 @@ function AppRoutes() {
           <Route path="/workflow" element={<ProtectedRoute><Workflow /></ProtectedRoute>} />
           <Route path="/workflow/review" element={<ProtectedRoute><WorkflowQueue kind="review" /></ProtectedRoute>} />
           <Route path="/workflow/approval" element={<ProtectedRoute><WorkflowQueue kind="approval" /></ProtectedRoute>} />
-          <Route path="/aggregator/legacy" element={<ProtectedRoute><Aggregator /></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><ReportPublishing /></ProtectedRoute>} />
           <Route path="/reports/performance" element={<ProtectedRoute><SustainabilityPerformanceReport /></ProtectedRoute>} />
           <Route path="/reports/preview" element={<ProtectedRoute><ReportPreview /></ProtectedRoute>} />

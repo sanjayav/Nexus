@@ -290,6 +290,195 @@ const ANOMALY_SYSTEM_PROMPT = `You analyse sustainability data anomalies for ESG
 
 Format: ONE paragraph, 3-5 sentences, no bullets, no headings. Plain English. No marketing fluff. No hedging ("might be", "could perhaps"). State facts and one inference. If the historical context is limited (fewer than two prior periods), say so plainly in the narrative.`
 
+// ──────────────────────────────────────────────────────────────
+// AI Gap Analysis — Workiva-style "ESRS Intelligence" chat. Given a
+// framework's required disclosures and the org's current data_value rows,
+// returns a structured response (missing items, quality issues, next steps)
+// via the submit_gap_analysis tool. System prompt is large + stable so it's
+// marked ephemeral for prompt caching.
+// ──────────────────────────────────────────────────────────────
+
+export interface GapAnalysisDisclosure {
+  id: string
+  code: string                     // gri_code
+  lineItem: string
+  unit: string | null
+  scope_split: string | null
+  default_workflow_role: string | null
+  /** True iff a data_value row exists for this disclosure in the active year. */
+  filled: boolean
+  status: string | null            // data_value.status, when present
+  value: number | null
+  has_evidence?: boolean
+}
+
+export interface GapAnalysisContext {
+  framework: { id: string; code: string; name: string }
+  reportingYear: number
+  organisation: { name: string; industry?: string; country?: string }
+  question: string
+  scope?: 'gaps' | 'coverage' | 'quality' | 'custom'
+  totals: { required: number; filled: number; inProgress: number; missing: number }
+  disclosures: GapAnalysisDisclosure[]
+}
+
+export interface GapAnalysisMissingItem {
+  code: string
+  lineItem: string
+  why_critical: string
+  estimated_effort: 'low' | 'medium' | 'high'
+  suggested_owner_role?: string
+}
+
+export interface GapAnalysisQualityIssue {
+  code: string
+  issue: string
+}
+
+export interface GapAnalysisResult {
+  summary: string
+  missingCount: number
+  missingItems: GapAnalysisMissingItem[]
+  qualityIssues: GapAnalysisQualityIssue[]
+  recommendedNextSteps: string[]
+}
+
+export interface GapAnalysisResponse {
+  ok: boolean
+  result?: GapAnalysisResult
+  tokensIn?: number
+  tokensOut?: number
+  cached?: number
+  error?: string
+}
+
+const GAP_ANALYSIS_SYSTEM_PROMPT = `You analyse ESG/sustainability disclosure portfolios for completeness and quality against framework requirements.
+
+Given a framework's required disclosures and the organisation's current data:
+- Identify which disclosures are MISSING and why each one matters.
+- Identify data QUALITY issues (e.g., scope 1 reported but biogenic CO₂ separation missing, missing Cat 3 in Scope 3, value out of plausible range).
+- Suggest the LOWEST-EFFORT path to compliance — which disclosures unblock the most reporting requirements?
+- Recommend 3-5 next actions ordered by impact.
+
+Be specific. Cite framework codes (e.g. ESRS E1-6, GRI 305-1). Don't invent codes.
+Never include disclosures that ARE present in the data — only gaps.
+Use "your" / "we" framing — you're advising the sustainability team, not lecturing.
+
+Always respond by calling submit_gap_analysis with the structured fields.`
+
+export async function analyseGaps(ctx: GapAnalysisContext): Promise<GapAnalysisResponse> {
+  const c = getClient()
+  if (!c) return { ok: false, error: 'ANTHROPIC_API_KEY not configured' }
+
+  const tools = [{
+    name: 'submit_gap_analysis',
+    description: 'Submit a structured gap analysis response.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        summary: { type: 'string', description: '2-3 sentence executive summary' },
+        missingCount: { type: 'number' },
+        missingItems: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              code: { type: 'string' },
+              lineItem: { type: 'string' },
+              why_critical: { type: 'string', description: 'Why this disclosure is required + impact' },
+              estimated_effort: { type: 'string', enum: ['low','medium','high'] },
+              suggested_owner_role: { type: 'string' },
+            },
+            required: ['code','lineItem','why_critical','estimated_effort'],
+          },
+        },
+        qualityIssues: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              code: { type: 'string' },
+              issue: { type: 'string' },
+            },
+            required: ['code','issue'],
+          },
+        },
+        recommendedNextSteps: { type: 'array', items: { type: 'string' } },
+      },
+      required: ['summary','missingCount','missingItems','recommendedNextSteps'],
+    },
+  }]
+
+  // Slim the disclosure payload so we don't waste tokens on UUIDs Claude doesn't need.
+  const slimDisclosures = ctx.disclosures.map(d => ({
+    code: d.code,
+    lineItem: d.lineItem,
+    unit: d.unit,
+    scope_split: d.scope_split,
+    default_workflow_role: d.default_workflow_role,
+    filled: d.filled,
+    status: d.status,
+    value: d.value,
+    has_evidence: d.has_evidence ?? false,
+  }))
+
+  const userPrompt = `Framework: ${ctx.framework.code} — ${ctx.framework.name} (${ctx.framework.id})
+Reporting year: ${ctx.reportingYear}
+Organisation: ${ctx.organisation.name}${ctx.organisation.industry ? ' · ' + ctx.organisation.industry : ''}${ctx.organisation.country ? ' · ' + ctx.organisation.country : ''}
+Scope hint: ${ctx.scope ?? 'gaps'}
+
+Coverage totals:
+  required: ${ctx.totals.required}
+  filled:   ${ctx.totals.filled}
+  in progress: ${ctx.totals.inProgress}
+  missing:  ${ctx.totals.missing}
+
+Required disclosures (filled=true means a data_value exists):
+${JSON.stringify(slimDisclosures, null, 2)}
+
+User question:
+${ctx.question}
+
+Call submit_gap_analysis with the structured response now.`
+
+  try {
+    const res = await c.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 3000,
+      // Large + stable framework-analyst system prompt — cache breakpoint so
+      // follow-up calls (same org, different question) hit the prompt cache.
+      system: [{ type: 'text', text: GAP_ANALYSIS_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
+      tools: tools as unknown as Parameters<typeof c.messages.create>[0]['tools'],
+      tool_choice: { type: 'tool', name: 'submit_gap_analysis' },
+      messages: [{ role: 'user', content: userPrompt }],
+    })
+
+    const toolUse = res.content.find((b) => b.type === 'tool_use') as
+      | { type: 'tool_use'; name: string; input: unknown }
+      | undefined
+    if (!toolUse) {
+      return { ok: false, error: 'Claude did not invoke submit_gap_analysis tool' }
+    }
+    const parsed = toolUse.input as GapAnalysisResult
+    // Defensive — ensure arrays exist (Claude occasionally omits empty arrays).
+    parsed.missingItems = parsed.missingItems ?? []
+    parsed.qualityIssues = parsed.qualityIssues ?? []
+    parsed.recommendedNextSteps = parsed.recommendedNextSteps ?? []
+    parsed.missingCount = parsed.missingCount ?? parsed.missingItems.length
+
+    return {
+      ok: true,
+      result: parsed,
+      tokensIn: res.usage.input_tokens,
+      tokensOut: res.usage.output_tokens,
+      cached: (res.usage as { cache_read_input_tokens?: number }).cache_read_input_tokens,
+    }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Unknown error'
+    return { ok: false, error: msg }
+  }
+}
+
 export async function narrateAnomaly(ctx: AnomalyNarrationContext): Promise<AnomalyNarrationResponse> {
   const c = getClient()
   if (!c) return { ok: false, error: 'ANTHROPIC_API_KEY not configured' }

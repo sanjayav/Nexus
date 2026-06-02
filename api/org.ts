@@ -478,8 +478,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (view === 'comments') {
         const { assignment_id } = req.query as Record<string, string | undefined>
         if (!assignment_id) return res.status(400).json({ error: 'assignment_id required' })
+        // Flat list — client builds the tree. Threaded replies are capped at
+        // one level by the writer; reading is purely structural.
         const rows = await sql`
-          SELECT id, assignment_id, author_user_id, author_name, author_email, body, kind, created_at
+          SELECT id, assignment_id, author_user_id, author_name, author_email, body, kind,
+                 parent_comment_id, mentioned_user_ids, is_request_for_review,
+                 resolved_at, resolved_by, created_at
           FROM assignment_comments WHERE assignment_id = ${assignment_id}
           ORDER BY created_at ASC
         `
@@ -1576,38 +1580,171 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // ─── Comments ───────────────────────────────────
       if (action === 'add-comment') {
-        const { assignment_id, body, kind } = req.body
+        const {
+          assignment_id, body, kind,
+          parent_comment_id,
+          mentioned_user_emails,
+          is_request_for_review,
+        } = req.body as {
+          assignment_id?: string
+          body?: string
+          kind?: string
+          parent_comment_id?: string
+          mentioned_user_emails?: string[]
+          is_request_for_review?: boolean
+        }
         if (!assignment_id || !body) return res.status(400).json({ error: 'assignment_id and body required' })
         // Resolve author identity
         const userRows = await sql`SELECT name, email FROM users WHERE id = ${token.sub}` as Array<{ name: string; email: string }>
         const u = userRows[0] ?? { name: token.email, email: token.email }
+
+        // Flatten replies-to-replies: if the parent itself has a parent, treat
+        // this as a sibling reply (one level deep maximum).
+        let resolvedParent: string | null = null
+        if (parent_comment_id) {
+          const parentRows = await sql`SELECT id, parent_comment_id FROM assignment_comments WHERE id = ${parent_comment_id}` as Array<{ id: string; parent_comment_id: string | null }>
+          if (parentRows[0]) {
+            resolvedParent = parentRows[0].parent_comment_id ?? parentRows[0].id
+          }
+        }
+
+        // Resolve @mentions: look up users by email within the same org. Only
+        // mentions that match a real org member are persisted.
+        const cleanEmails = Array.isArray(mentioned_user_emails)
+          ? mentioned_user_emails.map(e => String(e).trim().toLowerCase()).filter(Boolean)
+          : []
+        let mentionedIds: string[] = []
+        let mentionedRows: Array<{ id: string; email: string; name: string }> = []
+        if (cleanEmails.length > 0) {
+          mentionedRows = await sql`
+            SELECT DISTINCT u.id, u.email, u.name
+            FROM users u
+            JOIN org_members m ON m.user_id = u.id
+            WHERE m.org_id = ${orgId} AND lower(u.email) = ANY(${cleanEmails})
+          ` as Array<{ id: string; email: string; name: string }>
+          mentionedIds = mentionedRows.map(r => r.id)
+        }
+
+        const requestReview = !!is_request_for_review
+        const safeKind = kind || (requestReview ? 'review_decision' : 'comment')
+
         const rows = await sql`
-          INSERT INTO assignment_comments (assignment_id, author_user_id, author_name, author_email, body, kind)
-          VALUES (${assignment_id}, ${token.sub}, ${u.name}, ${u.email}, ${body}, ${kind || 'comment'})
-          RETURNING id, author_name, author_email, body, kind, created_at
-        ` as Array<{ id: string; author_name: string; author_email: string; body: string; kind: string; created_at: string }>
-        // Notify the assignee (if they're not the author)
+          INSERT INTO assignment_comments (
+            assignment_id, author_user_id, author_name, author_email, body, kind,
+            parent_comment_id, mentioned_user_ids, is_request_for_review
+          )
+          VALUES (
+            ${assignment_id}, ${token.sub}, ${u.name}, ${u.email}, ${body}, ${safeKind},
+            ${resolvedParent}, ${mentionedIds}, ${requestReview}
+          )
+          RETURNING id, assignment_id, author_user_id, author_name, author_email, body, kind,
+                    parent_comment_id, mentioned_user_ids, is_request_for_review,
+                    resolved_at, resolved_by, created_at
+        ` as Array<{
+          id: string; assignment_id: string; author_user_id: string | null;
+          author_name: string; author_email: string; body: string; kind: string;
+          parent_comment_id: string | null; mentioned_user_ids: string[] | null;
+          is_request_for_review: boolean | null; resolved_at: string | null;
+          resolved_by: string | null; created_at: string;
+        }>
+
         const asg = await sql`SELECT assignee_email, assignee_user_id, gri_code FROM question_assignments WHERE id = ${assignment_id} AND org_id = ${orgId}` as Array<{ assignee_email: string; assignee_user_id: string | null; gri_code: string }>
+        const disclosure = asg[0]?.gri_code ?? 'a disclosure'
+
+        // Notify the assignee (if they're not the author)
         if (asg[0] && asg[0].assignee_email.toLowerCase() !== u.email.toLowerCase()) {
           await notify({
             orgId,
             userId: asg[0].assignee_user_id,
             toEmail: asg[0].assignee_email,
             kind: 'comment',
-            subject: `${u.name} commented on ${asg[0].gri_code}`,
+            subject: `${u.name} commented on ${disclosure}`,
             body: body.slice(0, 140),
             route: '/my-tasks',
             relatedAssignmentId: assignment_id,
           })
         }
+
+        // Notify each @mentioned user (skip the author, skip the assignee
+        // who's already been notified).
+        const alreadyNotified = new Set<string>([
+          u.email.toLowerCase(),
+          asg[0]?.assignee_email.toLowerCase() ?? '',
+        ])
+        for (const m of mentionedRows) {
+          if (alreadyNotified.has(m.email.toLowerCase())) continue
+          alreadyNotified.add(m.email.toLowerCase())
+          await notify({
+            orgId,
+            userId: m.id,
+            toEmail: m.email,
+            kind: 'mention',
+            subject: `${u.name} mentioned you on ${disclosure}`,
+            body: body.slice(0, 140),
+            route: '/my-tasks',
+            relatedAssignmentId: assignment_id,
+          })
+        }
+
+        // "Request for review" → notify everyone with reviewer/approver roles
+        // on this org (group_sustainability_officer + auditor). They become
+        // the candidate reviewers for the work queue.
+        if (requestReview) {
+          const reviewers = await sql`
+            SELECT DISTINCT om.user_id, om.email, om.name
+            FROM org_members om
+            WHERE om.org_id = ${orgId}
+              AND om.role IN ('group_sustainability_officer', 'auditor', 'subsidiary_lead')
+          ` as Array<{ user_id: string | null; email: string; name: string }>
+          for (const r of reviewers) {
+            if (alreadyNotified.has(r.email.toLowerCase())) continue
+            alreadyNotified.add(r.email.toLowerCase())
+            await notify({
+              orgId,
+              userId: r.user_id,
+              toEmail: r.email,
+              kind: 'review_request',
+              subject: `${u.name} requested a review on ${disclosure}`,
+              body: body.slice(0, 140),
+              route: '/work/review',
+              relatedAssignmentId: assignment_id,
+            })
+          }
+        }
+
         await appendChainRecord(sql, orgId, {
           record_type: 'comment_posted',
           reference_id: assignment_id,
           event_type: 'Submitted',
           facility_name: asg[0]?.gri_code ?? null,
-          metadata: { author: u.email, body_hash: body.slice(0, 120) },
+          metadata: { author: u.email, body_hash: body.slice(0, 120), mentions: mentionedIds.length, review_requested: requestReview },
         })
         return res.status(201).json(rows[0])
+      }
+
+      // Resolve / reopen a comment thread.
+      if (action === 'resolve-comment' || action === 'reopen-comment') {
+        const { id } = req.body as { id?: string }
+        if (!id) return res.status(400).json({ error: 'id required' })
+        // Gate: original author OR anyone with workflow.approve.
+        const rows = await sql`
+          SELECT c.author_user_id, c.author_email
+          FROM assignment_comments c
+          JOIN question_assignments qa ON qa.id = c.assignment_id
+          WHERE c.id = ${id} AND qa.org_id = ${orgId}
+        ` as Array<{ author_user_id: string | null; author_email: string }>
+        if (rows.length === 0) return res.status(404).json({ error: 'comment not found' })
+        const isAuthor = rows[0].author_email.toLowerCase() === token.email.toLowerCase()
+        if (!isAuthor) {
+          const gate = await requirePermission(req, res, 'workflow.approve')
+          if (!gate) return
+        }
+        if (action === 'resolve-comment') {
+          await sql`UPDATE assignment_comments SET resolved_at = now(), resolved_by = ${token.sub} WHERE id = ${id}`
+        } else {
+          await sql`UPDATE assignment_comments SET resolved_at = NULL, resolved_by = NULL WHERE id = ${id}`
+        }
+        return res.status(200).json({ ok: true })
       }
 
       // ─── Notifications ──────────────────────────────
