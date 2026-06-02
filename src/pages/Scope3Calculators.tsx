@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Calculator, Info, Loader2, Save, CheckCircle2 } from 'lucide-react'
+import { Calculator, Info, Loader2, Save, CheckCircle2, Sparkles, ChevronDown, ChevronRight } from 'lucide-react'
 import {
   SCOPE3_CALCULATORS,
   makeBrowserEFContext,
@@ -8,7 +8,7 @@ import {
   type Scope3Method,
   type Scope3MethodResult,
 } from '../calculators/scope3'
-import { facilities as facilitiesApi, type ApiFacility } from '../lib/api'
+import { facilities as facilitiesApi, ai, type ApiFacility, type AiEfMatchResponse, type AiEfRow } from '../lib/api'
 import { orgStore } from '../lib/orgStore'
 import JargonTooltip from '../components/JargonTooltip'
 
@@ -137,6 +137,14 @@ function CalculatorPanel({ calculator }: { calculator: Scope3Calculator }) {
       </div>
 
       <MethodInputs method={method} values={values} onChange={setValues} />
+
+      {method?.id === 'spend_based' && (
+        <VendorAiMatcher
+          calculator={calculator}
+          values={values}
+          onChange={setValues}
+        />
+      )}
 
       <div className="flex items-center justify-between mt-5 pt-4 border-t border-[var(--border-subtle)]">
         <span className="text-[11px] text-[var(--text-tertiary)]">
@@ -425,6 +433,233 @@ function SaveModal({
             Save draft
           </button>
         </div>
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════
+   Vendor → AI emission-factor matcher
+   Renders below spend-based method inputs. Lets the user type a vendor name,
+   asks Claude to pick the best EF from the platform DB, and offers
+   "Use this EF" buttons that write the recommended factor into the values
+   map under `ef_override` (a free-form display field — the existing
+   spend-based compute() still runs EEIO sector math, but storing the AI EF
+   here gives reviewers a richer audit trail).
+   ═══════════════════════════════════════════ */
+function VendorAiMatcher({
+  calculator,
+  values,
+  onChange,
+}: {
+  calculator: Scope3Calculator
+  values: Record<string, string>
+  onChange: (v: Record<string, string>) => void
+}) {
+  const [vendor, setVendor] = useState(values.vendor_name ?? '')
+  const [region, setRegion] = useState<string>('GLOBAL')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [match, setMatch] = useState<AiEfMatchResponse['match'] | null>(null)
+  const [altsOpen, setAltsOpen] = useState(false)
+  const [appliedEfId, setAppliedEfId] = useState<string | null>(null)
+  const [unconfigured, setUnconfigured] = useState(false)
+
+  // Map calculator → spend-based GHG Protocol category. Defaults to a string
+  // the model can read; the DB column is free-form so we don't gate on
+  // exact match (the candidate query falls back to "no filter" if no rows).
+  const categoryHint = useMemo<string | undefined>(() => {
+    switch (calculator.category) {
+      case 1: return 'Cat 1 - Purchased goods'
+      case 2: return 'Cat 2 - Capital goods'
+      case 4: return 'Cat 4 - Transportation'
+      case 6: return 'Cat 6 - Business travel'
+      case 7: return 'Cat 7 - Employee commute'
+      default: return undefined
+    }
+  }, [calculator.category])
+
+  const spendAmount = Number(values.spend ?? '')
+  const spendCategoryHint = String(values.sector ?? values.material ?? values.travel_class ?? '')
+
+  const run = async () => {
+    if (!vendor.trim()) { setError('Enter a vendor name first'); return }
+    setLoading(true); setError(null); setMatch(null); setAppliedEfId(null); setUnconfigured(false)
+    try {
+      const res = await ai.matchEf({
+        vendorName: vendor.trim(),
+        spendCategory: spendCategoryHint || undefined,
+        region: region as 'GLOBAL' | 'UK' | 'US' | 'EU',
+        spendAmount: Number.isFinite(spendAmount) && spendAmount > 0 ? spendAmount : undefined,
+        spendCurrency: 'USD',
+        scope: 3,
+        category: categoryHint,
+      })
+      setMatch(res.match)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      // Surface the "AI not configured" 503 as a friendlier banner so demo
+      // workspaces without ANTHROPIC_API_KEY see the right CTA.
+      if (/ANTHROPIC_API_KEY/i.test(msg) || /503/.test(msg)) setUnconfigured(true)
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const useEf = async (ef: AiEfRow, matchId: string | null) => {
+    onChange({
+      ...values,
+      vendor_name: vendor,
+      ef_override: String(ef.co2e_per_unit),
+      ef_override_id: ef.id,
+      ef_override_source: ef.source,
+      ef_override_unit: ef.unit,
+    })
+    setAppliedEfId(ef.id)
+    // Fire-and-forget — accept call is for audit, not blocking UI.
+    if (matchId) {
+      try { await ai.acceptEfMatch(matchId) } catch { /* swallow */ }
+    }
+  }
+
+  return (
+    <div className="mt-4 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-3">
+      <div className="flex items-center gap-2 mb-2">
+        <Sparkles className="w-3.5 h-3.5 text-[var(--color-brand)]" />
+        <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">AI emission-factor matcher</span>
+      </div>
+      <div className="grid grid-cols-12 gap-2 items-end">
+        <label className="col-span-6 block">
+          <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Vendor name</span>
+          <input
+            type="text"
+            value={vendor}
+            onChange={e => setVendor(e.target.value)}
+            placeholder="e.g. Acme Steel Co."
+            className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+          />
+        </label>
+        <label className="col-span-3 block">
+          <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Region</span>
+          <select
+            value={region}
+            onChange={e => setRegion(e.target.value)}
+            className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+          >
+            {['GLOBAL','UK','US','EU','IN','CN','JP','AU','CA','DE','FR'].map(r => (
+              <option key={r} value={r}>{r}</option>
+            ))}
+          </select>
+        </label>
+        <div className="col-span-3">
+          <button
+            type="button"
+            onClick={run}
+            disabled={loading || !vendor.trim() || unconfigured}
+            title={unconfigured ? 'Sign in to AI to get suggestions' : undefined}
+            className="w-full px-3 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+          >
+            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            {unconfigured ? 'AI unavailable' : 'Suggest EF with AI'}
+          </button>
+        </div>
+      </div>
+
+      {error && !unconfigured && (
+        <div className="mt-2 p-2 rounded-[var(--radius-md)] bg-red-500/10 border border-red-500/30 text-red-400 text-[var(--text-xs)]">
+          {error}
+        </div>
+      )}
+      {unconfigured && (
+        <div className="mt-2 p-2 rounded-[var(--radius-md)] bg-[var(--bg-primary)] border border-[var(--border-subtle)] text-[var(--text-xs)] text-[var(--text-secondary)]">
+          Sign in to AI to get suggestions. Set <code className="font-mono">ANTHROPIC_API_KEY</code> on the server to enable.
+        </div>
+      )}
+
+      {match && (
+        <div className="mt-3 space-y-2">
+          <EfMatchCard
+            ef={match.ef}
+            confidence={match.confidence}
+            reasoning={match.reasoning}
+            badge="Top match"
+            applied={appliedEfId === match.ef.id}
+            onUse={() => useEf(match.ef, match.id)}
+          />
+          {match.alternates.length > 0 && (
+            <div>
+              <button
+                type="button"
+                onClick={() => setAltsOpen(o => !o)}
+                className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+              >
+                {altsOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                {match.alternates.length} alternate{match.alternates.length === 1 ? '' : 's'}
+              </button>
+              {altsOpen && (
+                <div className="mt-2 space-y-2">
+                  {match.alternates.map((alt, i) => (
+                    <EfMatchCard
+                      key={alt.ef.id}
+                      ef={alt.ef}
+                      confidence={alt.confidence}
+                      reasoning={alt.reasoning}
+                      badge={`Alt ${i + 1}`}
+                      applied={appliedEfId === alt.ef.id}
+                      onUse={() => useEf(alt.ef, match.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {match.overallNotes && (
+            <div className="text-[10px] italic text-[var(--text-tertiary)] mt-1">{match.overallNotes}</div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function EfMatchCard({
+  ef, confidence, reasoning, badge, applied, onUse,
+}: {
+  ef: AiEfRow
+  confidence: number
+  reasoning: string
+  badge: string
+  applied: boolean
+  onUse: () => void
+}) {
+  const pct = Math.round(confidence * 100)
+  const tone = pct >= 80 ? 'bg-emerald-500/15 text-emerald-300' : pct >= 50 ? 'bg-amber-500/15 text-amber-300' : 'bg-red-500/15 text-red-300'
+  return (
+    <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] shrink-0">{badge}</span>
+          <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{ef.fuel_or_activity}</span>
+        </div>
+        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${tone}`}>{pct}%</span>
+      </div>
+      <div className="mt-1 text-[10px] text-[var(--text-tertiary)] tabular-nums">
+        {Number(ef.co2e_per_unit)} {ef.unit} · {ef.source}{ef.region ? ` · ${ef.region}` : ''}
+      </div>
+      <div className="mt-1.5 text-[11px] text-[var(--text-secondary)]">{reasoning}</div>
+      <div className="mt-2 flex items-center justify-end">
+        <button
+          type="button"
+          onClick={onUse}
+          disabled={applied}
+          className={[
+            'px-2.5 py-1 rounded-[var(--radius-md)] text-[11px] font-semibold inline-flex items-center gap-1',
+            applied ? 'bg-emerald-500/15 text-emerald-300' : 'border border-[var(--color-brand)] text-[var(--color-brand)] hover:bg-[var(--color-brand)]/10',
+          ].join(' ')}
+        >
+          {applied ? <><CheckCircle2 className="w-3 h-3" /> Applied</> : 'Use this EF'}
+        </button>
       </div>
     </div>
   )

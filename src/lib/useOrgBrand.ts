@@ -27,7 +27,11 @@ const FALLBACK: OrgBrand = {
   website: null,
 }
 
-const CACHE_KEY = 'aeiforo_org_brand'
+const CACHE_KEY = 'aeiforo_org_brand_v2'
+
+// One-time migration: drop pre-rebrand cache keys so old PTT-era names
+// don't render after the Nexus rebrand.
+try { localStorage.removeItem('aeiforo_org_brand') } catch { /* ignore */ }
 
 /** Read the tenant's brand + name once per session, cache in localStorage. */
 export function useOrgBrand(): OrgBrand {

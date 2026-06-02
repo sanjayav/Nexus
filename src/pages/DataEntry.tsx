@@ -6,7 +6,9 @@ import {
   PencilLine, Send, Hash, FileText, X,
 } from 'lucide-react'
 import {
+  ai,
   nexus,
+  type AiExtractionResult,
   type NexusQuestionnaireItem,
   type NexusHistoricalPoint,
   type NexusEvidence,
@@ -17,6 +19,7 @@ import { Button } from '../design-system'
 import { findCalculator, type CalcDescriptor, type CalcInputValues } from '../calculators/registry'
 import { HistoricalReferencePanel } from '../components/HistoricalReferencePanel'
 import { LinkedDataPanel } from '../components/LinkedDataPanel'
+import AiExtractionPanel from '../components/AiExtractionPanel'
 import { orgStore } from '../lib/orgStore'
 
 const ACTIVE_REPORTING_YEAR_ID = '11000000-0000-0000-0000-000000000026'
@@ -65,6 +68,13 @@ export default function DataEntry() {
   const [evidence, setEvidence] = useState<NexusEvidence[]>([])
   const [uploadingEvidence, setUploadingEvidence] = useState(false)
   const [evidenceError, setEvidenceError] = useState<string | null>(null)
+
+  // AI-extracted value tracking. The accepted extraction id is kept alongside
+  // the data_value_id so we can POST /ai/accept-extraction once the user
+  // submits — that's what gives auditors the "value X came from evidence Y"
+  // linkage. We also stash the extraction id per-evidence so re-rendering
+  // the panel doesn't lose state.
+  const [pendingExtractionId, setPendingExtractionId] = useState<string | null>(null)
 
   const load = async () => {
     setState({ kind: 'loading' })
@@ -211,6 +221,18 @@ export default function DataEntry() {
   const hasEvidence = evidence.length > 0
   const canSubmit = !!dataValueId && (!needsEvidence || hasEvidence)
 
+  // Accept handler for the AI extraction panel — fills the value field, sets
+  // the unit hint into the comment, and stashes the extraction id so we can
+  // record the audit linkage at submit time.
+  const handleAcceptExtraction = (sourceFilename: string) => (extraction: AiExtractionResult) => {
+    if (status === 'submitted' || status === 'submitting') return
+    setMode('Manual')
+    setValue(String(extraction.value))
+    const note = `Auto-extracted from ${sourceFilename} via Claude${extraction.unit ? ` (${extraction.unit})` : ''}${extraction.period ? ` · period ${extraction.period}` : ''}`
+    setComment(prev => (prev && prev.length > 0 ? `${prev}\n${note}` : note))
+    if (extraction.id) setPendingExtractionId(extraction.id)
+  }
+
   const handleSubmit = async () => {
     if (!dataValueId) return
     if (needsEvidence && !hasEvidence) {
@@ -220,6 +242,16 @@ export default function DataEntry() {
     setStatus('submitting'); setErrMsg(null)
     try {
       await nexus.submit(dataValueId)
+      // Record the AI-extraction → data_value linkage for audit trail. Best-
+      // effort: a failure here shouldn't block the submit the user just made.
+      if (pendingExtractionId) {
+        try {
+          await ai.acceptExtraction({ extractionId: pendingExtractionId, dataValueId })
+        } catch {
+          // eslint-disable-next-line no-console
+          console.warn('[DataEntry] accept-extraction audit link failed; submit still recorded')
+        }
+      }
       setStatus('submitted')
     } catch (e) {
       setErrMsg(e instanceof Error ? e.message : 'Submit failed')
@@ -434,6 +466,13 @@ export default function DataEntry() {
                     onUpload={handleUploadEvidence}
                     onRemove={handleRemoveEvidence}
                     locked={status === 'submitting' || status === 'submitted' || status === 'error'}
+                    aiExtraction={{
+                      questionnaireItemId: state.item.id,
+                      expectedUnit: state.item.unit ?? undefined,
+                      lineItemHint: state.item.line_item,
+                      onAccept: handleAcceptExtraction,
+                      disabled: status === 'submitting' || status === 'submitted',
+                    }}
                   />
                 </div>
               )}
@@ -555,7 +594,7 @@ function CalcField({ input, value, onChange }: { input: import('../calculators/r
 }
 
 function EvidenceZone({
-  dataValueId, evidence, uploading, error, onUpload, onRemove, locked,
+  dataValueId, evidence, uploading, error, onUpload, onRemove, locked, aiExtraction,
 }: {
   dataValueId: string | null
   evidence: NexusEvidence[]
@@ -564,6 +603,18 @@ function EvidenceZone({
   onUpload: (file: File) => void
   onRemove: (id: string) => void
   locked: boolean
+  /** Optional AI-extraction wiring. When present, each uploaded evidence file
+   *  renders an AiExtractionPanel below it. */
+  aiExtraction?: {
+    questionnaireItemId?: string
+    expectedUnit?: string
+    expectedPeriod?: string
+    lineItemHint?: string
+    /** Returns a handler bound to the source filename so the parent can keep
+     *  a coherent audit-trail note. */
+    onAccept: (filename: string) => (extraction: AiExtractionResult) => void
+    disabled?: boolean
+  }
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
@@ -621,36 +672,54 @@ function EvidenceZone({
 
       {/* File list */}
       {evidence.length > 0 && (
-        <ul className="space-y-1.5">
+        <ul className="space-y-2">
           {evidence.map(e => (
-            <li key={e.id} className="flex items-center gap-2 px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
-              <FileText className="w-3.5 h-3.5 text-[var(--color-brand)] flex-shrink-0" />
-              <div className="min-w-0 flex-1">
-                <div className="text-[var(--text-xs)] font-medium text-[var(--text-primary)] truncate">{e.filename}</div>
-                <div className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-1.5">
-                  <span>{(e.file_size / 1024).toFixed(1)} KB</span>
-                  <span>·</span>
-                  <Hash className="w-2.5 h-2.5" />
-                  <span className="font-mono">{e.file_hash.slice(0, 10)}…{e.file_hash.slice(-6)}</span>
+            <li key={e.id} className="rounded-[var(--radius-sm)] bg-[var(--bg-primary)] border border-[var(--border-subtle)] overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-2">
+                <FileText className="w-3.5 h-3.5 text-[var(--color-brand)] flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[var(--text-xs)] font-medium text-[var(--text-primary)] truncate">{e.filename}</div>
+                  <div className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-1.5">
+                    <span>{(e.file_size / 1024).toFixed(1)} KB</span>
+                    <span>·</span>
+                    <Hash className="w-2.5 h-2.5" />
+                    <span className="font-mono">{e.file_hash.slice(0, 10)}…{e.file_hash.slice(-6)}</span>
+                  </div>
                 </div>
-              </div>
-              <a
-                href={nexus.evidenceDownloadUrl(e.id)}
-                target="_blank"
-                rel="noreferrer"
-                className="text-[10px] text-[var(--color-brand)] hover:underline"
-              >
-                Open
-              </a>
-              {!locked && (
-                <button
-                  type="button"
-                  onClick={() => onRemove(e.id)}
-                  className="w-5 h-5 rounded-[var(--radius-xs)] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--status-reject)] hover:bg-[var(--accent-red-light)]"
-                  aria-label="Remove"
+                <a
+                  href={nexus.evidenceDownloadUrl(e.id)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[10px] text-[var(--color-brand)] hover:underline"
                 >
-                  <X className="w-3 h-3" />
-                </button>
+                  Open
+                </a>
+                {!locked && (
+                  <button
+                    type="button"
+                    onClick={() => onRemove(e.id)}
+                    className="w-5 h-5 rounded-[var(--radius-xs)] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--status-reject)] hover:bg-[var(--accent-red-light)]"
+                    aria-label="Remove"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+              {/* AI extraction — user-triggered, never auto-runs, so we don't
+                  burn Claude tokens on every drag-drop. */}
+              {aiExtraction && (
+                <div className="px-3 pb-2.5 pt-0">
+                  <AiExtractionPanel
+                    evidenceId={e.id}
+                    filename={e.filename}
+                    questionnaireItemId={aiExtraction.questionnaireItemId}
+                    expectedUnit={aiExtraction.expectedUnit}
+                    expectedPeriod={aiExtraction.expectedPeriod}
+                    lineItemHint={aiExtraction.lineItemHint}
+                    onAccept={aiExtraction.onAccept(e.filename)}
+                    disabled={aiExtraction.disabled}
+                  />
+                </div>
               )}
             </li>
           ))}

@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Lock, Mail, AlertCircle, Loader2, ArrowRight, Leaf, Shield, Zap, BarChart3, Globe, User, Building2, KeyRound } from 'lucide-react'
+import { Lock, Mail, AlertCircle, Loader2, ArrowRight, Shield, Zap, BarChart3, Globe, User, Building2, KeyRound } from 'lucide-react'
 import { z } from 'zod'
 import { useAuth } from '../auth/AuthContext'
 
@@ -15,6 +15,7 @@ const registerSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters.'),
 })
 type RegisterFieldErrors = Partial<Record<'email' | 'name' | 'password', string>>
+import NexusBrand from '../components/NexusBrand'
 import { SplineScene } from '../components/SplineScene'
 import { Spotlight } from '../components/Spotlight'
 import { homeRouteFor } from '../lib/rbac'
@@ -318,31 +319,17 @@ export default function Login() {
           }}
         >
 
-          {/* Compact brand strip — one row, tight padding so role tiles + form fit in viewport */}
-          <div className="hidden lg:flex items-center gap-3 px-6 py-4 border-b border-white/5 flex-shrink-0">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[var(--accent-teal)] to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-900/30 flex-shrink-0">
-              <Leaf className="w-[18px] h-[18px] text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-[15px] font-display font-bold tracking-tight block text-white leading-tight">Nexus</span>
-              <span className="text-[10px] text-white/40 font-medium tracking-wide">
-                Sustainability Intelligence Platform ·{' '}
-                <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text" style={{ WebkitTextFillColor: 'transparent' }}>
-                  by Aeiforo
-                </span>
-              </span>
-            </div>
+          {/* Compact brand strip — animated NexusBrand on first impression */}
+          <div className="hidden lg:flex items-center px-6 py-4 border-b border-white/5 flex-shrink-0">
+            <NexusBrand size="md" layout="horizontal" animated showTagline showAttribution />
           </div>
 
           {/* Form area — scrollable if the viewport is very short */}
           <div className="flex-1 flex items-start justify-center p-6 sm:p-8 overflow-y-auto">
           <div className="w-full max-w-[460px] space-y-4">
             {/* Mobile logo */}
-            <div className="lg:hidden flex items-center gap-3 mb-2">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[var(--accent-teal)] to-emerald-600 flex items-center justify-center shadow-sm">
-                <Leaf className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-[17px] font-display font-bold text-white">Nexus</span>
+            <div className="lg:hidden mb-2">
+              <NexusBrand size="sm" layout="horizontal" animated showAttribution />
             </div>
 
             <div>

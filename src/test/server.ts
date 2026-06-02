@@ -43,6 +43,61 @@ export const handlers = [
   http.post('/api/notifications/:id/read', () => HttpResponse.json({ ok: true })),
   http.get('/api/org', () => HttpResponse.json({ entities: [], members: [] })),
   http.get('/api/dashboard', () => HttpResponse.json({ kpis: {}, charts: {} })),
+
+  // Mock AI evidence extraction — returns a deterministic, schema-correct payload
+  // so the unit test can verify the contract without hitting Claude.
+  http.post('/api/ai/extract-evidence', () =>
+    HttpResponse.json({
+      extraction: {
+        id: '00000000-0000-0000-0000-000000000099',
+        value: 1234.5,
+        unit: 'kWh',
+        period: 'Q1 2026',
+        supplier: 'British Gas',
+        confidence: 0.92,
+        reasoning: 'Found "Total energy consumed: 1234.5 kWh" on page 1.',
+        additionalNotes: null,
+      },
+      usage: { tokensIn: 1200, tokensOut: 80, cached: 800 },
+    })),
+  http.post('/api/ai/accept-extraction', () => HttpResponse.json({ ok: true })),
+
+  // ── AI: anomaly narration ─────────────────────────────────
+  // GET returns the DB-stored anomaly list (with cached narrative metadata).
+  // POST returns a deterministic narrative so the schema test can verify shape
+  // without hitting Claude.
+  http.get('/api/ai/narrate-anomaly', () =>
+    HttpResponse.json({
+      anomalies: [
+        {
+          id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+          facility_id: 'fff00000-0000-0000-0000-000000000001',
+          facility_name: 'Refinery Alpha',
+          type: 'spike',
+          severity: 'critical',
+          title: 'Q1 Scope 2 spike at Refinery Alpha',
+          description: 'Q1 emissions 18% higher than prior year.',
+          scope: 2,
+          metric: 'co2e_tonnes',
+          expected_value: 1000,
+          actual_value: 1180,
+          deviation_pct: 18,
+          status: 'open',
+          detected_at: new Date().toISOString(),
+          ai_narrative: null,
+          ai_narrative_generated_at: null,
+        },
+      ],
+    })),
+  http.post('/api/ai/narrate-anomaly', async ({ request }) => {
+    const body = await request.json() as { anomalyId: string; regenerate?: boolean }
+    return HttpResponse.json({
+      narrative: `Mock narrative for anomaly ${body.anomalyId}. Q1 Scope 2 emissions are 18% above Q1 2025, driven primarily by a 22% increase in purchased electricity. Most likely cause: production volume up 24%.`,
+      generatedAt: new Date().toISOString(),
+      cached: false,
+      usage: { tokensIn: 1200, tokensOut: 180, cached: 0 },
+    })
+  }),
 ]
 
 export const server = setupServer(...handlers)

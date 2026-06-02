@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { Badge, Tabs, Button, Input } from '../design-system'
 import JargonTooltip from '../components/JargonTooltip'
+import { ai, type AiEfMatchResponse } from '../lib/api'
 
 /* ═══════════════════════════════════════════
    Types — DB-backed shape from /api/emission-factors
@@ -266,6 +267,10 @@ export default function EFLibrary() {
       <div className="animate-slide-up stagger-5">
         <Tabs tabs={TABS_CONFIG} activeTab={tab} onChange={setTab} />
       </div>
+
+      {/* ── Vendor → AI search ── */}
+      <VendorAiSearch />
+
 
       {/* ── Search & Filter Bar ── */}
       <div className={`animate-slide-up stagger-6 rounded-xl border bg-[var(--bg-primary)] p-4 transition-all duration-500 ease-[var(--ease-out-expo)] ${
@@ -565,6 +570,113 @@ function ModalSelect({ label, options }: { label: string; options: string[] }) {
       <select className="w-full h-9 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 text-[var(--text-xs)] text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)]/30 cursor-pointer transition-all duration-200">
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════
+   Vendor → AI search panel
+   Lets the user type any vendor name + region; backend calls Claude with the
+   candidate set from emission_factors. Useful for browsing — the result
+   surfaces a "best EF" with reasoning, and we render the alternates inline.
+   ═══════════════════════════════════════════ */
+function VendorAiSearch() {
+  const [vendor, setVendor] = useState('')
+  const [region, setRegion] = useState('GLOBAL')
+  const [loading, setLoading] = useState(false)
+  const [match, setMatch] = useState<AiEfMatchResponse['match'] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [unconfigured, setUnconfigured] = useState(false)
+
+  const run = async () => {
+    if (!vendor.trim()) return
+    setLoading(true); setError(null); setMatch(null); setUnconfigured(false)
+    try {
+      const res = await ai.matchEf({
+        vendorName: vendor.trim(),
+        region: region as 'GLOBAL' | 'UK' | 'US' | 'EU',
+        scope: 3,
+      })
+      setMatch(res.match)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      if (/ANTHROPIC_API_KEY/i.test(msg) || /503/.test(msg)) setUnconfigured(true)
+      setError(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Sparkles className="w-4 h-4 text-[var(--accent-purple)]" />
+        <span className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)]">Find by vendor (AI)</span>
+        <span className="text-[10px] text-[var(--text-tertiary)] ml-2">Type a supplier name — Claude picks the best factor.</span>
+      </div>
+      <div className="flex items-end gap-2">
+        <div className="flex-1">
+          <input
+            type="text"
+            value={vendor}
+            onChange={e => setVendor(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') run() }}
+            placeholder="e.g. United Airlines, Office Depot, AWS"
+            className="w-full h-10 px-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-sm)] focus:outline-none focus:border-[var(--accent-purple)]"
+          />
+        </div>
+        <select
+          value={region}
+          onChange={e => setRegion(e.target.value)}
+          className="h-10 px-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-xs)]"
+        >
+          {['GLOBAL','UK','US','EU','IN','CN','JP','AU','CA','DE','FR'].map(r => <option key={r} value={r}>{r}</option>)}
+        </select>
+        <Button onClick={run} size="sm" disabled={loading || !vendor.trim() || unconfigured} icon={loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}>
+          {unconfigured ? 'AI unavailable' : 'Suggest EF'}
+        </Button>
+      </div>
+
+      {unconfigured && (
+        <div className="mt-3 text-[var(--text-xs)] text-[var(--text-tertiary)]">
+          Sign in to AI to get suggestions. Set <code className="font-mono">ANTHROPIC_API_KEY</code> on the server to enable.
+        </div>
+      )}
+      {error && !unconfigured && (
+        <div className="mt-3 p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-[var(--text-xs)]">{error}</div>
+      )}
+
+      {match && (
+        <div className="mt-4 space-y-2">
+          <VendorMatchRow ef={match.ef} confidence={match.confidence} reasoning={match.reasoning} badge="Top match" />
+          {match.alternates.map((a, i) => (
+            <VendorMatchRow key={a.ef.id} ef={a.ef} confidence={a.confidence} reasoning={a.reasoning} badge={`Alt ${i + 1}`} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function VendorMatchRow({
+  ef, confidence, reasoning, badge,
+}: { ef: AiEfMatchResponse['match']['ef']; confidence: number; reasoning: string; badge: string }) {
+  const pct = Math.round(confidence * 100)
+  const tone = pct >= 80 ? 'bg-emerald-500/15 text-emerald-300' : pct >= 50 ? 'bg-amber-500/15 text-amber-300' : 'bg-red-500/15 text-red-300'
+  return (
+    <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">{badge}</span>
+          <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{ef.fuel_or_activity}</span>
+        </div>
+        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${tone}`}>{pct}%</span>
+      </div>
+      <div className="mt-1 text-[10px] text-[var(--text-tertiary)] tabular-nums">
+        {Number(ef.co2e_per_unit)} {ef.unit} · {ef.source}{ef.region ? ` · ${ef.region}` : ''}
+        {ef.category ? ` · ${ef.category}` : ''}
+      </div>
+      <div className="mt-1.5 text-[11px] text-[var(--text-secondary)]">{reasoning}</div>
     </div>
   )
 }

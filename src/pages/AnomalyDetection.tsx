@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   AlertOctagon, AlertTriangle, Info, Shield, TrendingUp,
   CheckCircle2, FileText, Activity, Filter, RotateCw, Eye, XCircle, CircleDot,
+  Sparkles, Copy, Check, Loader2,
 } from 'lucide-react'
 import { orgStore, type AnomalyScanResult, type AnomalyType, type AnomalyStatusValue, type Anomaly, type AnomalySeverity } from '../lib/orgStore'
+import { ai, type AiAnomalyListItem } from '../lib/api'
 import { useAuth } from '../auth/AuthContext'
 import { resolveRole } from '../lib/rbac'
 import PageHeader from '../components/PageHeader'
@@ -363,11 +365,234 @@ export default function AnomalyDetection() {
       </section>
 
       <section>
+        <PersistedAnomaliesPanel />
+      </section>
+
+      <section>
         <SectionHeader kicker="Feed" title="Live anomaly feed" subtitle="Sorted by severity. Open any flag to land on the disclosure. Suppress with a reason to mark acknowledged." />
         <AnomalyFeed scope={scope} limit={100} title="All flagged disclosures" />
       </section>
     </div>
   )
+}
+
+// ──────────────────────────────────────────────────────────────
+// Persisted anomalies + AI explanation panel
+//
+// Pulls the DB-stored `anomalies` rows (long-lived, UUID-keyed) and lets the
+// caller request a Claude-generated narrative for any row. Narrative is
+// cached server-side on the row, so re-opening the panel is free.
+// ──────────────────────────────────────────────────────────────
+
+function PersistedAnomaliesPanel() {
+  const [rows, setRows] = useState<AiAnomalyListItem[] | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [openId, setOpenId] = useState<string | null>(null)
+  // Per-row narrative cache: { [id]: { text, generatedAt, loading, error } }
+  const [narratives, setNarratives] = useState<Record<string, { text: string; generatedAt: string | null; loading: boolean; error: string | null; cached: boolean }>>({})
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    ai.listAnomaliesForNarration()
+      .then(r => { if (!cancelled) { setRows(r.anomalies); setLoading(false) } })
+      .catch(e => { if (!cancelled) { setErr(e instanceof Error ? e.message : 'Load failed'); setLoading(false) } })
+    return () => { cancelled = true }
+  }, [])
+
+  // Hydrate already-cached narratives from the list response so the panel
+  // shows instantly with no extra round-trip.
+  useEffect(() => {
+    if (!rows) return
+    setNarratives(prev => {
+      const next = { ...prev }
+      for (const r of rows) {
+        if (r.ai_narrative && !next[r.id]) {
+          next[r.id] = { text: r.ai_narrative, generatedAt: r.ai_narrative_generated_at, loading: false, error: null, cached: true }
+        }
+      }
+      return next
+    })
+  }, [rows])
+
+  const handleExplain = async (anomalyId: string, regenerate = false) => {
+    setOpenId(anomalyId)
+    const existing = narratives[anomalyId]
+    if (existing && !regenerate && !existing.error) return
+    setNarratives(s => ({ ...s, [anomalyId]: { text: existing?.text ?? '', generatedAt: existing?.generatedAt ?? null, loading: true, error: null, cached: existing?.cached ?? false } }))
+    try {
+      const r = await ai.narrateAnomaly(anomalyId, regenerate)
+      setNarratives(s => ({ ...s, [anomalyId]: { text: r.narrative, generatedAt: r.generatedAt, loading: false, error: null, cached: r.cached } }))
+      // Also reflect on the row so the "Last updated" hint is fresh.
+      setRows(rs => rs ? rs.map(row => row.id === anomalyId ? { ...row, ai_narrative: r.narrative, ai_narrative_generated_at: r.generatedAt } : row) : rs)
+    } catch (e) {
+      setNarratives(s => ({ ...s, [anomalyId]: { text: '', generatedAt: null, loading: false, error: e instanceof Error ? e.message : 'AI request failed', cached: false } }))
+    }
+  }
+
+  const handleCopy = async (anomalyId: string) => {
+    const n = narratives[anomalyId]
+    if (!n?.text) return
+    try {
+      await navigator.clipboard.writeText(n.text)
+      setCopiedId(anomalyId)
+      setTimeout(() => setCopiedId(cur => cur === anomalyId ? null : cur), 1500)
+    } catch {
+      // Clipboard API can be unavailable in some browsers / sandboxes — silently
+      // ignore so the rest of the panel keeps working.
+    }
+  }
+
+  return (
+    <>
+      <SectionHeader
+        kicker="AI"
+        title="Explain with AI"
+        subtitle="Persisted anomalies with optional Claude-generated narratives. Click the sparkle to expand a plain-English explanation grounded in the underlying activity data."
+      />
+      {err && <div className="surface-paper p-4 text-[var(--accent-red)]">{err}</div>}
+      <div className="surface-paper overflow-hidden">
+        {loading ? (
+          <div className="py-8 text-center text-[12.5px] text-[var(--text-tertiary)]">Loading anomalies…</div>
+        ) : !rows || rows.length === 0 ? (
+          <div className="py-12 text-center text-[12.5px] text-[var(--text-tertiary)]">No persisted anomalies in this workspace.</div>
+        ) : (
+          <table className="w-full text-[12.5px]">
+            <thead>
+              <tr className="text-left text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)]">
+                <th className="px-3 py-2">Severity</th>
+                <th className="px-3 py-2">Title / Facility</th>
+                <th className="px-3 py-2">Metric</th>
+                <th className="px-3 py-2 text-right">Expected → Actual</th>
+                <th className="px-3 py-2 text-right">Δ%</th>
+                <th className="px-3 py-2 text-right">AI</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(r => {
+                const sev = r.severity
+                const sevBg = sev === 'critical' ? 'var(--accent-red-light)' : sev === 'warning' ? 'var(--accent-amber-light)' : 'var(--accent-blue-light)'
+                const sevFg = sev === 'critical' ? 'var(--accent-red)' : sev === 'warning' ? 'var(--accent-amber)' : 'var(--accent-blue)'
+                const isOpen = openId === r.id
+                const n = narratives[r.id]
+                return (
+                  <Fragment key={r.id}>
+                    <tr className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">
+                      <td className="px-3 py-2">
+                        <span className="chip" style={{ background: sevBg, color: sevFg, fontWeight: 600 }}>{sev}</span>
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="font-semibold text-[var(--text-primary)]">{r.title}</div>
+                        <div className="text-[11px] text-[var(--text-tertiary)]">{r.facility_name ?? 'No facility'} · Scope {r.scope ?? '—'}</div>
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className="font-mono text-[11px] text-[var(--text-tertiary)]">{r.metric ?? '—'}</span>
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-[var(--text-secondary)]">
+                        {r.expected_value != null ? r.expected_value.toLocaleString() : '—'} → {r.actual_value != null ? r.actual_value.toLocaleString() : '—'}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums">
+                        {r.deviation_pct == null ? '—' : `${r.deviation_pct > 0 ? '+' : ''}${r.deviation_pct.toFixed(1)}%`}
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <button
+                          type="button"
+                          className="chip inline-flex items-center gap-1"
+                          onClick={() => {
+                            if (isOpen) { setOpenId(null); return }
+                            handleExplain(r.id, false)
+                          }}
+                          aria-expanded={isOpen}
+                          aria-controls={`ai-panel-${r.id}`}
+                          title="Explain with AI"
+                        >
+                          <Sparkles className="w-3 h-3" /> {isOpen ? 'Hide' : 'Explain'}
+                        </button>
+                      </td>
+                    </tr>
+                    {isOpen && (
+                      <tr className="border-b border-[var(--border-subtle)]">
+                        <td colSpan={6} className="p-0">
+                          <div
+                            id={`ai-panel-${r.id}`}
+                            className="p-4 m-3 rounded-[10px]"
+                            style={{
+                              background: 'var(--accent-purple-light, rgba(120,85,200,0.08))',
+                              borderLeft: '3px solid var(--accent-purple, #7855c8)',
+                            }}
+                          >
+                            <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
+                              <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.1em] font-bold" style={{ color: 'var(--accent-purple, #7855c8)' }}>
+                                <Sparkles className="w-3.5 h-3.5" /> AI explanation
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {n?.text && !n.loading && (
+                                  <button
+                                    type="button"
+                                    className="chip inline-flex items-center gap-1"
+                                    onClick={() => handleCopy(r.id)}
+                                    title="Copy narrative"
+                                  >
+                                    {copiedId === r.id ? <><Check className="w-3 h-3" /> Copied</> : <><Copy className="w-3 h-3" /> Copy</>}
+                                  </button>
+                                )}
+                                {n?.text && !n.loading && (
+                                  <button
+                                    type="button"
+                                    className="chip inline-flex items-center gap-1"
+                                    onClick={() => handleExplain(r.id, true)}
+                                    title="Regenerate narrative"
+                                  >
+                                    <RotateCw className="w-3 h-3" /> Regenerate
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            {n?.loading ? (
+                              <div className="flex items-center gap-2 text-[12.5px] text-[var(--text-secondary)]">
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating narrative…
+                              </div>
+                            ) : n?.error ? (
+                              <div className="text-[12.5px] text-[var(--accent-red)]">{n.error}</div>
+                            ) : n?.text ? (
+                              <>
+                                <p className="text-[13px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap">{n.text}</p>
+                                <div className="mt-2 text-[10.5px] text-[var(--text-tertiary)] italic">
+                                  Generated by Claude. Verify before sharing.
+                                  {n.generatedAt && <> · Last updated {formatRelative(n.generatedAt)}</>}
+                                </div>
+                              </>
+                            ) : (
+                              <div className="text-[12.5px] text-[var(--text-secondary)]">No narrative yet.</div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </>
+  )
+}
+
+function formatRelative(iso: string): string {
+  const then = new Date(iso).getTime()
+  if (!isFinite(then)) return ''
+  const diffMs = Date.now() - then
+  const mins = Math.round(diffMs / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`
+  const hrs = Math.round(mins / 60)
+  if (hrs < 24) return `${hrs} hour${hrs === 1 ? '' : 's'} ago`
+  const days = Math.round(hrs / 24)
+  return `${days} day${days === 1 ? '' : 's'} ago`
 }
 
 function StatusPill({ value }: { value: AnomalyStatusValue }) {

@@ -284,6 +284,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       created_at TIMESTAMPTZ DEFAULT now()
     )`
 
+    // AI-generated narrative cache columns (additive, idempotent).
+    // Filled by POST /api/ai/narrate-anomaly so we don't re-bill Claude on every
+    // page load. `regenerate: true` overwrites in place.
+    await sql`ALTER TABLE anomalies ADD COLUMN IF NOT EXISTS ai_narrative TEXT`
+    await sql`ALTER TABLE anomalies ADD COLUMN IF NOT EXISTS ai_narrative_generated_at TIMESTAMPTZ`
+    await sql`ALTER TABLE anomalies ADD COLUMN IF NOT EXISTS ai_narrative_model TEXT`
+    await sql`ALTER TABLE anomalies ADD COLUMN IF NOT EXISTS ai_narrative_tokens_in INTEGER`
+    await sql`ALTER TABLE anomalies ADD COLUMN IF NOT EXISTS ai_narrative_tokens_out INTEGER`
+
     await sql`CREATE TABLE IF NOT EXISTS audit_log (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
@@ -387,6 +396,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Additively make sure file_bytes exists on pre-existing DBs.
     await sql`ALTER TABLE evidence ADD COLUMN IF NOT EXISTS file_bytes BYTEA`
     await sql`CREATE INDEX IF NOT EXISTS idx_evidence_data_value ON evidence(data_value_id)`
+
+    // ═══════════════════════════════════════════
+    // AI-driven evidence extraction. Persisted so auditors can trace which
+    // values were lifted from which document, by which model, accepted by whom.
+    // ON DELETE rules: cascade on evidence (we don't keep extractions of a
+    // deleted file), SET NULL on data_value / questionnaire_item so audit
+    // history survives downstream cleanup.
+    // ═══════════════════════════════════════════
+    await sql`CREATE TABLE IF NOT EXISTS ai_extractions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      evidence_id UUID REFERENCES evidence(id) ON DELETE CASCADE,
+      data_value_id UUID REFERENCES data_value(id) ON DELETE SET NULL,
+      questionnaire_item_id UUID REFERENCES questionnaire_item(id) ON DELETE SET NULL,
+      extracted_value NUMERIC,
+      extracted_unit TEXT,
+      extracted_period TEXT,
+      extracted_supplier TEXT,
+      raw_response JSONB NOT NULL,
+      confidence NUMERIC,
+      tokens_in INTEGER,
+      tokens_out INTEGER,
+      cached_tokens INTEGER,
+      model TEXT NOT NULL,
+      accepted BOOLEAN,
+      accepted_by UUID REFERENCES users(id),
+      accepted_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_ai_extractions_evidence ON ai_extractions(evidence_id)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_ai_extractions_data_value ON ai_extractions(data_value_id)`
 
     await sql`CREATE TABLE IF NOT EXISTS connector_receipt (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -564,6 +603,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     )`
     await sql`CREATE INDEX IF NOT EXISTS idx_ef_scope_category ON emission_factors(scope, category)`
     await sql`CREATE INDEX IF NOT EXISTS idx_ef_region ON emission_factors(region)`
+
+    // ═══════════════════════════════════════════
+    // AI vendor → emission-factor match cache & audit trail.
+    // Persists every Claude-driven EF suggestion so we can (a) show users a
+    // history of suggestions, (b) flag accepted matches for future heuristics,
+    // and (c) report on AI match quality over time. Backs /api/ai/match-ef.
+    // ═══════════════════════════════════════════
+    await sql`CREATE TABLE IF NOT EXISTS ai_ef_matches (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      vendor_name TEXT NOT NULL,
+      spend_category TEXT,
+      region TEXT,
+      spend_amount NUMERIC,
+      spend_currency TEXT,
+      recommended_ef_id UUID REFERENCES emission_factors(id) ON DELETE SET NULL,
+      recommended_ef_confidence NUMERIC,
+      alternates JSONB DEFAULT '[]'::jsonb,
+      reasoning TEXT,
+      model TEXT NOT NULL,
+      tokens_in INTEGER,
+      tokens_out INTEGER,
+      cached_tokens INTEGER,
+      accepted BOOLEAN,
+      accepted_by UUID REFERENCES users(id),
+      accepted_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_ai_ef_matches_org_vendor ON ai_ef_matches(org_id, vendor_name)`
 
     // ═══════════════════════════════════════════
     // SAML SSO via WorkOS — per-org connection mapping.

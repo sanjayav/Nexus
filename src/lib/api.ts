@@ -714,12 +714,140 @@ export interface AiDraftResponse {
   usage: AiDraftUsage
 }
 
+export interface AiExtractionResult {
+  /** UUID of the persisted `ai_extractions` row. Null when persistence failed
+   *  but the inference itself succeeded — clients should still display the
+   *  result, just skip the accept call. */
+  id: string | null
+  value: number
+  unit: string | null
+  period: string | null
+  supplier: string | null
+  confidence: number
+  reasoning: string
+  additionalNotes: string | null
+}
+
+export interface AiExtractionResponse {
+  extraction: AiExtractionResult
+  usage: AiDraftUsage
+}
+
+export interface AiExtractRequest {
+  evidenceId: string
+  questionnaireItemId?: string
+  expectedUnit?: string
+  expectedPeriod?: string
+  lineItemHint?: string
+}
+
+// ── AI Emission-Factor matcher ────────────
+export interface AiEfRow {
+  id: string
+  scope: number
+  category: string
+  subcategory: string | null
+  fuel_or_activity: string
+  region: string
+  unit: string
+  co2e_per_unit: number | string
+  co2_per_unit: number | string | null
+  ch4_per_unit: number | string | null
+  n2o_per_unit: number | string | null
+  source: string
+  source_version: string | null
+  valid_from: string
+  valid_to: string | null
+  notes: string | null
+}
+
+export interface AiEfAlternate {
+  ef: AiEfRow
+  confidence: number
+  reasoning: string
+}
+
+export interface AiEfMatchResponse {
+  match: {
+    id: string | null
+    ef: AiEfRow
+    confidence: number
+    reasoning: string
+    alternates: AiEfAlternate[]
+    overallNotes: string | null
+  }
+  usage: AiDraftUsage
+}
+
+export interface AiEfMatchRequest {
+  vendorName: string
+  spendCategory?: string
+  region?: 'UK' | 'US' | 'EU' | 'GLOBAL' | 'IN' | 'CN' | 'JP' | 'AU' | 'CA' | 'DE' | 'FR'
+  spendAmount?: number
+  spendCurrency?: string
+  scope?: 1 | 2 | 3
+  category?: string
+}
+
 export const ai = {
   draft: (data: { framework: string; section: string; tone?: string }) =>
     request<AiDraftResponse>('/ai/draft', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+  extractEvidence: (data: AiExtractRequest) =>
+    request<AiExtractionResponse>('/ai/extract-evidence', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  acceptExtraction: (data: { extractionId: string; dataValueId: string }) =>
+    request<{ ok: true }>('/ai/accept-extraction', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  matchEf: (data: AiEfMatchRequest) =>
+    request<AiEfMatchResponse>('/ai/match-ef', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  acceptEfMatch: (matchId: string) =>
+    request<{ ok: true; id: string; acceptedAt: string }>('/ai/accept-ef-match', {
+      method: 'POST',
+      body: JSON.stringify({ matchId }),
+    }),
+  narrateAnomaly: (anomalyId: string, regenerate?: boolean) =>
+    request<AiNarrateAnomalyResponse>('/ai/narrate-anomaly', {
+      method: 'POST',
+      body: JSON.stringify({ anomalyId, regenerate: regenerate ?? false }),
+    }),
+  listAnomaliesForNarration: () =>
+    request<{ anomalies: AiAnomalyListItem[] }>('/ai/narrate-anomaly'),
+}
+
+export interface AiNarrateAnomalyResponse {
+  narrative: string
+  generatedAt: string | null
+  cached: boolean
+  usage: AiDraftUsage
+}
+
+export interface AiAnomalyListItem {
+  id: string
+  facility_id: string | null
+  facility_name: string | null
+  type: string
+  severity: 'info' | 'warning' | 'critical'
+  title: string
+  description: string | null
+  scope: number | null
+  metric: string | null
+  expected_value: number | null
+  actual_value: number | null
+  deviation_pct: number | null
+  status: 'open' | 'investigating' | 'resolved' | 'dismissed'
+  detected_at: string
+  ai_narrative: string | null
+  ai_narrative_generated_at: string | null
 }
 
 // ── SCIM tokens ──────────────────────────

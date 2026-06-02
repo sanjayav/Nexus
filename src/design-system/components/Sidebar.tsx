@@ -11,13 +11,14 @@ import {
   Sparkles, Calendar, Scale, UserCog, Users, Target as TargetIcon,
   ShieldCheck, Settings, Plug, KeyRound, Activity,
   // Chrome
-  ChevronLeft, ChevronRight, ChevronDown, Leaf, LogOut,
+  ChevronLeft, ChevronRight, ChevronDown, LogOut,
 } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext'
 import { resolveRole, ROLE_CATALOG, type PlatformRole } from '../../lib/rbac'
 import SetupGuide from '../../components/SetupGuide'
 import { useOrgBrand } from '../../lib/useOrgBrand'
 import { orgStore } from '../../lib/orgStore'
+import NexusBrandCard from '../../components/NexusBrandCard'
 
 type NavItem = {
   path: string
@@ -175,8 +176,9 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const roleMeta = ROLE_CATALOG[role]
   const badges = useBadges()
   const brand = useOrgBrand()
-  const primary = brand.primary_color || '#1B6B7B'
-  const secondary = brand.secondary_color || '#1e8e7a'
+  // Primary/secondary are no longer used for the lockup itself (the Nexus
+  // mark owns its own gradient) — kept available if downstream needs them.
+  void brand
 
   // Work out which section the current route belongs to.
   const activeKey = useMemo(() => {
@@ -223,45 +225,9 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         style={{ background: 'radial-gradient(circle, rgba(27,107,123,0.3), transparent 60%)' }}
       />
 
-      {/* Logo */}
+      {/* Brand lockup — Nexus by Aeiforo. Tenant industry surfaced quietly. */}
       <div className={`h-[64px] flex items-center ${collapsed ? 'justify-center px-0' : 'px-5'} flex-shrink-0 relative`}>
-        {!collapsed ? (
-          <div className="flex items-center gap-3">
-            <div
-              className="w-[34px] h-[34px] rounded-[10px] flex items-center justify-center flex-shrink-0"
-              style={{
-                background: `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`,
-                boxShadow: `0 4px 12px ${primary}55, inset 0 1px 0 rgba(255,255,255,0.15)`,
-              }}
-            >
-              {brand.logo_mark ? (
-                <span className="text-[10.5px] font-display font-bold text-white tracking-[0.04em]">{brand.logo_mark}</span>
-              ) : (
-                <Leaf className="w-[18px] h-[18px] text-white" />
-              )}
-            </div>
-            <div className="leading-none min-w-0">
-              <span className="text-[14.5px] font-display font-bold tracking-[-0.025em] block text-white truncate">{brand.name}</span>
-              <span className="text-[9.5px] text-white/40 font-medium mt-[3px] block tracking-[0.08em] uppercase truncate">
-                {brand.industry ? `${brand.industry} · ESG` : 'Carbon \u00b7 ESG'}
-              </span>
-            </div>
-          </div>
-        ) : (
-          <div
-            className="w-[34px] h-[34px] rounded-[10px] flex items-center justify-center"
-            style={{
-              background: `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`,
-              boxShadow: `0 4px 12px ${primary}55, inset 0 1px 0 rgba(255,255,255,0.15)`,
-            }}
-          >
-            {brand.logo_mark ? (
-              <span className="text-[10.5px] font-display font-bold text-white tracking-[0.04em]">{brand.logo_mark}</span>
-            ) : (
-              <Leaf className="w-[18px] h-[18px] text-white" />
-            )}
-          </div>
-        )}
+        <NexusBrandCard industry={brand.industry} collapsed={collapsed} variant="dark" />
       </div>
 
       {/* Setup guide widget */}
