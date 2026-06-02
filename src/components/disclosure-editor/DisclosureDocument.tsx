@@ -190,6 +190,17 @@ function DisclosureLine({ item, state, isActive, readingMode, canEdit, onFocus, 
   const [draft, setDraft] = useState<string>(value != null ? String(value) : '')
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // Subtle border tint when another editor has this cell focused. Falls back
+  // to null outside a RoomProvider (solo mode) or in reading mode, so the
+  // layout never shifts and read-only views stay quiet.
+  const remoteBorderColor = useRemoteCellBorderColor(item.id, readingMode)
+  // Soft 1.5px ring at 40-alpha — reads as ambient presence, not validation.
+  // Skipped while the local cell is the active one (the brand-coloured focus
+  // ring takes precedence).
+  const remoteRingStyle = (!readingMode && !isActive && remoteBorderColor)
+    ? { boxShadow: `0 0 0 1.5px ${remoteBorderColor}40` }
+    : undefined
+
   useEffect(() => { setDraft(value != null ? String(value) : '') }, [value])
 
   const commit = useCallback(async () => {
@@ -206,7 +217,8 @@ function DisclosureLine({ item, state, isActive, readingMode, canEdit, onFocus, 
 
   return (
     <div
-      className={`group relative rounded-[var(--radius-md)] -mx-3 px-3 py-2 transition-colors ${isActive ? 'bg-[var(--color-brand-soft)]/30' : ''}`}
+      className={`group relative rounded-[var(--radius-md)] -mx-3 px-3 py-2 transition-shadow ${isActive ? 'bg-[var(--color-brand-soft)]/30' : ''}`}
+      style={remoteRingStyle}
       onClick={onFocus}
     >
       {/* Remote editors currently focussed on this cell — overlays at the
@@ -394,6 +406,26 @@ function usePublishActiveCell(activeCellId: string | null) {
     if (!inside) return
     update({ activeCellId, selectionAt: Date.now() })
   }, [inside, activeCellId, update])
+}
+
+/**
+ * Hook: returns the stable per-user tint of the *first* remote editor
+ * currently focused on `cellId`, or null when nobody else is here, when
+ * collab is disabled, or in reading mode.
+ *
+ * Both `useIsInsideRoom()` and `useOthers()` are called unconditionally so
+ * React's rules-of-hooks lint stays happy. The editor always wraps its tree
+ * in a `<RoomProvider>` (with a `<CollabBoundary>` upstream catching hard
+ * failures), so `useOthers()` is safe to call here — `useIsInsideRoom()`
+ * just lets us short-circuit cheaply when the room hasn't connected yet.
+ */
+function useRemoteCellBorderColor(cellId: string, readingMode: boolean): string | null {
+  const inside = useIsInsideRoom()
+  const others = useOthers()
+  if (!inside || readingMode) return null
+  const owner = others.find(o => o.presence?.activeCellId === cellId)
+  if (!owner) return null
+  return owner.info?.color ?? owner.presence?.color ?? null
 }
 
 /**

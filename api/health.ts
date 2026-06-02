@@ -47,6 +47,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       configured: Boolean(process.env.ANTHROPIC_API_KEY),
       provider: process.env.ANTHROPIC_API_KEY ? ('claude' as const) : null,
     },
+    realtime: {
+      configured: Boolean(process.env.LIVEBLOCKS_SECRET_KEY),
+      provider: process.env.LIVEBLOCKS_SECRET_KEY ? ('liveblocks' as const) : null,
+    },
     sentry: {
       configured: Boolean(process.env.SENTRY_DSN || process.env.VITE_SENTRY_DSN),
     },

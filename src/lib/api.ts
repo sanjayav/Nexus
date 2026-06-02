@@ -2,6 +2,32 @@ import { captureError } from './sentry'
 
 const API_BASE = '/api'
 
+/**
+ * Typed error thrown by `request()` when the API returns a non-2xx response.
+ *
+ * `reason` is set to `'unconfigured'` when the backend returns 503 with a
+ * body like `{ error: 'XXX_API_KEY not configured' }`. UI consumers should
+ * check this flag and render an integration-gated message (e.g. "Ask an
+ * admin to set ANTHROPIC_API_KEY") instead of a raw stack trace.
+ */
+export class ApiError extends Error {
+  status: number
+  reason?: 'unconfigured'
+  body?: unknown
+  constructor(message: string, status: number, opts: { reason?: 'unconfigured'; body?: unknown } = {}) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.reason = opts.reason
+    this.body = opts.body
+  }
+}
+
+/** True when the thrown error is an integration-not-configured 503. */
+export function isUnconfiguredError(err: unknown): err is ApiError {
+  return err instanceof ApiError && err.reason === 'unconfigured'
+}
+
 // NOTE: localStorage keys keep the `aeiforo_*` prefix for backwards compatibility.
 // The product is rebranded to "Nexus", but renaming these keys would log every
 // existing user out on first deploy. Brand change is display-only.
@@ -17,6 +43,41 @@ export function clearToken() {
   localStorage.removeItem('aeiforo_token')
 }
 
+/**
+ * Wrap `fetch` with a 30s timeout and a single retry on transient network
+ * errors (offline / DNS blip). Aborts after the timeout — callers see a
+ * friendly "Request timed out" Error rather than a hanging promise. The
+ * test suite mocks `fetch` via msw, so retry only triggers on the real
+ * `TypeError: Failed to fetch` shape (mocked responses never throw that).
+ */
+async function fetchWithRetry(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  retries = 1,
+): Promise<Response> {
+  try {
+    // `AbortSignal.timeout` lands a TimeoutError DOMException; supported in
+    // node 20+ and all evergreen browsers we target.
+    return await fetch(input, { ...init, signal: AbortSignal.timeout(30_000) })
+  } catch (err) {
+    if (
+      retries > 0 &&
+      err instanceof TypeError &&
+      /fetch|network/i.test(err.message)
+    ) {
+      await new Promise(r => setTimeout(r, 500))
+      return fetchWithRetry(input, init, retries - 1)
+    }
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      throw new Error('Request timed out after 30 seconds')
+    }
+    if (err instanceof TypeError && /fetch|network/i.test(err.message)) {
+      throw new Error('Network error — check your connection')
+    }
+    throw err
+  }
+}
+
 async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const token = getToken()
   const headers: Record<string, string> = {
@@ -25,7 +86,7 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
   }
   if (token) headers['Authorization'] = `Bearer ${token}`
 
-  const res = await fetch(`${API_BASE}${path}`, { ...opts, headers })
+  const res = await fetchWithRetry(`${API_BASE}${path}`, { ...opts, headers })
 
   if (res.status === 401 && !path.startsWith('/auth/')) {
     // Stale session — demo-mode fallback leaves a user in localStorage without a
@@ -40,11 +101,25 @@ async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
   }
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ error: res.statusText }))
-    const err = new Error(body.error || `API error ${res.status}`)
+    const body = await res.json().catch(() => ({ error: res.statusText })) as { error?: string }
+    const message = body.error || `API error ${res.status}`
+    // Detect "integration not configured" 503s so consumers can render a
+    // specific call-to-action ("Ask your admin to set ANTHROPIC_API_KEY")
+    // instead of a generic API failure. Match both explicit shapes and the
+    // free-form "XXX_API_KEY not configured" pattern we use in api/ handlers.
+    const isUnconfigured =
+      res.status === 503 &&
+      typeof body.error === 'string' &&
+      (/not configured/i.test(body.error) || /_API_KEY/i.test(body.error))
+    const err = new ApiError(message, res.status, {
+      reason: isUnconfigured ? 'unconfigured' : undefined,
+      body,
+    })
     // Forward non-auth backend failures to Sentry (no-op when DSN unset).
     // 401 already gets its own session-expiry handler above.
-    if (res.status !== 401) {
+    // Skip "unconfigured" 503s — they're expected operator misconfiguration,
+    // not engineering bugs that need a Sentry issue.
+    if (res.status !== 401 && !isUnconfigured) {
       captureError(err, { path, status: res.status, method: opts.method ?? 'GET' })
     }
     throw err
@@ -152,7 +227,16 @@ export const users = {
     request<ApiUser>('/users', { method: 'POST', body: JSON.stringify(data) }),
 
   invite: (email: string, roleId?: string) =>
-    request<{ ok: boolean; inviteToken: string; email: string }>('/users', {
+    request<{
+      ok: boolean
+      inviteToken: string
+      email: string
+      /** Only set when the email service is not configured — surface this to the
+       *  inviter so they can share the link manually. */
+      warning?: string
+      /** Always set so the caller can show a copy-link affordance. */
+      inviteUrl?: string
+    }>('/users', {
       method: 'POST',
       body: JSON.stringify({ email, roleId, mode: 'invite' }),
     }),
@@ -162,6 +246,24 @@ export const users = {
 
   deactivate: (id: string) =>
     request<{ ok: boolean }>(`/users?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  // ── Per-user notification preferences (self-edit) ────────────
+  preferences: {
+    get: () => request<UserPreferences>('/users?action=preferences'),
+    update: (patch: Partial<Omit<UserPreferences, 'updated_at'>>) =>
+      request<UserPreferences>('/users?action=preferences', {
+        method: 'POST',
+        body: JSON.stringify(patch),
+      }),
+  },
+}
+
+export interface UserPreferences {
+  email_on_assignment: boolean
+  email_on_review_request: boolean
+  email_on_anomaly: boolean
+  digest_frequency: 'none' | 'daily' | 'weekly'
+  updated_at: string | null
 }
 
 // ── Roles ─────────────────────────────────
@@ -921,6 +1023,7 @@ export interface HealthResponse {
     email:      { configured: boolean; provider: 'resend' | null }
     sso:        { configured: boolean; provider: 'workos' | null }
     ai:         { configured: boolean; provider: 'claude' | null }
+    realtime:   { configured: boolean; provider: 'liveblocks' | null }
     sentry:     { configured: boolean }
     euRegion:   { configured: boolean }
     apacRegion: { configured: boolean }

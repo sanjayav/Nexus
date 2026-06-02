@@ -10,8 +10,9 @@
  * audit-trail wiring in DataEntry where the data_value_id lives.
  */
 import { useState } from 'react'
-import { Loader2, Sparkles, AlertCircle, CheckCircle2, BadgeCheck } from 'lucide-react'
-import { ai, type AiExtractionResult } from '../lib/api'
+import { Loader2, Sparkles, AlertCircle, CheckCircle2, BadgeCheck, Lock } from 'lucide-react'
+import { ai, isUnconfiguredError, type AiExtractionResult } from '../lib/api'
+import { useIntegrationStatus } from '../lib/integrations'
 
 interface Props {
   evidenceId: string
@@ -66,6 +67,10 @@ export default function AiExtractionPanel({
   disabled,
 }: Props) {
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
+  const integrations = useIntegrationStatus()
+  // While the health probe is still loading we keep the button disabled but
+  // skip the tooltip — clicking would race the probe and confuse the user.
+  const aiUnavailable = !integrations.loading && !integrations.ai
 
   const runExtraction = async () => {
     setStatus({ kind: 'loading' })
@@ -79,7 +84,10 @@ export default function AiExtractionPanel({
       })
       setStatus({ kind: 'result', extraction: res.extraction })
     } catch (e) {
-      setStatus({ kind: 'error', message: e instanceof Error ? e.message : 'Extraction failed' })
+      const message = isUnconfiguredError(e)
+        ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.'
+        : e instanceof Error ? e.message : 'Extraction failed'
+      setStatus({ kind: 'error', message })
     }
   }
 
@@ -99,13 +107,24 @@ export default function AiExtractionPanel({
           <button
             type="button"
             onClick={runExtraction}
-            disabled={disabled}
+            disabled={disabled || aiUnavailable || integrations.loading}
+            title={aiUnavailable ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : undefined}
+            aria-label={aiUnavailable ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : 'Extract data with AI'}
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[var(--radius-sm)] text-[11px] font-semibold text-white bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <Sparkles className="w-3 h-3" /> Extract data with AI
+            {aiUnavailable ? <Lock className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
+            {aiUnavailable ? 'AI unavailable' : 'Extract data with AI'}
           </button>
         )}
       </div>
+
+      {/* Idle-state hint when the env isn't wired up. Keep it terse — the
+          panel is small and re-used in tight rails. */}
+      {status.kind === 'idle' && aiUnavailable && (
+        <div className="mt-2 text-[10.5px] text-[var(--text-tertiary)] leading-snug">
+          AI features not configured in this environment. Ask an admin to set <code className="font-mono">ANTHROPIC_API_KEY</code>.
+        </div>
+      )}
 
       {status.kind === 'loading' && (
         <div className="flex items-center gap-2 mt-2 text-[12px] text-[var(--text-secondary)]">

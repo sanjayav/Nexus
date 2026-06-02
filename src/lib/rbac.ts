@@ -28,7 +28,10 @@ export const ROLE_CATALOG: Record<PlatformRole, RoleDefinition> = {
     name: 'Platform Admin',
     description: 'Full access. Manages tenants, users, org tree, assignments.',
     tier: 'group',
-    homeRoute: '/dashboard',
+    // IA-reset: `/` (MyDay) is the canonical post-login home for every role.
+    // The legacy /dashboard URL now redirects here; keeping the home route in
+    // sync prevents post-login navigation from bouncing through a redirect.
+    homeRoute: '/',
     permissions: [
       ...BASE,
       'data.view', 'data.enter', 'data.upload',

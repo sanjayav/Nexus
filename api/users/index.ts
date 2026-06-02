@@ -36,8 +36,96 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const sql = getDb()
   const userId = req.query.id as string | undefined
+  const action = String(req.query.action ?? '')
 
   try {
+    // ── Per-user notification preferences (self-edit only) ─────────────
+    // GET  /api/users?action=preferences          → load caller's prefs
+    // POST /api/users?action=preferences {body}   → upsert caller's prefs
+    if (action === 'preferences') {
+      if (req.method === 'GET') {
+        // Self-bootstrapping: schema created on first read so demo envs work
+        // without re-running /api/setup.
+        await sql`
+          CREATE TABLE IF NOT EXISTS user_preferences (
+            user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            email_on_assignment BOOLEAN DEFAULT true,
+            email_on_review_request BOOLEAN DEFAULT true,
+            email_on_anomaly BOOLEAN DEFAULT true,
+            digest_frequency TEXT DEFAULT 'daily' CHECK (digest_frequency IN ('none','daily','weekly')),
+            updated_at TIMESTAMPTZ DEFAULT now()
+          )
+        `
+        const rows = await sql`
+          SELECT email_on_assignment, email_on_review_request, email_on_anomaly,
+                 digest_frequency, updated_at
+          FROM user_preferences WHERE user_id = ${token.sub}
+        ` as Array<{
+          email_on_assignment: boolean; email_on_review_request: boolean
+          email_on_anomaly: boolean; digest_frequency: string; updated_at: string | null
+        }>
+        if (rows.length === 0) {
+          return res.status(200).json({
+            email_on_assignment: true,
+            email_on_review_request: true,
+            email_on_anomaly: true,
+            digest_frequency: 'daily',
+            updated_at: null,
+          })
+        }
+        return res.status(200).json(rows[0])
+      }
+      if (req.method === 'POST' || req.method === 'PUT') {
+        // Self-edit only — gating done by token.sub matching the row's user_id.
+        await sql`
+          CREATE TABLE IF NOT EXISTS user_preferences (
+            user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            email_on_assignment BOOLEAN DEFAULT true,
+            email_on_review_request BOOLEAN DEFAULT true,
+            email_on_anomaly BOOLEAN DEFAULT true,
+            digest_frequency TEXT DEFAULT 'daily' CHECK (digest_frequency IN ('none','daily','weekly')),
+            updated_at TIMESTAMPTZ DEFAULT now()
+          )
+        `
+        const prefSchema = z.object({
+          email_on_assignment: z.boolean().optional(),
+          email_on_review_request: z.boolean().optional(),
+          email_on_anomaly: z.boolean().optional(),
+          digest_frequency: z.enum(['none', 'daily', 'weekly']).optional(),
+        })
+        const parsed = prefSchema.safeParse(req.body ?? {})
+        if (!parsed.success) {
+          return res.status(400).json({ error: 'Invalid input', issues: parsed.error.issues })
+        }
+        const p = parsed.data
+        const rows = await sql`
+          INSERT INTO user_preferences (
+            user_id, email_on_assignment, email_on_review_request, email_on_anomaly,
+            digest_frequency, updated_at
+          ) VALUES (
+            ${token.sub},
+            ${p.email_on_assignment ?? true},
+            ${p.email_on_review_request ?? true},
+            ${p.email_on_anomaly ?? true},
+            ${p.digest_frequency ?? 'daily'},
+            now()
+          )
+          ON CONFLICT (user_id) DO UPDATE SET
+            email_on_assignment     = COALESCE(${p.email_on_assignment ?? null}, user_preferences.email_on_assignment),
+            email_on_review_request = COALESCE(${p.email_on_review_request ?? null}, user_preferences.email_on_review_request),
+            email_on_anomaly        = COALESCE(${p.email_on_anomaly ?? null}, user_preferences.email_on_anomaly),
+            digest_frequency        = COALESCE(${p.digest_frequency ?? null}, user_preferences.digest_frequency),
+            updated_at = now()
+          RETURNING email_on_assignment, email_on_review_request, email_on_anomaly, digest_frequency, updated_at
+        ` as Array<{
+          email_on_assignment: boolean; email_on_review_request: boolean
+          email_on_anomaly: boolean; digest_frequency: string; updated_at: string
+        }>
+        return res.status(200).json(rows[0])
+      }
+      return res.status(405).json({ error: 'Method not allowed' })
+    }
+
     // GET — list users in org
     if (req.method === 'GET') {
       const rows = await sql`
@@ -75,7 +163,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           INSERT INTO invitations (org_id, email, role_id, invited_by, token, expires_at)
           VALUES (${token.org}, ${email.toLowerCase().trim()}, ${roleId || null}, ${token.sub}, ${invToken}, ${expiresAt.toISOString()})
         `
-        return res.status(201).json({ ok: true, inviteToken: invToken, email })
+        const appBaseUrl = process.env.APP_BASE_URL ?? 'http://localhost:5173'
+        const inviteUrl = `${appBaseUrl}/register?token=${invToken}`
+        // When email isn't configured, surface a clear warning + the invite
+        // URL so the admin can copy-paste the link manually to the invitee.
+        // We keep status 201 so the front-end success branch fires; the
+        // `warning` field is the signal callers should display.
+        if (!process.env.RESEND_API_KEY) {
+          // eslint-disable-next-line no-console
+          console.warn('[users.invite] RESEND_API_KEY not set — invite email NOT sent for', email)
+          return res.status(201).json({
+            ok: true,
+            inviteToken: invToken,
+            email,
+            inviteUrl,
+            warning: 'Email service not configured — share the invite link manually with the user.',
+          })
+        }
+        return res.status(201).json({ ok: true, inviteToken: invToken, email, inviteUrl })
       }
 
       if (!name || !password) return res.status(400).json({ error: 'Name and password required for direct creation' })

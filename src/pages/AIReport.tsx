@@ -18,7 +18,8 @@ import {
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { Badge, Button, Select } from '../design-system'
-import { ai } from '../lib/api'
+import { ai, isUnconfiguredError } from '../lib/api'
+import { useIntegrationStatus } from '../lib/integrations'
 
 // Curated catalogue of sections the user can draft. v1 hard-coded list; once
 // the questionnaire tree endpoint surfaces section labels this could load
@@ -82,6 +83,9 @@ interface UsageStats {
 
 export default function AIReport() {
   const navigate = useNavigate()
+  const integrations = useIntegrationStatus()
+  const aiReady = integrations.ai
+  const aiUnavailable = !integrations.loading && !aiReady
   const [framework, setFramework] = useState<string>('gri')
   const [section, setSection] = useState<string>(SECTIONS_BY_FRAMEWORK.gri[0].value)
   const [tone, setTone] = useState<string>('formal')
@@ -89,6 +93,7 @@ export default function AIReport() {
   const [draftText, setDraftText] = useState('')
   const [usage, setUsage] = useState<UsageStats | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [errorIsUnconfigured, setErrorIsUnconfigured] = useState(false)
   const [copied, setCopied] = useState(false)
   const [inserted, setInserted] = useState(false)
 
@@ -104,6 +109,7 @@ export default function AIReport() {
   const handleGenerate = async () => {
     setGenerating(true)
     setError(null)
+    setErrorIsUnconfigured(false)
     setDraftText('')
     setUsage(null)
     setInserted(false)
@@ -112,8 +118,13 @@ export default function AIReport() {
       setDraftText(res.text ?? '')
       setUsage(res.usage ?? null)
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Failed to generate draft'
-      setError(msg)
+      if (isUnconfiguredError(e)) {
+        setErrorIsUnconfigured(true)
+        setError('AI is not configured in this environment. Ask an admin to set ANTHROPIC_API_KEY in Vercel.')
+      } else {
+        const msg = e instanceof Error ? e.message : 'Failed to generate draft'
+        setError(msg)
+      }
     } finally {
       setGenerating(false)
     }
@@ -123,6 +134,7 @@ export default function AIReport() {
     setDraftText('')
     setUsage(null)
     setError(null)
+    setErrorIsUnconfigured(false)
     setCopied(false)
     setInserted(false)
   }
@@ -163,6 +175,22 @@ export default function AIReport() {
 
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-[1200px] mx-auto">
+      {/* AI unavailable banner — shown when the deployment has no Anthropic
+          key configured. We render it ABOVE the hero so users see the gate
+          before they spend time configuring the framework/section dropdowns. */}
+      {aiUnavailable && (
+        <div className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4 flex items-start gap-3" role="status">
+          <Sparkles className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+          <div className="min-w-0">
+            <div className="text-[var(--text-sm)] font-semibold text-amber-300">AI features disabled</div>
+            <div className="text-[var(--text-xs)] text-amber-300/80 mt-1 leading-relaxed">
+              Set <code className="font-mono">ANTHROPIC_API_KEY</code> in your Vercel environment to enable
+              AI report drafting, evidence extraction, vendor → EF matching, and anomaly narration.
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Hero Header ── */}
       <div className="relative overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--bg-primary)] p-8 animate-fade-in">
         <div
@@ -258,11 +286,16 @@ export default function AIReport() {
           </div>
           <Button
             onClick={handleGenerate}
-            disabled={generating || !section}
+            disabled={generating || !section || aiUnavailable || integrations.loading}
             loading={generating}
-            icon={!generating ? <Play className="w-4 h-4" /> : undefined}
+            icon={
+              aiUnavailable ? <Lock className="w-4 h-4" /> :
+              !generating ? <Play className="w-4 h-4" /> : undefined
+            }
+            title={aiUnavailable ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : undefined}
+            aria-label={aiUnavailable ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : undefined}
           >
-            {generating ? 'Drafting...' : 'Draft with AI'}
+            {aiUnavailable ? 'AI unavailable' : generating ? 'Drafting...' : 'Draft with AI'}
           </Button>
         </div>
       </div>
@@ -333,10 +366,22 @@ export default function AIReport() {
 
         <div className="p-6">
           {error && (
-            <div className="mb-4 flex items-start gap-3 rounded-xl border border-[var(--accent-red)]/30 bg-[var(--accent-red-light)] p-4">
-              <AlertCircle className="w-4 h-4 text-[var(--accent-red)] mt-0.5 flex-shrink-0" />
-              <div className="text-[var(--text-sm)] text-[var(--accent-red)]">
-                <p className="font-semibold">Draft failed</p>
+            <div
+              className={
+                'mb-4 flex items-start gap-3 rounded-xl border p-4 ' +
+                (errorIsUnconfigured
+                  ? 'border-amber-400/30 bg-amber-400/5'
+                  : 'border-[var(--accent-red)]/30 bg-[var(--accent-red-light)]')
+              }
+              role="alert"
+            >
+              {errorIsUnconfigured ? (
+                <Sparkles className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-[var(--accent-red)] mt-0.5 flex-shrink-0" />
+              )}
+              <div className={errorIsUnconfigured ? 'text-[var(--text-sm)] text-amber-300' : 'text-[var(--text-sm)] text-[var(--accent-red)]'}>
+                <p className="font-semibold">{errorIsUnconfigured ? 'AI is not configured' : 'Draft failed'}</p>
                 <p className="text-[var(--text-xs)] opacity-90 mt-0.5">{error}</p>
               </div>
             </div>

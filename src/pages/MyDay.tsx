@@ -31,6 +31,10 @@ export default function MyDay() {
   const [activity, setActivity] = useState<AuditExplorerEntry[] | null>(null)
   const [criticalAnomalies, setCriticalAnomalies] = useState<number | null>(null)
   const [hashOk, setHashOk] = useState<boolean | null>(null)
+  // Per-card warning surfaces — when an individual fetch fails the page still
+  // renders, the failing card just shows a small "couldn't load" chip
+  // instead of pretending the data is zero/empty.
+  const [warnings, setWarnings] = useState<{ mine?: string; all?: string; activity?: string; anomalies?: string; hash?: string }>({})
 
   useEffect(() => {
     if (!user) return
@@ -49,16 +53,18 @@ export default function MyDay() {
         })(),
       ])
       if (cancelled) return
+      const nextWarnings: { mine?: string; all?: string; activity?: string; anomalies?: string; hash?: string } = {}
       if (mineRes.status === 'fulfilled') setMine(mineRes.value.filter(a => a.framework_id === framework.id))
-      else setMine([])
+      else { setMine([]); nextWarnings.mine = errMsg(mineRes.reason, 'Could not load your tasks') }
       if (allRes.status === 'fulfilled') setAll(allRes.value.filter(a => a.framework_id === framework.id))
-      else setAll([])
+      else { setAll([]); nextWarnings.all = errMsg(allRes.reason, 'Could not load review queue') }
       if (activityRes.status === 'fulfilled') setActivity(activityRes.value.rows)
-      else setActivity([])
+      else { setActivity([]); nextWarnings.activity = errMsg(activityRes.reason, 'Could not load activity') }
       if (anomaliesRes.status === 'fulfilled') setCriticalAnomalies(anomaliesRes.value.summary?.critical ?? 0)
-      else setCriticalAnomalies(0)
+      else { setCriticalAnomalies(0); nextWarnings.anomalies = errMsg(anomaliesRes.reason, 'Could not load anomaly count') }
       if (hashRes.status === 'fulfilled' && hashRes.value) setHashOk(!!hashRes.value.verified)
-      else setHashOk(null)
+      else { setHashOk(null); if (hashRes.status === 'rejected') nextWarnings.hash = errMsg(hashRes.reason, 'Could not verify chain') }
+      setWarnings(nextWarnings)
     })()
     return () => { cancelled = true }
   }, [user, framework.id])
@@ -176,6 +182,7 @@ export default function MyDay() {
             onStart={(qid) => navigate(`/data/entry/${qid}`)}
             onSeeAll={() => navigate('/my-tasks')}
             now={now}
+            warning={warnings.mine}
           />
         </StaggerItem>
         <StaggerItem>
@@ -183,6 +190,7 @@ export default function MyDay() {
             loading={loading}
             items={reviewQueue.slice(0, 5)}
             onOpen={() => navigate('/work/review')}
+            warning={warnings.all}
           />
         </StaggerItem>
         <StaggerItem>
@@ -191,6 +199,7 @@ export default function MyDay() {
             item={suggested}
             reasoning={suggestedReasoning}
             onOpen={() => suggested && navigate(`/data/entry/${suggested.questionId}`)}
+            warning={warnings.mine}
           />
         </StaggerItem>
       </Stagger>
@@ -220,6 +229,11 @@ export default function MyDay() {
 
       {/* Activity feed */}
       <section>
+        {warnings.activity && (
+          <div className="mb-3">
+            <WarningChip text={warnings.activity} />
+          </div>
+        )}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <ActivityIcon className="w-4 h-4 text-[var(--text-tertiary)]" />
@@ -264,6 +278,24 @@ function HeroCard({
   )
 }
 
+/**
+ * Inline non-blocking warning. Shown at the top of a card when that card's
+ * data fetch failed but the page-level surface still renders. Keeps the
+ * visual hierarchy intact — the user sees what loaded plus a small chip
+ * explaining what didn't.
+ */
+function WarningChip({ text }: { text: string }) {
+  return (
+    <div
+      role="status"
+      className="mb-3 flex items-start gap-1.5 px-2 py-1.5 rounded-[8px] bg-amber-500/10 border border-amber-500/30 text-[11.5px] text-amber-400"
+    >
+      <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+      <span className="break-words">{text}</span>
+    </div>
+  )
+}
+
 function HeroCardSkeleton({ eyebrow }: { eyebrow: string }) {
   return (
     <article className="card-premium border-[var(--border-subtle)] flex flex-col min-h-[280px]">
@@ -280,25 +312,27 @@ function HeroCardSkeleton({ eyebrow }: { eyebrow: string }) {
 }
 
 function DueTodayCard({
-  loading, items, onStart, onSeeAll, now,
+  loading, items, onStart, onSeeAll, now, warning,
 }: {
   loading: boolean
   items: QuestionAssignment[]
   onStart: (qid: string) => void
   onSeeAll: () => void
   now: number
+  warning?: string
 }) {
   if (loading) return <HeroCardSkeleton eyebrow="Due today" />
   if (items.length === 0) {
     return (
       <HeroCard eyebrow="Due today" tone="ok">
+        {warning && <WarningChip text={warning} />}
         <div className="flex flex-col items-center text-center py-2">
           <EmptyTasksIllustration className="w-24 h-24 text-[var(--color-brand)] opacity-80 mb-3" />
           <h2 className="font-display text-[18px] font-semibold tracking-[-0.012em] text-[var(--text-primary)] leading-snug mb-1">
-            Nothing due today
+            {warning ? 'No tasks shown' : 'Nothing due today'}
           </h2>
           <p className="text-[12.5px] text-[var(--text-tertiary)]">
-            Quiet day — get ahead or take a breath.
+            {warning ? 'Try refreshing the page.' : 'Quiet day — get ahead or take a breath.'}
           </p>
         </div>
       </HeroCard>
@@ -306,6 +340,7 @@ function DueTodayCard({
   }
   return (
     <HeroCard eyebrow="Due today" tone="attention">
+      {warning && <WarningChip text={warning} />}
       <h2 className="font-display text-[19px] font-semibold tracking-[-0.012em] text-[var(--text-primary)] leading-snug mb-5">
         {items.length} disclosure{items.length === 1 ? '' : 's'} need values
       </h2>
@@ -348,16 +383,18 @@ function DueTodayCard({
 }
 
 function ReviewQueueCard({
-  loading, items, onOpen,
+  loading, items, onOpen, warning,
 }: {
   loading: boolean
   items: QuestionAssignment[]
   onOpen: () => void
+  warning?: string
 }) {
   if (loading) return <HeroCardSkeleton eyebrow="Review queue" />
   if (items.length === 0) {
     return (
       <HeroCard eyebrow="Review queue" tone="ok">
+        {warning && <WarningChip text={warning} />}
         <div className="flex flex-col items-center text-center py-2">
           <EmptyInboxIllustration className="w-24 h-24 text-[var(--color-brand)] opacity-80 mb-3" />
           <h2 className="font-display text-[18px] font-semibold tracking-[-0.012em] text-[var(--text-primary)] leading-snug mb-1">
@@ -372,6 +409,7 @@ function ReviewQueueCard({
   }
   return (
     <HeroCard eyebrow="Review queue" tone="attention">
+      {warning && <WarningChip text={warning} />}
       <h2 className="font-display text-[19px] font-semibold tracking-[-0.012em] text-[var(--text-primary)] leading-snug mb-5">
         {items.length} submission{items.length === 1 ? '' : 's'} awaiting review
       </h2>
@@ -404,17 +442,19 @@ function ReviewQueueCard({
 }
 
 function SuggestedNextCard({
-  loading, item, reasoning, onOpen,
+  loading, item, reasoning, onOpen, warning,
 }: {
   loading: boolean
   item: QuestionAssignment | null
   reasoning: string
   onOpen: () => void
+  warning?: string
 }) {
   if (loading) return <HeroCardSkeleton eyebrow="Suggested next" />
   if (!item) {
     return (
       <HeroCard eyebrow="Suggested next" tone="ok">
+        {warning && <WarningChip text={warning} />}
         <div className="flex flex-col items-center text-center py-2">
           <div className="w-14 h-14 rounded-full bg-[var(--color-brand-soft)] flex items-center justify-center mb-3">
             <Sparkles className="w-6 h-6 text-[var(--color-brand)]" />
@@ -579,6 +619,13 @@ function humanAction(a: string): string {
   if (a.endsWith('.reject')) return 'rejected'
   if (a.endsWith('.submit')) return 'submitted'
   return a.replace(/[._]/g, ' ')
+}
+
+/** Best-effort extraction of a user-friendly message from a Promise rejection. */
+function errMsg(reason: unknown, fallback: string): string {
+  if (reason instanceof Error && reason.message) return reason.message
+  if (typeof reason === 'string' && reason) return reason
+  return fallback
 }
 
 // Tiny unused-imports guard — Clock/Inbox kept for future tone variants.

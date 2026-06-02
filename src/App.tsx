@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Toaster } from 'sonner'
 import AppShell from './components/AppShell'
 import RouteLoader from './components/RouteLoader'
 // Login + Dashboard stay eagerly imported: Login is the entry point and we
@@ -203,7 +204,11 @@ function AppRoutes() {
           <Route path="/my-day" element={<ProtectedRoute><MyDay /></ProtectedRoute>} />
 
           {/* Core Modules */}
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          {/* /dashboard now redirects to MyDay — the legacy Dashboard component
+              is still bundled (lazily) so deep links and the test suite can
+              still reach it via direct import, but the URL points home. */}
+          <Route path="/dashboard" element={<Navigate to="/" replace />} />
+          <Route path="/dashboard/legacy" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/my-tasks" element={<ProtectedRoute><MyTasks /></ProtectedRoute>} />
           <Route path="/work/calendar" element={<ProtectedRoute><WorkCalendar /></ProtectedRoute>} />
           <Route path="/work/review" element={<ProtectedRoute><WorkflowQueue kind="review" /></ProtectedRoute>} />
@@ -300,6 +305,10 @@ export default function App() {
     <ErrorBoundary>
       <BrowserRouter>
         <AppRoutes />
+        {/* Global toast surface — non-blocking, top-right. Sonner mounts a
+            single portal and any caller can `import { showError } from
+            '@/lib/toast'`. Position chosen to clear the AppShell topbar. */}
+        <Toaster richColors position="top-right" closeButton />
       </BrowserRouter>
     </ErrorBoundary>
   )

@@ -68,6 +68,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const baseUrl = process.env.APP_BASE_URL ?? 'http://localhost:5173'
     const resetUrl = `${baseUrl}/reset-password?token=${encodeURIComponent(rawToken)}`
 
+    // SECURITY TRADE-OFF — anti-enumeration:
+    //   We always return 200 from this endpoint regardless of whether the
+    //   email exists OR whether the email service is configured, so an
+    //   attacker can't probe the system to discover valid accounts.
+    //   When RESEND_API_KEY is unset the user-visible UX is "we sent you
+    //   an email" but no email is actually dispatched — admins MUST be
+    //   able to spot this misconfiguration via `/api/health` (which
+    //   exposes integrations.email.configured) and the server log line
+    //   below. Do NOT return 503 here.
+    if (!process.env.RESEND_API_KEY) {
+      const maskedEmail = user.email.replace(/(.{2}).*(@.*)/, '$1***$2')
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[forgot-password] RESEND_API_KEY not set — password-reset email NOT sent for',
+        maskedEmail,
+        '(token stored, link only available via support).',
+      )
+    }
+
     void sendEmail({
       to: user.email,
       subject: 'Reset your Nexus password',

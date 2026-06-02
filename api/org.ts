@@ -1815,6 +1815,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ ok: true })
       }
 
+      // ─── Materiality — finalize verdict ───────────────────
+      // Applies the threshold to every assessed topic and writes is_material +
+      // dma_status. Audit-logged. Returns counts so the UI can confirm.
+      if (action === 'finalize-materiality') {
+        const gate = await requirePermission(req, res, 'admin.org')
+        if (!gate) return
+        // Re-use the same logic as POST /api/materiality?action=finalize so the
+        // two endpoints stay consistent. Threshold defaults to 3.0.
+        await sql`
+          UPDATE material_topics SET
+            is_material = (COALESCE(impact_score,0) >= COALESCE(threshold, 3.0))
+                          OR (COALESCE(financial_score,0) >= COALESCE(threshold, 3.0)),
+            dma_status = CASE
+              WHEN (COALESCE(impact_score,0) >= COALESCE(threshold, 3.0))
+                OR (COALESCE(financial_score,0) >= COALESCE(threshold, 3.0))
+              THEN 'material'
+              ELSE 'not_material'
+            END,
+            assessed_at = now()
+          WHERE org_id = ${orgId}
+            AND (impact_score IS NOT NULL OR financial_score IS NOT NULL)
+        `
+        const counts = await sql`
+          SELECT
+            COUNT(*) FILTER (WHERE dma_status = 'material')::int AS material_count,
+            COUNT(*) FILTER (WHERE dma_status = 'not_material')::int AS not_material_count
+          FROM material_topics WHERE org_id = ${orgId}
+        ` as Array<{ material_count: number; not_material_count: number }>
+        await audit({
+          orgId, userId: token.sub, action: 'materiality.finalized',
+          resourceType: 'materiality', resourceId: orgId,
+          details: counts[0], ip: auditIp(req),
+        })
+        return res.status(200).json({ ok: true, ...counts[0] })
+      }
+
       // ─── Anomaly suppression ──────────────────────────────
       if (action === 'suppress-anomaly') {
         // Suppressing flagged anomalies → reviewer/approver authority.

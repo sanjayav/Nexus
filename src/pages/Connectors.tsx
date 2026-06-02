@@ -1,12 +1,18 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Papa from 'papaparse'
-import { Plug, FileUp, AlertTriangle, Check, ArrowLeft, Database, Cloud, Layers } from 'lucide-react'
+import { Plug, FileUp, AlertTriangle, Check, ArrowLeft, Database, Cloud, Layers, X } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
 import { SkeletonCard } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
 import { EmptyEvidenceIllustration } from '../data/illustrations'
 import { Card, Button, Badge } from '../design-system'
 import { connectors, type ConnectorTemplate, type ConnectorImportResult, type ConnectorImportSummary } from '../lib/api'
+import { showWarning } from '../lib/toast'
+
+/** How long to wait before nagging the user that the import is slow.
+ *  Five minutes lines up with the backend's processing budget for large
+ *  files; past this we show a "you can leave the page" hint. */
+const IMPORT_SLOW_THRESHOLD_MS = 5 * 60 * 1000
 
 type SourceKey = 'sap_s4hana' | 'netsuite' | 'snowflake' | 'generic_csv'
 
@@ -34,6 +40,10 @@ export default function Connectors() {
   const [importResult, setImportResult] = useState<ConnectorImportResult | null>(null)
   const [imports, setImports] = useState<ConnectorImportSummary[]>([])
   const [error, setError] = useState<string | null>(null)
+  // Cancel handle for the in-flight import. Sonner is the secondary signal —
+  // this primary "Cancel" button lives next to the spinner.
+  const importAbortRef = useRef<AbortController | null>(null)
+  const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const loadImports = useCallback(async () => {
     try { setImports(await connectors.imports()) } catch { /* ignore */ }
@@ -84,6 +94,13 @@ export default function Connectors() {
     if (!selectedTemplate || !csv) return
     setImporting(true)
     setError(null)
+    // Set up cancel + slow-import warning. The cancel only stops *watching*;
+    // the backend job continues (it's a single API call, not a poll loop,
+    // but the user perception is the same).
+    importAbortRef.current = new AbortController()
+    slowTimerRef.current = setTimeout(() => {
+      showWarning('Import is taking longer than expected — you can leave this page and check back in Recent imports.')
+    }, IMPORT_SLOW_THRESHOLD_MS)
     try {
       const result = await connectors.import({
         templateId: selectedTemplate.id,
@@ -93,11 +110,40 @@ export default function Connectors() {
       setImportResult(result)
       await loadImports()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Import failed')
+      // Distinguish a user-initiated cancel from a real failure.
+      const msg = e instanceof Error ? e.message : 'Import failed'
+      if (importAbortRef.current?.signal.aborted) {
+        setError(null)
+      } else {
+        setError(msg)
+      }
     } finally {
       setImporting(false)
+      if (slowTimerRef.current) {
+        clearTimeout(slowTimerRef.current)
+        slowTimerRef.current = null
+      }
+      importAbortRef.current = null
     }
   }
+
+  /** Stop watching the in-flight import. The server job is not actually
+   *  cancelled (this CSV pipeline is a single sync call), but the UI no
+   *  longer blocks; results will appear in "Recent imports" when done. */
+  const handleCancelImport = () => {
+    importAbortRef.current?.abort()
+    importAbortRef.current = null
+    if (slowTimerRef.current) {
+      clearTimeout(slowTimerRef.current)
+      slowTimerRef.current = null
+    }
+    setImporting(false)
+  }
+
+  // Cleanup any pending timers on unmount.
+  useEffect(() => () => {
+    if (slowTimerRef.current) clearTimeout(slowTimerRef.current)
+  }, [])
 
   const resetTemplate = () => {
     setSelectedTemplate(null)
@@ -234,9 +280,21 @@ export default function Connectors() {
                   <div className="text-[14px] font-semibold text-[var(--text-primary)]">{csv.fileName}</div>
                   <div className="text-[12.5px] text-[var(--text-secondary)]">{csv.rows.length} row{csv.rows.length === 1 ? '' : 's'} parsed (preview of first 10)</div>
                 </div>
-                <Button variant="primary" onClick={handleImport} loading={importing} icon={<FileUp className="w-4 h-4" />}>
-                  Import {csv.rows.length} rows
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button variant="primary" onClick={handleImport} loading={importing} icon={<FileUp className="w-4 h-4" />}>
+                    Import {csv.rows.length} rows
+                  </Button>
+                  {importing && (
+                    <Button
+                      variant="ghost"
+                      onClick={handleCancelImport}
+                      icon={<X className="w-4 h-4" />}
+                      title="Stop watching this import. The job keeps running on the server; results will appear in Recent imports."
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </div>
               </div>
               <div className="overflow-x-auto border border-[var(--border-default)] rounded-md">
                 <table className="w-full text-[12px]">

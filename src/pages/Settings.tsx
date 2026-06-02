@@ -1,9 +1,10 @@
-import { useState } from 'react'
-import { Check, Palette, Calendar, BookMarked, Clock, Plus, Download, ShieldCheck, Loader2, LayoutDashboard, SunMoon } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Check, Palette, Calendar, BookMarked, Clock, Plus, Download, ShieldCheck, Loader2, LayoutDashboard, SunMoon, Bell } from 'lucide-react'
 import { useTheme, type Theme } from '../theme/ThemeContext'
 import { FRAMEWORKS, useFramework } from '../lib/frameworks'
 import { useDensity } from '../lib/density'
 import { orgStore } from '../lib/orgStore'
+import { users as usersApi, type UserPreferences } from '../lib/api'
 import MfaSection from '../components/MfaSection'
 import PageHeader from '../components/PageHeader'
 import ThemeToggle from '../components/ThemeToggle'
@@ -174,6 +175,8 @@ export default function Settings() {
       </section>
 
       <MfaSection />
+
+      <NotificationPreferences />
 
       <section className="space-y-3">
         <div className="flex items-center gap-2">
@@ -356,5 +359,148 @@ export default function Settings() {
         </div>
       </section>
     </div>
+  )
+}
+
+/* ─── Notification preferences — per-user, persisted to user_preferences ── */
+function NotificationPreferences() {
+  const [prefs, setPrefs] = useState<UserPreferences | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [savedAt, setSavedAt] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    usersApi.preferences.get()
+      .then(p => { if (!cancelled) { setPrefs(p); setLoading(false) } })
+      .catch(e => { if (!cancelled) { setError(e instanceof Error ? e.message : 'Load failed'); setLoading(false) } })
+    return () => { cancelled = true }
+  }, [])
+
+  const update = async (patch: Partial<Omit<UserPreferences, 'updated_at'>>) => {
+    if (!prefs) return
+    const next: UserPreferences = { ...prefs, ...patch, updated_at: prefs.updated_at }
+    setPrefs(next)
+    setSaving(true); setError(null)
+    try {
+      const saved = await usersApi.preferences.update(patch)
+      setPrefs(saved)
+      setSavedAt(new Date().toISOString())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Save failed')
+      // Roll back on failure so the toggle stays accurate.
+      const original = await usersApi.preferences.get().catch(() => null)
+      if (original) setPrefs(original)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Bell className="w-4 h-4 text-[var(--text-tertiary)]" />
+        <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">
+          Notification preferences
+        </h2>
+        {saving && <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--text-tertiary)]" />}
+      </div>
+      <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+        Decide which email alerts you receive about your tasks. Changes save automatically.
+      </p>
+
+      {loading ? (
+        <div className="h-[180px] rounded-[var(--radius-lg)] skeleton" />
+      ) : error && !prefs ? (
+        <div className="p-3 rounded-[var(--radius-md)] bg-red-500/10 border border-red-500/30 text-red-400 text-[var(--text-xs)]">
+          {error}
+        </div>
+      ) : prefs && (
+        <div className="p-4 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] space-y-4">
+          <Toggle
+            label="Email me when I'm assigned a new disclosure"
+            description="Triggered whenever an admin assigns you a GRI/ESRS item."
+            checked={prefs.email_on_assignment}
+            onChange={v => update({ email_on_assignment: v })}
+          />
+          <div className="border-t border-[var(--border-subtle)] pt-4">
+            <Toggle
+              label="Email me when a submission needs my review"
+              description="Triggered when subordinates submit a value waiting on you to approve."
+              checked={prefs.email_on_review_request}
+              onChange={v => update({ email_on_review_request: v })}
+            />
+          </div>
+          <div className="border-t border-[var(--border-subtle)] pt-4">
+            <Toggle
+              label="Email me about anomalies in my scope"
+              description="Triggered when the anomaly engine flags a value you own."
+              checked={prefs.email_on_anomaly}
+              onChange={v => update({ email_on_anomaly: v })}
+            />
+          </div>
+          <div className="border-t border-[var(--border-subtle)] pt-4">
+            <div className="text-[var(--text-sm)] font-medium text-[var(--text-primary)]">Digest frequency</div>
+            <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-0.5 mb-3">
+              How often Nexus rolls your notifications into a single summary email.
+            </div>
+            <div
+              role="radiogroup"
+              aria-label="Digest frequency"
+              className="inline-flex border border-[var(--border-default)] rounded-[var(--radius-md)] p-1 bg-[var(--bg-secondary)]"
+            >
+              {(['none', 'daily', 'weekly'] as const).map(value => {
+                const active = prefs.digest_frequency === value
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => update({ digest_frequency: value })}
+                    className={`text-[var(--text-xs)] font-semibold h-8 px-3 rounded-[var(--radius-sm)] transition-colors capitalize ${
+                      active
+                        ? 'bg-[var(--color-brand)] text-white shadow-sm'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    {value}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+          {savedAt && !error && (
+            <div className="text-[10.5px] text-[var(--text-tertiary)] flex items-center gap-1">
+              <Check className="w-3 h-3 text-[var(--status-ok)]" /> Saved {new Date(savedAt).toLocaleTimeString()}
+            </div>
+          )}
+          {error && (
+            <div className="text-[var(--text-xs)] text-red-400">{error}</div>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function Toggle({ label, description, checked, onChange }: { label: string; description: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-start justify-between gap-4 cursor-pointer">
+      <div className="flex-1 min-w-0">
+        <div className="text-[var(--text-sm)] font-medium text-[var(--text-primary)]">{label}</div>
+        <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-0.5">{description}</div>
+      </div>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={e => onChange(e.target.checked)}
+        className="sr-only peer"
+      />
+      <span className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 mt-0.5 ${checked ? 'bg-[var(--color-brand)]' : 'bg-[var(--bg-tertiary)]'}`}>
+        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${checked ? 'left-4' : 'left-0.5'}`} />
+      </span>
+    </label>
   )
 }

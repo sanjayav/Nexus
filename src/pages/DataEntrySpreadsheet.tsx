@@ -8,12 +8,13 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table'
 import {
-  Loader2, CheckCircle2, AlertCircle, Search, Link2, Download, Send, ShieldCheck,
+  Loader2, CheckCircle2, AlertCircle, Search, Link2, Download, Send, ShieldCheck, AlertTriangle,
 } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { orgStore, type QuestionAssignment, type OrgEntity } from '../lib/orgStore'
 import { useFramework, getFramework, getActiveFrameworks } from '../lib/frameworks'
 import { nexus } from '../lib/api'
+import { showWarning } from '../lib/toast'
 
 // ═══════════════════════════════════════════════════════════════════
 // Spreadsheet-style bulk data entry.
@@ -73,6 +74,7 @@ export default function DataEntrySpreadsheet() {
   // Per-row save state map.
   const [rowSaves, setRowSaves] = useState<Map<string, RowSaveState>>(new Map())
   const [bulkBusy, setBulkBusy] = useState(false)
+  const [loadWarning, setLoadWarning] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     if (!user?.email) return
@@ -83,9 +85,21 @@ export default function DataEntrySpreadsheet() {
       ])
       setAssignments(rows)
       setEntities(ents)
+      setLoadWarning(null)
     } catch (e) {
+      // Don't blank the grid — surface a banner so the user understands why
+      // the rows they were editing aren't visible. Toast fires once per load
+      // so background refreshes don't spam.
+      const msg = e instanceof Error ? e.message : 'Could not load assignments'
       console.warn('[spreadsheet] refresh failed', e)
+      if (loadWarning !== msg) {
+        showWarning('Could not load assignments — try refreshing the page')
+      }
+      setLoadWarning(msg)
     }
+  // `loadWarning` is read only to dedupe the toast — including it in deps
+  // would cause re-binding on every error message change.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.email])
 
   useEffect(() => {
@@ -412,6 +426,19 @@ export default function DataEntrySpreadsheet() {
           <SaveIndicator label={saveLabel} saving={savingCount > 0} error={errorCount > 0} />
         </div>
       </div>
+
+      {/* Load-failure banner — grid still renders any rows that did make it
+          into local state from a previous refresh, but the user needs to know
+          they're potentially out of date. */}
+      {loadWarning && (
+        <div
+          role="status"
+          className="flex items-start gap-2 px-3 py-2 rounded-[8px] bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[12px]"
+        >
+          <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+          <span>Could not load latest assignments — showing the last successful load. {loadWarning}</span>
+        </div>
+      )}
 
       {/* Filter bar */}
       <div className="surface-paper p-3 flex flex-wrap items-center gap-2">

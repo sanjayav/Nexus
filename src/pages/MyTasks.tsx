@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   ClipboardList, Factory, Calendar, CheckCircle2, Clock, Paperclip,
   PencilLine, Calculator as CalcIcon, Plug, Send, Upload, X, FileText,
-  Sparkles, Loader2, ChevronDown, ChevronUp,
+  Sparkles, Loader2, ChevronDown, ChevronUp, AlertTriangle,
 } from 'lucide-react'
+import { showWarning } from '../lib/toast'
 import { useAuth } from '../auth/AuthContext'
 import { orgStore, type QuestionAssignment, type OrgEntity, type OrgMember } from '../lib/orgStore'
 import { nexus, type NexusQuestionnaireItem } from '../lib/api'
@@ -52,6 +53,7 @@ export default function MyTasks() {
   const [expanded, setExpanded] = useState<string | null>(null)
 
   const [members, setMembers] = useState<OrgMember[]>([])
+  const [treeWarning, setTreeWarning] = useState<string | null>(null)
 
   const refresh = async () => {
     if (!user?.email) return
@@ -74,8 +76,22 @@ export default function MyTasks() {
       await refresh()
       try {
         const t = await nexus.tree(framework.id)
-        if (!cancelled) setQuestions(t)
-      } catch { /* tree is optional on this page now */ }
+        if (!cancelled) {
+          setQuestions(t)
+          setTreeWarning(null)
+        }
+      } catch (e) {
+        // Tree load failed — assignments still render (they carry their own
+        // gri_code / line_item) but the rich question metadata (section,
+        // scope_split, calculator hints) won't be available. Tell the user
+        // once via toast and keep an inline banner above the list so the
+        // degraded state is visible at a glance.
+        if (!cancelled) {
+          const msg = e instanceof Error ? e.message : 'Could not load question definitions'
+          setTreeWarning(msg)
+          showWarning('Could not load question definitions — values may be missing context')
+        }
+      }
       if (!cancelled) setLoading(false)
     })()
     return () => { cancelled = true }
@@ -287,6 +303,21 @@ export default function MyTasks() {
           )
         })}
       </div>
+
+      {/* Tree-load warning: assignments still render (they carry gri_code +
+          line_item) but question metadata (section, scope split, calculator
+          hints) is missing until the tree loads. */}
+      {treeWarning && (
+        <div
+          role="status"
+          className="flex items-start gap-2 px-3 py-2 rounded-[var(--radius-md)] bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[12px] mb-3"
+        >
+          <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+          <span>
+            Could not load question definitions — assignment values may be missing context. {treeWarning}
+          </span>
+        </div>
+      )}
 
       {/* List */}
       {loading ? (

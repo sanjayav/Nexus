@@ -98,6 +98,7 @@ export default function UsersRoles() {
   const [addOpen, setAddOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<ApiUser | null>(null)
   const [viewingRole, setViewingRole] = useState<ApiRole | null>(null)
+  const [editingRole, setEditingRole] = useState<ApiRole | 'new' | null>(null)
   const [setupOpen, setSetupOpen] = useState(false)
   const [settingUp, setSettingUp] = useState(false)
   const [switchingTo, setSwitchingTo] = useState<PlatformRole | null>(null)
@@ -228,6 +229,63 @@ export default function UsersRoles() {
       showToast('err', `Failed: ${e instanceof Error ? e.message : 'Unknown error'}`)
     } finally {
       setSwitchingTo(null)
+    }
+  }
+
+  async function saveRole(form: { name: string; slug: string; description: string; permissionIds: string[] }, existingId?: string) {
+    if (!dbConnected) {
+      // Demo: keep it local-only — the platform admin tour still works.
+      if (existingId) {
+        setRoles(prev => prev.map(r => r.id === existingId
+          ? { ...r, name: form.name, description: form.description, permissions: permissions.filter(p => form.permissionIds.includes(p.id)) }
+          : r))
+        showToast('ok', 'Role updated (demo)')
+      } else {
+        setRoles(prev => [...prev, {
+          id: crypto.randomUUID(),
+          name: form.name, slug: form.slug, description: form.description,
+          is_system: false,
+          created_at: new Date().toISOString(),
+          permissions: permissions.filter(p => form.permissionIds.includes(p.id)),
+          userCount: 0,
+        }])
+        showToast('ok', `${form.name} created (demo)`)
+      }
+      setEditingRole(null)
+      return
+    }
+    try {
+      if (existingId) {
+        await rolesApi.update(existingId, { name: form.name, description: form.description, permissionIds: form.permissionIds })
+        showToast('ok', 'Role updated')
+      } else {
+        await rolesApi.create({ name: form.name, slug: form.slug, description: form.description, permissionIds: form.permissionIds })
+        showToast('ok', `${form.name} created`)
+      }
+      setEditingRole(null)
+      loadData()
+    } catch (e) {
+      showToast('err', `Failed: ${e instanceof Error ? e.message : 'Unknown error'}`)
+    }
+  }
+
+  async function deleteRole(r: ApiRole) {
+    if (r.is_system) {
+      showToast('err', 'System roles cannot be deleted')
+      return
+    }
+    if (!window.confirm(`Delete role "${r.name}"? Users with only this role will lose access.`)) return
+    if (!dbConnected) {
+      setRoles(prev => prev.filter(x => x.id !== r.id))
+      showToast('ok', `${r.name} removed (demo)`)
+      return
+    }
+    try {
+      await rolesApi.delete(r.id)
+      showToast('ok', `${r.name} removed`)
+      loadData()
+    } catch (e) {
+      showToast('err', `Failed: ${e instanceof Error ? e.message : 'Unknown error'}`)
     }
   }
 
@@ -395,13 +453,22 @@ export default function UsersRoles() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <h2 className="font-display text-[16px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">Roles</h2>
-            <p className="text-[11.5px] text-[var(--text-tertiary)] mt-0.5">Click any role to see its permissions in plain English.</p>
+            <p className="text-[11.5px] text-[var(--text-tertiary)] mt-0.5">Click any role to see its permissions. Custom roles can be edited or deleted; system roles are read-only.</p>
           </div>
+          <button onClick={() => setEditingRole('new')} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[8px] bg-[var(--color-brand)] text-white text-[12.5px] font-semibold hover:bg-[var(--color-brand-strong)] cursor-pointer">
+            <Plus className="w-3.5 h-3.5" /> New role
+          </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {roles.map(r => (
-            <RoleTile key={r.id} role={r} onClick={() => setViewingRole(r)} />
+            <RoleTile
+              key={r.id}
+              role={r}
+              onClick={() => setViewingRole(r)}
+              onEdit={() => setEditingRole(r)}
+              onDelete={() => deleteRole(r)}
+            />
           ))}
         </div>
       </section>
@@ -417,6 +484,14 @@ export default function UsersRoles() {
         />
       )}
       {viewingRole && <RoleDetailModal role={viewingRole} permissions={permissions} onClose={() => setViewingRole(null)} />}
+      {editingRole && (
+        <RoleEditorModal
+          initial={editingRole === 'new' ? null : editingRole}
+          permissions={permissions}
+          onClose={() => setEditingRole(null)}
+          onSave={(form) => saveRole(form, editingRole === 'new' ? undefined : editingRole.id)}
+        />
+      )}
       {setupOpen && <DbSetupModal onClose={() => setSetupOpen(false)} onSetup={handleSetupDb} loading={settingUp} />}
     </div>
   )
@@ -558,11 +633,16 @@ function EmptyUsers({ hasSearch, onAdd, onClearSearch }: { hasSearch: boolean; o
   )
 }
 
-function RoleTile({ role, onClick }: { role: ApiRole; onClick: () => void }) {
+function RoleTile({ role, onClick, onEdit, onDelete }: {
+  role: ApiRole
+  onClick: () => void
+  onEdit: () => void
+  onDelete: () => void
+}) {
   const colors = colorFor(role.slug)
   return (
-    <button onClick={onClick} className="text-left cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)]/30 rounded-[12px]">
-      <div className="surface-paper p-4 h-full hover:shadow-sm transition-shadow">
+    <div className="surface-paper p-4 h-full hover:shadow-sm transition-shadow relative group">
+      <button onClick={onClick} className="text-left w-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)]/30 rounded-[8px]">
         <div className="flex items-start justify-between gap-3 mb-2">
           <div className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0" style={{ background: `${colors.accent}15`, color: colors.accent }}>
             <Shield className="w-4 h-4" />
@@ -574,8 +654,133 @@ function RoleTile({ role, onClick }: { role: ApiRole; onClick: () => void }) {
         <div className="text-[11px] text-[var(--color-brand)] font-semibold mt-3 inline-flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
           {role.permissions.length} permission{role.permissions.length === 1 ? '' : 's'} · view details →
         </div>
+      </button>
+      <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          onClick={(e) => { e.stopPropagation(); onEdit() }}
+          className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer"
+          title={role.is_system ? 'Edit description (system role)' : 'Edit role'}
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </button>
+        {!role.is_system && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete() }}
+            className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--status-reject)] hover:bg-[var(--accent-red-light)] cursor-pointer"
+            title="Delete role"
+          >
+            <UserX className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
-    </button>
+    </div>
+  )
+}
+
+/* ─── Role Editor Modal — create + edit (incl. system role description) ── */
+function RoleEditorModal({ initial, permissions, onClose, onSave }: {
+  initial: ApiRole | null
+  permissions: ApiPermission[]
+  onClose: () => void
+  onSave: (form: { name: string; slug: string; description: string; permissionIds: string[] }) => void
+}) {
+  const isEdit = !!initial
+  const isSystem = initial?.is_system === true
+  const [name, setName] = useState(initial?.name ?? '')
+  const [slug, setSlug] = useState(initial?.slug ?? '')
+  const [description, setDescription] = useState(initial?.description ?? '')
+  const [permissionIds, setPermissionIds] = useState<string[]>(initial?.permissions.map(p => p.id) ?? [])
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, ApiPermission[]>()
+    for (const p of permissions) {
+      const list = map.get(p.resource) ?? []
+      list.push(p)
+      map.set(p.resource, list)
+    }
+    return Array.from(map.entries())
+  }, [permissions])
+
+  const valid = name.trim().length > 0 && (isEdit || slug.trim().length > 0)
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(11,18,32,0.5)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
+      <div className="surface-paper w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <header className="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-[10px] flex items-center justify-center" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)' }}>
+              <Shield className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{isEdit ? 'Edit role' : 'Create role'}</h3>
+              {isSystem && (
+                <p className="text-[11.5px] text-[var(--status-draft)]">System role — only description is editable.</p>
+              )}
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer"><X className="w-4 h-4" /></button>
+        </header>
+        <div className="flex-1 overflow-y-auto p-5 space-y-4">
+          <Field label="Display name" value={name} onChange={setName} placeholder="e.g. Plant Sustainability Lead" disabled={isSystem} />
+          {!isEdit && (
+            <Field label="Slug (URL-safe id)" value={slug} onChange={v => setSlug(v.toLowerCase().replace(/[^a-z0-9-_]/g, '-'))} placeholder="e.g. plant-lead" />
+          )}
+          <div>
+            <label className="block text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)] mb-1.5">Description</label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              rows={3}
+              placeholder="Plain-English description of what this role can do."
+              className="w-full px-3.5 py-2.5 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13px] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/15 focus:border-[var(--color-brand)] resize-none"
+            />
+          </div>
+          {!isSystem && (
+            <div>
+              <label className="block text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)] mb-1.5">Permissions</label>
+              <div className="space-y-3">
+                {grouped.map(([resource, perms]) => (
+                  <div key={resource} className="rounded-[8px] border border-[var(--border-subtle)] p-3">
+                    <div className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{resource}</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {perms.map(p => {
+                        const checked = permissionIds.includes(p.id)
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => setPermissionIds(checked ? permissionIds.filter(x => x !== p.id) : [...permissionIds, p.id])}
+                            className={`text-[11px] font-medium px-2 py-1 rounded-[6px] transition-colors cursor-pointer ${
+                              checked
+                                ? 'bg-[var(--accent-green-light)] text-[var(--status-ok)]'
+                                : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
+                            }`}
+                            title={p.description}
+                          >
+                            {checked && <CheckCircle2 className="w-3 h-3 inline mr-1" />}
+                            {p.action}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        <footer className="flex items-center gap-2 p-5 border-t border-[var(--border-subtle)]">
+          <button onClick={onClose} className="flex-1 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-[13px] font-semibold hover:bg-[var(--bg-secondary)] cursor-pointer">Cancel</button>
+          <button
+            onClick={() => valid && onSave({ name: name.trim(), slug: slug.trim(), description: description.trim(), permissionIds })}
+            disabled={!valid}
+            className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--color-brand)] text-white text-[13px] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {isEdit ? 'Save changes' : 'Create role'}
+          </button>
+        </footer>
+      </div>
+    </div>
   )
 }
 
@@ -663,7 +868,7 @@ function AddUserModal({ roles, onClose, onCreate }: {
   )
 }
 
-function Field({ label, value, onChange, placeholder, type = 'text', icon: Icon, hint, hintTone = 'muted' }: {
+function Field({ label, value, onChange, placeholder, type = 'text', icon: Icon, hint, hintTone = 'muted', disabled = false }: {
   label: string
   value: string
   onChange: (v: string) => void
@@ -672,6 +877,7 @@ function Field({ label, value, onChange, placeholder, type = 'text', icon: Icon,
   icon?: typeof Mail
   hint?: string
   hintTone?: 'muted' | 'err'
+  disabled?: boolean
 }) {
   return (
     <label className="block">
@@ -683,7 +889,8 @@ function Field({ label, value, onChange, placeholder, type = 'text', icon: Icon,
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
-          className={`w-full h-10 ${Icon ? 'pl-9' : 'pl-3.5'} pr-3.5 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13.5px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/15 focus:border-[var(--color-brand)] transition-all`}
+          disabled={disabled}
+          className={`w-full h-10 ${Icon ? 'pl-9' : 'pl-3.5'} pr-3.5 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13.5px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/15 focus:border-[var(--color-brand)] transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
         />
       </div>
       {hint && (

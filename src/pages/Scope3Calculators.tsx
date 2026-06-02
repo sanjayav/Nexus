@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Calculator, Info, Loader2, Save, CheckCircle2, Sparkles, ChevronDown, ChevronRight } from 'lucide-react'
+import { Calculator, Info, Loader2, Save, CheckCircle2, Sparkles, ChevronDown, ChevronRight, Lock } from 'lucide-react'
 import {
   SCOPE3_CALCULATORS,
   makeBrowserEFContext,
@@ -8,7 +8,8 @@ import {
   type Scope3Method,
   type Scope3MethodResult,
 } from '../calculators/scope3'
-import { facilities as facilitiesApi, ai, type ApiFacility, type AiEfMatchResponse, type AiEfRow } from '../lib/api'
+import { facilities as facilitiesApi, ai, isUnconfiguredError, type ApiFacility, type AiEfMatchResponse, type AiEfRow } from '../lib/api'
+import { useIntegrationStatus } from '../lib/integrations'
 import { orgStore } from '../lib/orgStore'
 import JargonTooltip from '../components/JargonTooltip'
 import PageHeader from '../components/PageHeader'
@@ -473,7 +474,11 @@ function VendorAiMatcher({
   const [match, setMatch] = useState<AiEfMatchResponse['match'] | null>(null)
   const [altsOpen, setAltsOpen] = useState(false)
   const [appliedEfId, setAppliedEfId] = useState<string | null>(null)
-  const [unconfigured, setUnconfigured] = useState(false)
+  const integrations = useIntegrationStatus()
+  // Combine the up-front health probe with any 503 the API call itself
+  // returned — either signal means "AI not configured".
+  const [unconfiguredFromCall, setUnconfiguredFromCall] = useState(false)
+  const unconfigured = unconfiguredFromCall || (!integrations.loading && !integrations.ai)
 
   // Map calculator → spend-based GHG Protocol category. Defaults to a string
   // the model can read; the DB column is free-form so we don't gate on
@@ -494,7 +499,7 @@ function VendorAiMatcher({
 
   const run = async () => {
     if (!vendor.trim()) { setError('Enter a vendor name first'); return }
-    setLoading(true); setError(null); setMatch(null); setAppliedEfId(null); setUnconfigured(false)
+    setLoading(true); setError(null); setMatch(null); setAppliedEfId(null); setUnconfiguredFromCall(false)
     try {
       const res = await ai.matchEf({
         vendorName: vendor.trim(),
@@ -510,7 +515,9 @@ function VendorAiMatcher({
       const msg = e instanceof Error ? e.message : String(e)
       // Surface the "AI not configured" 503 as a friendlier banner so demo
       // workspaces without ANTHROPIC_API_KEY see the right CTA.
-      if (/ANTHROPIC_API_KEY/i.test(msg) || /503/.test(msg)) setUnconfigured(true)
+      if (isUnconfiguredError(e) || /ANTHROPIC_API_KEY/i.test(msg) || /503/.test(msg)) {
+        setUnconfiguredFromCall(true)
+      }
       setError(msg)
     } finally {
       setLoading(false)
@@ -566,11 +573,14 @@ function VendorAiMatcher({
           <button
             type="button"
             onClick={run}
-            disabled={loading || !vendor.trim() || unconfigured}
-            title={unconfigured ? 'Sign in to AI to get suggestions' : undefined}
-            className="w-full px-3 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+            disabled={loading || !vendor.trim() || unconfigured || integrations.loading}
+            title={unconfigured ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : undefined}
+            aria-label={unconfigured ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : 'Suggest emission factor with AI'}
+            className="w-full px-3 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
           >
-            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            {loading
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : unconfigured ? <Lock className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
             {unconfigured ? 'AI unavailable' : 'Suggest EF with AI'}
           </button>
         </div>
@@ -582,8 +592,12 @@ function VendorAiMatcher({
         </div>
       )}
       {unconfigured && (
-        <div className="mt-2 p-2 rounded-[var(--radius-md)] bg-[var(--bg-primary)] border border-[var(--border-subtle)] text-[var(--text-xs)] text-[var(--text-secondary)]">
-          Sign in to AI to get suggestions. Set <code className="font-mono">ANTHROPIC_API_KEY</code> on the server to enable.
+        <div className="mt-2 p-2 rounded-[var(--radius-md)] bg-amber-400/5 border border-amber-400/30 text-[var(--text-xs)] text-amber-300 flex items-start gap-2">
+          <Lock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+          <span>
+            AI emission-factor suggestions are not configured in this environment.
+            Ask an admin to set <code className="font-mono">ANTHROPIC_API_KEY</code> on the server.
+          </span>
         </div>
       )}
 

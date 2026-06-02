@@ -4,6 +4,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { hasPermission } from '../../lib/rbac'
 import { barFill, EASE_OUT_EXPO } from '../motion'
 import { useIsInsideRoom, useOthers } from '../../lib/liveblocks'
+import { LiveblocksStatus } from '../LiveblocksStatus'
 
 export type DisclosureWorkflowStatus = 'draft' | 'in_review' | 'published'
 
@@ -106,6 +107,7 @@ export default function DisclosureProgressBar({
           {readingMode ? 'Edit' : 'Reading'}
         </button>
 
+        <LiveblocksStatus />
         <PresenceAvatars />
 
         <button

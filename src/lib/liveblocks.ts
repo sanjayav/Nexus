@@ -88,6 +88,8 @@ export const {
   useSelf,
   useRoom,
   useIsInsideRoom,
+  useStatus,
+  useLostConnectionListener,
 } = createRoomContext<Presence, Storage, UserMeta>(client)
 
 /**

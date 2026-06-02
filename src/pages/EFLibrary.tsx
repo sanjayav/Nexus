@@ -23,6 +23,7 @@ import {
   Shield,
   ArrowUpRight,
   Loader2,
+  Trash2,
 } from 'lucide-react'
 import { Badge, Tabs, Button, Input } from '../design-system'
 import JargonTooltip from '../components/JargonTooltip'
@@ -30,6 +31,7 @@ import PageHeader from '../components/PageHeader'
 import { SkeletonTable } from '../components/Skeleton'
 import { Stagger, StaggerItem } from '../components/MotionPrimitives'
 import { ai, type AiEfMatchResponse } from '../lib/api'
+import { orgStore } from '../lib/orgStore'
 
 /* ═══════════════════════════════════════════
    Types — DB-backed shape from /api/emission-factors
@@ -144,6 +146,14 @@ export default function EFLibrary() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [searchFocused, setSearchFocused] = useState(false)
+  const [toast, setToast] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null)
+  const [reloadNonce, setReloadNonce] = useState(0)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const showToast = (kind: 'ok' | 'err', msg: string) => {
+    setToast({ kind, msg })
+    setTimeout(() => setToast(null), 3500)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -163,7 +173,21 @@ export default function EFLibrary() {
       }
     })()
     return () => { cancelled = true }
-  }, [])
+  }, [reloadNonce])
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!window.confirm(`Delete emission factor "${name}"? Historical activity data referencing it is preserved; the factor will no longer appear in the library.`)) return
+    setDeletingId(id)
+    try {
+      await orgStore.deleteEmissionFactor(id)
+      showToast('ok', 'Emission factor removed')
+      setReloadNonce(n => n + 1)
+    } catch (e) {
+      showToast('err', e instanceof Error ? e.message : 'Could not delete')
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   const SOURCES = useMemo(() => [...new Set(rows.map(f => f.source))].sort(), [rows])
   const CATEGORIES = useMemo(() => [...new Set(rows.map(f => f.category))].sort(), [rows])
@@ -204,6 +228,19 @@ export default function EFLibrary() {
 
   return (
     <div className="page-container space-y-6 animate-fade-in">
+      {toast && (
+        <div
+          role="status"
+          className="fixed top-6 right-6 z-50 px-4 py-2.5 rounded-[10px] border text-[13px] font-medium shadow-lg animate-fade-in"
+          style={{
+            background: toast.kind === 'ok' ? 'var(--accent-green-light)' : 'var(--accent-red-light)',
+            color: toast.kind === 'ok' ? 'var(--status-ok)' : 'var(--status-reject)',
+            borderColor: toast.kind === 'ok' ? 'rgba(46,125,50,0.3)' : 'rgba(220,38,38,0.3)',
+          }}
+        >
+          {toast.msg}
+        </div>
+      )}
       <PageHeader
         breadcrumbs={[
           { label: 'Data', to: '/data' },
@@ -335,6 +372,8 @@ export default function EFLibrary() {
                   onToggle={() => setExpandedFactor(expandedFactor === ef.id ? null : ef.id)}
                   copiedId={copiedId}
                   onCopy={handleCopy}
+                  onDelete={handleDelete}
+                  deleting={deletingId === ef.id}
                 />
               </StaggerItem>
             ))}
@@ -366,44 +405,168 @@ export default function EFLibrary() {
         })}
       </div>
 
-      {/* ── Add Factor Modal (UI only — POST not implemented client-side yet) ── */}
+      {/* ── Add Factor Modal — POSTs to /api/emission-factors ── */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center animate-backdrop" style={{ backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(8px)' }} onClick={() => setShowAddModal(false)}>
-          <div className="animate-modal bg-[var(--bg-primary)] rounded-2xl border border-[var(--border-default)] shadow-xl w-full max-w-lg mx-4 relative overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: 'linear-gradient(90deg, var(--accent-teal), var(--accent-blue), var(--accent-purple))' }} />
-            <div className="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'color-mix(in srgb, var(--accent-teal) 10%, transparent)' }}>
-                  <Plus className="w-4 h-4 text-[var(--accent-teal)]" />
-                </div>
-                <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">Add Emission Factor</h2>
-              </div>
-              <button onClick={() => setShowAddModal(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--bg-tertiary)] transition-all duration-200 cursor-pointer hover:rotate-90">
-                <X className="w-4 h-4 text-[var(--text-tertiary)]" />
-              </button>
+        <AddFactorModal
+          onClose={() => setShowAddModal(false)}
+          onCreated={() => {
+            setShowAddModal(false)
+            showToast('ok', 'Emission factor added')
+            setReloadNonce(n => n + 1)
+          }}
+          onError={(msg) => showToast('err', msg)}
+        />
+      )}
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════
+   Add Factor Modal — controlled form, POSTs to /api/emission-factors
+   ═══════════════════════════════════════════ */
+function AddFactorModal({
+  onClose, onCreated, onError,
+}: {
+  onClose: () => void
+  onCreated: () => void
+  onError: (msg: string) => void
+}) {
+  const today = new Date().toISOString().slice(0, 10)
+  const [form, setForm] = useState({
+    fuel_or_activity: '',
+    category: '',
+    scope: 1 as 1 | 2 | 3,
+    co2e_per_unit: '',
+    unit: '',
+    source: 'DEFRA',
+    source_version: '2024',
+    region: 'GLOBAL',
+    valid_from: today,
+  })
+  const [saving, setSaving] = useState(false)
+
+  const valid =
+    form.fuel_or_activity.trim().length > 0 &&
+    form.category.trim().length > 0 &&
+    form.unit.trim().length > 0 &&
+    form.source.trim().length > 0 &&
+    Number(form.co2e_per_unit) > 0 &&
+    !!form.valid_from
+
+  const submit = async () => {
+    if (!valid || saving) return
+    setSaving(true)
+    try {
+      await orgStore.createEmissionFactor({
+        scope: form.scope,
+        category: form.category.trim().toLowerCase().replace(/\s+/g, '_'),
+        fuel_or_activity: form.fuel_or_activity.trim(),
+        unit: form.unit.trim(),
+        co2e_per_unit: Number(form.co2e_per_unit),
+        source: form.source.trim(),
+        source_version: form.source_version.trim() || null,
+        region: form.region.trim() || 'GLOBAL',
+        valid_from: form.valid_from,
+      })
+      onCreated()
+    } catch (e) {
+      onError(e instanceof Error ? e.message : 'Could not save')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center animate-backdrop" style={{ backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
+      <div className="animate-modal bg-[var(--bg-primary)] rounded-2xl border border-[var(--border-default)] shadow-xl w-full max-w-lg mx-4 relative overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: 'linear-gradient(90deg, var(--accent-teal), var(--accent-blue), var(--accent-purple))' }} />
+        <div className="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'color-mix(in srgb, var(--accent-teal) 10%, transparent)' }}>
+              <Plus className="w-4 h-4 text-[var(--accent-teal)]" />
             </div>
-            <div className="p-5 space-y-4">
-              <Input label="Factor Name" placeholder="e.g. Natural gas (industrial)" />
-              <div className="grid grid-cols-2 gap-4">
-                <ModalSelect label="Category" options={CATEGORIES} />
-                <ModalSelect label="Scope" options={['Scope 1', 'Scope 2', 'Scope 3']} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Input label="Value" type="number" placeholder="0.00" />
-                <Input label="Unit" placeholder="e.g. kgCO2e/kWh" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Input label="Source" placeholder="e.g. DEFRA 2024" />
-                <Input label="Region" placeholder="e.g. UK" />
-              </div>
-            </div>
-            <div className="flex items-center justify-end gap-2 p-5 border-t border-[var(--border-subtle)]">
-              <Button variant="secondary" onClick={() => setShowAddModal(false)}>Cancel</Button>
-              <Button onClick={() => setShowAddModal(false)}>Add Factor</Button>
+            <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">Add Emission Factor</h2>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--bg-tertiary)] transition-all duration-200 cursor-pointer hover:rotate-90">
+            <X className="w-4 h-4 text-[var(--text-tertiary)]" />
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          <Input
+            label="Factor Name"
+            placeholder="e.g. Natural gas (industrial)"
+            value={form.fuel_or_activity}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, fuel_or_activity: e.target.value })}
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Category"
+              placeholder="e.g. stationary_combustion"
+              value={form.category}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, category: e.target.value })}
+            />
+            <div>
+              <label className="block text-[var(--text-sm)] font-medium text-[var(--text-primary)] mb-1.5">Scope</label>
+              <select
+                value={form.scope}
+                onChange={e => setForm({ ...form, scope: Number(e.target.value) as 1 | 2 | 3 })}
+                className="w-full h-10 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 text-[var(--text-base)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)] cursor-pointer"
+              >
+                <option value={1}>Scope 1</option>
+                <option value={2}>Scope 2</option>
+                <option value={3}>Scope 3</option>
+              </select>
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Value (kg CO2e / unit)"
+              type="number"
+              placeholder="0.00"
+              value={form.co2e_per_unit}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, co2e_per_unit: e.target.value })}
+            />
+            <Input
+              label="Unit"
+              placeholder="e.g. kgCO2e/kWh"
+              value={form.unit}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, unit: e.target.value })}
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <Input
+              label="Source"
+              placeholder="DEFRA"
+              value={form.source}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, source: e.target.value })}
+            />
+            <Input
+              label="Version"
+              placeholder="2024"
+              value={form.source_version}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, source_version: e.target.value })}
+            />
+            <Input
+              label="Region"
+              placeholder="GLOBAL"
+              value={form.region}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, region: e.target.value })}
+            />
+          </div>
+          <Input
+            label="Valid from"
+            type="date"
+            value={form.valid_from}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, valid_from: e.target.value })}
+          />
         </div>
-      )}
+        <div className="flex items-center justify-end gap-2 p-5 border-t border-[var(--border-subtle)]">
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button onClick={submit} disabled={!valid || saving}>
+            {saving ? 'Saving…' : 'Add Factor'}
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -412,11 +575,13 @@ export default function EFLibrary() {
    Factor Row
    ═══════════════════════════════════════════ */
 function FactorRow({
-  ef, index, isExpanded, onToggle, copiedId, onCopy,
+  ef, index, isExpanded, onToggle, copiedId, onCopy, onDelete, deleting,
 }: {
   ef: ViewFactor; index: number; isExpanded: boolean
   onToggle: () => void; copiedId: string | null
   onCopy: (id: string, value: number, unit: string) => void
+  onDelete: (id: string, name: string) => void
+  deleting: boolean
 }) {
   const CatIcon = CATEGORY_ICONS[ef.category] || BookOpen
   const scopeColor = SCOPE_COLORS[ef.scope]
@@ -493,6 +658,14 @@ function FactorRow({
               >
                 <Edit3 className="w-4 h-4" />
               </button>
+              <button
+                onClick={e => { e.stopPropagation(); onDelete(ef.id, ef.name) }}
+                disabled={deleting}
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/10 transition-all duration-200 text-[var(--text-tertiary)] hover:text-red-500 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
+                title="Delete (soft — historical data preserved)"
+              >
+                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              </button>
             </div>
 
             <div className={`w-6 flex items-center justify-center text-[var(--text-tertiary)] transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
@@ -553,17 +726,6 @@ function FilterSelect({ label, value, onChange, options }: { label: string; valu
       <option value="all">All {label}s</option>
       {options.map(o => <option key={o} value={o}>{o}</option>)}
     </select>
-  )
-}
-
-function ModalSelect({ label, options }: { label: string; options: string[] }) {
-  return (
-    <div>
-      <label className="block text-[var(--text-xs)] font-medium text-[var(--text-secondary)] mb-1.5">{label}</label>
-      <select className="w-full h-9 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 text-[var(--text-xs)] text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)]/30 cursor-pointer transition-all duration-200">
-        {options.map(o => <option key={o} value={o}>{o}</option>)}
-      </select>
-    </div>
   )
 }
 

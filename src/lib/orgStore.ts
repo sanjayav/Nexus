@@ -732,6 +732,64 @@ export const orgStore = {
     await req('/org', { method: 'POST', body: JSON.stringify({ action: 'update-anomaly-status', anomaly_key, status, note: note ?? null }) })
   },
 
+  // ── Materiality — finalize verdict ───────────────────────────
+  // Locks in is_material / dma_status across every assessed topic. Returns
+  // material vs not_material counts so the UI can show a confirmation toast.
+  async finalizeMateriality(): Promise<{ material_count: number; not_material_count: number }> {
+    return req<{ ok: boolean; material_count: number; not_material_count: number }>('/org', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'finalize-materiality' }),
+    })
+  },
+
+  // ── Emission factors — admin CRUD via /api/emission-factors ──
+  // Soft-deletes (is_active = false) so historical activity_data references
+  // remain intact. Admin-only on the server.
+  async deleteEmissionFactor(id: string): Promise<void> {
+    const token = localStorage.getItem('aeiforo_token')
+    const res = await fetch(`/api/emission-factors?id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText }))
+      throw new Error(body.error || `Delete failed (${res.status})`)
+    }
+  },
+
+  async createEmissionFactor(data: {
+    scope: 1 | 2 | 3
+    category: string
+    subcategory?: string | null
+    fuel_or_activity: string
+    region?: string
+    unit: string
+    co2e_per_unit: number
+    source: string
+    source_version?: string | null
+    valid_from: string
+    valid_to?: string | null
+    notes?: string | null
+  }): Promise<{ id: string }> {
+    const token = localStorage.getItem('aeiforo_token')
+    const res = await fetch('/api/emission-factors', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(data),
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText }))
+      throw new Error(body.error || `Create failed (${res.status})`)
+    }
+    return res.json()
+  },
+
   // ── Public report share links ────────────────────────────────
   async createShareLink(input: { reportId?: string | null; expiresInDays?: number; password?: string }): Promise<{ id: string; token: string; url: string; expires_at: string | null; created_at: string }> {
     return req('/org', { method: 'POST', body: JSON.stringify({ action: 'create-share-link', ...input }) })

@@ -603,6 +603,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     )`
     await sql`CREATE INDEX IF NOT EXISTS idx_ef_scope_category ON emission_factors(scope, category)`
     await sql`CREATE INDEX IF NOT EXISTS idx_ef_region ON emission_factors(region)`
+    // Soft-delete column — historical activity_data may still reference factors,
+    // so admins flag them inactive rather than hard-delete.
+    await sql`ALTER TABLE emission_factors ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true`
 
     // ═══════════════════════════════════════════
     // AI vendor → emission-factor match cache & audit trail.
@@ -1278,6 +1281,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       created_at TIMESTAMPTZ DEFAULT now()
     )`
     await sql`CREATE INDEX IF NOT EXISTS idx_api_keys_org ON api_keys(org_id, is_active)`
+
+    // ═══════════════════════════════════════════
+    // Per-user preferences — notification opt-ins + digest cadence.
+    // Backs Settings → Notification preferences. One row per user.
+    // ═══════════════════════════════════════════
+    await sql`CREATE TABLE IF NOT EXISTS user_preferences (
+      user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      email_on_assignment BOOLEAN DEFAULT true,
+      email_on_review_request BOOLEAN DEFAULT true,
+      email_on_anomaly BOOLEAN DEFAULT true,
+      digest_frequency TEXT DEFAULT 'daily' CHECK (digest_frequency IN ('none','daily','weekly')),
+      updated_at TIMESTAMPTZ DEFAULT now()
+    )`
 
     return res.status(200).json({ ok: true, message: 'Database setup complete — tables created and seeded' })
   } catch (err: unknown) {

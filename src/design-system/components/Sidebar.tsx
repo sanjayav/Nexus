@@ -4,10 +4,10 @@ import {
   // Section icons
   Briefcase, FileBarChart, Database, BarChart3 as AnalyticsIcon, Cog,
   // Item icons
-  LayoutDashboard, Inbox, ClipboardList, Calendar as CalendarIcon,
+  LayoutDashboard, Inbox, ClipboardList,
   FileText, BookMarked, Library,
   UserCog, Plug, BookOpen, Atom, Calculator as CalcIcon, AlertTriangle, Paperclip,
-  Sparkles, Building2, Users, Scale, Target as TargetIcon, Settings as SettingsIcon,
+  Sparkles, Users, Scale, Target as TargetIcon, Settings as SettingsIcon,
   ShieldCheck, Activity, KeyRound,
   // Chrome
   ChevronLeft, ChevronRight, ChevronDown, LogOut,
@@ -50,7 +50,9 @@ const NAV: NavGroup[] = [
       { path: '/',                label: 'My Day',     icon: LayoutDashboard },
       { path: '/my-tasks',        label: 'Tasks',      icon: ClipboardList, badgeKey: 'myTasks' },
       { path: '/inbox',           label: 'Inbox',      icon: Inbox },
-      { path: '/work/calendar',   label: 'Calendar',   icon: CalendarIcon },
+      // Calendar removed from the sidebar — the page itself stays as a
+      // "coming soon" placeholder so bookmarks don't 404, but until the
+      // event-scheduling layer is real we don't promote it in the nav.
     ],
   },
   {
@@ -92,7 +94,10 @@ const NAV: NavGroup[] = [
 ]
 
 const ADMIN_TRAY: NavItem[] = [
-  { path: '/admin/org',           label: 'Organisation',    icon: Building2,    roles: ['platform_admin', 'group_sustainability_officer'] },
+  // `/admin/org` was a redirect-only entry pointing at /onboarding — it
+  // surfaced as a duplicate "Organisation" link. The onboarding flow is
+  // still reachable from the workspace setup card; the legacy org tree
+  // editor lives on at /admin/org/legacy.
   { path: '/admin/users',         label: 'Users & Roles',   icon: Users,        roles: ['platform_admin'] },
   { path: '/admin/materiality',   label: 'Materiality',     icon: Scale,        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner'] },
   { path: '/admin/targets',       label: 'Climate Targets', icon: TargetIcon,   roles: ['platform_admin', 'group_sustainability_officer'] },

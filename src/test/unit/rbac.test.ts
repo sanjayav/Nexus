@@ -86,7 +86,7 @@ describe('homeRouteFor', () => {
   })
 
   const cases: Array<[PlatformRole, string]> = [
-    ['platform_admin', '/dashboard'],
+    ['platform_admin', '/'],
     ['group_sustainability_officer', '/workflow/approval'],
     ['subsidiary_lead', '/workflow/review'],
     ['plant_manager', '/my-tasks'],

@@ -23,6 +23,7 @@ import { SkeletonCard } from '../design-system/components/Skeleton'
 import AnomalyFeed from '../components/AnomalyFeed'
 import QuickStartCard from '../components/QuickStartCard'
 import DemoSeedCta from '../components/DemoSeedCta'
+import ErrorBanner from '../components/ErrorBanner'
 import { type AnomalyScope } from '../lib/orgStore'
 
 /**
@@ -34,7 +35,7 @@ export default function Dashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { active: framework, enabled: enabledFrameworkIds, setActive: setActiveFramework } = useFramework()
-  const { data: orgData, loading, reload: reloadOrgData } = useOrgData()
+  const { data: orgData, loading, error: orgError, reload: reloadOrgData } = useOrgData()
   const role = resolveRole(user)
   const focus = useMemo(() => focusStage(user, orgData), [user, orgData])
   const pipeline = useMemo(() => computePipeline(user, orgData ?? null), [user, orgData])
@@ -249,6 +250,18 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
+      {/* Top-of-page error banner: if the org-data fetch failed entirely
+          there will be no entities / members / assignments to render, so we
+          surface what went wrong with a Retry instead of silently rendering
+          a wall of zero-KPIs. */}
+      {orgError && !orgData && (
+        <ErrorBanner
+          title="Could not load dashboard data"
+          message={orgError}
+          onRetry={() => { void reloadOrgData() }}
+        />
+      )}
+
       {/* Empty-workspace CTA: an admin-only "Load demo data" card. The
           SetupGuide widget itself stays hidden on a brand-new workspace —
           this card is the only onboarding affordance until the user clicks. */}

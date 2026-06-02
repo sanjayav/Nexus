@@ -3,10 +3,11 @@ import { motion } from 'framer-motion'
 import {
   AlertOctagon, AlertTriangle, Info, Shield, TrendingUp,
   CheckCircle2, FileText, Activity, Filter, RotateCw, Eye, XCircle, CircleDot,
-  Sparkles, Copy, Check, Loader2,
+  Sparkles, Copy, Check, Loader2, Lock,
 } from 'lucide-react'
 import { orgStore, type AnomalyScanResult, type AnomalyType, type AnomalyStatusValue, type Anomaly, type AnomalySeverity } from '../lib/orgStore'
-import { ai, type AiAnomalyListItem } from '../lib/api'
+import { ai, isUnconfiguredError, type AiAnomalyListItem } from '../lib/api'
+import { useIntegrationStatus } from '../lib/integrations'
 import { useAuth } from '../auth/AuthContext'
 import { resolveRole } from '../lib/rbac'
 import PageHeader from '../components/PageHeader'
@@ -37,6 +38,9 @@ export default function AnomalyDetection() {
   const [statuses, setStatuses] = useState<Record<string, AnomalyStatusValue>>({})
   const [busyKey, setBusyKey] = useState<string | null>(null)
   const [refreshNonce, setRefreshNonce] = useState(0)
+  // Suppress-with-reason modal — the brief calls for a captured rationale on
+  // every dismissal so reviewers can audit why a flag was waved through.
+  const [dismissTarget, setDismissTarget] = useState<Anomaly | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -49,18 +53,23 @@ export default function AnomalyDetection() {
 
   // Update status for an anomaly — uses POST /api/org action update-anomaly-status.
   // Stores result locally so the UI flips immediately; the next scan will
-  // also reflect persisted state.
-  const setStatus = async (a: Anomaly, status: AnomalyStatusValue) => {
+  // also reflect persisted state. Dismiss takes a reason; the others don't.
+  const setStatus = async (a: Anomaly, status: AnomalyStatusValue, note?: string) => {
     const key = `${a.assignment_id}|${a.anomaly_type}`
     setBusyKey(key)
     try {
-      await orgStore.updateAnomalyStatus(key, status)
+      await orgStore.updateAnomalyStatus(key, status, note)
       setStatuses(s => ({ ...s, [key]: status }))
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Status update failed')
     } finally {
       setBusyKey(null)
     }
+  }
+
+  const handleDismiss = async (a: Anomaly, reason: string) => {
+    await setStatus(a, 'dismissed', reason)
+    setDismissTarget(null)
   }
 
   const filteredAnomalies = useMemo(() => {
@@ -352,9 +361,9 @@ export default function AnomalyDetection() {
                           </button>
                           <button
                             disabled={isBusy}
-                            onClick={() => setStatus(a, 'dismissed')}
+                            onClick={() => setDismissTarget(a)}
                             className="chip inline-flex items-center gap-1"
-                            title="Dismiss"
+                            title="Dismiss with a reason"
                           >
                             <XCircle className="w-3 h-3" /> Dismiss
                           </button>
@@ -378,6 +387,93 @@ export default function AnomalyDetection() {
         <SectionHeader kicker="Feed" title="Live anomaly feed" subtitle="Sorted by severity. Open any flag to land on the disclosure. Suppress with a reason to mark acknowledged." />
         <AnomalyFeed scope={scope} limit={100} title="All flagged disclosures" />
       </section>
+
+      {dismissTarget && (
+        <DismissWithReasonModal
+          anomaly={dismissTarget}
+          onCancel={() => setDismissTarget(null)}
+          onConfirm={(reason) => handleDismiss(dismissTarget, reason)}
+        />
+      )}
+    </div>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────
+// Dismiss-with-reason modal — captured rationale gets stored as the
+// `note` on /api/org action=update-anomaly-status, audit-logged server-side.
+// Reviewers must enter ≥10 chars so dismissals are never silent.
+// ──────────────────────────────────────────────────────────────
+function DismissWithReasonModal({
+  anomaly, onCancel, onConfirm,
+}: {
+  anomaly: Anomaly
+  onCancel: () => void
+  onConfirm: (reason: string) => Promise<void> | void
+}) {
+  const [reason, setReason] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState<string | null>(null)
+  const tooShort = reason.trim().length < 10
+
+  const submit = async () => {
+    if (tooShort || busy) return
+    setBusy(true); setErr(null)
+    try {
+      await onConfirm(reason.trim())
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Could not dismiss')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(11,18,32,0.5)', backdropFilter: 'blur(8px)' }} onClick={onCancel}>
+      <div className="surface-paper w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <header className="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0" style={{ background: 'var(--accent-amber-light)', color: 'var(--accent-amber)' }}>
+              <AlertTriangle className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-display text-[16px] font-semibold text-[var(--text-primary)]">Dismiss anomaly</h3>
+              <p className="text-[11.5px] text-[var(--text-tertiary)]">{anomaly.headline}</p>
+            </div>
+          </div>
+          <button onClick={onCancel} className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer"><XCircle className="w-4 h-4" /></button>
+        </header>
+        <div className="p-5 space-y-3">
+          <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed">
+            Reviewers must record why this anomaly can be ignored. The reason is logged to the audit
+            trail and attached to the persisted status row.
+          </p>
+          <label className="block">
+            <span className="block text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)] mb-1.5">Reason (minimum 10 characters)</span>
+            <textarea
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              rows={4}
+              autoFocus
+              placeholder="e.g. Spike caused by acquisition of new subsidiary in Q3; confirmed legitimate"
+              className="w-full px-3.5 py-2.5 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13px] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/15 focus:border-[var(--color-brand)] resize-none"
+            />
+            <span className={`block text-[11px] mt-1 ${tooShort ? 'text-[var(--accent-amber)]' : 'text-[var(--text-tertiary)]'}`}>
+              {reason.trim().length} / 10 chars min
+            </span>
+          </label>
+          {err && (
+            <div className="p-2 rounded-[8px] bg-red-500/10 border border-red-500/30 text-red-300 text-[11.5px]">{err}</div>
+          )}
+        </div>
+        <footer className="flex items-center gap-2 p-5 border-t border-[var(--border-subtle)]">
+          <button onClick={onCancel} disabled={busy} className="flex-1 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-[13px] font-semibold hover:bg-[var(--bg-secondary)] cursor-pointer disabled:opacity-60">Cancel</button>
+          <button onClick={submit} disabled={tooShort || busy} className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--status-reject)] text-white text-[13px] font-semibold hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+            {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
+            Dismiss with reason
+          </button>
+        </footer>
+      </div>
     </div>
   )
 }
@@ -395,6 +491,8 @@ function PersistedAnomaliesPanel() {
   const [err, setErr] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [openId, setOpenId] = useState<string | null>(null)
+  const integrations = useIntegrationStatus()
+  const aiUnavailable = !integrations.loading && !integrations.ai
   // Per-row narrative cache: { [id]: { text, generatedAt, loading, error } }
   const [narratives, setNarratives] = useState<Record<string, { text: string; generatedAt: string | null; loading: boolean; error: string | null; cached: boolean }>>({})
   const [copiedId, setCopiedId] = useState<string | null>(null)
@@ -434,7 +532,10 @@ function PersistedAnomaliesPanel() {
       // Also reflect on the row so the "Last updated" hint is fresh.
       setRows(rs => rs ? rs.map(row => row.id === anomalyId ? { ...row, ai_narrative: r.narrative, ai_narrative_generated_at: r.generatedAt } : row) : rs)
     } catch (e) {
-      setNarratives(s => ({ ...s, [anomalyId]: { text: '', generatedAt: null, loading: false, error: e instanceof Error ? e.message : 'AI request failed', cached: false } }))
+      const errMsg = isUnconfiguredError(e)
+        ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.'
+        : e instanceof Error ? e.message : 'AI request failed'
+      setNarratives(s => ({ ...s, [anomalyId]: { text: '', generatedAt: null, loading: false, error: errMsg, cached: false } }))
     }
   }
 
@@ -459,6 +560,16 @@ function PersistedAnomaliesPanel() {
         subtitle="Persisted anomalies with optional Claude-generated narratives. Click the sparkle to expand a plain-English explanation grounded in the underlying activity data."
       />
       {err && <div className="surface-paper p-4 text-[var(--accent-red)]">{err}</div>}
+      {aiUnavailable && (
+        <div className="surface-paper p-3 flex items-start gap-2 border-l-2 border-amber-400/40 bg-amber-400/5 mb-2" role="status">
+          <Lock className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+          <div className="text-[12.5px] text-amber-300 leading-relaxed">
+            <span className="font-semibold">AI narration is disabled.</span>{' '}
+            Ask an admin to set <code className="font-mono">ANTHROPIC_API_KEY</code> in the server environment to
+            generate plain-English explanations. Previously-generated narratives below remain viewable.
+          </div>
+        </div>
+      )}
       <div className="surface-paper overflow-hidden">
         {loading ? (
           <div className="py-8 text-center text-[12.5px] text-[var(--text-tertiary)]">Loading anomalies…</div>
@@ -504,19 +615,31 @@ function PersistedAnomaliesPanel() {
                         {r.deviation_pct == null ? '—' : `${r.deviation_pct > 0 ? '+' : ''}${r.deviation_pct.toFixed(1)}%`}
                       </td>
                       <td className="px-3 py-2 text-right">
-                        <button
-                          type="button"
-                          className="chip inline-flex items-center gap-1"
-                          onClick={() => {
-                            if (isOpen) { setOpenId(null); return }
-                            handleExplain(r.id, false)
-                          }}
-                          aria-expanded={isOpen}
-                          aria-controls={`ai-panel-${r.id}`}
-                          title="Explain with AI"
-                        >
-                          <Sparkles className="w-3 h-3" /> {isOpen ? 'Hide' : 'Explain'}
-                        </button>
+                        {(() => {
+                          // When AI is unconfigured and there's no cached narrative on this row,
+                          // disable the trigger entirely (with tooltip). Cached narratives can
+                          // still be opened so existing explanations remain accessible.
+                          const hasCached = !!r.ai_narrative
+                          const disabledForAi = aiUnavailable && !hasCached
+                          return (
+                            <button
+                              type="button"
+                              className="chip inline-flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                              onClick={() => {
+                                if (isOpen) { setOpenId(null); return }
+                                handleExplain(r.id, false)
+                              }}
+                              disabled={disabledForAi}
+                              aria-expanded={isOpen}
+                              aria-controls={`ai-panel-${r.id}`}
+                              title={disabledForAi ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : 'Explain with AI'}
+                              aria-label={disabledForAi ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : 'Explain with AI'}
+                            >
+                              {disabledForAi ? <Lock className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
+                              {disabledForAi ? 'AI off' : isOpen ? 'Hide' : 'Explain'}
+                            </button>
+                          )
+                        })()}
                       </td>
                     </tr>
                     {isOpen && (
@@ -548,11 +671,13 @@ function PersistedAnomaliesPanel() {
                                 {n?.text && !n.loading && (
                                   <button
                                     type="button"
-                                    className="chip inline-flex items-center gap-1"
+                                    className="chip inline-flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                                     onClick={() => handleExplain(r.id, true)}
-                                    title="Regenerate narrative"
+                                    disabled={aiUnavailable}
+                                    title={aiUnavailable ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : 'Regenerate narrative'}
                                   >
-                                    <RotateCw className="w-3 h-3" /> Regenerate
+                                    {aiUnavailable ? <Lock className="w-3 h-3" /> : <RotateCw className="w-3 h-3" />}
+                                    Regenerate
                                   </button>
                                 )}
                               </div>
