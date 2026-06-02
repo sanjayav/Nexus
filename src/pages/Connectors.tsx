@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import Papa from 'papaparse'
-import { Plug, FileUp, AlertTriangle, Check, ArrowLeft, Database, Cloud, Layers, X } from 'lucide-react'
+import { Plug, FileUp, AlertTriangle, Check, ArrowLeft, Database, Cloud, Layers, X, Briefcase, Server, Zap } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
 import { SkeletonCard } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
 import { EmptyEvidenceIllustration } from '../data/illustrations'
 import { Card, Button, Badge } from '../design-system'
-import { connectors, type ConnectorTemplate, type ConnectorImportResult, type ConnectorImportSummary } from '../lib/api'
-import { showWarning } from '../lib/toast'
+import {
+  connectors,
+  type ConnectorTemplate, type ConnectorImportResult, type ConnectorImportSummary,
+  type ConnectorAdapterInfo, type ConnectorConnectionRow, type ConnectorProvider,
+} from '../lib/api'
+import { showWarning, showError } from '../lib/toast'
 
 /** How long to wait before nagging the user that the import is slow.
  *  Five minutes lines up with the backend's processing budget for large
@@ -29,9 +34,25 @@ interface ParsedCsv {
   rows: Record<string, string>[]
 }
 
+const PROVIDER_ICONS: Record<ConnectorProvider, typeof Database> = {
+  sap_s4hana: Database,
+  oracle_fusion: Database,
+  netsuite: Layers,
+  workday: Briefcase,
+  salesforce: Cloud,
+  snowflake: Cloud,
+  aws: Server,
+  gcp: Server,
+  azure: Server,
+  generic_rest: Zap,
+}
+
 export default function Connectors() {
   const [allTemplates, setAllTemplates] = useState<ConnectorTemplate[]>([])
   const [loadingTemplates, setLoadingTemplates] = useState(true)
+  const [adapters, setAdapters] = useState<ConnectorAdapterInfo[]>([])
+  const [connections, setConnections] = useState<ConnectorConnectionRow[]>([])
+  const [oauthStartingFor, setOauthStartingFor] = useState<string | null>(null)
   const [selectedSource, setSelectedSource] = useState<SourceKey | null>(null)
   const [selectedTemplate, setSelectedTemplate] = useState<ConnectorTemplate | null>(null)
   const [csv, setCsv] = useState<ParsedCsv | null>(null)
@@ -62,9 +83,43 @@ export default function Connectors() {
         if (!cancelled) setLoadingTemplates(false)
       }
     })()
+    ;(async () => {
+      try {
+        const live = await connectors.list()
+        if (!cancelled) {
+          setAdapters(live.adapters)
+          setConnections(live.connections)
+        }
+      } catch {
+        // Live tiles still render; we just don't show "connected" badges if the API failed.
+      }
+    })()
     void loadImports()
     return () => { cancelled = true }
   }, [loadImports])
+
+  const handleConnect = async (provider: ConnectorProvider) => {
+    setOauthStartingFor(provider)
+    try {
+      const { authorizationUrl } = await connectors.startOAuth(provider)
+      // Top-level redirect — the provider takes over the browser, then returns
+      // the user to our /api/connectors/oauth/callback/:provider endpoint
+      // which redirects back to /data/connectors/:connectionId.
+      window.location.assign(authorizationUrl)
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Failed to start OAuth'
+      // Common case: the server admin hasn't set CLIENT_ID / SECRET env vars
+      // for this provider yet. Surface that clearly rather than as a stack trace.
+      showError(msg)
+      setOauthStartingFor(null)
+    }
+  }
+
+  const connectionByProvider = useMemo(() => {
+    const map = new Map<string, ConnectorConnectionRow>()
+    for (const c of connections) map.set(c.provider, c)
+    return map
+  }, [connections])
 
   const sourceTemplates = useMemo(
     () => selectedSource ? allTemplates.filter(t => t.source === selectedSource) : [],
@@ -171,6 +226,81 @@ export default function Connectors() {
             <div>{error}</div>
           </div>
         </Card>
+      )}
+
+      {/* ─── Live integrations (OAuth + API key) ────────────────────── */}
+      {adapters.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">Live integrations</h3>
+            <Badge variant="gray">{adapters.length} providers</Badge>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {adapters.map(a => {
+              const Icon = PROVIDER_ICONS[a.id] ?? Database
+              const conn = connectionByProvider.get(a.id)
+              const status =
+                conn?.status === 'active' ? 'connected'
+                  : conn?.status === 'error' ? 'error'
+                    : conn?.status === 'disabled' ? 'disconnected'
+                      : 'not_connected'
+              const isStarting = oauthStartingFor === a.id
+              return (
+                <Card key={a.id} variant="paper" className="flex flex-col">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="w-9 h-9 rounded-md bg-[var(--bg-secondary)] flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-4 h-4 text-[var(--text-secondary)]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-[var(--text-primary)] text-[14px]">{a.name}</div>
+                      <div className="text-[11.5px] text-[var(--text-tertiary)] uppercase tracking-wide mt-0.5">{a.category}</div>
+                    </div>
+                    {status === 'connected' && <Badge variant="green">Connected</Badge>}
+                    {status === 'error' && <Badge variant="red">Error</Badge>}
+                    {status === 'disconnected' && <Badge variant="gray">Disconnected</Badge>}
+                  </div>
+                  <div className="text-[12.5px] text-[var(--text-secondary)] mb-3 line-clamp-2">{a.description}</div>
+                  {conn?.last_sync_at && (
+                    <div className="text-[11.5px] text-[var(--text-tertiary)] mb-3">
+                      Last sync: {new Date(conn.last_sync_at).toLocaleString()}
+                    </div>
+                  )}
+                  <div className="mt-auto flex items-center gap-2">
+                    {conn ? (
+                      <Link
+                        to={`/data/connectors/${conn.id}`}
+                        className="px-3 py-1.5 text-[12.5px] rounded-md border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
+                      >
+                        Manage
+                      </Link>
+                    ) : a.authType === 'oauth2' ? (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        loading={isStarting}
+                        disabled={!a.serverConfigured}
+                        onClick={() => handleConnect(a.id)}
+                        title={a.serverConfigured ? undefined : 'Server admin must set OAuth client_id / secret env vars'}
+                      >
+                        Connect
+                      </Button>
+                    ) : (
+                      <Link
+                        to={`/data/connectors/new?provider=${a.id}`}
+                        className="px-3 py-1.5 text-[12.5px] rounded-md bg-[var(--accent-blue)] text-white hover:opacity-90"
+                      >
+                        Configure
+                      </Link>
+                    )}
+                    {!a.serverConfigured && a.authType === 'oauth2' && (
+                      <span className="text-[11px] text-[var(--text-tertiary)]">Server not configured</span>
+                    )}
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+        </div>
       )}
 
       {!selectedSource && (

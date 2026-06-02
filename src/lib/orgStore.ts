@@ -93,6 +93,9 @@ export interface QuestionAssignment {
   last_updated?: string
   /** Server-computed: due_date is past AND status isn't through review/approval. */
   is_overdue?: boolean
+  /** Excel-style formula text (e.g. "=SUM(D2:D5)"). Null/undefined when the
+   *  cell holds a plain numeric `value`. The server stores both. */
+  formula?: string | null
 }
 
 export interface ReportingPeriod {
@@ -227,6 +230,7 @@ interface AssignmentWire {
   assigned_at: string
   last_updated: string
   is_overdue?: boolean
+  formula: string | null
 }
 function mapAssignment(a: AssignmentWire): QuestionAssignment {
   return {
@@ -255,6 +259,7 @@ function mapAssignment(a: AssignmentWire): QuestionAssignment {
     assigned_at: a.assigned_at,
     last_updated: a.last_updated,
     is_overdue: a.is_overdue ?? false,
+    formula: a.formula ?? null,
   }
 }
 
@@ -384,6 +389,7 @@ export const orgStore = {
     if (patch.evidence_ids !== undefined)   wire.evidence_ids = patch.evidence_ids
     if (patch.entry_modes !== undefined)    wire.entry_modes = patch.entry_modes
     if (patch.narrative_body !== undefined) wire.narrative_body = patch.narrative_body
+    if (patch.formula !== undefined)        wire.formula = patch.formula
     await req('/org', {
       method: 'POST',
       body: JSON.stringify({ action: 'update-assignment', id, patch: wire }),

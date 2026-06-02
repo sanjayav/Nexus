@@ -230,22 +230,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // --- action: enter-value ---
     if (action === 'enter-value') {
-      const { question_id, reporting_year_id, facility_id, scope_key, value, unit, mode, comment } = req.body ?? {}
+      const { question_id, reporting_year_id, facility_id, scope_key, value, unit, mode, comment, formula } = req.body ?? {}
       if (!question_id || !reporting_year_id) {
         return res.status(400).json({ error: 'question_id and reporting_year_id are required' })
       }
       const allowed = await canEnter(sql, token.sub, question_id)
       if (!allowed) return res.status(403).json({ error: 'Not permitted to enter this value' })
 
+      // Formulas are persisted as-is — the client supplies the precomputed
+      // `value` so report generators stay formula-agnostic. We additionally
+      // mirror it into `computed_value` (added by setup.ts ALTER) when the
+      // column exists.
+      const formulaText: string | null = typeof formula === 'string' && formula.startsWith('=') ? formula : null
+
       try {
         const created = await sql`
           INSERT INTO data_value
             (questionnaire_item_id, reporting_year_id, facility_id, scope_key,
-             value, unit, entry_mode, status, entered_by, entered_at, comment)
+             value, unit, entry_mode, status, entered_by, entered_at, comment,
+             formula, computed_value, computed_at)
           VALUES
             (${question_id}, ${reporting_year_id}, ${facility_id || null}, ${scope_key || null},
              ${value}, ${unit || null}, ${mode || 'Manual'}, 'draft',
-             ${token.sub}, now(), ${comment || null})
+             ${token.sub}, now(), ${comment || null},
+             ${formulaText}, ${formulaText !== null ? value : null}, ${formulaText !== null ? new Date().toISOString() : null})
           RETURNING *
         `
         const platformRole = await getPlatformRole(sql, token.sub)

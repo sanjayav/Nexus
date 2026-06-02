@@ -55,6 +55,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Data residency — additive column for region-routed Neon connections.
     // See docs/REGIONS.md for env var setup (DATABASE_URL_EU / DATABASE_URL_APAC).
     await sql`ALTER TABLE organisations ADD COLUMN IF NOT EXISTS region TEXT DEFAULT 'us' CHECK (region IN ('us','eu','apac'))`
+    // iXBRL filing metadata — populates <xbrli:identifier> in the iXBRL
+    // engine. Missing LEI falls back to a placeholder scheme + warning.
+    await sql`ALTER TABLE organisations ADD COLUMN IF NOT EXISTS lei TEXT`
+    await sql`ALTER TABLE organisations ADD COLUMN IF NOT EXISTS legal_form TEXT`
+    await sql`ALTER TABLE organisations ADD COLUMN IF NOT EXISTS isin TEXT`
 
     await sql`CREATE TABLE IF NOT EXISTS permissions (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -195,6 +200,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // when the Scope 3 calculator UI runs a method.
     await sql`ALTER TABLE activity_data ADD COLUMN IF NOT EXISTS source_calculator_id TEXT`
     await sql`ALTER TABLE activity_data ADD COLUMN IF NOT EXISTS source_method_id TEXT`
+    // Spreadsheet formula support — the raw `=SUM(...)` text the user typed
+    // into the activity-data grid. `activity_value` remains the precomputed
+    // numeric so downstream emissions math stays formula-agnostic.
+    await sql`ALTER TABLE activity_data ADD COLUMN IF NOT EXISTS formula TEXT`
 
     await sql`CREATE TABLE IF NOT EXISTS workflow_tasks (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -529,6 +538,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await sql`CREATE INDEX IF NOT EXISTS idx_qa_entity ON question_assignments(entity_id)`
     await sql`CREATE INDEX IF NOT EXISTS idx_qa_status ON question_assignments(status)`
     await sql`CREATE INDEX IF NOT EXISTS idx_qa_framework ON question_assignments(framework_id)`
+    // Spreadsheet formula support — stores the raw `=SUM(...)` text alongside
+    // the precomputed numeric `value`. When formula IS NULL the cell is a
+    // plain user-entered number, preserving the legacy single-edit flow.
+    await sql`ALTER TABLE question_assignments ADD COLUMN IF NOT EXISTS formula TEXT`
 
     await sql`CREATE TABLE IF NOT EXISTS workflow_role_assignment (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -732,6 +745,72 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       created_at TIMESTAMPTZ DEFAULT now()
     )`
     await sql`CREATE INDEX IF NOT EXISTS idx_connector_imports_org ON connector_imports(org_id, created_at DESC)`
+
+    // ═══════════════════════════════════════════
+    // Live ERP connectors — credentialed OAuth + API-key connections per org.
+    // Credentials encrypted at rest via api/_crypto.ts (AES-256-GCM). Decrypted
+    // only at sync time; never logged or returned in API responses.
+    // ═══════════════════════════════════════════
+    await sql`CREATE TABLE IF NOT EXISTS connector_connections (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      provider TEXT NOT NULL,
+      display_name TEXT NOT NULL,
+      auth_type TEXT NOT NULL CHECK (auth_type IN ('oauth2','api_key','basic','jwt')),
+      credentials_enc TEXT NOT NULL,
+      oauth_refresh_token_enc TEXT,
+      oauth_access_token_enc TEXT,
+      oauth_expires_at TIMESTAMPTZ,
+      base_url TEXT,
+      scopes JSONB DEFAULT '[]'::jsonb,
+      status TEXT DEFAULT 'pending' CHECK (status IN ('pending','active','error','disabled')),
+      last_test_at TIMESTAMPTZ,
+      last_test_result JSONB,
+      last_sync_at TIMESTAMPTZ,
+      last_sync_status TEXT,
+      created_by UUID REFERENCES users(id),
+      created_at TIMESTAMPTZ DEFAULT now(),
+      UNIQUE(org_id, provider, display_name)
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_connector_connections_org ON connector_connections(org_id)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_connector_connections_provider ON connector_connections(org_id, provider)`
+
+    await sql`CREATE TABLE IF NOT EXISTS connector_sync_runs (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      connection_id UUID REFERENCES connector_connections(id) ON DELETE CASCADE,
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      started_at TIMESTAMPTZ DEFAULT now(),
+      completed_at TIMESTAMPTZ,
+      status TEXT DEFAULT 'running' CHECK (status IN ('running','complete','failed','cancelled')),
+      rows_fetched INTEGER DEFAULT 0,
+      rows_imported INTEGER DEFAULT 0,
+      rows_failed INTEGER DEFAULT 0,
+      error TEXT,
+      details JSONB DEFAULT '{}'::jsonb
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_connector_sync_runs_conn ON connector_sync_runs(connection_id, started_at DESC)`
+
+    // Additive columns for the live-OAuth flow. Idempotent — each ALTER guarded
+    // by ADD COLUMN IF NOT EXISTS so re-running setup is safe.
+    await sql`ALTER TABLE connector_connections ADD COLUMN IF NOT EXISTS instance_url TEXT`
+    await sql`ALTER TABLE connector_connections ADD COLUMN IF NOT EXISTS account_id TEXT`
+    await sql`ALTER TABLE connector_connections ADD COLUMN IF NOT EXISTS config_json JSONB DEFAULT '{}'::jsonb`
+    await sql`ALTER TABLE connector_connections ADD COLUMN IF NOT EXISTS last_sync_error TEXT`
+    await sql`ALTER TABLE connector_connections ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now()`
+
+    // Short-lived CSRF state used in OAuth 2.0 authorize → callback handshake.
+    // Rows are cleaned up by the callback (one-shot) and expired rows are
+    // GC'd opportunistically by start endpoint (DELETE WHERE expires_at < now()).
+    await sql`CREATE TABLE IF NOT EXISTS oauth_state (
+      state TEXT PRIMARY KEY,
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      provider TEXT NOT NULL,
+      redirect_uri TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_oauth_state_expires ON oauth_state(expires_at)`
 
     // ===== SEED DATA =====
 
@@ -1273,6 +1352,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // source row; is_overridden lets users lock a peer so future propagation skips it.
     await sql`ALTER TABLE data_value ADD COLUMN IF NOT EXISTS derived_from UUID REFERENCES data_value(id)`
     await sql`ALTER TABLE data_value ADD COLUMN IF NOT EXISTS is_overridden BOOLEAN DEFAULT false`
+
+    // Excel-style formula support: raw formula text (e.g. "=SUM(D2:D5)") and
+    // the engine's precomputed numeric output. Downstream report generators
+    // read `computed_value` (falling back to `value` for non-formula cells)
+    // so they never need to evaluate formulas server-side.
+    await sql`ALTER TABLE data_value ADD COLUMN IF NOT EXISTS formula TEXT`
+    await sql`ALTER TABLE data_value ADD COLUMN IF NOT EXISTS computed_value NUMERIC`
+    await sql`ALTER TABLE data_value ADD COLUMN IF NOT EXISTS computed_at TIMESTAMPTZ`
+
+    // Direct XBRL concept assignment (overrides the heuristic
+    // inferConceptId mapping in api/_ixbrlTaxonomy.ts when set).
+    await sql`ALTER TABLE data_value ADD COLUMN IF NOT EXISTS xbrl_concept_id TEXT`
 
     await seedConceptMappings(sql)
 

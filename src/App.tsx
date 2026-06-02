@@ -24,6 +24,7 @@ const Analytics = lazy(() => import('./pages/Analytics'))
 const BlockchainAudit = lazy(() => import('./pages/BlockchainAudit'))
 const ReportPublishing = lazy(() => import('./pages/ReportPublishing'))
 const ReportPreview = lazy(() => import('./pages/ReportPreview'))
+const IXBRLPreview = lazy(() => import('./pages/IXBRLPreview'))
 const SustainabilityPerformanceReport = lazy(() => import('./pages/SustainabilityPerformanceReport'))
 const ClimateTargets = lazy(() => import('./pages/ClimateTargets'))
 const AuditorView = lazy(() => import('./pages/AuditorView'))
@@ -52,6 +53,7 @@ const ScimTokens = lazy(() => import('./pages/ScimTokens'))
 const ApiKeys = lazy(() => import('./pages/ApiKeys'))
 const SystemStatus = lazy(() => import('./pages/SystemStatus'))
 const Connectors = lazy(() => import('./pages/Connectors'))
+const ConnectorDetail = lazy(() => import('./pages/ConnectorDetail'))
 const AuditLog = lazy(() => import('./pages/AuditLog'))
 const WelcomeWizard = lazy(() => import('./pages/WelcomeWizard'))
 const NotFound = lazy(() => import('./pages/NotFound'))
@@ -229,6 +231,7 @@ function AppRoutes() {
           <Route path="/reports" element={<ProtectedRoute><ReportPublishing /></ProtectedRoute>} />
           <Route path="/reports/performance" element={<ProtectedRoute><SustainabilityPerformanceReport /></ProtectedRoute>} />
           <Route path="/reports/preview" element={<ProtectedRoute><ReportPreview /></ProtectedRoute>} />
+          <Route path="/reports/ixbrl" element={<ProtectedRoute><IXBRLPreview /></ProtectedRoute>} />
           <Route path="/reports/auditor" element={<ProtectedRoute><AuditorView /></ProtectedRoute>} />
           <Route path="/reports/ai" element={<ProtectedRoute><AIReport /></ProtectedRoute>} />
           {/* IA-reset: rename "Frameworks" → Templates, "Content Index" → Disclosures Library */}
@@ -251,6 +254,7 @@ function AppRoutes() {
           <Route path="/admin/api-keys" element={<ProtectedRoute><ApiKeys /></ProtectedRoute>} />
           <Route path="/admin/system-status" element={<ProtectedRoute><SystemStatus /></ProtectedRoute>} />
           <Route path="/data/connectors" element={<ProtectedRoute><Connectors /></ProtectedRoute>} />
+          <Route path="/data/connectors/:id" element={<ProtectedRoute><ConnectorDetail /></ProtectedRoute>} />
           <Route path="/admin/assignments" element={<ProtectedRoute><AssignmentManager /></ProtectedRoute>} />
           <Route path="/admin/materiality" element={<ProtectedRoute><Materiality /></ProtectedRoute>} />
           <Route path="/admin/targets" element={<ProtectedRoute><ClimateTargets /></ProtectedRoute>} />

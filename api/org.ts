@@ -367,6 +367,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                  unit, entity_id, assignee_email, assignee_name, assignee_user_id,
                  entry_modes, used_mode, due_date, status, value, comment, evidence_ids,
                  response_type, narrative_body, period_id, disclosure_position,
+                 formula,
                  assigned_by, assigned_at, last_updated
           FROM question_assignments WHERE org_id = ${orgId}
           ORDER BY assigned_at DESC
@@ -385,6 +386,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                      unit, entity_id, assignee_email, assignee_name, assignee_user_id,
                      entry_modes, used_mode, due_date, status, value, comment, evidence_ids,
                      response_type, narrative_body, period_id, disclosure_position,
+                     formula,
                      assigned_by, assigned_at, last_updated,
                      (due_date IS NOT NULL AND due_date < ${today}::date
                        AND status NOT IN ('approved','reviewed','submitted')) AS is_overdue
@@ -400,6 +402,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                      unit, entity_id, assignee_email, assignee_name, assignee_user_id,
                      entry_modes, used_mode, due_date, status, value, comment, evidence_ids,
                      response_type, narrative_body, period_id, disclosure_position,
+                     formula,
                      assigned_by, assigned_at, last_updated,
                      (due_date IS NOT NULL AND due_date < ${today}::date
                        AND status NOT IN ('approved','reviewed','submitted')) AS is_overdue
@@ -1116,6 +1119,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     unit, entity_id, assignee_email, assignee_name, assignee_user_id,
                     entry_modes, used_mode, due_date, status, value, comment, evidence_ids,
                     response_type, narrative_body, period_id, disclosure_position,
+                    formula,
                     assigned_by, assigned_at, last_updated
         `
         // Emit "you've been assigned" notification (DB row + email)
@@ -1339,7 +1343,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // ── Status-lock: once submitted/reviewed/approved, data fields are frozen. ──
         // Only status transitions (review actions) and review `comment` are accepted.
-        const DATA_FIELDS = ['value', 'unit', 'narrative_body', 'evidence_ids', 'used_mode', 'entry_modes'] as const
+        const DATA_FIELDS = ['value', 'unit', 'narrative_body', 'evidence_ids', 'used_mode', 'entry_modes', 'formula'] as const
         const isFrozen = prior.status === 'submitted' || prior.status === 'reviewed' || prior.status === 'approved'
         if (isFrozen) {
           const attempted = DATA_FIELDS.filter(f => patch[f] !== undefined)
@@ -1362,6 +1366,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         if (patch.entry_modes !== undefined) {
           await sql`UPDATE question_assignments SET entry_modes = ${JSON.stringify(patch.entry_modes)}::jsonb, last_updated = now() WHERE id = ${id} AND org_id = ${orgId}`
+        }
+        // Formula text — raw `=...` string entered in the spreadsheet. Null
+        // (or omitted) means the cell is a plain numeric value. We accept any
+        // string; HyperFormula validation already ran client-side and stored
+        // the computed result in `value`, so the server is just a passthrough.
+        if (patch.formula !== undefined) {
+          const formulaText = patch.formula === null
+            ? null
+            : (typeof patch.formula === 'string' && patch.formula.trim().startsWith('=') ? patch.formula : null)
+          await sql`UPDATE question_assignments SET formula = ${formulaText}, last_updated = now() WHERE id = ${id} AND org_id = ${orgId}`
         }
 
         // ── Notification + chain-record on status transitions ──
@@ -1393,6 +1407,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                  unit, entity_id, assignee_email, assignee_name, assignee_user_id,
                  entry_modes, used_mode, due_date, status, value, comment, evidence_ids,
                  response_type, narrative_body, period_id, disclosure_position,
+                 formula,
                  assigned_by, assigned_at, last_updated
           FROM question_assignments WHERE id = ${id} AND org_id = ${orgId}
         `

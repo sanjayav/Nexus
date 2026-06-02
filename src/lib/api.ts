@@ -506,6 +506,29 @@ export interface ApiReport {
   created_at: string
 }
 
+export interface IxbrlPreviewResult {
+  xhtml: string
+  concepts: number
+  contexts: number
+  units: number
+  warnings: string[]
+  coverage: Array<{
+    conceptId: string
+    label: string
+    framework: string
+    mapped: boolean
+    valueId?: string
+    griCode?: string
+  }>
+}
+
+export interface IxbrlValidationResult {
+  valid: boolean
+  errors: Array<{ line?: number; message: string }>
+  warnings: Array<{ line?: number; message: string }>
+  stats: { facts: number; contexts: number; units: number; unknownConcepts: number }
+}
+
 export const reports = {
   list: () => request<ApiReport[]>('/reports'),
   get: (id: string) => request<ApiReport>(`/reports/${id}`),
@@ -513,6 +536,21 @@ export const reports = {
     request<ApiReport>('/reports', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: string, data: Partial<ApiReport>) =>
     request<ApiReport>(`/reports/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  /** Generate a deep iXBRL preview (concept coverage + XHTML body). */
+  previewIxbrl: (params: { year: number; frameworks: string[]; includeUnapproved?: boolean }) => {
+    const qs = new URLSearchParams({
+      year: String(params.year),
+      frameworks: params.frameworks.join(','),
+    })
+    if (params.includeUnapproved) qs.set('include-unapproved', '1')
+    return request<IxbrlPreviewResult>(`/ixbrl/preview?${qs.toString()}`)
+  },
+  /** Validate an iXBRL XHTML document. */
+  validateIxbrl: (xhtml: string) =>
+    request<IxbrlValidationResult>('/ixbrl/validate', {
+      method: 'POST',
+      body: JSON.stringify({ xhtml }),
+    }),
 }
 
 // ── Analytics ────────────────────────────
@@ -695,6 +733,9 @@ export const nexus = {
     unit?: string
     mode?: 'Manual' | 'Calculator' | 'Connector'
     comment?: string
+    /** Raw formula text (e.g. "=SUM(D2:D5)"). When present the server stores
+     *  both the formula and the precomputed `value`/`computed_value`. */
+    formula?: string | null
   }) =>
     request<NexusDataValue & { value_hash: string }>('/workflow', {
       method: 'POST',
@@ -1146,6 +1187,70 @@ export interface ConnectorImportSummary {
   created_at: string
 }
 
+// ── Live OAuth/API-key connector connections ─────────
+export type ConnectorProvider =
+  | 'sap_s4hana' | 'oracle_fusion' | 'netsuite' | 'workday' | 'salesforce'
+  | 'snowflake'  | 'aws' | 'gcp' | 'azure' | 'generic_rest'
+
+export interface ConnectorAdapterInfo {
+  id: ConnectorProvider
+  name: string
+  category: string
+  description: string
+  iconKey: string
+  authType: 'oauth2' | 'api_key' | 'basic' | 'jwt'
+  fieldMappings: Array<{ source: string; target: string; notes?: string }>
+  defaultBaseUrl: string | null
+  docsUrl: string | null
+  apiKeyFields: Array<{ label: string; key: string; secret: boolean; description?: string; placeholder?: string }> | null
+  /** True when the server has the OAuth client_id/secret env vars set. */
+  serverConfigured: boolean
+}
+
+export interface ConnectorConnectionRow {
+  id: string
+  provider: ConnectorProvider
+  display_name: string
+  auth_type: 'oauth2' | 'api_key' | 'basic' | 'jwt'
+  base_url: string | null
+  instance_url: string | null
+  account_id: string | null
+  scopes: string[]
+  status: 'pending' | 'active' | 'error' | 'disabled'
+  last_test_at: string | null
+  last_test_result: { ok?: boolean; message?: string } | null
+  last_sync_at: string | null
+  last_sync_status: string | null
+  last_sync_error: string | null
+  config_json: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+export interface ConnectorSyncRun {
+  id: string
+  started_at: string
+  completed_at: string | null
+  status: 'running' | 'complete' | 'failed' | 'cancelled'
+  rows_fetched: number
+  rows_imported: number
+  rows_failed: number
+  error: string | null
+}
+
+export interface ConnectorListResponse {
+  connections: ConnectorConnectionRow[]
+  adapters: ConnectorAdapterInfo[]
+}
+
+export interface ConnectorSyncResult {
+  runId: string
+  rowsFetched: number
+  rowsImported: number
+  rowsFailed: number
+  errors: Array<{ row: number | string; error: string }>
+}
+
 export const connectors = {
   templates: (params?: { source?: string; scope?: number }) => {
     const qs = params ? '?' + new URLSearchParams(Object.entries(params).filter(([,v]) => v != null).map(([k,v]) => [k, String(v)])).toString() : ''
@@ -1154,6 +1259,21 @@ export const connectors = {
   import: (data: { templateId: string; fileName: string; rows: Record<string, string>[]; mappingOverride?: Record<string, string> }) =>
     request<ConnectorImportResult>('/connectors/import', { method: 'POST', body: JSON.stringify(data) }),
   imports: () => request<ConnectorImportSummary[]>('/connectors/imports'),
+  // Live connector framework — OAuth + API-key adapters.
+  list: () => request<ConnectorListResponse>('/connectors/connections'),
+  get: (id: string) => request<{ connection: ConnectorConnectionRow; runs: ConnectorSyncRun[] }>(`/connectors/connections/${id}`),
+  disconnect: (id: string) =>
+    request<{ ok: true }>(`/connectors/connections/${id}`, { method: 'DELETE' }),
+  startOAuth: (provider: ConnectorProvider, baseUrl?: string) =>
+    request<{ authorizationUrl: string; state: string; baseUrl: string | null }>(
+      '/connectors/oauth/start',
+      { method: 'POST', body: JSON.stringify({ provider, baseUrl }) },
+    ),
+  sync: (connectionId: string, opts: { fromDate?: string; toDate?: string; providerOptions?: Record<string, unknown> } = {}) =>
+    request<ConnectorSyncResult>('/connectors/sync', {
+      method: 'POST',
+      body: JSON.stringify({ connectionId, ...opts }),
+    }),
 }
 
 // ── Audit Log ────────────────────────────

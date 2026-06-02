@@ -2,16 +2,22 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { getDb } from '../../_db.js'
 import { cors, requirePermission } from '../../_auth.js'
 import { generateIxbrl, type IxbrlTag, type IxbrlMapping } from '../../_ixbrl.js'
+import { generateIxbrlDeep } from '../../_ixbrl.js'
 
 /**
  * GET /api/reports/[id]/ixbrl — emits an iXBRL XHTML document for the
- * published report. Gated by `reports.publish`. v1 ships ~14 core ESRS E1
- * concept mappings; expand as more disclosures land. Production-grade
- * tagging should delegate to a partner SDK — see docs/IXBRL_PARTNERS.md.
+ * published report. Gated by `reports.publish`.
+ *
+ * v2: routes through the deep engine (api/_ixbrlTaxonomy.ts, 280+ concepts,
+ * contexts + units + dimensions + schemaRefs). Falls back to the v1 14-tag
+ * skeleton if the deep generation returns 0 facts (rare — happens when an
+ * org has no questionnaire data at all).
+ *
+ * Query params:
+ *   ?include-unapproved=1   include draft/submitted values (default: approved only)
  */
 
-// ESRS E1 (Climate) core concept mappings.
-// Key = GRI / ESRS code stored on question_assignments.gri_code.
+// Legacy v1 mapping table — kept for the no-data fallback path.
 const ESRS_E1_MAPPINGS: Record<string, { concept: string; unit: string }> = {
   '305-1': { concept: 'esrs:GrossScope1GreenhouseGasEmissions', unit: 'tCO2e' },
   '305-2': { concept: 'esrs:GrossLocationBasedScope2GreenhouseGasEmissions', unit: 'tCO2e' },
@@ -41,9 +47,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const token = await requirePermission(req, res, 'reports.publish')
   if (!token) return
 
-  // Vercel rewrites the dynamic segment into req.query.id
   const reportId = String(req.query.id || '')
   if (!reportId) return res.status(400).json({ error: 'report id required' })
+
+  const includeUnapproved = String(req.query['include-unapproved'] ?? '') === '1'
 
   const sql = getDb()
 
@@ -63,8 +70,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (reportRows.length === 0) return res.status(404).json({ error: 'Report not found' })
     const report = reportRows[0]
+    const year = report.period_year ?? new Date().getUTCFullYear()
 
-    // 2. Load approved assignment values for this report's period.
+    // 2. Deep engine path — try first.
+    let deepResult: Awaited<ReturnType<typeof generateIxbrlDeep>> | null = null
+    try {
+      deepResult = await generateIxbrlDeep({
+        orgId: token.org,
+        reportingYear: year,
+        frameworkIds: report.framework_id ? [report.framework_id] : [],
+        approvedOnly: !includeUnapproved,
+      })
+    } catch (err: unknown) {
+      // Deep engine failed (e.g. missing organisations.lei column on a stale
+      // schema) — log and fall through to the v1 skeleton.
+      // eslint-disable-next-line no-console
+      console.warn('[ixbrl] deep engine failed, falling back to v1 skeleton', err)
+    }
+
+    const fname = `${slugify(report.org_slug ?? 'org')}-${year}-esrs.xhtml`
+
+    if (deepResult && deepResult.concepts > 0) {
+      res.setHeader('Content-Type', 'application/xhtml+xml')
+      res.setHeader('Content-Disposition', `attachment; filename="${fname}"`)
+      res.setHeader('X-Ixbrl-Engine', 'deep-v2')
+      res.setHeader('X-Ixbrl-Concepts', String(deepResult.concepts))
+      res.setHeader('X-Ixbrl-Contexts', String(deepResult.contexts))
+      res.setHeader('X-Ixbrl-Units', String(deepResult.units))
+      res.setHeader('X-Ixbrl-Warnings', String(deepResult.warnings.length))
+      return res.status(200).send(deepResult.xhtml)
+    }
+
+    // 3. Fallback to v1 skeleton — keeps the endpoint compatible when the deep
+    // path returns no facts (no data, no taxonomy match, schema not migrated).
     const values = await sql`
       SELECT qa.questionnaire_item_id, qa.gri_code, qa.line_item, qa.unit,
              qa.value::float AS value, qa.status
@@ -75,13 +113,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ` as Array<{ questionnaire_item_id: string; gri_code: string; line_item: string;
                  unit: string | null; value: number | null; status: string }>
 
-    // 3. Project into IxbrlTag dict keyed by gri_code.
-    const contextRef = `FY${report.period_year ?? new Date().getFullYear()}`
+    const contextRef = `FY${year}`
     const tags: Record<string, IxbrlTag> = {}
     const mappings: IxbrlMapping[] = []
 
     for (const v of values) {
-      // Match on full code or prefix (305-1.x → 305-1).
       const mapKey = ESRS_E1_MAPPINGS[v.gri_code]
         ? v.gri_code
         : Object.keys(ESRS_E1_MAPPINGS).find(k => v.gri_code.startsWith(k))
@@ -102,12 +138,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
     }
 
-    // 4. Emit iXBRL.
     const xhtml = await generateIxbrl(report.id, mappings, tags)
-
-    const fname = `${slugify(report.org_slug ?? 'org')}-${report.period_year ?? 'fy'}-esrs.xhtml`
     res.setHeader('Content-Type', 'application/xhtml+xml')
     res.setHeader('Content-Disposition', `attachment; filename="${fname}"`)
+    res.setHeader('X-Ixbrl-Engine', 'v1-fallback')
     res.setHeader('X-Ixbrl-Mappings', String(mappings.length))
     return res.status(200).send(xhtml)
   } catch (err: unknown) {

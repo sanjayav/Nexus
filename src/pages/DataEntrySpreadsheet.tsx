@@ -8,13 +8,25 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table'
 import {
-  Loader2, CheckCircle2, AlertCircle, Search, Link2, Download, Send, ShieldCheck, AlertTriangle,
+  Loader2, AlertCircle, Search, Link2, Download, Send, ShieldCheck, AlertTriangle, X,
 } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { orgStore, type QuestionAssignment, type OrgEntity } from '../lib/orgStore'
 import { useFramework, getFramework, getActiveFrameworks } from '../lib/frameworks'
 import { nexus } from '../lib/api'
 import { showWarning } from '../lib/toast'
+import {
+  asNumber,
+  isFormula,
+  cellLabel,
+  stampToday,
+  VALUE_COL_INDEX,
+  type FormulaEngine,
+  type CellResult,
+  type AssignmentRow,
+} from '../lib/formulas'
+import { FormulaBar } from '../components/spreadsheet/FormulaBar'
+import { CellReference, type CellSaveState } from '../components/spreadsheet/CellReference'
 
 // ═══════════════════════════════════════════════════════════════════
 // Spreadsheet-style bulk data entry.
@@ -58,6 +70,19 @@ const STATUS_CLASS: Record<StatusKey, string> = {
 
 const ACTIVE_REPORTING_YEAR_ID = '11000000-0000-0000-0000-000000000026'
 
+/** Pre-canned formula recipes for the Help popover. */
+const FORMULA_EXAMPLES: Array<{ formula: string; description: string }> = [
+  { formula: '=SUM(D2:D5)',               description: 'Total of Scope 1 sources' },
+  { formula: '=AVERAGE(D2:D10)',          description: 'Mean of a range' },
+  { formula: '=COUNTIF(E2:E50, "approved")', description: 'Count of approved rows' },
+  { formula: '=SUMIF(A2:A50, "GRI 305-1", D2:D50)', description: 'Conditional sum by code' },
+  { formula: '=D5/D10*100',               description: 'Percentage' },
+  { formula: '=IF(D5>1000, "high", "ok")', description: 'Conditional label' },
+  { formula: '=ROUND(D5*0.4044, 2)',      description: 'Unit conversion + rounding' },
+  { formula: "='gri'!D5",                 description: 'Cross-framework reference (sheet tab)' },
+  { formula: '=TODAY()',                  description: 'Today’s date (stamped at save)' },
+]
+
 export default function DataEntrySpreadsheet() {
   const { user } = useAuth()
   const { active: framework } = useFramework()
@@ -75,6 +100,19 @@ export default function DataEntrySpreadsheet() {
   const [rowSaves, setRowSaves] = useState<Map<string, RowSaveState>>(new Map())
   const [bulkBusy, setBulkBusy] = useState(false)
   const [loadWarning, setLoadWarning] = useState<string | null>(null)
+
+  // ── Formula support ────────────────────────────────────────────────
+  // Active formula-bar cell (assignment.id). null when nothing selected.
+  const [activeCellId, setActiveCellId] = useState<string | null>(null)
+  // Help popover.
+  const [showFormulaHelp, setShowFormulaHelp] = useState(false)
+  // The engine is loaded lazily (HyperFormula is ~400KB) and kept in a ref so
+  // mutations don't trigger renders. The bump counter below forces a re-render
+  // when computed values change.
+  const engineRef = useRef<FormulaEngine | null>(null)
+  const [engineReady, setEngineReady] = useState(false)
+  const [, setEngineTick] = useState(0)
+  const bumpEngine = useCallback(() => setEngineTick(t => (t + 1) % 1_000_000), [])
 
   const refresh = useCallback(async () => {
     if (!user?.email) return
@@ -122,9 +160,80 @@ export default function DataEntrySpreadsheet() {
     })
   }, [assignments, search, statusFilter, frameworkFilter, entityFilter])
 
-  // Persist a single value change to the assignment + (when applicable) push to
+  // ── Formula engine lifecycle ──────────────────────────────────────
+  //
+  // HyperFormula is lazy-loaded on first render so it doesn't bloat the main
+  // chunk. The engine instance is recreated whenever the filtered row order
+  // changes — row indices into the engine's `Disclosures` sheet must stay in
+  // sync with the visible rows so users can write A1-style references that
+  // mean what they see.
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const mod = await import('../lib/formulas')
+      if (cancelled) return
+      const fresh: FormulaEngine = mod.createEngine()
+      const seed: AssignmentRow[] = filtered.map(a => ({
+        id: a.id,
+        code: a.gri_code,
+        lineItem: a.line_item,
+        unit: a.unit ?? null,
+        value: a.value ?? null,
+        status: a.status,
+        assignee: a.assigneeName,
+        formula: a.formula ?? null,
+      }))
+      mod.loadAssignmentsToEngine(fresh, seed)
+      // Replace any prior engine — earlier instances might still be in flight
+      // if the async boot raced a filter change.
+      engineRef.current?.destroy()
+      engineRef.current = fresh
+      setEngineReady(true)
+      bumpEngine()
+    })()
+    return () => {
+      cancelled = true
+      engineRef.current?.destroy()
+      engineRef.current = null
+      setEngineReady(false)
+    }
+    // The seed depends on row identity, value, and formula text. We deliberately
+    // exclude `bumpEngine` (stable) and avoid a deep filtered dep to keep the
+    // engine from rebuilding on every keystroke save round-trip.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered.length, filtered.map(a => `${a.id}:${a.value ?? ''}:${a.formula ?? ''}`).join('|')])
+
+  // Cell-index for a given assignment id (engine row, value column).
+  const rowIndexOf = useCallback((assignmentId: string): number => {
+    return filtered.findIndex(a => a.id === assignmentId)
+  }, [filtered])
+
+  // Get the current computed cell result + raw text for a row.
+  const cellStateOf = useCallback((assignmentId: string): { raw: string; computed: CellResult } => {
+    const a = assignments.find(x => x.id === assignmentId)
+    const formula = a?.formula ?? null
+    const value = a?.value ?? null
+    const raw = formula ?? (value !== null ? String(value) : '')
+    const engine = engineRef.current
+    const row = rowIndexOf(assignmentId)
+    if (!engine || row < 0 || !engineReady) {
+      // Without the engine, fall back to the persisted numeric value.
+      return { raw, computed: value }
+    }
+    return { raw, computed: engine.getCellValue('Disclosures', row, VALUE_COL_INDEX) }
+  }, [assignments, rowIndexOf, engineReady])
+
+  // Persist a single cell change to the assignment + (when applicable) push to
   // the workflow data_value via nexus.enterValue. Updates UI optimistically.
-  const saveValue = useCallback(async (a: QuestionAssignment, newValue: number | null) => {
+  //
+  // Two input shapes:
+  //   - plain number → { value, formula: null }
+  //   - `=...` text  → { value: computed, formula: stampedFormula }
+  // The server stores both columns; reports always read `value`.
+  const saveCell = useCallback(async (
+    a: QuestionAssignment,
+    input: { value: number | null; formula: string | null },
+  ) => {
     setRowSaves(prev => {
       const m = new Map(prev)
       const existing = m.get(a.id)
@@ -136,19 +245,21 @@ export default function DataEntrySpreadsheet() {
     try {
       // Update the assignment record (the canonical user-facing source of value).
       await orgStore.updateAssignment(a.id, {
-        value: newValue,
+        value: input.value,
+        formula: input.formula,
         status: a.status === 'not_started' ? 'in_progress' : a.status,
       })
       // Mirror into data_value so the workflow + reports pipeline see it.
       // Failures here are non-fatal: the assignment is the user-facing record.
-      if (newValue !== null) {
+      if (input.value !== null) {
         try {
           await nexus.enterValue({
             question_id: a.questionId,
             reporting_year_id: ACTIVE_REPORTING_YEAR_ID,
-            value: newValue,
+            value: input.value,
             unit: a.unit ?? undefined,
             mode: 'Manual',
+            formula: input.formula,
           })
         } catch (e) {
           console.warn('[spreadsheet] enterValue mirror failed', e)
@@ -156,7 +267,13 @@ export default function DataEntrySpreadsheet() {
       }
 
       setAssignments(prev => prev.map(p => p.id === a.id
-        ? { ...p, value: newValue, status: p.status === 'not_started' ? 'in_progress' : p.status, last_updated: new Date().toISOString() }
+        ? {
+            ...p,
+            value: input.value,
+            formula: input.formula,
+            status: p.status === 'not_started' ? 'in_progress' : p.status,
+            last_updated: new Date().toISOString(),
+          }
         : p))
 
       setRowSaves(prev => {
@@ -181,6 +298,43 @@ export default function DataEntrySpreadsheet() {
       })
     }
   }, [])
+
+  // Parse the user's raw input (formula or number) and dispatch to saveCell.
+  // Called from both the in-cell editor and the formula bar.
+  const commitCellRaw = useCallback((a: QuestionAssignment, rawText: string) => {
+    const trimmed = rawText.trim()
+    if (trimmed === '') {
+      // Clear out both value and formula.
+      saveCell(a, { value: null, formula: null })
+      return
+    }
+    if (isFormula(trimmed)) {
+      // Stamp TODAY() to today's date so a stale tab tomorrow doesn't shift.
+      const stamped = stampToday(trimmed)
+      const row = rowIndexOf(a.id)
+      const engine = engineRef.current
+      if (engine && row >= 0) {
+        engine.setCell('Disclosures', row, VALUE_COL_INDEX, stamped)
+        bumpEngine()
+        const computed = engine.getCellValue('Disclosures', row, VALUE_COL_INDEX)
+        const numeric = asNumber(computed)
+        // A formula that evaluates to an error keeps the prior numeric value
+        // null but still persists the formula text so the user can fix it.
+        saveCell(a, { value: numeric, formula: stamped })
+      } else {
+        // Engine not ready yet — store the formula text without a computed
+        // value; the next engine bootstrap will rehydrate it.
+        saveCell(a, { value: null, formula: stamped })
+      }
+      return
+    }
+    const n = Number(trimmed)
+    if (Number.isNaN(n)) {
+      // Silently ignore unparseable plain text — the cell stays as it was.
+      return
+    }
+    saveCell(a, { value: n, formula: null })
+  }, [saveCell, rowIndexOf, bumpEngine])
 
   const transitionStatus = useCallback(async (a: QuestionAssignment, next: StatusKey) => {
     setRowSaves(prev => {
@@ -272,14 +426,32 @@ export default function DataEntrySpreadsheet() {
     }),
     helper.accessor('value', {
       header: 'Value',
-      cell: info => (
-        <EditableValueCell
-          assignment={info.row.original}
-          rowSave={rowSaves.get(info.row.original.id)}
-          onSave={saveValue}
-        />
-      ),
-      size: 160,
+      cell: info => {
+        const a = info.row.original
+        const { raw, computed } = cellStateOf(a.id)
+        const rs = rowSaves.get(a.id)
+        const saveState: CellSaveState = !rs
+          ? { state: 'idle' }
+          : rs.state === 'error'
+            ? { state: 'error', message: rs.error ?? 'Save failed' }
+            : rs.state === 'saved'
+              ? { state: 'saved' }
+              : rs.state === 'saving'
+                ? { state: 'saving' }
+                : { state: 'idle' }
+        return (
+          <CellReference
+            rawText={raw}
+            computed={computed}
+            isActive={activeCellId === a.id}
+            saveState={saveState}
+            onActivate={() => setActiveCellId(a.id)}
+            onCommit={text => commitCellRaw(a, text)}
+            dataCell="value"
+          />
+        )
+      },
+      size: 180,
     }),
     helper.accessor('status', {
       header: 'Status',
@@ -326,7 +498,7 @@ export default function DataEntrySpreadsheet() {
       ),
       size: 60,
     },
-  ], [filtered, selected, rowSaves, entityById, saveValue, transitionStatus, navigate, helper])
+  ], [filtered, selected, rowSaves, entityById, cellStateOf, commitCellRaw, activeCellId, transitionStatus, navigate, helper])
 
   const table = useReactTable({
     data: filtered,
@@ -522,6 +694,61 @@ export default function DataEntrySpreadsheet() {
         </div>
       )}
 
+      {/* Formula bar — Excel-style. Shows the raw formula or value for the
+          active cell; edits here commit the same way as in-cell edits. */}
+      {(() => {
+        const activeAssignment = activeCellId ? assignments.find(a => a.id === activeCellId) : null
+        const row = activeAssignment ? rowIndexOf(activeAssignment.id) : -1
+        const label = activeAssignment && row >= 0 ? cellLabel(VALUE_COL_INDEX, row) : ''
+        const raw = activeAssignment ? cellStateOf(activeAssignment.id).raw : ''
+        return (
+          <FormulaBar
+            activeCellLabel={label}
+            activeFormula={raw}
+            disabled={!activeAssignment}
+            onCommit={text => {
+              if (!activeAssignment) return
+              commitCellRaw(activeAssignment, text)
+            }}
+            onCancel={() => setActiveCellId(null)}
+            onShowHelp={() => setShowFormulaHelp(true)}
+          />
+        )
+      })()}
+
+      {/* Formula help popover — examples for users who haven't memorised
+          HyperFormula's 380+ functions. Dismiss via the close button or Esc. */}
+      {showFormulaHelp && (
+        <div
+          role="dialog"
+          aria-label="Formula examples"
+          className="surface-paper p-3 border border-[var(--border-subtle)] rounded-[8px]"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-[12px] font-semibold text-[var(--text-primary)]">Formula examples</h2>
+            <button
+              type="button"
+              onClick={() => setShowFormulaHelp(false)}
+              aria-label="Close formula help"
+              className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <ul className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-[11px]">
+            {FORMULA_EXAMPLES.map(ex => (
+              <li key={ex.formula} className="flex flex-col">
+                <code className="font-mono text-[var(--color-brand)]">{ex.formula}</code>
+                <span className="text-[var(--text-tertiary)]">{ex.description}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[10px] text-[var(--text-tertiary)]">
+            Powered by HyperFormula. See docs/FORMULAS.md for the full reference.
+          </p>
+        </div>
+      )}
+
       {/* Grid */}
       <div className="surface-paper overflow-hidden">
         <div className="overflow-auto max-h-[calc(100vh-280px)]">
@@ -573,101 +800,6 @@ export default function DataEntrySpreadsheet() {
         at this scale — re-enable when the grid exceeds ~500 visible rows.
       </p>
     </div>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// EditableValueCell — click → input, Tab/Enter/Esc keys, autosave on blur.
-// ─────────────────────────────────────────────────────────────────────
-
-function EditableValueCell({
-  assignment, rowSave, onSave,
-}: {
-  assignment: QuestionAssignment
-  rowSave: RowSaveState | undefined
-  onSave: (a: QuestionAssignment, v: number | null) => void
-}) {
-  const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState<string>(assignment.value != null ? String(assignment.value) : '')
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  // Sync draft if the assignment value changes from elsewhere (e.g. propagation).
-  useEffect(() => {
-    if (!editing) {
-      setDraft(assignment.value != null ? String(assignment.value) : '')
-    }
-  }, [assignment.value, editing])
-
-  const commit = () => {
-    setEditing(false)
-    const trimmed = draft.trim()
-    if (trimmed === '' && assignment.value == null) return
-    if (trimmed === String(assignment.value ?? '')) return
-    const parsed = trimmed === '' ? null : Number(trimmed)
-    if (parsed !== null && Number.isNaN(parsed)) {
-      setDraft(assignment.value != null ? String(assignment.value) : '')
-      return
-    }
-    onSave(assignment, parsed)
-  }
-
-  const cancel = () => {
-    setEditing(false)
-    setDraft(assignment.value != null ? String(assignment.value) : '')
-  }
-
-  const moveCell = (dir: 'next' | 'prev' | 'down') => {
-    const tr = inputRef.current?.closest('tr') as HTMLTableRowElement | null
-    if (!tr) return
-    if (dir === 'down') {
-      const nextRow = tr.nextElementSibling as HTMLTableRowElement | null
-      if (nextRow) {
-        const input = nextRow.querySelector<HTMLInputElement>('input[data-cell="value"]')
-        input?.focus()
-      }
-      return
-    }
-    // next/prev — within row, just rely on default Tab.
-    // The browser already handles Tab/Shift+Tab natively; we don't preventDefault.
-  }
-
-  if (editing) {
-    return (
-      <input
-        ref={inputRef}
-        autoFocus
-        type="number"
-        step="any"
-        data-cell="value"
-        value={draft}
-        onChange={e => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={e => {
-          if (e.key === 'Escape') { e.preventDefault(); cancel() }
-          else if (e.key === 'Enter') { e.preventDefault(); commit(); setTimeout(() => moveCell('down'), 0) }
-          else if (e.key === 'Tab') { commit() /* let browser advance */ }
-        }}
-        className="w-full px-2 h-8 rounded-[6px] border border-[var(--color-brand)] bg-[var(--bg-primary)] text-[12px] tabular-nums focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/30"
-      />
-    )
-  }
-
-  const display = assignment.value != null ? String(assignment.value) : '—'
-  return (
-    <button
-      type="button"
-      data-cell="value"
-      onClick={() => setEditing(true)}
-      onFocus={() => setEditing(true)}
-      className="w-full text-left h-8 px-2 rounded-[6px] text-[12px] tabular-nums text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] focus:bg-[var(--bg-secondary)] focus:outline-none inline-flex items-center justify-between gap-2"
-    >
-      <span className={assignment.value == null ? 'text-[var(--text-tertiary)]' : ''}>{display}</span>
-      {rowSave?.state === 'saving' && <Loader2 className="w-3 h-3 animate-spin text-[var(--color-brand)]" />}
-      {rowSave?.state === 'saved' && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
-      {rowSave?.state === 'error' && (
-        <span title={rowSave.error ?? ''}><AlertCircle className="w-3 h-3 text-rose-600" /></span>
-      )}
-    </button>
   )
 }
 
