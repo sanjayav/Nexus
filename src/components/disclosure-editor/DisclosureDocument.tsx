@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import type { ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import { Check, Loader2, AlertCircle, Link2 } from 'lucide-react'
 import type { NexusQuestionnaireItem, ConceptPeer } from '../../lib/api'
@@ -8,6 +9,7 @@ import { useAuth } from '../../auth/AuthContext'
 import { hasPermission } from '../../lib/rbac'
 import { getFramework } from '../../lib/frameworks'
 import { riseIn } from '../motion'
+import { useIsInsideRoom, useOthers, useUpdateMyPresence } from '../../lib/liveblocks'
 
 /**
  * Middle-pane "document" renderer for the disclosure editor.
@@ -81,6 +83,10 @@ export default function DisclosureDocument({
   const grouped = useMemo(() => groupItems(items), [items])
   const orderedCellIds = useMemo(() => items.map(it => it.id), [items])
 
+  // Broadcast active cell to room peers (no-op when outside a RoomProvider).
+  // Per-cell badges in <DisclosureLine> read this back via useOthers().
+  usePublishActiveCell(activeCellId)
+
   // Editable-cell flow: tab/enter moves to the next item.
   const advanceToCell = useCallback((fromId: string, direction: 1 | -1) => {
     const idx = orderedCellIds.indexOf(fromId)
@@ -140,6 +146,7 @@ export default function DisclosureDocument({
                   onSave={async (val) => { await onSave(item, val) }}
                   onAdvance={dir => advanceToCell(item.id, dir)}
                   linkedPeers={linkedPeersByItem?.[item.id] ?? []}
+                  remoteEditors={readingMode ? null : <CellRemoteEditors cellId={item.id} />}
                 />
               ))}
             </div>
@@ -160,9 +167,12 @@ interface DisclosureLineProps {
   onSave: (newValue: number | null) => Promise<void>
   onAdvance: (dir: 1 | -1) => void
   linkedPeers: ConceptPeer[]
+  /** Remote-editor presence badges. Always passed; renders to null when no
+   *  one else has the cell active (so the layout doesn't shift). */
+  remoteEditors?: ReactNode
 }
 
-function DisclosureLine({ item, state, isActive, readingMode, canEdit, onFocus, onSave, onAdvance, linkedPeers }: DisclosureLineProps) {
+function DisclosureLine({ item, state, isActive, readingMode, canEdit, onFocus, onSave, onAdvance, linkedPeers, remoteEditors }: DisclosureLineProps) {
   const { user, permissions } = useAuth()
   const assignment = state?.assignment ?? null
   const value = assignment?.value ?? null
@@ -196,9 +206,15 @@ function DisclosureLine({ item, state, isActive, readingMode, canEdit, onFocus, 
 
   return (
     <div
-      className={`group rounded-[var(--radius-md)] -mx-3 px-3 py-2 transition-colors ${isActive ? 'bg-[var(--color-brand-soft)]/30' : ''}`}
+      className={`group relative rounded-[var(--radius-md)] -mx-3 px-3 py-2 transition-colors ${isActive ? 'bg-[var(--color-brand-soft)]/30' : ''}`}
       onClick={onFocus}
     >
+      {/* Remote editors currently focussed on this cell — overlays at the
+          top-right corner so they don't shift the surrounding layout. */}
+      {!readingMode && remoteEditors && (
+        <div className="absolute top-2 right-3 z-10">{remoteEditors}</div>
+      )}
+
       <div className="mb-1.5">
         <div className={`font-medium text-[var(--text-primary)] ${readingMode ? 'text-[17px] leading-relaxed' : 'text-[var(--text-base)]'}`}>
           {item.line_item}
@@ -359,4 +375,71 @@ function relativeTime(iso: string): string {
     const d = Math.round(h / 24)
     return `${d}d ago`
   } catch { return iso }
+}
+
+/**
+ * Push the local user's currently-focused cell to room presence so peers can
+ * render the "X is here" badge. No-op outside a `<RoomProvider>` — the hook
+ * binding lives in `lib/liveblocks.ts` and silently swallows updates when
+ * collab is disabled, so callers don't need to gate on `useIsInsideRoom`.
+ *
+ * `useUpdateMyPresence` is stable, but `selectionAt` only refreshes on actual
+ * cell changes — Liveblocks already throttles presence at 100ms, so we don't
+ * need to debounce here.
+ */
+function usePublishActiveCell(activeCellId: string | null) {
+  const inside = useIsInsideRoom()
+  const update = useUpdateMyPresence()
+  useEffect(() => {
+    if (!inside) return
+    update({ activeCellId, selectionAt: Date.now() })
+  }, [inside, activeCellId, update])
+}
+
+/**
+ * Stacked-avatar overlay for everyone else currently focused on a given cell.
+ * Self-guarded so it can be safely rendered outside a RoomProvider — falls
+ * back to `null`, which keeps the cell's overall layout stable.
+ *
+ * Caps at 3 avatars; with the free tier's 25-connection ceiling per room
+ * this is plenty, and going wider would crowd the cell border.
+ */
+function CellRemoteEditors({ cellId }: { cellId: string }) {
+  const inside = useIsInsideRoom()
+  if (!inside) return null
+  return <CellRemoteEditorsInner cellId={cellId} />
+}
+
+function CellRemoteEditorsInner({ cellId }: { cellId: string }) {
+  const others = useOthers()
+  const here = others.filter(o => o.presence?.activeCellId === cellId)
+  if (here.length === 0) return null
+  const visible = here.slice(0, 3)
+  const overflow = here.length - visible.length
+  return (
+    <div className="flex -space-x-1.5 items-center">
+      {visible.map(({ connectionId, info, presence }) => {
+        const name = info?.name ?? 'User'
+        const color = presence?.color || info?.color || '#10B981'
+        return (
+          <div
+            key={connectionId}
+            className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white border-2 border-[var(--bg-primary)] shadow-sm"
+            style={{ background: color }}
+            title={`${name} is here${info?.email ? ` (${info.email})` : ''}`}
+          >
+            {name.slice(0, 1).toUpperCase()}
+          </div>
+        )
+      })}
+      {overflow > 0 && (
+        <div
+          className="w-5 h-5 rounded-full bg-[var(--bg-tertiary)] text-[9px] font-semibold text-[var(--text-secondary)] flex items-center justify-center border-2 border-[var(--bg-primary)] tabular-nums"
+          title={`${overflow} more here`}
+        >
+          +{overflow}
+        </div>
+      )}
+    </div>
+  )
 }

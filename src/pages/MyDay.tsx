@@ -166,8 +166,9 @@ export default function MyDay() {
         </header>
       </FadeIn>
 
-      {/* Three primary cards — stagger left to right, 80ms apart */}
-      <Stagger staggerMs={80} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* Three primary cards — stack on phone, side-by-side at lg. Smaller
+          gap on mobile so the cards don't push the fold too far down. */}
+      <Stagger staggerMs={80} className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
         <StaggerItem>
           <DueTodayCard
             loading={loading}

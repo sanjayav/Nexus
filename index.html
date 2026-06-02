@@ -9,10 +9,23 @@
     <link rel="preconnect" href="https://rsms.me/" />
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <title>Nexus — Sustainability Intelligence Platform</title>
-    <meta name="description" content="Nexus — Sustainability Intelligence Platform. Powered by Aeiforo." />
+    <title>Nexus — Sustainability Intelligence Platform · by Aeiforo</title>
+    <meta name="description" content="Nexus turns sustainability data into auditor-ready disclosures across CSRD, ISSB, GRI, TCFD, CDP and more — every framework, one dataset." />
+    <meta name="theme-color" content="#10B981" />
+
+    <!-- Open Graph / social sharing -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Nexus — Sustainability Intelligence Platform" />
+    <meta property="og:description" content="Every framework. One dataset. The reporting platform that turns sustainability data into auditor-ready disclosures." />
+    <meta property="og:site_name" content="Nexus by Aeiforo" />
+    <meta property="og:url" content="https://nexus.aeiforo.co.uk/" />
+
+    <!-- Twitter card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Nexus — Sustainability Intelligence Platform" />
+    <meta name="twitter:description" content="Every framework. One dataset. Auditor-ready disclosures across CSRD, ISSB, GRI, TCFD, CDP and more." />
     <script>
-      // Apply persisted theme before first paint to avoid flash.
+      // Apply persisted theme + color mode before first paint to avoid flash.
       (function() {
         try {
           var t = localStorage.getItem('nexus-theme');
@@ -20,11 +33,24 @@
             document.documentElement.setAttribute('data-theme', t);
           }
         } catch (e) {}
+        try {
+          var m = localStorage.getItem('aeiforo_color_mode') || 'auto';
+          var resolved = m;
+          if (m === 'auto') {
+            resolved = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark' : 'light';
+          }
+          if (resolved === 'light' || resolved === 'dark') {
+            document.documentElement.setAttribute('data-color-mode', resolved);
+          }
+        } catch (e) {}
       })();
     </script>
     <style>
       html { background-color: #F4F6F8; }
       html[data-theme='glass'] { background-color: #FAFAF8; }
+      html[data-color-mode='light'] { background-color: #FAFBFC; }
+      html[data-color-mode='dark']  { background-color: #0B0E13; }
     </style>
   </head>
   <body>

@@ -283,11 +283,12 @@ export default function AnomalyDetection() {
               No anomalies match these filters.
             </div>
           ) : (
-            <table className="w-full text-[12.5px]">
+            <div className="overflow-x-auto">
+            <table className="w-full text-[12.5px] min-w-[820px]">
               <thead>
                 <tr className="text-left text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)]">
                   <th className="px-3 py-2">Severity</th>
-                  <th className="px-3 py-2">Title</th>
+                  <th className="px-3 py-2 sticky left-0 bg-[var(--bg-primary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">Title</th>
                   <th className="px-3 py-2">Facility</th>
                   <th className="px-3 py-2">Metric</th>
                   <th className="px-3 py-2 text-right">Expected → Actual</th>
@@ -309,11 +310,11 @@ export default function AnomalyDetection() {
                     sev === 'warn' ? 'var(--accent-amber)' : 'var(--accent-blue)'
                   const isBusy = busyKey === key
                   return (
-                    <tr key={key} className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">
+                    <tr key={key} className="group/row border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">
                       <td className="px-3 py-2">
                         <span className="chip" style={{ background: sevBg, color: sevFg, fontWeight: 600 }}>{sev}</span>
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 sticky left-0 bg-[var(--bg-primary)] group-hover/row:bg-[var(--bg-secondary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">
                         <div className="font-semibold text-[var(--text-primary)]">{a.headline}</div>
                         <div className="text-[11px] text-[var(--text-tertiary)]">{labelForType(a.anomaly_type)}</div>
                       </td>
@@ -364,6 +365,7 @@ export default function AnomalyDetection() {
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </section>
@@ -463,11 +465,12 @@ function PersistedAnomaliesPanel() {
         ) : !rows || rows.length === 0 ? (
           <div className="py-12 text-center text-[12.5px] text-[var(--text-tertiary)]">No persisted anomalies in this workspace.</div>
         ) : (
-          <table className="w-full text-[12.5px]">
+          <div className="overflow-x-auto">
+          <table className="w-full text-[12.5px] min-w-[720px]">
             <thead>
               <tr className="text-left text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)]">
                 <th className="px-3 py-2">Severity</th>
-                <th className="px-3 py-2">Title / Facility</th>
+                <th className="px-3 py-2 sticky left-0 bg-[var(--bg-primary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">Title / Facility</th>
                 <th className="px-3 py-2">Metric</th>
                 <th className="px-3 py-2 text-right">Expected → Actual</th>
                 <th className="px-3 py-2 text-right">Δ%</th>
@@ -483,11 +486,11 @@ function PersistedAnomaliesPanel() {
                 const n = narratives[r.id]
                 return (
                   <Fragment key={r.id}>
-                    <tr className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">
+                    <tr className="group/persisted border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">
                       <td className="px-3 py-2">
                         <span className="chip" style={{ background: sevBg, color: sevFg, fontWeight: 600 }}>{sev}</span>
                       </td>
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2 sticky left-0 bg-[var(--bg-primary)] group-hover/persisted:bg-[var(--bg-secondary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">
                         <div className="font-semibold text-[var(--text-primary)]">{r.title}</div>
                         <div className="text-[11px] text-[var(--text-tertiary)]">{r.facility_name ?? 'No facility'} · Scope {r.scope ?? '—'}</div>
                       </td>
@@ -580,6 +583,7 @@ function PersistedAnomaliesPanel() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </>

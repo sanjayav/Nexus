@@ -25,6 +25,12 @@ export interface DisclosureCellRailProps {
   /** Workflow status transition. Caller refreshes state on success. */
   onWorkflowAction: (action: 'submit' | 'approve' | 'reject') => Promise<void>
   workflowBusy?: boolean
+  /**
+   * Layout variant. `desktop` (default) keeps the historical `hidden xl:flex`
+   * sticky rail. `inline` drops the responsive gating + the sticky positioning
+   * so the mobile editor shell can mount the same surface inside a tab pane.
+   */
+  variant?: 'desktop' | 'inline'
 }
 
 const STATUS_LABEL: Record<QuestionAssignment['status'], string> = {
@@ -46,16 +52,22 @@ const STATUS_PILL: Record<QuestionAssignment['status'], string> = {
 }
 
 export default function DisclosureCellRail({
-  item, assignment, onWorkflowAction, workflowBusy = false,
+  item, assignment, onWorkflowAction, workflowBusy = false, variant = 'desktop',
 }: DisclosureCellRailProps) {
+  const inline = variant === 'inline'
+  const asideClass = inline
+    ? 'flex flex-col w-full h-full bg-[var(--bg-primary)] overflow-y-auto'
+    : 'hidden xl:flex flex-col w-[340px] flex-shrink-0 border-l border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 sticky top-[68px] self-start overflow-y-auto'
+  const asideStyle = inline ? undefined : { height: 'calc(100vh - 68px)' }
+
   return (
     <aside
-      className="hidden xl:flex flex-col w-[340px] flex-shrink-0 border-l border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 sticky top-[68px] self-start overflow-y-auto"
-      style={{ height: 'calc(100vh - 68px)' }}
+      className={asideClass}
+      style={asideStyle}
       aria-label="Cell detail"
     >
       {!item ? (
-        <div className="flex flex-col items-center justify-center h-full px-6 text-center text-[var(--text-sm)] text-[var(--text-tertiary)]">
+        <div className="flex flex-col items-center justify-center h-full px-6 py-12 text-center text-[var(--text-sm)] text-[var(--text-tertiary)]">
           <div className="w-10 h-10 mb-3 rounded-full bg-[var(--bg-tertiary)] flex items-center justify-center">
             <FileText className="w-4 h-4 text-[var(--text-tertiary)]" />
           </div>

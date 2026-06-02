@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Bookmark, Plus, Star, Trash2, Users, X } from 'lucide-react'
 import { orgStore, type SavedView } from '../lib/orgStore'
 
@@ -33,13 +34,19 @@ export default function SavedViewsBar<F>({ page, filters, onApply, onDefaultAppl
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const appliedDefault = useRef(false)
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const refresh = async () => {
     try {
       const rows = await orgStore.listSavedViews(page)
       setViews(rows)
       if (!appliedDefault.current) {
-        const def = rows.find(v => v.is_default && v.owned_by_me) ?? rows.find(v => v.is_default)
+        // URL deep-link wins over default: if `?view=<id>` is in the URL we
+        // apply that view first so a shared link lands on the same slice
+        // the sender saw, regardless of the recipient's preferred default.
+        const urlViewId = searchParams.get('view')
+        const fromUrl = urlViewId ? rows.find(v => v.id === urlViewId) : undefined
+        const def = fromUrl ?? rows.find(v => v.is_default && v.owned_by_me) ?? rows.find(v => v.is_default)
         if (def) {
           onApply(def.filters as F)
           setActiveId(def.id)
@@ -61,6 +68,17 @@ export default function SavedViewsBar<F>({ page, filters, onApply, onDefaultAppl
     onApply(v.filters as F)
     setActiveId(v.id)
     setMenuOpenId(null)
+    // Reflect the active view in the URL so the current state is shareable.
+    const next = new URLSearchParams(searchParams)
+    next.set('view', v.id)
+    setSearchParams(next, { replace: true })
+  }
+
+  const clearView = () => {
+    setActiveId(null)
+    const next = new URLSearchParams(searchParams)
+    next.delete('view')
+    setSearchParams(next, { replace: true })
   }
 
   const handleSave = async (input: { name: string; is_shared: boolean; is_default: boolean }) => {
@@ -73,6 +91,9 @@ export default function SavedViewsBar<F>({ page, filters, onApply, onDefaultAppl
       })
       setActiveId(created.id)
       setDialogOpen(false)
+      const next = new URLSearchParams(searchParams)
+      next.set('view', created.id)
+      setSearchParams(next, { replace: true })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed')
     }
@@ -83,7 +104,12 @@ export default function SavedViewsBar<F>({ page, filters, onApply, onDefaultAppl
     try {
       await orgStore.deleteSavedView(v.id)
       setViews(vs => vs.filter(x => x.id !== v.id))
-      if (activeId === v.id) setActiveId(null)
+      if (activeId === v.id) {
+        setActiveId(null)
+        const next = new URLSearchParams(searchParams)
+        next.delete('view')
+        setSearchParams(next, { replace: true })
+      }
       setMenuOpenId(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Delete failed')
@@ -97,7 +123,7 @@ export default function SavedViewsBar<F>({ page, filters, onApply, onDefaultAppl
       </span>
       <button
         type="button"
-        onClick={() => { setActiveId(null) }}
+        onClick={clearView}
         className={`chip ${activeId === null ? 'chip-active' : ''}`}
       >
         Default

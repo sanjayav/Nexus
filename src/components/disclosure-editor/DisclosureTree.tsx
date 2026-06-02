@@ -33,6 +33,12 @@ export interface DisclosureTreeProps {
    * "Contents" toggle that opens a collapsible drawer overlay instead.
    */
   readingMode?: boolean
+  /**
+   * Render variant. `desktop` (default) keeps the historical `hidden lg:flex`
+   * sticky rail. `inline` drops the responsive gating so the mobile editor
+   * shell can mount the same tree inside a tab pane at any width.
+   */
+  variant?: 'desktop' | 'inline'
 }
 
 function statusIcon(completed: number, total: number) {
@@ -47,6 +53,7 @@ export default function DisclosureTree({
   activeSubsectionId,
   onSelect,
   readingMode = false,
+  variant = 'desktop',
 }: DisclosureTreeProps) {
   const [query, setQuery] = useState('')
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
@@ -196,6 +203,17 @@ export default function DisclosureTree({
           </>
         )}
       </>
+    )
+  }
+
+  if (variant === 'inline') {
+    return (
+      <aside
+        className="flex flex-col w-full h-full bg-[var(--bg-primary)]/60"
+        aria-label="Disclosure tree"
+      >
+        {body()}
+      </aside>
     )
   }
 

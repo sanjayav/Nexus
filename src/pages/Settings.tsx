@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Check, Palette, Calendar, BookMarked, Clock, Plus, Download, ShieldCheck, Loader2, LayoutDashboard } from 'lucide-react'
+import { Check, Palette, Calendar, BookMarked, Clock, Plus, Download, ShieldCheck, Loader2, LayoutDashboard, SunMoon } from 'lucide-react'
 import { useTheme, type Theme } from '../theme/ThemeContext'
 import { FRAMEWORKS, useFramework } from '../lib/frameworks'
 import { useDensity } from '../lib/density'
 import { orgStore } from '../lib/orgStore'
 import MfaSection from '../components/MfaSection'
 import PageHeader from '../components/PageHeader'
+import ThemeToggle from '../components/ThemeToggle'
 
 interface ThemeOption {
   value: Theme
@@ -244,39 +245,56 @@ export default function Settings() {
           </h2>
         </div>
         <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
-          Tune how much information fits on each screen. Comfortable is the recommended default;
-          Compact lets power users squeeze more rows into a single view.
+          Tune appearance and information density. Light is paper-clean for daytime; dark is
+          easier on the eyes after hours. Comfortable suits review; Compact lets power users
+          squeeze more rows into a single view.
         </p>
 
-        <div className="p-4 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)]">
-          <div className="text-[var(--text-sm)] font-medium text-[var(--text-primary)]">Density</div>
-          <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-0.5 mb-3">
-            Applies instantly across the whole workspace.
+        <div className="p-4 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] space-y-5">
+          {/* Color mode — light / auto / dark */}
+          <div>
+            <div className="flex items-center gap-2 text-[var(--text-sm)] font-medium text-[var(--text-primary)]">
+              <SunMoon className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+              Appearance
+            </div>
+            <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-0.5 mb-3">
+              Light is paper-clean for daytime work. Auto follows your OS preference and switches
+              when your system flips between light and dark.
+            </div>
+            <ThemeToggle />
           </div>
-          <div
-            role="radiogroup"
-            aria-label="Display density"
-            className="inline-flex border border-[var(--border-default)] rounded-[var(--radius-md)] p-1 bg-[var(--bg-secondary)]"
-          >
-            {(['comfortable', 'compact'] as const).map(value => {
-              const active = density === value
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  onClick={() => setDensity(value)}
-                  className={`text-[var(--text-xs)] font-semibold h-8 px-3 rounded-[var(--radius-sm)] transition-colors ${
-                    active
-                      ? 'bg-[var(--color-brand)] text-white shadow-sm'
-                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  {value === 'comfortable' ? 'Comfortable' : 'Compact'}
-                </button>
-              )
-            })}
+
+          {/* Density */}
+          <div className="border-t border-[var(--border-subtle)] pt-4">
+            <div className="text-[var(--text-sm)] font-medium text-[var(--text-primary)]">Density</div>
+            <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-0.5 mb-3">
+              Applies instantly across the whole workspace.
+            </div>
+            <div
+              role="radiogroup"
+              aria-label="Display density"
+              className="inline-flex border border-[var(--border-default)] rounded-[var(--radius-md)] p-1 bg-[var(--bg-secondary)]"
+            >
+              {(['comfortable', 'compact'] as const).map(value => {
+                const active = density === value
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setDensity(value)}
+                    className={`text-[var(--text-xs)] font-semibold h-8 px-3 rounded-[var(--radius-sm)] transition-colors ${
+                      active
+                        ? 'bg-[var(--color-brand)] text-white shadow-sm'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                    }`}
+                  >
+                    {value === 'comfortable' ? 'Comfortable' : 'Compact'}
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
       </section>

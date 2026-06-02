@@ -233,7 +233,7 @@ export default function AssignmentManager() {
         />
       )}
 
-      <div className="grid grid-cols-4 gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         <Stat label="Total" value={stats.total} tone="neutral" />
         <Stat label="Approved" value={stats.approved} tone="ok" />
         <Stat label="In review" value={stats.inFlight} tone="pending" />
@@ -342,10 +342,11 @@ export default function AssignmentManager() {
         />
       ) : (
         <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] overflow-hidden">
-          <table className="w-full text-[var(--text-sm)]">
+          <div className="overflow-x-auto">
+          <table className="w-full text-[var(--text-sm)] min-w-[900px]">
             <thead>
               <tr className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] bg-[var(--bg-secondary)]">
-                <th scope="col" className="text-left px-4 py-2.5 font-semibold">GRI · Line item</th>
+                <th scope="col" className="text-left px-4 py-2.5 font-semibold sticky left-0 bg-[var(--bg-secondary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">GRI · Line item</th>
                 <th scope="col" className="text-left px-4 py-2.5 font-semibold">Plant / entity</th>
                 <th scope="col" className="text-left px-4 py-2.5 font-semibold">Assignee</th>
                 <th scope="col" className="text-left px-3 py-2.5 font-semibold">Mode</th>
@@ -365,8 +366,8 @@ export default function AssignmentManager() {
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.18, delay: Math.min(idx, 12) * 0.025 }}
-                    className="hover:bg-[var(--bg-secondary)]">
-                    <td className="px-4 py-3">
+                    className="group/arow hover:bg-[var(--bg-secondary)]">
+                    <td className="px-4 py-3 sticky left-0 bg-[var(--bg-primary)] group-hover/arow:bg-[var(--bg-secondary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">
                       <div className="text-[10px] font-semibold text-[var(--color-brand)]">{a.gri_code}</div>
                       <div className="text-[var(--text-sm)] text-[var(--text-primary)] font-medium truncate max-w-[320px]">{a.line_item}</div>
                     </td>
@@ -427,13 +428,14 @@ export default function AssignmentManager() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {/* Drawer */}
       {drawerOpen && (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/40 animate-fade-in" onClick={() => setDrawerOpen(false)}>
-          <div className="w-[520px] h-full bg-[var(--bg-primary)] shadow-2xl p-6 overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="w-full sm:w-[520px] sm:max-w-[90vw] h-full bg-[var(--bg-primary)] shadow-2xl p-4 sm:p-6 overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-display text-[var(--text-xl)] font-bold text-[var(--text-primary)]">New assignment</h2>
               <button onClick={() => setDrawerOpen(false)} className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">✕</button>

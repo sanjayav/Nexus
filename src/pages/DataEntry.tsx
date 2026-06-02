@@ -275,7 +275,7 @@ export default function DataEntry() {
   return (
     <div>
       {/* Top breadcrumb */}
-      <div className="flex items-center justify-between mb-6 sticky top-0 z-10 -mx-8 px-8 py-3 backdrop-blur-md" style={{ background: 'rgba(247,248,250,0.75)', borderBottom: '1px solid var(--border-subtle)' }}>
+      <div className="topbar-surface flex items-center justify-between mb-6 sticky top-0 z-10 -mx-8 px-8 py-3">
         <button
           onClick={() => navigate('/data/entry')}
           className="inline-flex items-center gap-2 text-[13px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors group"

@@ -60,6 +60,13 @@ const WorkCalendar = lazy(() => import('./pages/WorkCalendar'))
 const EvidenceLibrary = lazy(() => import('./pages/EvidenceLibrary'))
 const FrameworkQuestions = lazy(() => import('./pages/FrameworkQuestions'))
 const DisclosureEditor = lazy(() => import('./pages/DisclosureEditor'))
+// Public marketing surface — landing + sub-pages for unauthenticated visitors.
+// Kept lazy so logged-in users don't pay the bytes unless they hit /about etc.
+const Landing = lazy(() => import('./pages/Landing'))
+const About = lazy(() => import('./pages/About'))
+const Features = lazy(() => import('./pages/Features'))
+const Pricing = lazy(() => import('./pages/Pricing'))
+const Contact = lazy(() => import('./pages/Contact'))
 import { useAuth } from './auth/AuthContext'
 import { homeRouteFor } from './lib/rbac'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -115,6 +122,34 @@ function AppRoutes() {
   if (location.pathname === '/login') {
     if (isAuthenticated) return <Navigate to={home} replace />
     return <Login />
+  }
+
+  // Public marketing surface — Landing replaces the empty "/" for logged-out
+  // visitors. Sub-pages render for everyone (logged in OR out) so existing
+  // users can still hit /pricing for billing reference. The authed AppShell
+  // sits behind these; we mount the marketing pages outside it.
+  const MARKETING_PATHS = new Set(['/about', '/features', '/pricing', '/contact'])
+  if (MARKETING_PATHS.has(location.pathname)) {
+    return (
+      <Suspense fallback={<RouteLoader />}>
+        <Routes>
+          <Route path="/about"    element={<About />} />
+          <Route path="/features" element={<Features />} />
+          <Route path="/pricing"  element={<Pricing />} />
+          <Route path="/contact"  element={<Contact />} />
+        </Routes>
+      </Suspense>
+    )
+  }
+  // Unauthenticated visitors landing on "/" see the marketing landing page
+  // instead of being bounced to /login. Authed users keep the existing
+  // MyDay home (handled by the protected route below).
+  if (location.pathname === '/' && !isAuthenticated) {
+    return (
+      <Suspense fallback={<RouteLoader />}>
+        <Landing />
+      </Suspense>
+    )
   }
 
   // Public password-reset flows — outside the authed AppShell so anyone with

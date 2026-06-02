@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { Search, LogOut, ChevronDown, Command, Globe, Plus, ClipboardList, Paperclip, UserCog, FileText, Sparkles } from 'lucide-react'
+import { Search, LogOut, ChevronDown, Command, Globe, Plus, ClipboardList, Paperclip, UserCog, FileText, Sparkles, Menu } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { FrameworkSelector } from '../../components/FrameworkBadge'
 import NotificationsBell from '../../components/NotificationsBell'
-import { useOpenPalette } from '../../components/AppShell'
+import { useOpenPalette, useMobileNav } from '../../components/AppShell'
+import ThemeToggle from '../../components/ThemeToggle'
 
 const routeLabels: Record<string, { title: string; section?: string }> = {
   // Work
@@ -65,23 +66,30 @@ export default function TopBar() {
   const firstName = user?.name?.split(' ')[0] || 'there'
   const route = routeLabels[location.pathname]
   const openPalette = useOpenPalette()
+  const mobileNav = useMobileNav()
 
   return (
     <header
-      className="h-[52px] flex items-center justify-between px-6 sticky top-0 z-30 flex-shrink-0 relative"
-      style={{
-        background: 'rgba(247,248,250,0.85)',
-        backdropFilter: 'saturate(160%) blur(12px)',
-        WebkitBackdropFilter: 'saturate(160%) blur(12px)',
-        borderBottom: '1px solid var(--border-subtle)',
-      }}
+      className="topbar-surface h-[52px] flex items-center justify-between px-3 sm:px-4 lg:px-6 gap-2 sticky top-0 z-30 flex-shrink-0 relative"
     >
-      {/* Left — breadcrumb */}
-      <div className="flex items-center gap-2 min-w-0">
+      {/* Left — hamburger (mobile only) + breadcrumb */}
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        {mobileNav.isMobile && (
+          <button
+            type="button"
+            onClick={() => mobileNav.setOpen(!mobileNav.open)}
+            aria-label={mobileNav.open ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={mobileNav.open}
+            aria-controls="mobile-nav-drawer"
+            className="w-10 h-10 -ml-1 flex items-center justify-center rounded-[8px] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors flex-shrink-0"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
         {route?.section && (
           <>
-            <span className="text-[12.5px] text-[var(--text-tertiary)] font-medium">{route.section}</span>
-            <span className="text-[var(--text-quaternary)] text-[10px]">/</span>
+            <span className="hidden sm:inline text-[12.5px] text-[var(--text-tertiary)] font-medium">{route.section}</span>
+            <span className="hidden sm:inline text-[var(--text-quaternary)] text-[10px]">/</span>
           </>
         )}
         <span className="text-[14px] font-semibold text-[var(--text-primary)] tracking-[-0.01em] truncate">
@@ -90,25 +98,28 @@ export default function TopBar() {
       </div>
 
       {/* Right */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
         {/* Framework selector */}
-        <FrameworkSelector size="sm" />
+        <div className="hidden md:block">
+          <FrameworkSelector size="sm" />
+        </div>
 
         {/* Universal create */}
         <NewMenu />
 
-        <div className="w-px h-5 bg-[var(--border-default)] mx-1" />
+        <div className="hidden sm:block w-px h-5 bg-[var(--border-default)] mx-1" />
 
-        {/* Search (command palette style) */}
+        {/* Search (command palette style). On mobile collapses to icon-only,
+            preserving the 44×44 touch target. */}
         <button
           data-tour="topbar-search"
           onClick={openPalette}
-          className="flex items-center gap-2 h-8 pl-3 pr-1.5 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-tertiary)] hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)] transition-colors duration-[120ms] ease-[var(--ease-out-expo)] cursor-pointer"
+          className="flex items-center gap-2 h-10 sm:h-8 w-10 sm:w-auto justify-center sm:pl-3 sm:pr-1.5 rounded-[8px] sm:border sm:border-[var(--border-default)] sm:bg-[var(--bg-primary)] text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] sm:hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)] transition-colors duration-[120ms] ease-[var(--ease-out-expo)] cursor-pointer"
           aria-label="Open command palette"
         >
-          <Search className="w-3.5 h-3.5" />
-          <span className="text-[12.5px] hidden sm:inline font-medium">Search or jump to…</span>
-          <span className="hidden sm:flex items-center gap-0.5 ml-3 kbd">
+          <Search className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+          <span className="text-[12.5px] hidden md:inline font-medium">Search or jump to…</span>
+          <span className="hidden md:flex items-center gap-0.5 ml-3 kbd">
             <Command className="w-2.5 h-2.5" />K
           </span>
         </button>
@@ -116,14 +127,20 @@ export default function TopBar() {
         {/* Language switcher */}
         <LanguageSwitcher />
 
+        {/* Color theme toggle — light / auto / dark. Hidden on the smallest
+            screens (it lives in Settings → Display) to keep the bar uncluttered. */}
+        <div className="hidden lg:block">
+          <ThemeToggle size="compact" />
+        </div>
+
         {/* Live notifications */}
         <NotificationsBell />
 
         {/* Divider */}
-        <div className="w-px h-5 bg-[var(--border-default)] mx-1" />
+        <div className="hidden sm:block w-px h-5 bg-[var(--border-default)] mx-1" />
 
         {/* User menu */}
-        <button className="flex items-center gap-2 h-8 pl-0.5 pr-2 rounded-[8px] hover:bg-[var(--bg-hover)] transition-all cursor-pointer">
+        <button className="flex items-center gap-2 h-10 sm:h-8 pl-0.5 pr-2 rounded-[8px] hover:bg-[var(--bg-hover)] transition-all cursor-pointer">
           <div
             className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
             style={{
@@ -136,10 +153,10 @@ export default function TopBar() {
           <ChevronDown className="w-3 h-3 text-[var(--text-tertiary)]" />
         </button>
 
-        {/* Logout */}
+        {/* Logout — hidden on mobile (drawer already shows a sign-out affordance) */}
         <button
           onClick={logout}
-          className="w-8 h-8 flex items-center justify-center rounded-[8px] text-[var(--text-tertiary)] hover:text-[var(--accent-red)] hover:bg-[var(--accent-red-light)] transition-all cursor-pointer"
+          className="hidden sm:flex w-8 h-8 items-center justify-center rounded-[8px] text-[var(--text-tertiary)] hover:text-[var(--accent-red)] hover:bg-[var(--accent-red-light)] transition-all cursor-pointer"
           title="Sign out"
         >
           <LogOut className="w-4 h-4" />
@@ -204,9 +221,9 @@ function NewMenu() {
         title="Create something new (n)"
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex items-center gap-1.5 h-8 pl-2 pr-2.5 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] transition-colors text-[12.5px] font-semibold cursor-pointer"
+        className="flex items-center justify-center gap-1.5 h-10 sm:h-8 w-10 sm:w-auto sm:pl-2 sm:pr-2.5 rounded-[8px] sm:border sm:border-[var(--border-default)] sm:bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] sm:hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] transition-colors text-[12.5px] font-semibold cursor-pointer"
       >
-        <Plus className="w-3.5 h-3.5" />
+        <Plus className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
         <span className="hidden sm:inline">New</span>
       </button>
       {open && (

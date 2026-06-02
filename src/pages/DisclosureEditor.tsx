@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Component, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react'
 import {
@@ -15,6 +16,9 @@ import DisclosureProgressBar, { type DisclosureWorkflowStatus } from '../compone
 import DisclosureTree, { type DisclosureTreeSubsection } from '../components/disclosure-editor/DisclosureTree'
 import DisclosureDocument, { type DisclosureDocumentCellState } from '../components/disclosure-editor/DisclosureDocument'
 import DisclosureCellRail from '../components/disclosure-editor/DisclosureCellRail'
+import MobileEditorShell from '../components/disclosure-editor/MobileEditorShell'
+import { RoomProvider, roomIdFor } from '../lib/liveblocks'
+import { useIsBelowLg } from '../lib/breakpoints'
 
 const ACTIVE_REPORTING_YEAR_ID = '11000000-0000-0000-0000-000000000026'
 const ACTIVE_YEAR = 2026
@@ -48,6 +52,7 @@ export default function DisclosureEditor() {
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
   const [readingMode, setReadingMode] = useState(false)
   const [linkedPeersByItem, setLinkedPeersByItem] = useState<Record<string, ConceptPeer[]>>({})
+  const isBelowLg = useIsBelowLg()
   const [activeCellId, setActiveCellId] = useState<string | null>(searchParams.get('cell'))
   const [activeSubsectionId, setActiveSubsectionId] = useState<string | null>(null)
   const [cellSaveStates, setCellSaveStates] = useState<Record<string, DisclosureDocumentCellState>>({})
@@ -359,8 +364,35 @@ export default function DisclosureEditor() {
   const activeAssignment = activeCellId ? assignmentByItem.get(activeCellId) ?? null : null
   const canEdit = hasPermission(permissions, 'data.upload') && !!user
 
-  return (
-    <div className="flex flex-col h-[calc(100vh-68px)] -mx-6 -my-6">
+  // Shared props for the three panes — kept in objects so the mobile shell
+  // can forward them without duplicating wiring or business logic.
+  const treeProps = {
+    subsections,
+    activeSubsectionId,
+    onSelect: handleTreeSelect,
+    readingMode,
+  }
+  const documentProps = {
+    subsectionId: activeSubsectionId,
+    items: state.items,
+    cellState,
+    activeCellId,
+    onActiveCellChange: setActiveCellId,
+    onSave: handleSave,
+    readingMode,
+    canEdit,
+    registerSectionAnchor,
+    linkedPeersByItem,
+  }
+  const railProps = {
+    item: activeItem,
+    assignment: activeAssignment,
+    onWorkflowAction: handleWorkflowAction,
+    workflowBusy,
+  }
+
+  const editorContent = (
+    <div className="flex flex-col h-[calc(100vh-68px)] -mx-4 -my-5 sm:-mx-6 sm:-my-6 lg:-mx-8 lg:-my-7">
       <DisclosureProgressBar
         frameworkName={framework.name}
         frameworkCode={framework.code}
@@ -374,38 +406,75 @@ export default function DisclosureEditor() {
         publishing={publishing}
       />
 
-      <div className="flex-1 flex min-h-0 overflow-hidden">
-        <DisclosureTree
-          subsections={subsections}
-          activeSubsectionId={activeSubsectionId}
-          onSelect={handleTreeSelect}
-          readingMode={readingMode}
+      {/* Mobile: single-pane tabbed shell. Below lg the desktop three-pane
+          row would overflow horizontally even with min-w-0 because the rail
+          is a fixed 340px. The mobile shell keeps the same data flow but
+          renders one pane at a time. */}
+      {isBelowLg ? (
+        <MobileEditorShell
+          treeProps={treeProps}
+          documentProps={documentProps}
+          railProps={railProps}
+          showDetails={!readingMode}
         />
-
-        <DisclosureDocument
-          subsectionId={activeSubsectionId}
-          items={state.items}
-          cellState={cellState}
-          activeCellId={activeCellId}
-          onActiveCellChange={setActiveCellId}
-          onSave={handleSave}
-          readingMode={readingMode}
-          canEdit={canEdit}
-          registerSectionAnchor={registerSectionAnchor}
-          linkedPeersByItem={linkedPeersByItem}
-        />
-
-        {!readingMode && (
-          <DisclosureCellRail
-            item={activeItem}
-            assignment={activeAssignment}
-            onWorkflowAction={handleWorkflowAction}
-            workflowBusy={workflowBusy}
-          />
-        )}
-      </div>
+      ) : (
+        <div className="flex-1 flex min-h-0 overflow-hidden">
+          <DisclosureTree {...treeProps} />
+          <DisclosureDocument {...documentProps} />
+          {!readingMode && <DisclosureCellRail {...railProps} />}
+        </div>
+      )}
     </div>
   )
+
+  // Wrap in a Liveblocks RoomProvider so the in-room presence hooks light up.
+  // The room id is org-scoped (`nexus:<orgId>:framework:<frameworkId>`) so
+  // two organisations can never collide. If the user has no orgId (impossible
+  // for authenticated users, but typed as optional), fall back to `anon` —
+  // a uniquely-named room that they'd effectively be alone in.
+  //
+  // Wrapped in `<CollabBoundary>` so that if Liveblocks itself throws — bad
+  // env var, network outage, future SDK regression — the editor still renders.
+  const orgId = user?.tenantId ?? 'anon'
+  const roomId = roomIdFor(frameworkId, orgId)
+  return (
+    <CollabBoundary fallback={editorContent}>
+      <RoomProvider
+        id={roomId}
+        initialPresence={{
+          userId: user?.id ?? null,
+          name: user?.name ?? user?.email ?? 'Unknown',
+          email: user?.email ?? '',
+          color: '',  // server-issued via userInfo — local presence stays empty
+          activeCellId: activeCellId,
+          selectionAt: Date.now(),
+        }}
+      >
+        {editorContent}
+      </RoomProvider>
+    </CollabBoundary>
+  )
+}
+
+/**
+ * Tiny error boundary scoped to the realtime-collab layer. If `RoomProvider`
+ * or any descendant collab hook throws, we silently render the non-collab
+ * `fallback` instead of nuking the whole editor. Failures are logged in dev
+ * only — production users see the editor working normally, just without
+ * presence avatars.
+ */
+class CollabBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
+  state = { failed: false }
+  static getDerivedStateFromError() { return { failed: true } }
+  componentDidCatch(err: Error) {
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line no-console
+      console.warn('[disclosure-editor] realtime collab disabled:', err.message)
+    }
+  }
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children
+  }
 }
 
 /**

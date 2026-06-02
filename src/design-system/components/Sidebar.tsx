@@ -325,7 +325,7 @@ function ExpandedSection({
     <div>
       <button
         onClick={onToggle}
-        className={`w-full flex items-center gap-2.5 px-2.5 h-8 rounded-[6px] text-[11.5px] font-bold uppercase tracking-[0.08em] transition-colors duration-[120ms] ease-[var(--ease-out-expo)]
+        className={`w-full flex items-center gap-2.5 px-2.5 h-9 lg:h-8 min-h-[44px] lg:min-h-0 rounded-[6px] text-[11.5px] font-bold uppercase tracking-[0.08em] transition-colors duration-[120ms] ease-[var(--ease-out-expo)]
           ${isActive && !expanded
             ? 'bg-white/[0.05] text-white'
             : 'text-white/55 hover:text-white/85 hover:bg-white/[0.04]'
@@ -349,7 +349,9 @@ function ExpandedSection({
       <div
         className="overflow-hidden transition-[max-height,opacity] duration-250 ease-[var(--ease-out-expo)]"
         style={{
-          maxHeight: expanded ? `${items.length * 40 + 8}px` : 0,
+          // 48px-per-row accommodates the 44px touch target plus row gap on
+          // mobile; harmless on desktop where rows only need ~32px.
+          maxHeight: expanded ? `${items.length * 48 + 12}px` : 0,
           opacity: expanded ? 1 : 0,
         }}
       >
@@ -395,7 +397,7 @@ function AdminTray({
       </button>
       <div
         className="overflow-hidden transition-[max-height,opacity] duration-250"
-        style={{ maxHeight: open ? `${items.length * 32 + 8}px` : 0, opacity: open ? 1 : 0 }}
+        style={{ maxHeight: open ? `${items.length * 48 + 12}px` : 0, opacity: open ? 1 : 0 }}
       >
         <div className="pt-0.5 pl-[11px]" style={{ borderLeft: '1px solid rgba(255,255,255,0.06)', marginLeft: '18px' }}>
           {items.map(it => <ChildItem key={it.path} item={it} badges={{ myTasks: 0, reviewQueue: 0, approvalQueue: 0, anomalies: 0 }} pathname={pathname} />)}
@@ -426,7 +428,7 @@ function ChildItem({ item, badges, pathname }: { item: NavItem; badges: BadgeMap
       to={item.path}
       end={item.path === '/'}
       data-tour={tourTag}
-      className={`group relative flex items-center gap-2 px-2.5 h-8 rounded-[6px] text-[12.5px] font-medium transition-colors duration-[120ms] ease-[var(--ease-out-expo)]
+      className={`group relative flex items-center gap-2 px-2.5 h-9 lg:h-8 min-h-[44px] lg:min-h-0 rounded-[6px] text-[13px] lg:text-[12.5px] font-medium transition-colors duration-[120ms] ease-[var(--ease-out-expo)]
         ${isActive
           ? 'bg-white/[0.08] text-white'
           : 'text-white/55 hover:text-white hover:bg-white/[0.04]'

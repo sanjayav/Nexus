@@ -176,13 +176,13 @@ export default function MyTasks() {
       </div>
 
       {/* Hero */}
-      <div className="rounded-[var(--radius-lg)] bg-gradient-to-br from-[var(--color-brand)] to-[var(--color-brand-strong)] text-white p-6 mb-5">
+      <div className="rounded-[var(--radius-lg)] bg-gradient-to-br from-[var(--color-brand)] to-[var(--color-brand-strong)] text-white p-4 sm:p-6 mb-5">
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
             <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] font-semibold text-white/70">
               <Sparkles className="w-3 h-3" /> {roleMeta.name}
             </div>
-            <h1 className="font-display text-[28px] font-bold mt-1">Hi {firstName} — here's what's on your plate.</h1>
+            <h1 className="font-display text-[22px] sm:text-[28px] font-bold mt-1">Hi {firstName} — here's what's on your plate.</h1>
             <p className="text-[var(--text-sm)] text-white/80 mt-1 max-w-xl">
               {stats.total === 0
                 ? 'You have no assigned questions yet. Once an admin or lead assigns you a GRI line item, it appears here.'
@@ -197,7 +197,7 @@ export default function MyTasks() {
         </div>
 
         {stats.total > 0 && (
-          <div className="grid grid-cols-4 gap-2 mt-5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-5">
             {([
               { key: 'pending', label: 'To do', value: stats.notStarted, icon: Clock },
               { key: 'in_progress', label: 'In progress', value: stats.inProgress, icon: PencilLine },
@@ -252,8 +252,10 @@ export default function MyTasks() {
         className="mb-3"
       />
 
-      {/* Tabs */}
-      <div role="toolbar" aria-label="Filter assignments" className="flex items-center gap-2 mb-4">
+      {/* Tabs — scroll horizontally on small screens instead of wrapping into
+          a chip-cloud, so the tab strip stays on one line and the active pill
+          remains visible after scroll. */}
+      <div role="toolbar" aria-label="Filter assignments" className="flex items-center gap-2 mb-4 overflow-x-auto -mx-page-x px-page-x pb-1 scrollbar-thin">
         {(['all', 'overdue', 'pending', 'in_progress', 'submitted', 'approved'] as FilterState[]).map(f => {
           const count = f === 'overdue' ? stats.overdue : null
           if (f === 'overdue' && stats.overdue === 0) return null
@@ -262,7 +264,7 @@ export default function MyTasks() {
               key={f}
               onClick={() => setFilter(f)}
               aria-pressed={filter === f}
-              className={`px-3 py-1.5 rounded-full text-[var(--text-xs)] font-semibold transition-colors inline-flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-full text-[var(--text-xs)] font-semibold transition-colors inline-flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 min-h-[36px] ${
                 filter === f
                   ? f === 'overdue'
                     ? 'bg-red-500 text-white'
@@ -387,7 +389,7 @@ function AssignmentRow({
         onClick={onToggle}
         aria-expanded={expanded}
         aria-label={`${assignment.gri_code} ${assignment.line_item} for ${entity?.name ?? 'unknown entity'}, status ${assignment.status}${overdue ? ', overdue' : ''}${assignment.due_date ? `, due ${assignment.due_date}` : ''}`}
-        className="w-full text-left p-4 flex items-center gap-4"
+        className="w-full text-left p-4 min-h-[64px] flex items-center gap-3 sm:gap-4 flex-wrap sm:flex-nowrap"
       >
         <span className="w-1 h-10 rounded-full flex-shrink-0" style={{ background: statusColor }} />
         <div className="min-w-0 flex-1">
@@ -599,7 +601,7 @@ function AnswerPanel({
   }
 
   return (
-    <div className="grid grid-cols-[1fr_280px] gap-5 mt-3">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-5 mt-3">
       {/* Main */}
       <div className="space-y-4">
         <div className="text-[var(--text-xs)] text-[var(--text-secondary)]">
@@ -660,7 +662,7 @@ function AnswerPanel({
           <div>
             <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand)] mb-1">{calculator.title}</div>
             <p className="text-[var(--text-xs)] text-[var(--text-secondary)] mb-3">{calculator.description}</p>
-            <div className={`grid gap-2 ${calculator.inputs.length >= 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+            <div className={`grid gap-2 ${calculator.inputs.length >= 3 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'}`}>
               {calculator.inputs.map(input => (
                 <label key={input.key} className="block">
                   <span className="block text-[9px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">
@@ -818,7 +820,7 @@ function NarrativeAnswerPanel({
   }
 
   return (
-    <div className="grid grid-cols-[1fr_280px] gap-5 mt-3">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-5 mt-3">
       <div className="space-y-4">
         <div className="text-[var(--text-xs)] text-[var(--text-secondary)]">
           <strong className="text-[var(--text-primary)]">Disclosure prompt:</strong> {question.line_item}

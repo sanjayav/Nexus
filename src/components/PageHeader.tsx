@@ -90,7 +90,9 @@ export default function PageHeader({
           <JourneyBar variant="compact" highlight={stage} />
         </motion.div>
       )}
-      <div className="flex items-start justify-between gap-6 flex-wrap">
+      {/* Stack vertically on mobile (< sm), side-by-side on tablet+. Mobile
+          actions sit below the description so the title/sub stay above-the-fold. */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6 sm:flex-wrap">
         <div className="min-w-0 flex-1">
           {eyebrow && (
             <motion.span
@@ -107,7 +109,7 @@ export default function PageHeader({
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...SPRING, delay: eyebrow ? 0.1 : 0.05 }}
             className={`text-display text-[var(--text-primary)] ${
-              variant === 'hero' ? 'text-[40px] md:text-[48px] mt-2' : 'text-[30px] md:text-[34px] mt-1.5'
+              variant === 'hero' ? 'text-[28px] sm:text-[40px] md:text-[48px] mt-2' : 'text-[22px] sm:text-[30px] md:text-[34px] mt-1.5'
             }`}
           >
             {title}
@@ -118,7 +120,7 @@ export default function PageHeader({
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...SPRING, delay: 0.15 }}
               className={`text-[var(--text-secondary)] max-w-2xl leading-relaxed ${
-                variant === 'hero' ? 'text-[16px] mt-3' : 'text-[14px] mt-2'
+                variant === 'hero' ? 'text-[14px] sm:text-[16px] mt-3' : 'text-[13px] sm:text-[14px] mt-2'
               }`}
             >
               {sub}
@@ -131,7 +133,7 @@ export default function PageHeader({
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...SPRING, delay: 0.15 }}
-            className="flex items-center gap-2 flex-shrink-0"
+            className="flex items-center gap-2 flex-shrink-0 flex-wrap [&>*]:flex-1 sm:[&>*]:flex-initial"
           >
             {actions}
           </motion.div>
