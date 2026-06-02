@@ -107,9 +107,13 @@ export default function AnomalyDetection() {
   return (
     <div className="space-y-8">
       <PageHeader
+        breadcrumbs={[
+          { label: 'Data', to: '/data' },
+          { label: 'Anomalies' },
+        ]}
         eyebrow="Quality"
-        title="Anomaly detection"
-        subtitle="Nine statistical and integrity rules running live across every disclosure in scope. Findings are severity-ranked, traceable to the disclosure, and fully dismissable with an audit-logged reason."
+        title="Anomalies"
+        description="Nine statistical and integrity rules running live across every disclosure in scope. Findings are severity-ranked, traceable to the disclosure, and fully dismissable with an audit-logged reason."
         actions={
           <div className="flex items-center gap-1.5">
             <ScopeTab active={scope === 'mine'} onClick={() => setScope('mine')}>Mine</ScopeTab>

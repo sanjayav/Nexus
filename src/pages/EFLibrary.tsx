@@ -20,13 +20,15 @@ import {
   Check,
   Info,
   Sparkles,
-  Database,
   Shield,
   ArrowUpRight,
   Loader2,
 } from 'lucide-react'
 import { Badge, Tabs, Button, Input } from '../design-system'
 import JargonTooltip from '../components/JargonTooltip'
+import PageHeader from '../components/PageHeader'
+import { SkeletonTable } from '../components/Skeleton'
+import { Stagger, StaggerItem } from '../components/MotionPrimitives'
 import { ai, type AiEfMatchResponse } from '../lib/api'
 
 /* ═══════════════════════════════════════════
@@ -201,36 +203,26 @@ export default function EFLibrary() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* ── Hero Header ── */}
-      <div className="animate-slide-up relative overflow-hidden rounded-2xl border border-[var(--border-default)] bg-[var(--bg-primary)] p-6">
-        <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{
-          background: 'radial-gradient(ellipse at 20% 50%, #0F7B6F 0%, transparent 50%), radial-gradient(ellipse at 80% 50%, #7C3AED 0%, transparent 50%)',
-        }} />
-        <div className="relative flex items-start justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center animate-float" style={{
-              background: 'linear-gradient(135deg, color-mix(in srgb, var(--accent-teal) 15%, transparent), color-mix(in srgb, var(--accent-blue) 10%, transparent))',
-              border: '1.5px solid color-mix(in srgb, var(--accent-teal) 25%, transparent)',
-            }}>
-              <Database className="w-7 h-7 text-[var(--accent-teal)]" />
-            </div>
-            <div>
-              <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">
-                <JargonTooltip term="EF" iconOnly /> Emission Factor Library
-              </h1>
-              <p className="mt-1 text-[var(--text-sm)] text-[var(--text-tertiary)]">
-                Live factors from DEFRA 2024, EPA 2024, <JargonTooltip term="IPCC AR5" iconOnly /> IPCC 2006 / AR5, IEA 2024 — versioned, region-tagged.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
+    <div className="page-container space-y-6 animate-fade-in">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Data', to: '/data' },
+          { label: 'Emission factors' },
+        ]}
+        title="Emission factors"
+        description={
+          <>
+            Live factors from DEFRA 2024, EPA 2024, <JargonTooltip term="IPCC AR5" iconOnly /> IPCC 2006 / AR5, IEA 2024 — versioned, region-tagged.
+          </>
+        }
+        actions={
+          <>
             <Button variant="secondary" size="sm" icon={<Download className="w-3.5 h-3.5" />}>Export</Button>
             <Button variant="secondary" size="sm" icon={<Upload className="w-3.5 h-3.5" />}>Import</Button>
             <Button size="sm" icon={<Plus className="w-3.5 h-3.5" />} onClick={() => setShowAddModal(true)}>Add Factor</Button>
-          </div>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* ── KPI Strip ── */}
       <div className="grid grid-cols-4 gap-4">
@@ -318,9 +310,7 @@ export default function EFLibrary() {
 
       {/* ── Loading / error / empty / list ── */}
       {loading ? (
-        <div className="py-16 flex items-center justify-center text-[var(--text-tertiary)] gap-2">
-          <Loader2 className="w-5 h-5 animate-spin" /> Loading factors…
-        </div>
+        <SkeletonTable rows={8} cols={6} />
       ) : loadError ? (
         <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-[var(--text-sm)] text-red-300">
           Couldn't load emission factors: {loadError}. Try running <code>/api/setup</code> first to seed the table.
@@ -334,19 +324,22 @@ export default function EFLibrary() {
           <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-1.5 max-w-sm mx-auto">Try adjusting your search or filter criteria.</p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {filtered.map((ef, idx) => (
-            <FactorRow
-              key={ef.id}
-              ef={ef}
-              index={idx}
-              isExpanded={expandedFactor === ef.id}
-              onToggle={() => setExpandedFactor(expandedFactor === ef.id ? null : ef.id)}
-              copiedId={copiedId}
-              onCopy={handleCopy}
-            />
-          ))}
-        </div>
+        <Stagger>
+          <div className="space-y-2">
+            {filtered.map((ef, idx) => (
+              <StaggerItem key={ef.id}>
+                <FactorRow
+                  ef={ef}
+                  index={idx}
+                  isExpanded={expandedFactor === ef.id}
+                  onToggle={() => setExpandedFactor(expandedFactor === ef.id ? null : ef.id)}
+                  copiedId={copiedId}
+                  onCopy={handleCopy}
+                />
+              </StaggerItem>
+            ))}
+          </div>
+        </Stagger>
       )}
 
       {/* ── Source Reference Cards ── */}

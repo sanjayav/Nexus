@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   Download, Send, Loader2, CheckCircle2, AlertCircle,
@@ -62,6 +63,19 @@ export default function ReportPublishing() {
   }
 
   useEffect(() => { load() }, [framework.id])
+
+  // "+ New report" handoff from TopBar — open the import-from-Excel modal as
+  // the entrypoint for generating a new report. Clear the param so a reload
+  // doesn't re-trigger it.
+  const [searchParams, setSearchParams] = useSearchParams()
+  useEffect(() => {
+    if (searchParams.get('action') === 'new-report') {
+      setImportModalOpen(true)
+      const next = new URLSearchParams(searchParams)
+      next.delete('action')
+      setSearchParams(next, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   const period = periods.find(p => p.id === selectedPeriodId) ?? null
 
@@ -179,8 +193,12 @@ export default function ReportPublishing() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="page-container space-y-8">
       <PageHeader
+        breadcrumbs={[
+          { label: 'Reports', to: '/reports' },
+          { label: 'Publish Centre' },
+        ]}
         eyebrow="Reports"
         title="Publish Centre"
         subtitle="Generate an auditor-grade PDF, anchor its hash to a public timestamp, and track the assurance workflow."

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { KeyRound, Copy, Check, Trash2, AlertTriangle, Plus, Loader2, X } from 'lucide-react'
+import { KeyRound, Copy, Check, Trash2, AlertTriangle, Plus, X } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
+import { SkeletonTable } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
 import { Card, Button, Badge } from '../design-system'
 import { apiKeys, type ApiKey, type ApiKeyCreated } from '../lib/api'
@@ -108,8 +109,12 @@ export default function ApiKeys() {
   }
 
   return (
-    <div>
+    <div className="page-container">
       <PageHeader
+        breadcrumbs={[
+          { label: 'Admin' },
+          { label: 'API keys' },
+        ]}
         eyebrow="Admin · Integrations"
         title="API keys"
         subtitle="Issue programmatic tokens for CI pipelines, BI tools, and ERP push connectors. Scopes follow the same permission model as user roles."
@@ -172,9 +177,7 @@ export default function ApiKeys() {
           <Badge variant="gray">{keys.length}</Badge>
         </div>
         {loading ? (
-          <div className="flex items-center gap-2 text-[13px] text-[var(--text-tertiary)] py-6">
-            <Loader2 className="w-4 h-4 animate-spin" /> Loading…
-          </div>
+          <SkeletonTable rows={4} cols={6} />
         ) : keys.length === 0 ? (
           <EmptyState
             icon={KeyRound}

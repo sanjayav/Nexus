@@ -9,6 +9,7 @@ import Login from './pages/Login'
 import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
+import MyDay from './pages/MyDay'
 
 // ── Route-level lazy chunks ──────────────────────────────
 // Each `lazy(() => import(...))` causes Vite/Rollup to emit a separate
@@ -55,9 +56,14 @@ const AuditLog = lazy(() => import('./pages/AuditLog'))
 const WelcomeWizard = lazy(() => import('./pages/WelcomeWizard'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const PublicReport = lazy(() => import('./pages/PublicReport'))
+const WorkCalendar = lazy(() => import('./pages/WorkCalendar'))
+const EvidenceLibrary = lazy(() => import('./pages/EvidenceLibrary'))
+const FrameworkQuestions = lazy(() => import('./pages/FrameworkQuestions'))
+const DisclosureEditor = lazy(() => import('./pages/DisclosureEditor'))
 import { useAuth } from './auth/AuthContext'
 import { homeRouteFor } from './lib/rbac'
 import ErrorBoundary from './components/ErrorBoundary'
+import ProductTour from './components/ProductTour'
 import { setToken } from './lib/api'
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
@@ -82,7 +88,11 @@ function Placeholder({ title }: { title: string }) {
 function AppRoutes() {
   const location = useLocation()
   const { isAuthenticated, user, refreshUser } = useAuth()
-  const home = homeRouteFor(user)
+  // After login we land everyone on MyDay regardless of role. The
+  // role-specific home routes still exist on ROLE_CATALOG for any deep-link
+  // helpers, but the IA-reset declares `/` as the single canonical entry.
+  void homeRouteFor
+  const home = '/'
   const ssoHandled = useRef(false)
 
   // SSO callback hand-off: the WorkOS callback redirects to "/?sso_token=...".
@@ -146,13 +156,23 @@ function AppRoutes() {
 
   return (
     <AppShell>
+      {/* First-run product tour. Persists per-user; auto-hides forever once
+          completed or skipped. Mounts only when we have a hydrated user so
+          tour state keys are stable. */}
+      {user && <ProductTour userId={user.id ?? user.email} />}
       <Suspense fallback={<RouteLoader />}>
         <Routes>
-          <Route path="/" element={<Navigate to={home} replace />} />
+          {/* MyDay — post-login home. /dashboard kept as alias for back-compat
+              with any external links / docs. */}
+          <Route path="/" element={<ProtectedRoute><MyDay /></ProtectedRoute>} />
+          <Route path="/my-day" element={<ProtectedRoute><MyDay /></ProtectedRoute>} />
 
           {/* Core Modules */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/my-tasks" element={<ProtectedRoute><MyTasks /></ProtectedRoute>} />
+          <Route path="/work/calendar" element={<ProtectedRoute><WorkCalendar /></ProtectedRoute>} />
+          <Route path="/work/review" element={<ProtectedRoute><WorkflowQueue kind="review" /></ProtectedRoute>} />
+          <Route path="/work/approval" element={<ProtectedRoute><WorkflowQueue kind="approval" /></ProtectedRoute>} />
 
           {/* Legacy — kept for deep links, surfaced only for admin paths */}
           <Route path="/calculators" element={<ProtectedRoute><Calculators /></ProtectedRoute>} />
@@ -176,8 +196,18 @@ function AppRoutes() {
           <Route path="/reports/preview" element={<ProtectedRoute><ReportPreview /></ProtectedRoute>} />
           <Route path="/reports/auditor" element={<ProtectedRoute><AuditorView /></ProtectedRoute>} />
           <Route path="/reports/ai" element={<ProtectedRoute><AIReport /></ProtectedRoute>} />
+          {/* IA-reset: rename "Frameworks" → Templates, "Content Index" → Disclosures Library */}
+          <Route path="/reports/templates" element={<ProtectedRoute><FrameworkQuestions /></ProtectedRoute>} />
+          <Route path="/reports/library" element={<ProtectedRoute><ContentIndex /></ProtectedRoute>} />
+          {/* Workiva-style document-centric disclosure editor — three-pane shell. */}
+          <Route path="/disclosure-editor/:frameworkId" element={<ProtectedRoute><DisclosureEditor /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="/analytics/anomalies" element={<ProtectedRoute><AnomalyDetection /></ProtectedRoute>} />
+          {/* IA-reset: data aliases */}
+          <Route path="/data/anomalies" element={<ProtectedRoute><AnomalyDetection /></ProtectedRoute>} />
+          <Route path="/data/spreadsheet" element={<ProtectedRoute><DataEntrySpreadsheet /></ProtectedRoute>} />
+          <Route path="/data/evidence" element={<ProtectedRoute><EvidenceLibrary /></ProtectedRoute>} />
+          <Route path="/data/ef-library" element={<ProtectedRoute><EFLibrary /></ProtectedRoute>} />
 
           {/* Organisation — onboarding is canonical; legacy /admin/org redirects there */}
           <Route path="/admin/org" element={<Navigate to="/onboarding" replace />} />
@@ -200,11 +230,14 @@ function AppRoutes() {
           <Route path="/admin/ef-library" element={<ProtectedRoute><EFLibrary /></ProtectedRoute>} />
           <Route path="/admin/gwp" element={<ProtectedRoute><GWPValues /></ProtectedRoute>} />
           <Route path="/data/standard" element={<ProtectedRoute><DataStandard /></ProtectedRoute>} />
+          <Route path="/admin/data-standard" element={<ProtectedRoute><DataStandard /></ProtectedRoute>} />
 
           {/* System */}
           <Route path="/admin/audit" element={<ProtectedRoute><AuditLog /></ProtectedRoute>} />
           <Route path="/admin/audit/blockchain" element={<ProtectedRoute><BlockchainAudit /></ProtectedRoute>} />
+          <Route path="/admin/blockchain" element={<ProtectedRoute><BlockchainAudit /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/admin/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/inbox" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
 
           {/* Legacy redirects */}

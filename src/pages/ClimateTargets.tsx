@@ -102,10 +102,14 @@ export default function ClimateTargets() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="page-container space-y-6">
       {toast && <Toast kind={toast.kind} msg={toast.msg} onClose={() => setToast(null)} />}
 
       <PageHeader
+        breadcrumbs={[
+          { label: 'Strategy' },
+          { label: 'Climate targets' },
+        ]}
         eyebrow="Strategy"
         title="Climate targets"
         subtitle={(

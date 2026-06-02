@@ -1,12 +1,23 @@
 import { ReactNode } from 'react'
 import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
+import { ChevronRight } from 'lucide-react'
 import JourneyBar from './JourneyBar'
 import type { StageKey } from '../lib/journey'
 import { SPRING } from './motion'
 
+export interface Breadcrumb {
+  label: string
+  to?: string
+}
+
 interface PageHeaderProps {
   eyebrow?: string
+  /** Uniform top-of-page breadcrumb trail (e.g. Work / Tasks / Overdue). */
+  breadcrumbs?: Breadcrumb[]
   title: string
+  /** Alias for subtitle — plain prose under the H1. */
+  description?: ReactNode
   subtitle?: ReactNode
   actions?: ReactNode
   stage?: StageKey
@@ -26,7 +37,9 @@ interface PageHeaderProps {
  */
 export default function PageHeader({
   eyebrow,
+  breadcrumbs,
   title,
+  description,
   subtitle,
   actions,
   stage,
@@ -35,8 +48,38 @@ export default function PageHeader({
   variant = 'default',
 }: PageHeaderProps) {
   const shouldShowPipeline = showPipeline ?? stage != null
+  // `description` is the canonical IA-reset name; `subtitle` kept as a synonym for back-compat.
+  const sub = description ?? subtitle
   return (
     <div className={`mb-7 ${variant === 'hero' ? 'relative backdrop-mesh -mx-8 -mt-7 pt-7 px-8 pb-7 mb-7' : ''}`}>
+      {breadcrumbs && breadcrumbs.length > 0 && (
+        <motion.nav
+          aria-label="Breadcrumb"
+          initial={{ opacity: 0, y: -2 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...SPRING, delay: 0.02 }}
+          className="flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)] mb-3"
+        >
+          {breadcrumbs.map((b, i) => {
+            const last = i === breadcrumbs.length - 1
+            return (
+              <span key={`${b.label}-${i}`} className="inline-flex items-center gap-1.5">
+                {b.to && !last ? (
+                  <Link
+                    to={b.to}
+                    className="hover:text-[var(--text-primary)] transition-colors font-medium"
+                  >
+                    {b.label}
+                  </Link>
+                ) : (
+                  <span className={last ? 'text-[var(--text-secondary)] font-semibold' : 'font-medium'}>{b.label}</span>
+                )}
+                {!last && <ChevronRight className="w-3 h-3 text-[var(--text-quaternary)]" />}
+              </span>
+            )
+          })}
+        </motion.nav>
+      )}
       {shouldShowPipeline && (
         <motion.div
           initial={{ opacity: 0, y: -4 }}
@@ -69,7 +112,7 @@ export default function PageHeader({
           >
             {title}
           </motion.h1>
-          {subtitle && (
+          {sub && (
             <motion.p
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
@@ -78,7 +121,7 @@ export default function PageHeader({
                 variant === 'hero' ? 'text-[16px] mt-3' : 'text-[14px] mt-2'
               }`}
             >
-              {subtitle}
+              {sub}
             </motion.p>
           )}
           {children && <div className="mt-5">{children}</div>}

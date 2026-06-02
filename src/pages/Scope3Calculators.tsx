@@ -11,6 +11,8 @@ import {
 import { facilities as facilitiesApi, ai, type ApiFacility, type AiEfMatchResponse, type AiEfRow } from '../lib/api'
 import { orgStore } from '../lib/orgStore'
 import JargonTooltip from '../components/JargonTooltip'
+import PageHeader from '../components/PageHeader'
+import { Stagger, StaggerItem } from '../components/MotionPrimitives'
 
 export default function Scope3CalculatorsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -20,43 +22,51 @@ export default function Scope3CalculatorsPage() {
   )
 
   return (
-    <div className="animate-fade-in">
-      <header className="mb-5">
-        <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
-          <Calculator className="w-3 h-3" /> <JargonTooltip term="Scope 3" iconOnly /> Scope 3 · <JargonTooltip term="GHG" iconOnly /> GHG Protocol Corporate Value Chain
-        </div>
-        <h1 className="font-display text-[28px] font-bold text-[var(--text-primary)] mt-1">Scope 3 calculators</h1>
-        <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1 max-w-3xl">
-          Pick a category, choose a method (supplier-specific {`>`} activity-based {`>`} spend-based), enter inputs.
-          Results are tCO2e with emission-factor citations. Spend-based factors are illustrative averages until
-          USEEIO v2.0 / EXIOBASE is wired in.
-        </p>
-      </header>
+    <div className="page-container animate-fade-in">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Data', to: '/data' },
+          { label: 'Scope 3 calculators' },
+        ]}
+        eyebrow="Scope 3 · GHG Protocol"
+        title="Scope 3 calculators"
+        description={
+          <>
+            Pick a category, choose a method (supplier-specific &gt; activity-based &gt; spend-based), enter inputs.
+            Results are tCO2e with <JargonTooltip term="GHG" iconOnly /> emission-factor citations. Spend-based factors are illustrative averages until
+            USEEIO v2.0 / EXIOBASE is wired in.
+          </>
+        }
+      />
 
       <div className="grid grid-cols-12 gap-4">
         <aside className="col-span-4 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-3">
           <h3 className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-2 px-2">Categories 1–15</h3>
-          <ul className="space-y-1">
-            {SCOPE3_CALCULATORS.map(c => (
-              <li key={c.id}>
-                <button
-                  onClick={() => setSelectedId(c.id)}
-                  className={[
-                    'w-full text-left px-3 py-2 rounded-[var(--radius-md)] text-[var(--text-sm)] transition',
-                    selectedId === c.id
-                      ? 'bg-[var(--color-brand)]/10 text-[var(--text-primary)] ring-1 ring-[var(--color-brand)]/40'
-                      : 'hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]',
-                  ].join(' ')}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">Cat {c.category}</span>
-                    <span className="text-[10px] text-[var(--text-tertiary)]">{c.methods.length} methods</span>
-                  </div>
-                  <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{c.shortName}</div>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <Stagger>
+            <ul className="space-y-1">
+              {SCOPE3_CALCULATORS.map(c => (
+                <StaggerItem key={c.id}>
+                  <li>
+                    <button
+                      onClick={() => setSelectedId(c.id)}
+                      className={[
+                        'w-full text-left px-3 py-2 rounded-[var(--radius-md)] text-[var(--text-sm)] transition',
+                        selectedId === c.id
+                          ? 'bg-[var(--color-brand)]/10 text-[var(--text-primary)] ring-1 ring-[var(--color-brand)]/40'
+                          : 'hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]',
+                      ].join(' ')}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">Cat {c.category}</span>
+                        <span className="text-[10px] text-[var(--text-tertiary)]">{c.methods.length} methods</span>
+                      </div>
+                      <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{c.shortName}</div>
+                    </button>
+                  </li>
+                </StaggerItem>
+              ))}
+            </ul>
+          </Stagger>
         </aside>
 
         <main className="col-span-8">

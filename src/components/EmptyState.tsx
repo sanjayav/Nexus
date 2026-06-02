@@ -1,3 +1,4 @@
+import type { ComponentType } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { Inbox } from 'lucide-react'
 
@@ -26,6 +27,13 @@ export interface EmptyStateCta {
 }
 
 export interface EmptyStateProps {
+  /**
+   * Optional hand-drawn illustration component (160×160 SVG). When provided,
+   * it replaces the medallion icon — useful for top-of-page empty states
+   * that want a more bespoke feel. Use a `currentColor`-driven component
+   * from `data/illustrations`.
+   */
+  illustration?: ComponentType<{ className?: string }>
   /** Lucide icon to render in the medallion. Defaults to Inbox. */
   icon?: LucideIcon
   /** Headline — one short line, e.g. "No assignments yet". */
@@ -43,6 +51,7 @@ export interface EmptyStateProps {
 }
 
 export default function EmptyState({
+  illustration: Illustration,
   icon: Icon = Inbox,
   title,
   body,
@@ -51,24 +60,45 @@ export default function EmptyState({
   density = 'comfortable',
   className = '',
 }: EmptyStateProps) {
-  const pad = density === 'compact' ? 'py-8 px-4' : 'py-14 px-6'
+  const pad = density === 'compact' ? 'py-10 px-4' : 'py-20 px-6'
   return (
     <div
       role="status"
       aria-live="polite"
       className={`flex flex-col items-center text-center ${pad} ${className}`}
     >
-      <div className="w-14 h-14 rounded-2xl bg-[var(--color-brand-soft)] flex items-center justify-center mb-3">
-        <Icon className="w-7 h-7 text-[var(--color-brand)]" strokeWidth={1.75} />
-      </div>
-      <h3 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">{title}</h3>
+      {Illustration ? (
+        <div className="text-[var(--color-brand)] mb-5 opacity-90">
+          <Illustration className="w-40 h-40" />
+        </div>
+      ) : (
+        <div className="w-14 h-14 rounded-2xl bg-[var(--color-brand-soft)] flex items-center justify-center mb-5">
+          <Icon className="w-7 h-7 text-[var(--color-brand)]" strokeWidth={1.75} />
+        </div>
+      )}
+      <h3
+        className="font-display font-bold text-[var(--text-primary)]"
+        style={{
+          fontSize: 'var(--text-premium-xl)',
+          lineHeight: 'var(--leading-tight)',
+          letterSpacing: 'var(--tracking-tight)',
+        }}
+      >
+        {title}
+      </h3>
       {body && (
-        <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1 max-w-md leading-relaxed">
+        <p
+          className="text-[var(--text-secondary)] mt-2 max-w-prose"
+          style={{
+            fontSize: 'var(--text-premium-base)',
+            lineHeight: 'var(--leading-relaxed)',
+          }}
+        >
           {body}
         </p>
       )}
       {(cta || secondaryCta) && (
-        <div className="mt-4 flex items-center gap-3 flex-wrap justify-center">
+        <div className="mt-6 flex items-center gap-3 flex-wrap justify-center">
           {cta && <EmptyCtaBtn {...cta} variant="primary" />}
           {secondaryCta && <EmptyCtaBtn {...secondaryCta} variant="ghost" />}
         </div>

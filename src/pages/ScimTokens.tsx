@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { KeyRound, Copy, Check, Trash2, AlertTriangle, Plus, Loader2, ChevronDown, ChevronUp, Shield } from 'lucide-react'
+import { KeyRound, Copy, Check, Trash2, AlertTriangle, Plus, ChevronDown, ChevronUp, Shield } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
+import { SkeletonTable } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
 import { Card, Button, Badge } from '../design-system'
 import { scim, type ScimToken, type ScimTokenCreated } from '../lib/api'
@@ -75,8 +76,12 @@ export default function ScimTokens() {
   const scimBaseUrl = `${baseUrl}/api/scim/v2`
 
   return (
-    <div>
+    <div className="page-container">
       <PageHeader
+        breadcrumbs={[
+          { label: 'Admin' },
+          { label: 'SCIM tokens' },
+        ]}
         eyebrow="Admin · Identity"
         title="SCIM provisioning"
         subtitle="Issue a SCIM 2.0 bearer token so an identity provider (Azure AD, Okta, OneLogin) can sync users into this workspace automatically."
@@ -198,9 +203,7 @@ export default function ScimTokens() {
           <Badge variant="gray">{tokens.length}</Badge>
         </div>
         {loading ? (
-          <div className="flex items-center gap-2 text-[13px] text-[var(--text-tertiary)] py-6">
-            <Loader2 className="w-4 h-4 animate-spin" /> Loading…
-          </div>
+          <SkeletonTable rows={3} cols={5} />
         ) : tokens.length === 0 ? (
           <EmptyState
             icon={Shield}

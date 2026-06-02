@@ -93,6 +93,18 @@ export default {
         '10': '40px',
         '12': '48px',
         '16': '64px',
+        // Premium spacing — responsive page gutters and card rhythm
+        'page-x':  'clamp(1rem, 4vw, 3rem)',
+        'page-y':  'clamp(2rem, 5vh, 4rem)',
+        'section': '4rem',
+        'card':    '2rem',
+        'card-y':  '1.5rem',
+        'card-x':  '2rem',
+      },
+      maxWidth: {
+        'page':         '1280px',
+        'page-narrow':  '960px',
+        'page-prose':   '760px',
       },
     },
   },

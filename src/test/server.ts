@@ -41,8 +41,61 @@ export const handlers = [
     HttpResponse.json({ unreadCount: 2 })),
   http.post('/api/notifications/read-all', () => HttpResponse.json({ ok: true })),
   http.post('/api/notifications/:id/read', () => HttpResponse.json({ ok: true })),
-  http.get('/api/org', () => HttpResponse.json({ entities: [], members: [] })),
+  http.get('/api/org', ({ request }) => {
+    const url = new URL(request.url)
+    const view = url.searchParams.get('view')
+    if (view === 'assignments' || view === 'my-assignments') return HttpResponse.json([])
+    if (view === 'comments') return HttpResponse.json([])
+    if (view === 'enabled-frameworks') return HttpResponse.json([])
+    return HttpResponse.json({ entities: [], members: [] })
+  }),
   http.get('/api/dashboard', () => HttpResponse.json({ kpis: {}, charts: {} })),
+
+  // Workflow tree + audit trail — used by DisclosureEditor + DataEntry.
+  http.get('/api/workflow', ({ request }) => {
+    const url = new URL(request.url)
+    const view = url.searchParams.get('view')
+    if (view === 'tree') {
+      return HttpResponse.json([
+        {
+          id: 'qi-1',
+          section: 'Climate Change',
+          subsection: 'E1-6 Gross GHG Emissions',
+          gri_code: 'E1-6',
+          line_item: 'Gross Scope 1 GHG emissions',
+          unit: 'tCO2e',
+          scope_split: 'scope_1',
+          default_workflow_role: 'FM',
+          entry_mode_default: 'Manual',
+          target_fy2026: null,
+          footnote_refs: [],
+          reporting_scope: 'group',
+        },
+        {
+          id: 'qi-2',
+          section: 'Climate Change',
+          subsection: 'E1-6 Gross GHG Emissions',
+          gri_code: 'E1-6',
+          line_item: 'Gross Scope 2 GHG emissions (location-based)',
+          unit: 'tCO2e',
+          scope_split: 'scope_2_loc',
+          default_workflow_role: 'FM',
+          entry_mode_default: 'Manual',
+          target_fy2026: null,
+          footnote_refs: [],
+          reporting_scope: 'group',
+        },
+      ])
+    }
+    if (view === 'historical' || view === 'evidence') return HttpResponse.json([])
+    if (view === 'review-queue' || view === 'approval-queue') return HttpResponse.json([])
+    return HttpResponse.json([])
+  }),
+  http.post('/api/workflow', () => HttpResponse.json({ ok: true, value_hash: 'mock' })),
+
+  http.get('/api/concept-mappings', () =>
+    HttpResponse.json({ concept_key: null, mappings: [] })),
+  http.get('/api/blockchain', () => HttpResponse.json([])),
 
   // Mock AI evidence extraction — returns a deterministic, schema-correct payload
   // so the unit test can verify the contract without hitting Claude.

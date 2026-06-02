@@ -3,6 +3,89 @@
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════════
+ * Premium visual system — restrained Big-4-grade tokens.
+ *
+ * Layered ON TOP of the existing Nexus design system below.
+ * Legacy variables (--color-brand, --accent-teal, --bg-inverse,
+ * etc.) are preserved further down and aliased to this emerald
+ * scale at the very end of :root, so no page breaks.
+ * ═══════════════════════════════════════════════════════════ */
+
+:root {
+  /* Display — used for h1 on landing/marketing-feel surfaces */
+  --font-display-premium: 'Inter Display', 'Inter', 'Instrument Sans', system-ui, -apple-system, sans-serif;
+  --font-sans-premium:    'Inter', 'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-mono-premium:    'JetBrains Mono', ui-monospace, monospace;
+
+  /* Premium type ramp — modular 1.250 ratio.
+     NOTE: we intentionally namespace these (text-premium-*) to avoid
+     clobbering the legacy --text-xs..--text-4xl token below. */
+  --text-premium-xs:   0.75rem;    /* 12 */
+  --text-premium-sm:   0.875rem;   /* 14 */
+  --text-premium-base: 1rem;       /* 16 — body default */
+  --text-premium-md:   1.125rem;   /* 18 */
+  --text-premium-lg:   1.25rem;    /* 20 */
+  --text-premium-xl:   1.5rem;     /* 24 — page subtitle */
+  --text-premium-2xl:  1.875rem;   /* 30 */
+  --text-premium-3xl:  2.25rem;    /* 36 — page h1 */
+  --text-premium-4xl:  3rem;       /* 48 — landing h1 */
+  --text-premium-5xl:  3.75rem;    /* 60 — login hero */
+  --text-premium-6xl:  4.5rem;     /* 72 */
+
+  /* Weight — restrained scale */
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+  --weight-black:    800;
+
+  /* Line height — generous for premium feel */
+  --leading-tight:   1.2;
+  --leading-snug:    1.4;
+  --leading-normal:  1.6;
+  --leading-relaxed: 1.75;
+
+  /* Letter spacing */
+  --tracking-tight:  -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.04em;
+  --tracking-wider:  0.08em;
+  --tracking-widest: 0.15em;
+
+  /* Emerald — sole brand accent for the premium layer */
+  --accent-50:  #ECFDF5;
+  --accent-100: #D1FAE5;
+  --accent-300: #6EE7B7;
+  --accent-400: #34D399;
+  --accent-500: #10B981;
+  --accent-600: #059669;
+  --accent-700: #047857;
+  --accent-strong: var(--accent-600);
+
+  /* Premium neutrals (used by card-premium, btn-* on dark surfaces) */
+  --bg-canvas:        #030712;
+  --bg-surface:       #0B0F16;
+  --bg-card-premium:  rgba(255, 255, 255, 0.025);
+  --bg-card-premium-hover: rgba(255, 255, 255, 0.045);
+  --border-card-premium:   rgba(255, 255, 255, 0.06);
+
+  /* Status — semantic, used sparingly */
+  --status-success: var(--accent-500);
+  --status-warning: #F59E0B;
+  --status-danger:  #EF4444;
+  --status-info:    #3B82F6;
+
+  /* Premium motion (parallel to legacy --dur-*, --ease-out-*) */
+  --ease-premium-out:    cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-premium-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-premium-instant: 100ms;
+  --dur-premium-fast:    180ms;
+  --dur-premium-base:    250ms;
+  --dur-premium-slow:    400ms;
+  --dur-premium-slower:  600ms;
+}
+
+/* ═══════════════════════════════════════════════════════════
  * Nexus design system — restrained, enterprise-grade.
  *
  * Themes:
@@ -136,6 +219,24 @@
   --transition-canvas: 400ms var(--ease-out-quart);
 
   --effect-glass: 0;
+
+  /* ── Premium emerald aliases (soft reset) ───────────────────
+   * The Nexus brand becomes emerald. Legacy token names continue
+   * to resolve so existing pages render without modification.
+   * ─────────────────────────────────────────────────────────── */
+  --color-brand:         var(--accent-500);
+  --color-brand-strong:  var(--accent-600);
+  --color-brand-muted:   var(--accent-400);
+  --color-brand-soft:    var(--accent-50);
+
+  --accent-teal:         var(--accent-500);
+  --accent-teal-subtle:  var(--accent-50);
+  --accent-teal-light:   var(--accent-100);
+  --accent-teal-strong:  var(--accent-700);
+
+  --text-link:           var(--accent-600);
+  --border-focus:        var(--accent-500);
+  --shadow-focus:        0 0 0 3px rgba(16, 185, 129, 0.18);
 }
 
 /* ── Dark mode (layered, not pure black) ───────── */
@@ -193,6 +294,21 @@
   --shadow-pop:  0 8px 24px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.30);
   --shadow-modal:0 24px 48px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.40);
   --shadow-focus:0 0 0 3px rgba(111,196,209,0.25);
+
+  /* Premium emerald aliases — dark mode variant */
+  --color-brand:         var(--accent-400);
+  --color-brand-strong:  var(--accent-300);
+  --color-brand-muted:   var(--accent-500);
+  --color-brand-soft:    rgba(16, 185, 129, 0.12);
+
+  --accent-teal:         var(--accent-400);
+  --accent-teal-subtle:  rgba(16, 185, 129, 0.10);
+  --accent-teal-light:   rgba(16, 185, 129, 0.18);
+  --accent-teal-strong:  var(--accent-300);
+
+  --text-link:           var(--accent-300);
+  --border-focus:        var(--accent-400);
+  --shadow-focus:        0 0 0 3px rgba(52, 211, 153, 0.25);
 }
 
 /* ── Base ───────────────────────────────────────── */
@@ -456,4 +572,144 @@ h1, h2, h3, h4, h5, h6 {
   main { overflow: visible !important; }
   table { page-break-inside: auto; }
   tr    { page-break-inside: avoid; page-break-after: auto; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+ * Premium type & layout utilities — opt-in.
+ *
+ * Pages adopt these by switching their wrapper classes, e.g.
+ *   <h1 className="h-display">…</h1>
+ *   <main className="page-container">…</main>
+ *   <div className="card-premium">…</div>
+ *   <button className="btn-primary">…</button>
+ * ═══════════════════════════════════════════════════════════ */
+
+/* Hero-grade page title */
+.h-display {
+  font-family: var(--font-display-premium);
+  font-weight: var(--weight-black);
+  font-size: var(--text-premium-3xl);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.h-page {
+  font-family: var(--font-display-premium);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-premium-2xl);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+}
+
+.h-section {
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-premium-lg);
+  line-height: var(--leading-snug);
+}
+
+.body    { font-size: var(--text-premium-base); line-height: var(--leading-normal); }
+.body-sm { font-size: var(--text-premium-sm);   line-height: var(--leading-normal); }
+.label   {
+  font-size: var(--text-premium-xs);
+  font-weight: var(--weight-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-widest);
+}
+
+/* Page container — generous responsive gutters */
+.page-container {
+  max-width: var(--page-max, 1280px);
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 3rem);
+  padding-block:  clamp(2rem, 5vh, 4rem);
+}
+.page-container.page-narrow { --page-max: 960px; }
+.page-container.page-prose  { --page-max: 760px; }
+
+@layer components {
+  /* Premium card — quiet, restrained, single hover accent */
+  .card-premium {
+    padding: 2rem;
+    border-radius: 16px;
+    background: var(--bg-card-premium);
+    border: 1px solid var(--border-card-premium);
+    transition: border-color var(--dur-premium-base) var(--ease-premium-out);
+  }
+  .card-premium:hover {
+    border-color: rgba(16, 185, 129, 0.2);
+  }
+
+  /* Primary action */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 2.5rem;
+    padding-inline: 1.25rem;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent-500), var(--accent-600));
+    color: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.2),
+      0 0 0 1px rgba(16, 185, 129, 0.4) inset;
+    transition: all var(--dur-premium-base) var(--ease-premium-out);
+    cursor: pointer;
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+  .btn-primary:active   { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+  /* Secondary action */
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 2.5rem;
+    padding-inline: 1.25rem;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all var(--dur-premium-base) var(--ease-premium-out);
+    cursor: pointer;
+  }
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  .btn-secondary:disabled { opacity: 0.55; cursor: not-allowed; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+ * Disclosure editor — reading mode + print
+ * ═══════════════════════════════════════════════════════════ */
+
+/* Reading mode tints status pills more passively. */
+.disclosure-document[data-reading-mode="true"] .no-print-status {
+  opacity: 0.7;
+}
+
+/* Save / print-as-PDF friendly. Removes chrome, lets the document breathe. */
+@media print {
+  .no-print { display: none !important; }
+  .disclosure-document {
+    overflow: visible !important;
+    height: auto !important;
+  }
+  .disclosure-document[data-reading-mode="true"] {
+    color: #000;
+    background: #fff;
+  }
+  /* Hide status pills entirely when printing for the cleanest paper look. */
+  .disclosure-document .no-print-status { display: none !important; }
+  body, html { background: #fff !important; }
 }

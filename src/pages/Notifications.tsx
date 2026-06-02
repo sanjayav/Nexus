@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, CheckCheck, Loader2, Inbox } from 'lucide-react'
+import { CheckCheck, Loader2, Inbox } from 'lucide-react'
 import { orgStore, type Notification } from '../lib/orgStore'
 import EmptyState from '../components/EmptyState'
+import { EmptyInboxIllustration } from '../data/illustrations'
+import PageHeader from '../components/PageHeader'
+import { SkeletonCard } from '../components/Skeleton'
+import { Stagger, StaggerItem } from '../components/MotionPrimitives'
 
 /**
  * Full notifications inbox. RBAC is enforced server-side — /api/notifications
@@ -104,24 +108,21 @@ export default function NotificationsPage() {
   }, [notes, focusIdx])
 
   return (
-    <div className="max-w-3xl mx-auto animate-fade-in">
-      <header className="mb-5 flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
-            <Bell className="w-3 h-3" /> Inbox
-          </div>
-          <h1 className="font-display text-[28px] font-bold text-[var(--text-primary)] mt-1">Notifications</h1>
-          <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1">
-            {total} total · {unread} unread. Use arrow keys to navigate, Enter to open.
-          </p>
-        </div>
-        {unread > 0 && (
+    <div className="page-container max-w-3xl mx-auto animate-fade-in">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Work', to: '/' },
+          { label: 'Inbox' },
+        ]}
+        title="Inbox"
+        description={`${total} total · ${unread} unread. Use arrow keys to navigate, Enter to open.`}
+        actions={unread > 0 ? (
           <button onClick={markAll}
             className="text-[var(--text-xs)] font-semibold text-[var(--color-brand)] hover:underline inline-flex items-center gap-1">
             <CheckCheck className="w-3.5 h-3.5" /> Mark all read
           </button>
-        )}
-      </header>
+        ) : undefined}
+      />
 
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <button
@@ -146,13 +147,15 @@ export default function NotificationsPage() {
       </div>
 
       {loading ? (
-        <div className="py-16 text-center text-[var(--text-sm)] text-[var(--text-tertiary)]">
-          <Loader2 className="w-5 h-5 mx-auto animate-spin mb-2" />
-          Loading inbox…
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
         </div>
       ) : notes.length === 0 ? (
         <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)]">
           <EmptyState
+            illustration={EmptyInboxIllustration}
             icon={Inbox}
             title="No notifications"
             body="Assignments, reviews, and approvals will appear here as they happen."
@@ -160,34 +163,38 @@ export default function NotificationsPage() {
           />
         </div>
       ) : (
-        <ul className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] divide-y divide-[var(--border-subtle)] overflow-hidden">
-          {notes.map((n, idx) => (
-            <li key={n.id}>
-              <button
-                ref={el => (rowRefs.current[idx] = el)}
-                onClick={() => open(n)}
-                onFocus={() => setFocusIdx(idx)}
-                className={`w-full text-left px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)] focus:ring-inset transition-colors ${
-                  !n.read_at ? 'bg-[var(--color-brand-soft)]/30' : ''
-                } hover:bg-[var(--bg-secondary)]`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${!n.read_at ? 'bg-[var(--color-brand)]' : 'bg-transparent'}`} />
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand)]">{n.kind.replace(/_/g, ' ')}</span>
-                  <span className="ml-auto text-[10px] text-[var(--text-tertiary)]">{relativeTime(n.created_at)}</span>
-                  {!n.read_at && (
-                    <button
-                      onClick={(e) => markOne(n, e)}
-                      className="text-[10px] font-semibold text-[var(--color-brand)] hover:underline"
-                    >Mark read</button>
-                  )}
-                </div>
-                <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{n.subject}</div>
-                {n.body && <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5 line-clamp-2">{n.body}</div>}
-              </button>
-            </li>
-          ))}
-        </ul>
+        <Stagger>
+          <ul className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] divide-y divide-[var(--border-subtle)] overflow-hidden">
+            {notes.map((n, idx) => (
+              <StaggerItem key={n.id}>
+                <li>
+                  <button
+                    ref={el => (rowRefs.current[idx] = el)}
+                    onClick={() => open(n)}
+                    onFocus={() => setFocusIdx(idx)}
+                    className={`w-full text-left px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)] focus:ring-inset transition-colors ${
+                      !n.read_at ? 'bg-[var(--color-brand-soft)]/30' : ''
+                    } hover:bg-[var(--bg-secondary)]`}
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${!n.read_at ? 'bg-[var(--color-brand)]' : 'bg-transparent'}`} />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand)]">{n.kind.replace(/_/g, ' ')}</span>
+                      <span className="ml-auto text-[10px] text-[var(--text-tertiary)]">{relativeTime(n.created_at)}</span>
+                      {!n.read_at && (
+                        <button
+                          onClick={(e) => markOne(n, e)}
+                          className="text-[10px] font-semibold text-[var(--color-brand)] hover:underline"
+                        >Mark read</button>
+                      )}
+                    </div>
+                    <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{n.subject}</div>
+                    {n.body && <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5 line-clamp-2">{n.body}</div>}
+                  </button>
+                </li>
+              </StaggerItem>
+            ))}
+          </ul>
+        </Stagger>
       )}
 
       {!loading && notes.length < total && (

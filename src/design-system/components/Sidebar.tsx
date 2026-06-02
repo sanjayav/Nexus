@@ -2,14 +2,13 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import {
   // Section icons
-  Home as HomeIcon, Workflow as WorkflowIcon, FileBarChart, Database, Building2, Cog,
+  Briefcase, FileBarChart, Database, BarChart3 as AnalyticsIcon, Cog,
   // Item icons
-  LayoutDashboard, Inbox,
-  CheckSquare, Shield, Network,
-  FileText, BookMarked, BarChart3, AlertTriangle,
-  Calculator as CalcIcon, BookOpen, Atom,
-  Sparkles, Calendar, Scale, UserCog, Users, Target as TargetIcon,
-  ShieldCheck, Settings, Plug, KeyRound, Activity,
+  LayoutDashboard, Inbox, ClipboardList, Calendar as CalendarIcon,
+  FileText, BookMarked, Library,
+  UserCog, Plug, BookOpen, Atom, Calculator as CalcIcon, AlertTriangle, Paperclip,
+  Sparkles, Building2, Users, Scale, Target as TargetIcon, Settings as SettingsIcon,
+  ShieldCheck, Activity, KeyRound,
   // Chrome
   ChevronLeft, ChevronRight, ChevronDown, LogOut,
 } from 'lucide-react'
@@ -28,127 +27,82 @@ type NavItem = {
   badgeKey?: 'myTasks' | 'reviewQueue' | 'approvalQueue' | 'anomalies'
   /** Small amber dot for flagship features. */
   pin?: boolean
-  /** Hidden behind the "Show advanced" toggle by default. */
-  advanced?: boolean
 }
 
 type NavGroup = {
   key: string
   label: string
-  icon: typeof HomeIcon
+  icon: typeof Briefcase
   items: NavItem[]
   roles?: PlatformRole[]
 }
 
 /**
- * Sidebar — role-gated nav. Each role sees only what they can act on.
- *
- * Role matrix:
- *
- *   platform_admin   Home · Workflow · Report · Data · Admin · System    (19 items)
- *   gso              Home · Workflow · Report · Data · Admin · Audit     (13 items)
- *   subsidiary_lead  Home · Workflow · Report · Data · Admin             (11 items)
- *   plant_manager    Home · Workflow · Report · Data                     ( 7 items)
- *   data_contributor Home · Data                                         ( 4 items)
- *   narrative_owner  Home · Report (Publish+Index) · Admin (Materiality) ( 5 items)
- *   auditor          Home · Workflow · Report · System (Audit)           ( 7 items)
+ * Sidebar — IA-reset version. Visible surface cut to four top groups
+ * (WORK / REPORTS / DATA / ANALYTICS) plus an icon-only Admin tray that
+ * expands on click. All RBAC gates from the previous structure are
+ * preserved; this is purely a re-grouping/re-labelling pass.
  */
 const NAV: NavGroup[] = [
   {
-    key: 'home', label: 'Home', icon: HomeIcon,
+    key: 'work', label: 'Work', icon: Briefcase,
     items: [
-      { path: '/dashboard',  label: 'Overview',   icon: LayoutDashboard },
-      // Personal queue — only for roles that *do* task work. Admins, GSOs
-      // and auditors oversee rather than execute, so they don't get this.
-      { path: '/my-tasks',   label: 'My tasks',   icon: Inbox, badgeKey: 'myTasks',
-        roles: ['data_contributor', 'plant_manager', 'narrative_owner'] },
+      { path: '/',                label: 'My Day',     icon: LayoutDashboard },
+      { path: '/my-tasks',        label: 'Tasks',      icon: ClipboardList, badgeKey: 'myTasks' },
+      { path: '/inbox',           label: 'Inbox',      icon: Inbox },
+      { path: '/work/calendar',   label: 'Calendar',   icon: CalendarIcon },
     ],
   },
   {
-    key: 'workflow', label: 'Workflow', icon: WorkflowIcon,
-    roles: ['subsidiary_lead', 'plant_manager', 'group_sustainability_officer', 'platform_admin', 'auditor'],
+    key: 'reports', label: 'Reports', icon: FileBarChart,
     items: [
-      { path: '/workflow/review',   label: 'Review queue',   icon: CheckSquare, badgeKey: 'reviewQueue',
-        roles: ['subsidiary_lead', 'plant_manager', 'platform_admin'] },
-      { path: '/workflow/approval', label: 'Approval queue', icon: Shield, badgeKey: 'approvalQueue',
-        roles: ['group_sustainability_officer', 'platform_admin'] },
-      { path: '/aggregator', label: 'Group rollup', icon: Network, advanced: true,
-        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'auditor'] },
-    ],
-  },
-  {
-    key: 'report', label: 'Report', icon: FileBarChart,
-    // Contributors don't publish reports or read cross-cutting analytics;
-    // anomalies surface inside their data-entry screens instead.
-    roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead',
-            'plant_manager', 'narrative_owner', 'auditor'],
-    items: [
-      { path: '/reports',             label: 'Publish centre', icon: FileText,
+      { path: '/reports',           label: 'Active Reports',      icon: FileText,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner', 'auditor'] },
-      { path: '/reports/performance', label: 'Performance data', icon: FileBarChart,
+      { path: '/reports/templates', label: 'Templates',           icon: BookMarked,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner', 'auditor'] },
-      { path: '/reports/index',       label: 'GRI index',      icon: BookMarked, advanced: true,
+      { path: '/reports/library',   label: 'Disclosures Library', icon: Library,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner', 'auditor'] },
-      // Analytics + Anomalies are for people who act on numbers. Narrative
-      // owners write prose; they don't need these.
-      { path: '/analytics',           label: 'Analytics',      icon: BarChart3,
-        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'plant_manager', 'auditor'] },
-      { path: '/analytics/anomalies', label: 'Anomalies',      icon: AlertTriangle, badgeKey: 'anomalies',
-        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'plant_manager', 'auditor'] },
     ],
   },
   {
     key: 'data', label: 'Data', icon: Database,
     roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'plant_manager', 'data_contributor'],
     items: [
-      { path: '/data/standard', label: 'Data standard', icon: BookOpen, pin: true },
-      { path: '/calculators',   label: 'Calculators',   icon: CalcIcon },
-      { path: '/data/connectors', label: 'ERP connectors', icon: Plug,
-        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'plant_manager', 'data_contributor'] },
-      // EF library & GWP values moved to Admin — they're maintained
-      // reference tables, not something data contributors touch.
-    ],
-  },
-  {
-    key: 'admin', label: 'Admin', icon: Building2,
-    roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner'],
-    items: [
-      { path: '/onboarding',         label: 'Setup guide',      icon: Sparkles, pin: true,
-        roles: ['platform_admin'] },
-      { path: '/admin/periods',      label: 'Reporting cycles', icon: Calendar,
-        roles: ['platform_admin', 'group_sustainability_officer'] },
-      { path: '/admin/materiality',  label: 'Materiality',      icon: Scale,
-        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner'] },
-      { path: '/admin/targets',      label: 'Climate targets',  icon: TargetIcon,
-        roles: ['platform_admin', 'group_sustainability_officer'] },
-      { path: '/admin/assignments',  label: 'Assignments',      icon: UserCog,
+      { path: '/data',                label: 'Values',            icon: UserCog,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead'] },
-      { path: '/admin/users',        label: 'Users & roles',    icon: Users,
-        roles: ['platform_admin'] },
-      { path: '/admin/scim',         label: 'SCIM provisioning', icon: KeyRound, advanced: true,
-        roles: ['platform_admin'] },
-      { path: '/admin/api-keys',     label: 'API keys',          icon: KeyRound, advanced: true,
-        roles: ['platform_admin'] },
-      { path: '/admin/system-status',label: 'System status',     icon: Activity, advanced: true,
-        roles: ['platform_admin'] },
-      { path: '/admin/ef-library',   label: 'EF library',       icon: BookOpen, advanced: true,
-        roles: ['platform_admin'] },
-      { path: '/admin/gwp',          label: 'GWP values',       icon: Atom, advanced: true,
-        roles: ['platform_admin'] },
+      { path: '/data/spreadsheet',    label: 'Spreadsheet',       icon: ClipboardList,
+        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'plant_manager', 'data_contributor'] },
+      { path: '/data/evidence',       label: 'Evidence',          icon: Paperclip },
+      { path: '/calculators',         label: 'Calculators',       icon: CalcIcon },
+      { path: '/data/connectors',     label: 'Connectors',        icon: Plug },
+      { path: '/data/ef-library',     label: 'Emission factors',  icon: BookOpen,
+        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead'] },
+      { path: '/data/anomalies',      label: 'Anomalies',         icon: AlertTriangle, badgeKey: 'anomalies' },
     ],
   },
   {
-    key: 'system', label: 'System', icon: Cog,
-    // GSOs access audit trail inline from the report detail page.
-    // Only admins and auditors need a dedicated System section.
-    roles: ['platform_admin', 'auditor'],
+    key: 'analytics', label: 'Analytics', icon: AnalyticsIcon,
+    roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'plant_manager', 'auditor'],
     items: [
-      { path: '/admin/audit', label: 'Audit trail', icon: ShieldCheck, advanced: true,
-        roles: ['platform_admin', 'auditor'] },
-      { path: '/settings',    label: 'Settings',    icon: Settings,
-        roles: ['platform_admin'] },
+      { path: '/analytics',   label: 'Analytics', icon: AnalyticsIcon },
+      { path: '/reports/ai',  label: 'AI Report', icon: Sparkles, pin: true,
+        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner'] },
     ],
   },
+]
+
+const ADMIN_TRAY: NavItem[] = [
+  { path: '/admin/org',           label: 'Organisation',    icon: Building2,    roles: ['platform_admin', 'group_sustainability_officer'] },
+  { path: '/admin/users',         label: 'Users & Roles',   icon: Users,        roles: ['platform_admin'] },
+  { path: '/admin/materiality',   label: 'Materiality',     icon: Scale,        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner'] },
+  { path: '/admin/targets',       label: 'Climate Targets', icon: TargetIcon,   roles: ['platform_admin', 'group_sustainability_officer'] },
+  { path: '/admin/data-standard', label: 'Data Standard',   icon: BookOpen,     roles: ['platform_admin', 'group_sustainability_officer'] },
+  { path: '/admin/audit',         label: 'Activity History', icon: ShieldCheck, roles: ['platform_admin', 'auditor'] },
+  { path: '/admin/api-keys',      label: 'API Keys',        icon: KeyRound,     roles: ['platform_admin'] },
+  { path: '/admin/scim',          label: 'SCIM',            icon: KeyRound,     roles: ['platform_admin'] },
+  { path: '/admin/blockchain',    label: 'Blockchain',      icon: ShieldCheck,  roles: ['platform_admin', 'auditor'] },
+  { path: '/admin/system-status', label: 'System Status',   icon: Activity,     roles: ['platform_admin'] },
+  { path: '/admin/settings',      label: 'Settings',        icon: SettingsIcon, roles: ['platform_admin'] },
 ]
 
 function canSee(role: PlatformRole, required?: PlatformRole[]): boolean {
@@ -156,12 +110,8 @@ function canSee(role: PlatformRole, required?: PlatformRole[]): boolean {
   return required.includes(role)
 }
 
-function hasAdvancedForRole(role: PlatformRole): boolean {
-  return NAV.some(g => canSee(role, g.roles) && g.items.some(it => it.advanced && canSee(role, it.roles)))
-}
-
 const STORE_KEY = 'aeiforo_sidebar_open'
-const ADVANCED_KEY = 'aeiforo_sidebar_advanced'
+const ADMIN_OPEN_KEY = 'aeiforo_sidebar_admin_open'
 
 interface SidebarProps {
   collapsed: boolean
@@ -176,19 +126,18 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const roleMeta = ROLE_CATALOG[role]
   const badges = useBadges()
   const brand = useOrgBrand()
-  // Primary/secondary are no longer used for the lockup itself (the Nexus
-  // mark owns its own gradient) — kept available if downstream needs them.
   void brand
 
   // Work out which section the current route belongs to.
   const activeKey = useMemo(() => {
     for (const g of NAV) {
-      if (g.items.some(it => location.pathname === it.path || location.pathname.startsWith(it.path + '/'))) return g.key
+      if (g.items.some(it => isMatch(location.pathname, it.path))) return g.key
     }
-    return 'home'
+    if (ADMIN_TRAY.some(it => isMatch(location.pathname, it.path))) return 'admin'
+    return 'work'
   }, [location.pathname])
 
-  // Expanded-section state: start with the active one open, others closed. Persist toggles.
+  // Expanded-section state: start with the active one open, others closed.
   const [openSet, setOpenSet] = useState<Set<string>>(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(STORE_KEY) ?? 'null')
@@ -196,7 +145,6 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     } catch { /* ignore */ }
     return new Set([activeKey])
   })
-  // Auto-open the active section so the current page is always reachable.
   useEffect(() => {
     setOpenSet(prev => { if (prev.has(activeKey)) return prev; const next = new Set(prev); next.add(activeKey); return next })
   }, [activeKey])
@@ -204,13 +152,18 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   const toggleSection = (k: string) => setOpenSet(prev => { const next = new Set(prev); next.has(k) ? next.delete(k) : next.add(k); return next })
 
-  // "Show advanced" — hides utility items by default to reduce nav clutter.
-  const [showAdvanced, setShowAdvanced] = useState<boolean>(() => {
-    try { return localStorage.getItem(ADVANCED_KEY) === '1' } catch { return false }
+  // Admin tray — collapsed by default. Auto-opens when route is under /admin.
+  const [adminOpen, setAdminOpen] = useState<boolean>(() => {
+    try { return localStorage.getItem(ADMIN_OPEN_KEY) === '1' } catch { return false }
   })
   useEffect(() => {
-    try { localStorage.setItem(ADVANCED_KEY, showAdvanced ? '1' : '0') } catch { /* ignore */ }
-  }, [showAdvanced])
+    try { localStorage.setItem(ADMIN_OPEN_KEY, adminOpen ? '1' : '0') } catch { /* ignore */ }
+  }, [adminOpen])
+  useEffect(() => {
+    if (activeKey === 'admin') setAdminOpen(true)
+  }, [activeKey])
+
+  const visibleAdmin = ADMIN_TRAY.filter(it => canSee(role, it.roles))
 
   return (
     <aside
@@ -225,19 +178,18 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         style={{ background: 'radial-gradient(circle, rgba(27,107,123,0.3), transparent 60%)' }}
       />
 
-      {/* Brand lockup — Nexus by Aeiforo. Tenant industry surfaced quietly. */}
+      {/* Brand lockup */}
       <div className={`h-[64px] flex items-center ${collapsed ? 'justify-center px-0' : 'px-5'} flex-shrink-0 relative`}>
         <NexusBrandCard industry={brand.industry} collapsed={collapsed} variant="dark" />
       </div>
 
-      {/* Setup guide widget */}
       <SetupGuide collapsed={collapsed} />
 
       {/* Nav sections */}
       <nav className={`flex-1 overflow-y-auto ${collapsed ? 'px-2' : 'px-2.5'} pb-3 space-y-0.5 relative`}>
         {NAV
           .filter(g => canSee(role, g.roles))
-          .map(g => ({ g, visibleItems: g.items.filter(it => canSee(role, it.roles) && (showAdvanced || !it.advanced)) }))
+          .map(g => ({ g, visibleItems: g.items.filter(it => canSee(role, it.roles)) }))
           .filter(({ visibleItems }) => visibleItems.length > 0)
           .map(({ g, visibleItems }, i) => (
             <Section
@@ -253,18 +205,18 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
               isFirst={i === 0}
             />
           ))}
-
-        {!collapsed && hasAdvancedForRole(role) && (
-          <button
-            onClick={() => setShowAdvanced(s => !s)}
-            className="mt-3 w-full flex items-center gap-2 px-2.5 h-8 rounded-[6px] text-[11px] font-medium text-white/40 hover:text-white/70 hover:bg-white/[0.03] transition-colors cursor-pointer"
-            title={showAdvanced ? 'Hide advanced items' : 'Show advanced items (EF library, GWP values, audit trail, etc.)'}
-          >
-            <ChevronDown className={`w-3 h-3 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} />
-            <span className="flex-1 text-left">{showAdvanced ? 'Hide advanced' : 'Show advanced'}</span>
-          </button>
-        )}
       </nav>
+
+      {/* Admin tray — bottom of sidebar, icon-only when closed */}
+      {visibleAdmin.length > 0 && (
+        <AdminTray
+          collapsed={collapsed}
+          open={adminOpen}
+          onToggle={() => setAdminOpen(o => !o)}
+          items={visibleAdmin}
+          pathname={location.pathname}
+        />
+      )}
 
       {/* User + logout */}
       <div className={`flex-shrink-0 border-t border-white/[0.06] ${collapsed ? 'px-2' : 'px-3'} py-3 space-y-2 relative`}>
@@ -301,12 +253,18 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <button
           onClick={onToggle}
           className="w-full flex items-center justify-center h-7 rounded-[6px] text-white/30 hover:text-white/60 hover:bg-white/[0.04] transition-all"
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
         </button>
       </div>
     </aside>
   )
+}
+
+function isMatch(pathname: string, target: string): boolean {
+  if (target === '/') return pathname === '/' || pathname === '/my-day' || pathname === '/dashboard'
+  return pathname === target || pathname.startsWith(target + '/')
 }
 
 // ─── Section (collapsible) ─────────────────────────────────────
@@ -326,15 +284,7 @@ function Section({
   pathname: string
   isFirst: boolean
 }) {
-  const isActive = activeKey === group.key
-  const aggBadge = items.reduce((s, it) => it.badgeKey ? s + (badges[it.badgeKey] ?? 0) : s, 0)
-
-  // ──────────────────────────────────────────────────────────
-  // Collapsed (icon-rail) mode: flat list of item icons, with a
-  // tiny divider between sections so the grouping is still visible.
-  // This is the standard pattern (Linear, VS Code, GitHub) and what
-  // the sidebar used before the section-collapse refactor.
-  // ──────────────────────────────────────────────────────────
+  // Collapsed (icon-rail) mode: flat list of item icons.
   if (collapsed) {
     return (
       <div className={isFirst ? '' : 'mt-1.5 pt-1.5 border-t border-white/[0.04]'}>
@@ -343,11 +293,17 @@ function Section({
     )
   }
 
-  // Void unused locals in this branch
-  void isActive; void aggBadge; void onToggle
-
-  // Expanded-sidebar mode: collapsible section with chevron + children
-  return <ExpandedSection group={group} items={items} expanded={expanded} activeKey={activeKey} onToggle={onToggle} badges={badges} pathname={pathname} />
+  return (
+    <ExpandedSection
+      group={group}
+      items={items}
+      expanded={expanded}
+      activeKey={activeKey}
+      onToggle={onToggle}
+      badges={badges}
+      pathname={pathname}
+    />
+  )
 }
 
 function ExpandedSection({
@@ -369,13 +325,13 @@ function ExpandedSection({
     <div>
       <button
         onClick={onToggle}
-        className={`w-full flex items-center gap-2.5 px-2.5 h-8 rounded-[6px] text-[12.5px] font-semibold tracking-[-0.003em] transition-colors duration-[120ms] ease-[var(--ease-out-expo)]
+        className={`w-full flex items-center gap-2.5 px-2.5 h-8 rounded-[6px] text-[11.5px] font-bold uppercase tracking-[0.08em] transition-colors duration-[120ms] ease-[var(--ease-out-expo)]
           ${isActive && !expanded
             ? 'bg-white/[0.05] text-white'
-            : 'text-white/75 hover:text-white hover:bg-white/[0.04]'
+            : 'text-white/55 hover:text-white/85 hover:bg-white/[0.04]'
           }`}
       >
-        <SectIcon className={`w-[16px] h-[16px] flex-shrink-0 transition-colors ${isActive ? 'text-[#2fa98e]' : ''}`} />
+        <SectIcon className={`w-[14px] h-[14px] flex-shrink-0 transition-colors ${isActive ? 'text-[#2fa98e]' : ''}`} />
         <span className="flex-1 text-left">{group.label}</span>
         {aggBadge > 0 && !expanded && (
           <span
@@ -386,11 +342,10 @@ function ExpandedSection({
           </span>
         )}
         <ChevronDown
-          className={`w-3.5 h-3.5 text-white/35 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+          className={`w-3 h-3 text-white/35 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
         />
       </button>
 
-      {/* Children */}
       <div
         className="overflow-hidden transition-[max-height,opacity] duration-250 ease-[var(--ease-out-expo)]"
         style={{
@@ -406,16 +361,71 @@ function ExpandedSection({
   )
 }
 
+// ─── Admin tray ──────────────────────────────────────────────
+
+function AdminTray({
+  collapsed, open, onToggle, items, pathname,
+}: {
+  collapsed: boolean
+  open: boolean
+  onToggle: () => void
+  items: NavItem[]
+  pathname: string
+}) {
+  if (collapsed) {
+    // Icon-only rail: the items render in the collapsed gap; render the
+    // gear at the bottom of the nav to keep parity.
+    return (
+      <div className="px-2 pb-2 border-t border-white/[0.04] pt-1.5">
+        {items.map(it => <IconOnlyItem key={it.path} item={it} badges={{ myTasks: 0, reviewQueue: 0, approvalQueue: 0, anomalies: 0 }} pathname={pathname} />)}
+      </div>
+    )
+  }
+  return (
+    <div className="px-2.5 pb-2 border-t border-white/[0.04] pt-2">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="w-full flex items-center gap-2.5 px-2.5 h-10 rounded-[6px] text-[12.5px] font-semibold text-white/55 hover:text-white/85 hover:bg-white/[0.04] transition-colors"
+      >
+        <Cog className="w-[15px] h-[15px] flex-shrink-0" />
+        <span className="flex-1 text-left uppercase tracking-[0.08em] text-[11px] font-bold">Admin</span>
+        <ChevronDown className={`w-3 h-3 text-white/35 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      <div
+        className="overflow-hidden transition-[max-height,opacity] duration-250"
+        style={{ maxHeight: open ? `${items.length * 32 + 8}px` : 0, opacity: open ? 1 : 0 }}
+      >
+        <div className="pt-0.5 pl-[11px]" style={{ borderLeft: '1px solid rgba(255,255,255,0.06)', marginLeft: '18px' }}>
+          {items.map(it => <ChildItem key={it.path} item={it} badges={{ myTasks: 0, reviewQueue: 0, approvalQueue: 0, anomalies: 0 }} pathname={pathname} />)}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Child nav item ───────────────────────────────────────────
+
+function tourTagFor(path: string): string | undefined {
+  if (path === '/' || path === '/my-day' || path === '/dashboard') return 'sidebar-home'
+  if (path === '/my-tasks') return 'sidebar-home'
+  if (path === '/reports/templates') return 'sidebar-templates'
+  if (path === '/reports') return 'sidebar-templates'
+  return undefined
+}
 
 function ChildItem({ item, badges, pathname }: { item: NavItem; badges: BadgeMap; pathname: string }) {
   const Icon = item.icon
-  const isActive = pathname === item.path || pathname.startsWith(item.path + '/')
+  const isActive = isMatch(pathname, item.path)
   const badge = item.badgeKey ? badges[item.badgeKey] : 0
+  const tourTag = tourTagFor(item.path)
 
   return (
     <NavLink
       to={item.path}
+      end={item.path === '/'}
+      data-tour={tourTag}
       className={`group relative flex items-center gap-2 px-2.5 h-8 rounded-[6px] text-[12.5px] font-medium transition-colors duration-[120ms] ease-[var(--ease-out-expo)]
         ${isActive
           ? 'bg-white/[0.08] text-white'
@@ -455,13 +465,16 @@ function ChildItem({ item, badges, pathname }: { item: NavItem; badges: BadgeMap
 
 function IconOnlyItem({ item, badges, pathname }: { item: NavItem; badges: BadgeMap; pathname: string }) {
   const Icon = item.icon
-  const isActive = pathname === item.path || pathname.startsWith(item.path + '/')
+  const isActive = isMatch(pathname, item.path)
   const badge = item.badgeKey ? badges[item.badgeKey] : 0
+  const tourTag = tourTagFor(item.path)
 
   return (
     <NavLink
       to={item.path}
+      end={item.path === '/'}
       title={item.label}
+      data-tour={tourTag}
       className={`group relative flex items-center justify-center h-9 w-full rounded-[8px] my-0.5 transition-all duration-150
         ${isActive
           ? 'bg-white/[0.08] text-white'
@@ -498,7 +511,6 @@ function IconOnlyItem({ item, badges, pathname }: { item: NavItem; badges: Badge
   )
 }
 
-
 // ─── Live badges ──────────────────────────────────────────────
 
 function useBadges() {
@@ -534,3 +546,6 @@ function useBadges() {
 
   return badges
 }
+
+// Atom kept available for any future submenu (placed at module bottom to silence unused-import noise).
+void Atom

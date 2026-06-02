@@ -7,6 +7,8 @@ import {
 import { Card, Badge } from '../design-system'
 import { useAuth } from '../auth/AuthContext'
 import { ROLE_CATALOG, type PlatformRole } from '../lib/rbac'
+import PageHeader from '../components/PageHeader'
+import { SkeletonTable } from '../components/Skeleton'
 import {
   users as usersApi,
   roles as rolesApi,
@@ -246,25 +248,23 @@ export default function UsersRoles() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="page-container space-y-6 animate-fade-in">
       {toast && <Toast kind={toast.kind} msg={toast.msg} onClose={() => setToast(null)} />}
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div>
-          <div className="kicker mb-1.5">Admin</div>
-          <h1 className="font-display text-[26px] font-bold text-[var(--text-primary)] tracking-[-0.01em] leading-tight">Users &amp; Roles</h1>
-          <p className="text-[13px] text-[var(--text-secondary)] mt-1.5 max-w-xl leading-relaxed">
-            Each user has one role. Roles bundle a set of permissions across the app. Click any role to see exactly what it can do.
-          </p>
-        </div>
-        <button
-          onClick={() => setAddOpen(true)}
-          className="inline-flex items-center gap-2 h-10 px-5 rounded-[10px] bg-[var(--color-brand)] text-white text-[13.5px] font-semibold hover:bg-[var(--color-brand-strong)] active:scale-[0.98] transition-all cursor-pointer"
-        >
-          <UserPlus className="w-4 h-4" /> Add user
-        </button>
-      </div>
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Admin' },
+          { label: 'Users & Roles' },
+        ]}
+        eyebrow="Admin"
+        title="Users & Roles"
+        description="Each user has one role. Roles bundle a set of permissions across the app. Click any role to see exactly what it can do."
+        actions={
+          <button onClick={() => setAddOpen(true)} className="btn-primary">
+            <UserPlus className="w-4 h-4" /> Add user
+          </button>
+        }
+      />
 
       {!dbConnected && (
         <div className="surface-paper p-3 flex items-center gap-3" style={{ borderColor: 'rgba(230,168,23,0.3)', background: 'rgba(230,168,23,0.04)' }}>
@@ -302,12 +302,7 @@ export default function UsersRoles() {
         </div>
 
         {loading ? (
-          <Card>
-            <div className="flex items-center justify-center py-10 gap-2 text-[12.5px] text-[var(--text-tertiary)]">
-              <div className="w-4 h-4 border-2 border-[var(--color-brand)]/30 border-t-[var(--color-brand)] rounded-full animate-spin" />
-              Loading users…
-            </div>
-          </Card>
+          <SkeletonTable rows={6} cols={5} />
         ) : filtered.length === 0 ? (
           <EmptyUsers hasSearch={!!search} onAdd={() => setAddOpen(true)} onClearSearch={() => setSearch('')} />
         ) : (

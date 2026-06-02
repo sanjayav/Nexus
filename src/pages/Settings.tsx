@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { Check, Palette, Calendar, BookMarked, Clock, Plus, Download, ShieldCheck, Loader2 } from 'lucide-react'
+import { Check, Palette, Calendar, BookMarked, Clock, Plus, Download, ShieldCheck, Loader2, LayoutDashboard } from 'lucide-react'
 import { useTheme, type Theme } from '../theme/ThemeContext'
 import { FRAMEWORKS, useFramework } from '../lib/frameworks'
+import { useDensity } from '../lib/density'
 import { orgStore } from '../lib/orgStore'
 import MfaSection from '../components/MfaSection'
+import PageHeader from '../components/PageHeader'
 
 interface ThemeOption {
   value: Theme
@@ -29,6 +31,7 @@ const THEMES: ThemeOption[] = [
 
 export default function Settings() {
   const { theme, setTheme } = useTheme()
+  const { density, setDensity } = useDensity()
   const { active: activeFw, enabled, setEnabled } = useFramework()
   const [exporting, setExporting] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
@@ -62,15 +65,15 @@ export default function Settings() {
   }
 
   return (
-    <div className="max-w-3xl space-y-8">
-      <header>
-        <h1 className="font-display text-[var(--text-3xl)] font-semibold text-[var(--text-primary)] mb-1">
-          Settings
-        </h1>
-        <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
-          Personal preferences for this Nexus workspace. Changes apply instantly and persist per user.
-        </p>
-      </header>
+    <div className="page-container max-w-3xl space-y-8">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Admin' },
+          { label: 'Settings' },
+        ]}
+        title="Settings"
+        description="Personal preferences for this Nexus workspace. Changes apply instantly and persist per user."
+      />
 
       {/* ── Frameworks (Phase 1 = GRI, other rows show the roadmap) ── */}
       <section className="space-y-3">
@@ -78,7 +81,7 @@ export default function Settings() {
           <div className="flex items-center gap-2">
             <BookMarked className="w-4 h-4 text-[var(--text-tertiary)]" />
             <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">
-              Reporting frameworks
+              Report templates
             </h2>
           </div>
           <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] bg-[var(--bg-secondary)] px-2 py-0.5 rounded">
@@ -228,6 +231,53 @@ export default function Settings() {
               </button>
             )
           })}
+        </div>
+      </section>
+
+      {/* Display — density toggle. Lives between Theme and Reporting Year so
+          it lands next to the other visual preferences. */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <LayoutDashboard className="w-4 h-4 text-[var(--text-tertiary)]" />
+          <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">
+            Display
+          </h2>
+        </div>
+        <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+          Tune how much information fits on each screen. Comfortable is the recommended default;
+          Compact lets power users squeeze more rows into a single view.
+        </p>
+
+        <div className="p-4 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)]">
+          <div className="text-[var(--text-sm)] font-medium text-[var(--text-primary)]">Density</div>
+          <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-0.5 mb-3">
+            Applies instantly across the whole workspace.
+          </div>
+          <div
+            role="radiogroup"
+            aria-label="Display density"
+            className="inline-flex border border-[var(--border-default)] rounded-[var(--radius-md)] p-1 bg-[var(--bg-secondary)]"
+          >
+            {(['comfortable', 'compact'] as const).map(value => {
+              const active = density === value
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  onClick={() => setDensity(value)}
+                  className={`text-[var(--text-xs)] font-semibold h-8 px-3 rounded-[var(--radius-sm)] transition-colors ${
+                    active
+                      ? 'bg-[var(--color-brand)] text-white shadow-sm'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  {value === 'comfortable' ? 'Comfortable' : 'Compact'}
+                </button>
+              )
+            })}
+          </div>
         </div>
       </section>
 

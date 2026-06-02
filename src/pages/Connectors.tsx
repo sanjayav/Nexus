@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Papa from 'papaparse'
-import { Plug, FileUp, AlertTriangle, Check, Loader2, ArrowLeft, Database, Cloud, Layers } from 'lucide-react'
+import { Plug, FileUp, AlertTriangle, Check, ArrowLeft, Database, Cloud, Layers } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
+import { SkeletonCard } from '../components/Skeleton'
 import EmptyState from '../components/EmptyState'
+import { EmptyEvidenceIllustration } from '../data/illustrations'
 import { Card, Button, Badge } from '../design-system'
 import { connectors, type ConnectorTemplate, type ConnectorImportResult, type ConnectorImportSummary } from '../lib/api'
 
@@ -105,8 +107,12 @@ export default function Connectors() {
   }
 
   return (
-    <div>
+    <div className="page-container">
       <PageHeader
+        breadcrumbs={[
+          { label: 'Data', to: '/data' },
+          { label: 'Connectors' },
+        ]}
         eyebrow="Data ingestion"
         title="ERP connectors"
         subtitle="Pre-built CSV mapping templates for SAP S/4HANA, NetSuite, and Snowflake. Upload an export, preview the mapping, and ingest as draft activity data."
@@ -158,8 +164,9 @@ export default function Connectors() {
             </span>
           </div>
           {loadingTemplates ? (
-            <div className="text-[13px] text-[var(--text-tertiary)] flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" /> Loading templates…
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <SkeletonCard />
+              <SkeletonCard />
             </div>
           ) : sourceTemplates.length === 0 ? (
             <Card variant="paper"><div className="text-[13px] text-[var(--text-tertiary)]">No templates available for this source yet.</div></Card>
@@ -309,6 +316,7 @@ export default function Connectors() {
         </div>
         {imports.length === 0 ? (
           <EmptyState
+            illustration={EmptyEvidenceIllustration}
             icon={Plug}
             title="No imports yet"
             body="Pick a source above and upload a CSV — Nexus will auto-map columns to the right disclosure fields."

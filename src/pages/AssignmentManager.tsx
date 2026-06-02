@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ClipboardList, Search, Plus, Trash2, Calendar, Factory,
@@ -7,6 +8,7 @@ import {
 } from 'lucide-react'
 import { orgStore, type OrgEntity, type OrgMember, type QuestionAssignment, type ResponseType } from '../lib/orgStore'
 import EmptyState from '../components/EmptyState'
+import { EmptyReportsIllustration } from '../data/illustrations'
 import JargonTooltip from '../components/JargonTooltip'
 import { nexus, type NexusQuestionnaireItem } from '../lib/api'
 import { findCalculator } from '../calculators/registry'
@@ -15,6 +17,8 @@ import JourneyBar from '../components/JourneyBar'
 import { FrameworkBadge } from '../components/FrameworkBadge'
 import { useFramework } from '../lib/frameworks'
 import SavedViewsBar from '../components/SavedViewsBar'
+import PageHeader from '../components/PageHeader'
+import { SkeletonTable } from '../components/Skeleton'
 
 const MODES = ['Manual', 'Calculator', 'Connector'] as const
 type Mode = typeof MODES[number]
@@ -44,6 +48,19 @@ export default function AssignmentManager() {
 
   // bulk-assign modal
   const [bulkOpen, setBulkOpen] = useState(false)
+
+  // "+ New assignment" handoff from TopBar — open the bulk-assign modal
+  // when ?action=bulk-assign is present, then clear the param so a reload
+  // doesn't re-trigger it.
+  const [searchParams, setSearchParams] = useSearchParams()
+  useEffect(() => {
+    if (searchParams.get('action') === 'bulk-assign') {
+      setBulkOpen(true)
+      const next = new URLSearchParams(searchParams)
+      next.delete('action')
+      setSearchParams(next, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   // new-assignment drawer
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -167,39 +184,41 @@ export default function AssignmentManager() {
   }
 
   return (
-    <div className="animate-fade-in">
+    <div className="page-container animate-fade-in">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Data', to: '/data' },
+          { label: 'Values' },
+        ]}
+        title="Values"
+        description={
+          <>
+            Each {framework.code} disclosure goes to the person closest to the data — controlled by <JargonTooltip term="RBAC" />.
+            Assignees see it in <strong>Tasks</strong> next time they sign in.
+          </>
+        }
+        actions={
+          <>
+            <button onClick={() => setBulkOpen(true)} className="btn-secondary">
+              <Users className="w-4 h-4" /> Bulk assign
+            </button>
+            <button onClick={openDrawer} className="btn-primary">
+              <Plus className="w-4 h-4" /> New assignment
+            </button>
+          </>
+        }
+      />
       <div className="mb-4">
         <JourneyBar variant="compact" highlight="assign" />
       </div>
       <header className="flex items-start justify-between mb-5">
         <div>
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
-            <ClipboardList className="w-3 h-3" /> Questionnaire assignments
+            <ClipboardList className="w-3 h-3" /> {framework.code} disclosures
           </div>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <h1 className="font-display text-[28px] font-bold text-[var(--text-primary)]">
-              Assign {framework.code} questions
-            </h1>
             <FrameworkBadge size="md" />
           </div>
-          <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1">
-            Each {framework.code} line item goes to the person closest to the data — controlled by <JargonTooltip term="RBAC" />.
-            They see it in <strong>My Tasks</strong> next time they sign in.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setBulkOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] border border-[var(--color-brand)] text-[var(--color-brand)] text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand)]/10 transition-colors"
-          >
-            <Users className="w-4 h-4" /> Bulk assign
-          </button>
-          <button
-            onClick={openDrawer}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" /> New assignment
-          </button>
         </div>
       </header>
 
@@ -289,10 +308,11 @@ export default function AssignmentManager() {
 
       {/* Table */}
       {loading ? (
-        <div className="py-20 flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-[var(--color-brand)]" /></div>
+        <SkeletonTable rows={6} cols={6} />
       ) : filtered.length === 0 ? (
         <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)]">
           <EmptyState
+            illustration={assignments.length === 0 ? EmptyReportsIllustration : undefined}
             icon={ClipboardList}
             title={assignments.length === 0 ? 'No assignments yet' : 'No results match these filters'}
             body={assignments.length === 0
@@ -335,12 +355,17 @@ export default function AssignmentManager() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-subtle)]">
-              {filtered.map(a => {
+              {filtered.map((a, idx) => {
                 const entity = entityById.get(a.entityId)
                 const status = STATUS_META[a.status]
                 const modes = a.entry_modes ?? ['Manual']
                 return (
-                  <tr key={a.id} className="hover:bg-[var(--bg-secondary)]">
+                  <motion.tr
+                    key={a.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.18, delay: Math.min(idx, 12) * 0.025 }}
+                    className="hover:bg-[var(--bg-secondary)]">
                     <td className="px-4 py-3">
                       <div className="text-[10px] font-semibold text-[var(--color-brand)]">{a.gri_code}</div>
                       <div className="text-[var(--text-sm)] text-[var(--text-primary)] font-medium truncate max-w-[320px]">{a.line_item}</div>
@@ -397,7 +422,7 @@ export default function AssignmentManager() {
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </td>
-                  </tr>
+                  </motion.tr>
                 )
               })}
             </tbody>

@@ -20,4 +20,12 @@ describe('<EmptyState />', () => {
     render(<EmptyState title="Empty bin" />)
     expect(screen.getByRole('status')).toBeInTheDocument()
   })
+
+  it('renders the illustration when provided in place of the icon medallion', () => {
+    function TestIllustration({ className = '' }: { className?: string }) {
+      return <svg data-testid="test-illustration" className={className} />
+    }
+    render(<EmptyState title="No data" illustration={TestIllustration} />)
+    expect(screen.getByTestId('test-illustration')).toBeInTheDocument()
+  })
 })

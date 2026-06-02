@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   Activity, CheckCircle2, XCircle, AlertTriangle, Database, Mail,
-  Shield, Sparkles, Bug, Globe2, Loader2,
+  Shield, Sparkles, Bug, Globe2,
 } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
+import { SkeletonCard } from '../components/Skeleton'
 import { Card, Badge } from '../design-system'
 import { system, type HealthResponse } from '../lib/api'
 
@@ -76,19 +77,24 @@ export default function SystemStatus() {
   const allOk = health?.ok && health.db.ok
 
   return (
-    <div>
+    <div className="page-container">
       <PageHeader
+        breadcrumbs={[
+          { label: 'Admin' },
+          { label: 'System status' },
+        ]}
         eyebrow="Admin · System"
         title="System status"
         subtitle="Live health of the deployment and which integrations are wired up. Polls every 30s."
       />
 
       {loading && !health ? (
-        <Card variant="paper">
-          <div className="flex items-center gap-2 text-[13px] text-[var(--text-tertiary)] py-6">
-            <Loader2 className="w-4 h-4 animate-spin" /> Probing…
+        <div className="space-y-3">
+          <SkeletonCard />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <SkeletonCard /><SkeletonCard /><SkeletonCard />
           </div>
-        </Card>
+        </div>
       ) : error && !health ? (
         <Card variant="outlined" className="border-[var(--accent-red-light)]">
           <div className="flex items-start gap-3 text-[13px] text-[var(--accent-red)]">

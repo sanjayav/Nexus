@@ -1,6 +1,6 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
-  ClipboardList,
   ChevronDown,
   ChevronRight,
   User,
@@ -9,8 +9,23 @@ import {
   FileEdit,
   Zap,
   Filter,
+  ArrowRight,
+  FileText,
 } from 'lucide-react'
 import { frameworkQuestions, csrdSections } from '../data/moduleData'
+import PageHeader from '../components/PageHeader'
+
+/**
+ * Map the local FrameworkQuestions tab id to the canonical framework id used by
+ * the disclosure editor route. CDP/TCFD/CSRD here all land on a generic editor;
+ * GRI maps to the live questionnaire tree.
+ */
+const FRAMEWORK_ROUTE_ID: Record<string, string> = {
+  cdp: 'cdp-2024',
+  tcfd: 'tcfd',
+  gri: 'gri',
+  csrd: 'csrd-e1',
+}
 
 type FrameworkTab = 'cdp' | 'tcfd' | 'gri' | 'csrd'
 type StatusFilter = 'all' | 'draft' | 'in-review' | 'approved'
@@ -92,6 +107,7 @@ function StatusIcon({ status }: { status: string }) {
 }
 
 export default function FrameworkQuestions() {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<FrameworkTab>('cdp')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
@@ -150,19 +166,15 @@ export default function FrameworkQuestions() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
-      {/* Header */}
-      <div className="flex items-start gap-4">
-        <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/20 flex items-center justify-center flex-shrink-0">
-          <ClipboardList className="w-5 h-5 text-purple-400" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-heading font-bold text-white">Framework Questions</h1>
-          <p className="text-sm text-dark-300 mt-1">
-            Regulatory framework questionnaires with role-based assignment. Manage CDP, TCFD, GRI, and CSRD disclosures from a unified workspace.
-          </p>
-        </div>
-      </div>
+    <div className="page-container space-y-6">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Reports', to: '/reports' },
+          { label: 'Framework questions' },
+        ]}
+        title="Framework Questions"
+        description="Regulatory framework questionnaires with role-based assignment. Manage CDP, TCFD, GRI, and CSRD disclosures from a unified workspace."
+      />
 
       {/* Framework Tab Selector */}
       <div className="flex gap-2">
@@ -180,6 +192,26 @@ export default function FrameworkQuestions() {
           </button>
         ))}
       </div>
+
+      {/* Disclosure editor CTA — Workiva-style three-pane editor for the active framework. */}
+      <button
+        type="button"
+        onClick={() => navigate(`/disclosure-editor/${FRAMEWORK_ROUTE_ID[activeTab] ?? activeTab}`)}
+        className="w-full group flex items-center gap-4 text-left p-4 rounded-2xl border border-accent-500/30 bg-gradient-to-r from-accent-500/10 to-purple-500/5 hover:border-accent-500/60 hover:from-accent-500/15 transition-colors"
+      >
+        <div className="w-11 h-11 rounded-xl bg-accent-500/15 border border-accent-500/30 flex items-center justify-center flex-shrink-0">
+          <FileText className="w-5 h-5 text-accent-400" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-white">Open in editor</div>
+          <p className="text-xs text-dark-300 mt-0.5">
+            Edit, review and publish {frameworkTabs.find(t => t.id === activeTab)?.label} disclosures in one document-centric workspace — left tree, middle document, right detail rail.
+          </p>
+        </div>
+        <span className="inline-flex items-center gap-1 px-3 h-8 rounded-lg bg-accent-500 text-white text-xs font-semibold group-hover:bg-accent-600 transition-colors">
+          Open <ArrowRight className="w-3.5 h-3.5" />
+        </span>
+      </button>
 
       {/* Summary Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

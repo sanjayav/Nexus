@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
 import { Scale, Plus, Loader2, Save, Check, AlertTriangle } from 'lucide-react'
 import EmptyState from '../components/EmptyState'
 import {
@@ -8,7 +7,9 @@ import {
 } from 'recharts'
 import { useFramework } from '../lib/frameworks'
 import { FrameworkBadge } from '../components/FrameworkBadge'
-import JargonTooltip from '../components/JargonTooltip'
+import PageHeader from '../components/PageHeader'
+import { SkeletonCard } from '../components/Skeleton'
+import { Stagger, StaggerItem } from '../components/MotionPrimitives'
 
 // ─── Types mirroring server ───────────────────────────────
 interface Topic {
@@ -123,22 +124,25 @@ export default function Materiality() {
   }
 
   return (
-    <div className="animate-fade-in">
-      <motion.header initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between mb-5">
-        <div>
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
-            <Scale className="w-3 h-3" /> <JargonTooltip term="DMA" iconOnly /> Double Materiality Assessment · <JargonTooltip term="CSRD" iconOnly /> CSRD / <JargonTooltip term="ESRS" iconOnly /> ESRS
-          </div>
-          <div className="flex items-center gap-2 mt-1">
-            <h1 className="font-display text-[28px] font-bold text-[var(--text-primary)]">Materiality assessment</h1>
-            <FrameworkBadge size="md" />
-          </div>
-          <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1 max-w-3xl">
+    <div className="page-container animate-fade-in">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Strategy' },
+          { label: 'Materiality' },
+        ]}
+        eyebrow="Double Materiality Assessment"
+        title="Materiality assessment"
+        description={
+          <>
             Identify topics, capture stakeholder concern, score financial materiality (likelihood × severity),
             and finalize the matrix — material topics flow into report scope.
-          </p>
+          </>
+        }
+      >
+        <div className="flex items-center gap-2 flex-wrap mt-2">
+          <FrameworkBadge size="md" />
         </div>
-      </motion.header>
+      </PageHeader>
 
       <nav className="flex gap-1 mb-4 border-b border-[var(--border-default)]">
         {(['topics','iros','stakeholders','matrix'] as Tab[]).map(k => (
@@ -167,14 +171,16 @@ export default function Materiality() {
       )}
 
       {loading ? (
-        <div className="py-12 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-[var(--color-brand)]" /></div>
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}
+        </div>
       ) : (
-        <>
-          {tab === 'topics' && <TopicsTab topics={filtered} reload={load} framework={framework.id} />}
-          {tab === 'iros' && <IrosTab topics={filtered} iros={iros} reload={load} />}
-          {tab === 'stakeholders' && <StakeholdersTab topics={filtered} stakeholders={stakeholders} reload={load} />}
-          {tab === 'matrix' && <MatrixTab topics={filtered} onFinalize={finalize} busy={busy} />}
-        </>
+        <Stagger>
+          {tab === 'topics' && <StaggerItem><TopicsTab topics={filtered} reload={load} framework={framework.id} /></StaggerItem>}
+          {tab === 'iros' && <StaggerItem><IrosTab topics={filtered} iros={iros} reload={load} /></StaggerItem>}
+          {tab === 'stakeholders' && <StaggerItem><StakeholdersTab topics={filtered} stakeholders={stakeholders} reload={load} /></StaggerItem>}
+          {tab === 'matrix' && <StaggerItem><MatrixTab topics={filtered} onFinalize={finalize} busy={busy} /></StaggerItem>}
+        </Stagger>
       )}
     </div>
   )

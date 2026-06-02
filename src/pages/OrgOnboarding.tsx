@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   Building2, Factory, Globe2, Landmark, Plus, Pencil, Trash2, ChevronRight, ChevronDown,
-  Check, X, Users, Sparkles, ArrowRight,
+  Check, X, Users, ArrowRight,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { orgStore, type OrgEntity, type OrgMember, type EntityType } from '../lib/orgStore'
@@ -10,6 +10,7 @@ import JourneyBar from '../components/JourneyBar'
 import { FrameworkBadge } from '../components/FrameworkBadge'
 import { useFramework } from '../lib/frameworks'
 import ResetWorkspaceButton from '../components/ResetWorkspaceButton'
+import PageHeader from '../components/PageHeader'
 
 const TYPE_META: Record<EntityType, { label: string; icon: typeof Building2; tint: string; tintFg: string }> = {
   group:        { label: 'Group',        icon: Landmark,   tint: 'var(--accent-teal)',    tintFg: '#fff' },
@@ -71,29 +72,26 @@ export default function OrgOnboarding() {
   }), [entities, members])
 
   return (
-    <div className="animate-fade-in">
+    <div className="page-container animate-fade-in">
       <div className="mb-4">
         <JourneyBar variant="compact" highlight="onboard" />
       </div>
-      <header className="mb-6">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div>
-            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
-              <Sparkles className="w-3 h-3" /> Organisation onboarding
-            </div>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <h1 className="font-display text-[28px] font-bold text-[var(--text-primary)]">
-                Build your reporting tree
-              </h1>
-              <FrameworkBadge size="md" />
-            </div>
-          </div>
-          {entities.length > 0 && (
-            <ResetWorkspaceButton variant="danger" onReset={() => { refresh(); navigate('/dashboard') }} />
-          )}
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Setup' },
+          { label: 'Organisation' },
+        ]}
+        eyebrow="Organisation onboarding"
+        title="Build your reporting tree"
+        actions={entities.length > 0 ? (
+          <ResetWorkspaceButton variant="danger" onReset={() => { refresh(); navigate('/dashboard') }} />
+        ) : undefined}
+      >
+        <div className="flex items-center gap-2 flex-wrap mt-2">
+          <FrameworkBadge size="md" />
         </div>
         <FrameworkScopeNote />
-      </header>
+      </PageHeader>
 
       <div className="grid grid-cols-4 gap-3 mb-5">
         <Stat label="Entities" value={stats.total} />

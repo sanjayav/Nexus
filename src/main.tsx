@@ -5,6 +5,7 @@ import './index.css'
 import { AuthProvider } from './auth/AuthContext'
 import { ThemeProvider } from './theme/ThemeContext'
 import { FrameworkProvider } from './lib/FrameworkProvider'
+import { DensityProvider } from './lib/density'
 import { initSentry } from './lib/sentry'
 // Initialise i18n side-effect-style so it's ready before any component renders.
 import './i18n'
@@ -15,11 +16,13 @@ initSentry()
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ThemeProvider>
-      <AuthProvider>
-        <FrameworkProvider>
-          <App />
-        </FrameworkProvider>
-      </AuthProvider>
+      <DensityProvider>
+        <AuthProvider>
+          <FrameworkProvider>
+            <App />
+          </FrameworkProvider>
+        </AuthProvider>
+      </DensityProvider>
     </ThemeProvider>
   </React.StrictMode>,
 )

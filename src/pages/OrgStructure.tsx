@@ -23,6 +23,7 @@ import {
   Layers,
 } from 'lucide-react'
 import { Card, Badge, Tabs, Input, Select } from '../design-system'
+import PageHeader from '../components/PageHeader'
 
 /* ═══════════════════════════════════════════
    Types
@@ -180,23 +181,25 @@ export default function OrgStructure() {
   const s3 = srcs.filter(s => s.scope === 'S3').length
 
   return (
-    <div className="space-y-6 animate-fade-in">
-
-      {/* ── Header ── */}
-      <div className="flex items-end justify-between">
-        <div>
-          <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">Organisation Structure</h1>
-          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-tertiary)]">Corporate hierarchy, facilities, and emission source registrations.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setModal('group')} className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-lg border border-[var(--border-default)] text-[12px] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-teal)] hover:text-[var(--accent-teal)] hover:bg-[var(--accent-teal-light)] transition-all cursor-pointer">
-            <Plus className="w-3.5 h-3.5" /> Add Group
-          </button>
-          <button onClick={() => setModal('facility')} className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-[var(--bg-inverse)] text-white text-[12px] font-semibold hover:bg-[var(--bg-inverse-soft)] active:scale-[0.97] transition-all cursor-pointer shadow-sm">
-            <Plus className="w-3.5 h-3.5" /> Add Facility
-          </button>
-        </div>
-      </div>
+    <div className="page-container space-y-6 animate-fade-in">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Admin' },
+          { label: 'Organisation' },
+        ]}
+        title="Organisation Structure"
+        description="Corporate hierarchy, facilities, and emission source registrations."
+        actions={
+          <>
+            <button onClick={() => setModal('group')} className="btn-secondary">
+              <Plus className="w-3.5 h-3.5" /> Add Group
+            </button>
+            <button onClick={() => setModal('facility')} className="btn-primary">
+              <Plus className="w-3.5 h-3.5" /> Add Facility
+            </button>
+          </>
+        }
+      />
 
       {/* ── KPI strip ── */}
       <div className="grid grid-cols-5 gap-4">

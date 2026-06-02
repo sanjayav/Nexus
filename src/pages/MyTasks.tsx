@@ -9,6 +9,7 @@ import { orgStore, type QuestionAssignment, type OrgEntity, type OrgMember } fro
 import { nexus, type NexusQuestionnaireItem } from '../lib/api'
 import { findCalculator, type CalcDescriptor, type CalcInputValues } from '../calculators/registry'
 import EmptyState from '../components/EmptyState'
+import { EmptyTasksIllustration } from '../data/illustrations'
 import JargonTooltip from '../components/JargonTooltip'
 import { resolveRole, ROLE_CATALOG } from '../lib/rbac'
 import PipelineJourney, { NextAction } from '../components/PipelineJourney'
@@ -18,6 +19,9 @@ import { useNavigate } from 'react-router-dom'
 import { useFramework, getFramework } from '../lib/frameworks'
 import CommentThread from '../components/CommentThread'
 import SavedViewsBar from '../components/SavedViewsBar'
+import PageHeader from '../components/PageHeader'
+import { SkeletonTable } from '../components/Skeleton'
+import { Stagger, StaggerItem } from '../components/MotionPrimitives'
 
 type FilterState = 'all' | 'overdue' | 'pending' | 'in_progress' | 'submitted' | 'approved'
 
@@ -137,6 +141,18 @@ export default function MyTasks() {
 
   return (
     <div className="animate-fade-in space-y-5">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Work', to: '/' },
+          { label: 'Tasks' },
+        ]}
+        title="My tasks"
+        description={
+          stats.total === 0
+            ? 'Disclosures assigned to you will appear here.'
+            : `${stats.overdue} overdue · ${stats.dueThisWeek} due this week · ${stats.total} total`
+        }
+      />
       {/* ─── Flow + Next Action — the same story every role sees ─── */}
       <div className="space-y-4">
         {focus && (
@@ -272,25 +288,28 @@ export default function MyTasks() {
 
       {/* List */}
       {loading ? (
-        <div className="py-20 flex items-center justify-center"><Loader2 className="w-6 h-6 animate-spin text-[var(--color-brand)]" /></div>
+        <SkeletonTable rows={6} cols={5} />
       ) : filtered.length === 0 ? (
         <EmptyList total={stats.total} filter={filter} />
       ) : (
-        <div className="space-y-2">
-          {filtered.map(a => (
-            <AssignmentRow
-              key={a.id}
-              assignment={a}
-              question={questionById.get(a.questionId)}
-              entity={entityById.get(a.entityId)}
-              expanded={expanded === a.id}
-              onToggle={() => setExpanded(expanded === a.id ? null : a.id)}
-              onUpdate={patch => updateAssignment(a.id, patch)}
-              entities={entities}
-              members={members}
-            />
-          ))}
-        </div>
+        <Stagger>
+          <div className="space-y-2">
+            {filtered.map(a => (
+              <StaggerItem key={a.id}>
+                <AssignmentRow
+                  assignment={a}
+                  question={questionById.get(a.questionId)}
+                  entity={entityById.get(a.entityId)}
+                  expanded={expanded === a.id}
+                  onToggle={() => setExpanded(expanded === a.id ? null : a.id)}
+                  onUpdate={patch => updateAssignment(a.id, patch)}
+                  entities={entities}
+                  members={members}
+                />
+              </StaggerItem>
+            ))}
+          </div>
+        </Stagger>
       )}
     </div>
   )
@@ -321,6 +340,7 @@ function EmptyList({ total, filter }: { total: number; filter: FilterState }) {
   return (
     <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)]">
       <EmptyState
+        illustration={total === 0 ? EmptyTasksIllustration : undefined}
         icon={ClipboardList}
         title={total === 0 ? 'No assignments yet' : `Nothing ${filter === 'all' ? 'in view' : 'in this bucket'}`}
         body={total === 0

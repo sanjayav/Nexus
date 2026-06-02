@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Loader2, AlertCircle, Calculator as CalcIcon, ArrowRight, Search, Info,
+  AlertCircle, Calculator as CalcIcon, ArrowRight, Search, Info,
 } from 'lucide-react'
 import {
   nexus,
@@ -10,6 +10,9 @@ import {
 import { CALCULATORS, findCalculator, hasCalculator, type CalcDescriptor } from '../calculators/registry'
 import SetupGuard from '../components/SetupGuard'
 import { Button } from '../design-system'
+import PageHeader from '../components/PageHeader'
+import { SkeletonCard } from '../components/Skeleton'
+import { Stagger, StaggerItem } from '../components/MotionPrimitives'
 
 type LoadState =
   | { kind: 'loading' }
@@ -69,7 +72,11 @@ export default function Calculators() {
     )
   }, [state])
 
-  if (state.kind === 'loading') return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-[var(--color-brand)]" /></div>
+  if (state.kind === 'loading') return (
+    <div className="page-container space-y-3">
+      {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+    </div>
+  )
   if (state.kind === 'empty') return <SetupGuard onReady={load} />
   if (state.kind === 'error') {
     return (
@@ -89,14 +96,15 @@ export default function Calculators() {
   const totalCovered = groups.reduce((n, g) => n + g.items.length, 0)
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      <header>
-        <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)]">Calculators</h1>
-        <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1">
-          Typed calculators wired to specific GRI line items. Each calculator's inputs, formula and methodology match
-          how the published SPD derives that cell.
-        </p>
-      </header>
+    <div className="page-container space-y-5 animate-fade-in">
+      <PageHeader
+        breadcrumbs={[
+          { label: 'Data', to: '/data' },
+          { label: 'Calculators' },
+        ]}
+        title="Calculators"
+        description="Typed calculators wired to specific GRI line items. Each calculator's inputs, formula and methodology match how the published SPD derives that cell."
+      />
 
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
@@ -114,7 +122,8 @@ export default function Calculators() {
         </div>
       </div>
 
-      <div className="space-y-3">
+      <Stagger>
+        <div className="space-y-3">
         {groups.length === 0 && (
           <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] p-10 text-center text-[var(--text-sm)] text-[var(--text-tertiary)]">
             No calculators matching "{query}".
@@ -122,7 +131,8 @@ export default function Calculators() {
         )}
 
         {groups.map(({ descriptor, items }) => (
-          <div key={descriptor.id} className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] overflow-hidden">
+          <StaggerItem key={descriptor.id}>
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] overflow-hidden">
             <div className="p-5 flex items-start justify-between gap-4">
               <div className="flex items-start gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-[var(--radius-md)] bg-[var(--color-brand-soft)] flex items-center justify-center flex-shrink-0">
@@ -179,8 +189,10 @@ export default function Calculators() {
               </div>
             )}
           </div>
+          </StaggerItem>
         ))}
-      </div>
+        </div>
+      </Stagger>
 
       {/* Coverage gap — items flagged as Calculator mode but no descriptor registered yet */}
       {uncovered.length > 0 && !query && (

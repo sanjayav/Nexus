@@ -1,10 +1,12 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { Download, Filter, ChevronLeft, ChevronRight, ChevronDown, AlertTriangle, Loader2, ShieldCheck } from 'lucide-react'
+import { motion } from 'framer-motion'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import { Card, Button } from '../design-system'
 import { auditLog, users as usersApi, downloadAuditCsv, type AuditExplorerEntry, type ApiUser } from '../lib/api'
 import SavedViewsBar from '../components/SavedViewsBar'
+import { SkeletonTable } from '../components/Skeleton'
 
 const PAGE_SIZE = 50
 
@@ -145,10 +147,14 @@ export default function AuditLog() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return (
-    <div className="space-y-6">
+    <div className="page-container space-y-6">
       <PageHeader
-        title="Audit log"
-        subtitle="Immutable record of authentication, role, assignment and configuration events. Use the filters below to narrow the view; export filtered results as CSV for evidence packs."
+        breadcrumbs={[
+          { label: 'Admin' },
+          { label: 'Activity History' },
+        ]}
+        title="Activity History"
+        description="Immutable record of authentication, role, assignment and configuration events. Use the filters below to narrow the view; export filtered results as CSV for evidence packs."
         actions={
           <Button variant="secondary" icon={exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} onClick={handleExport} disabled={exporting}>
             {exporting ? 'Exporting…' : 'Export CSV'}
@@ -282,7 +288,9 @@ export default function AuditLog() {
             </thead>
             <tbody>
               {loading && rows.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-12 text-center text-[var(--text-tertiary)]"><Loader2 className="w-5 h-5 animate-spin inline" /> Loading…</td></tr>
+                <tr><td colSpan={7} className="px-4 py-4">
+                  <SkeletonTable rows={8} cols={7} />
+                </td></tr>
               ) : rows.length === 0 ? (
                 <tr><td colSpan={7} className="px-4 py-0 text-[var(--text-tertiary)]">
                   <EmptyState
@@ -292,9 +300,13 @@ export default function AuditLog() {
                     density="compact"
                   />
                 </td></tr>
-              ) : rows.map(r => (
+              ) : rows.map((r, idx) => (
                 <Fragment key={r.id}>
-                  <tr className="border-t border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">
+                  <motion.tr
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.18, delay: Math.min(idx, 14) * 0.02 }}
+                    className="border-t border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">
                     <td className="px-4 py-3 text-[var(--text-secondary)] whitespace-nowrap">{formatTimestamp(r.created_at)}</td>
                     <td className="px-4 py-3 text-[var(--text-primary)]">{r.user_name ?? r.user_email ?? <span className="text-[var(--text-tertiary)]">system</span>}</td>
                     <td className="px-4 py-3"><code className="text-[var(--text-xs)] px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-primary)]">{r.action}</code></td>
@@ -311,7 +323,7 @@ export default function AuditLog() {
                         {expanded.has(r.id) ? 'Hide' : 'Show'}
                       </button>
                     </td>
-                  </tr>
+                  </motion.tr>
                   {expanded.has(r.id) && (
                     <tr className="border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
                       <td colSpan={7} className="px-4 py-3">
