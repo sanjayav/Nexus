@@ -1,6 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { z } from 'zod'
 import { getDb } from './_db.js'
 import { cors, verifyToken, requirePermission } from './_auth.js'
+
+const OverrideBody = z.object({
+  action: z.literal('override').optional(),
+  data_value_id: z.string().uuid(),
+})
 
 /**
  * Linked-data API.
@@ -91,8 +97,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const token = await requirePermission(req, res, 'data.approve')
     if (!token) return
 
-    const { data_value_id } = req.body as { data_value_id?: string }
-    if (!data_value_id) return res.status(400).json({ error: 'data_value_id required' })
+    const parsed = OverrideBody.safeParse(req.body)
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'data_value_id (uuid) required' })
+    }
+    const { data_value_id } = parsed.data
 
     try {
       const updated = await sql`

@@ -1,6 +1,15 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { z } from 'zod'
 import { getDb } from './_db.js'
 import { verifyToken, cors } from './_auth.js'
+
+// Validate the POST body — the prior version trusted req.body.id raw which
+// allowed a non-uuid value to be passed to the parameterised UPDATE. Neon
+// would reject it but the error message leaked the SQL.
+const PostBody = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('mark-all-read') }),
+  z.object({ action: z.literal('mark-read'), id: z.union([z.string().uuid(), z.literal('all')]) }),
+])
 
 // GET    /api/notifications?limit=20&offset=0&kind=approval
 //        → paginated notifications for the caller. RBAC: each user only sees
@@ -75,8 +84,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST') {
-      const { action, id } = req.body ?? {}
-      if (action === 'mark-all-read') {
+      const parsed = PostBody.safeParse(req.body)
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid body' })
+      }
+      const body = parsed.data
+      if (body.action === 'mark-all-read') {
         await sql`
           UPDATE notifications SET read_at = now()
           WHERE org_id = ${token.org}
@@ -85,9 +98,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         `
         return res.status(200).json({ ok: true })
       }
-      if (action === 'mark-read') {
-        if (!id) return res.status(400).json({ error: 'id required ("all" or a uuid)' })
-        if (id === 'all') {
+      if (body.action === 'mark-read') {
+        if (body.id === 'all') {
           await sql`
             UPDATE notifications SET read_at = now()
             WHERE org_id = ${token.org}
@@ -97,7 +109,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         } else {
           await sql`
             UPDATE notifications SET read_at = now()
-            WHERE id = ${id} AND lower(recipient_email) = ${email}
+            WHERE id = ${body.id} AND lower(recipient_email) = ${email}
           `
         }
         return res.status(200).json({ ok: true })

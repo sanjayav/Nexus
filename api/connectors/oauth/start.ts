@@ -31,7 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!token) return
 
   const parsed = startSchema.safeParse(req.body)
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0]?.message ?? 'Invalid body' })
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid body' })
   const { provider, baseUrl } = parsed.data
 
   const adapter = getConnector(provider)

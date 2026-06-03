@@ -26,7 +26,7 @@ const syncSchema = z.object({
   connectionId: z.string().uuid(),
   fromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   toDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  providerOptions: z.record(z.unknown()).optional(),
+  providerOptions: z.record(z.string(), z.unknown()).optional(),
 })
 
 interface ConnectionRow {
@@ -53,7 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!token) return
 
   const parsed = syncSchema.safeParse(req.body)
-  if (!parsed.success) return res.status(400).json({ error: parsed.error.errors[0]?.message ?? 'Invalid body' })
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0]?.message ?? 'Invalid body' })
 
   const sql = getDb()
 
@@ -150,17 +150,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const r = syncRows[i]
     const extId = `${conn.provider}:${r.rowId ?? i}`
     try {
+      // Use source_external_id for idempotency — re-running sync over the same
+      // window replays the same extId per row, so the partial UNIQUE index on
+      // (org_id, source_external_id) WHERE source_external_id IS NOT NULL
+      // dedupes without producing duplicate activity_data rows.
       await sql`
         INSERT INTO activity_data (
           org_id, period_year, period_month, scope, category, subcategory,
-          fuel_type, facility_id, activity_value, activity_unit, source, notes, status
+          fuel_type, facility_id, activity_value, activity_unit, source,
+          source_external_id, notes, status
         )
         VALUES (
           ${conn.org_id}, ${r.periodYear}, ${r.periodMonth}, ${r.scope},
           ${r.category}, ${r.subcategory}, ${r.fuelType},
           (SELECT id FROM facilities WHERE org_id = ${conn.org_id} AND code = ${r.facilityCode} LIMIT 1),
           ${r.activityValue}, ${r.activityUnit}, 'connector',
-          ${(r.notes ?? '') + ` [src=${extId}]`}, 'draft'
+          ${extId}, ${(r.notes ?? '') + ` [src=${extId}]`}, 'draft'
         )
         ON CONFLICT DO NOTHING
       `

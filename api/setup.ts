@@ -1492,6 +1492,267 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await sql`CREATE INDEX IF NOT EXISTS idx_pcaf_org_year ON pcaf_assets(org_id, reporting_year)`
     await sql`CREATE INDEX IF NOT EXISTS idx_pcaf_asset_class ON pcaf_assets(asset_class)`
 
+    // ═══════════════════════════════════════════
+    // Schema-drift backfills — tables referenced by api/org.ts (and friends)
+    // but historically created ad-hoc by feature endpoints. Hoisting them
+    // here so a fresh `npm run setup` brings everything online and a partial
+    // schema (e.g. demo DB missing one of these) heals on next setup call.
+    // All ADDITIVE only (CREATE/ALTER IF NOT EXISTS, never DROP).
+    // ═══════════════════════════════════════════
+
+    // ── organisations: tenant-brand fields surfaced by /api/org?view=tenant-brand ──
+    await sql`ALTER TABLE organisations ADD COLUMN IF NOT EXISTS legal_name TEXT`
+    await sql`ALTER TABLE organisations ADD COLUMN IF NOT EXISTS thai_name TEXT`
+    await sql`ALTER TABLE organisations ADD COLUMN IF NOT EXISTS primary_color TEXT`
+    await sql`ALTER TABLE organisations ADD COLUMN IF NOT EXISTS secondary_color TEXT`
+    await sql`ALTER TABLE organisations ADD COLUMN IF NOT EXISTS logo_mark TEXT`
+    await sql`ALTER TABLE organisations ADD COLUMN IF NOT EXISTS headquarters TEXT`
+    await sql`ALTER TABLE organisations ADD COLUMN IF NOT EXISTS website TEXT`
+
+    // ── users: preferred_framework_id read by /api/auth/login and /api/auth/me ──
+    await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS preferred_framework_id TEXT`
+
+    // ── question_assignments: narrative + period + position columns referenced
+    //    throughout /api/org.ts assignment editing / disclosure rendering.
+    await sql`ALTER TABLE question_assignments ADD COLUMN IF NOT EXISTS response_type TEXT`
+    await sql`ALTER TABLE question_assignments ADD COLUMN IF NOT EXISTS narrative_body TEXT`
+    await sql`ALTER TABLE question_assignments ADD COLUMN IF NOT EXISTS period_id UUID`
+    await sql`ALTER TABLE question_assignments ADD COLUMN IF NOT EXISTS disclosure_position INTEGER`
+
+    // ── activity_data: source/external_id used by connector sync upserts.
+    //    Without these, /api/connectors/sync would fail on the INSERT.
+    await sql`ALTER TABLE activity_data ADD COLUMN IF NOT EXISTS source TEXT`
+    await sql`ALTER TABLE activity_data ADD COLUMN IF NOT EXISTS source_external_id TEXT`
+    await sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_activity_data_source_external
+      ON activity_data(org_id, source_external_id)
+      WHERE source_external_id IS NOT NULL`
+
+    // ── material_topics — referenced from /api/org and /api/materiality. The
+    //    materiality endpoint ALTERs columns assuming the table already exists,
+    //    so this CREATE is the missing baseline.
+    await sql`CREATE TABLE IF NOT EXISTS material_topics (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      framework_id TEXT NOT NULL DEFAULT 'gri',
+      topic_name TEXT NOT NULL,
+      topic_category TEXT,
+      linked_gri_codes JSONB DEFAULT '[]'::jsonb,
+      impact_score INTEGER,
+      financial_score INTEGER,
+      likelihood INTEGER,
+      severity INTEGER,
+      time_horizon TEXT,
+      is_material BOOLEAN DEFAULT false,
+      threshold NUMERIC DEFAULT 3.0,
+      dma_status TEXT DEFAULT 'identified',
+      rationale TEXT,
+      owner_email TEXT,
+      assessed_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now(),
+      UNIQUE(org_id, framework_id, topic_name)
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_material_topics_org ON material_topics(org_id, framework_id)`
+
+    // ── materiality_assessments — assessment metadata (different from topic) ──
+    await sql`CREATE TABLE IF NOT EXISTS materiality_assessments (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      framework_id TEXT NOT NULL DEFAULT 'gri',
+      label TEXT NOT NULL,
+      kind TEXT DEFAULT 'gri3',
+      status TEXT DEFAULT 'draft',
+      methodology TEXT,
+      conducted_by TEXT,
+      conducted_on DATE,
+      stakeholders_engaged JSONB DEFAULT '[]'::jsonb,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now()
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_materiality_assessments_org ON materiality_assessments(org_id)`
+
+    // ── reporting_periods — different from reporting_year; the period-based
+    //    publish flow lives on this table.
+    await sql`CREATE TABLE IF NOT EXISTS reporting_periods (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      framework_id TEXT NOT NULL DEFAULT 'gri',
+      year INTEGER NOT NULL,
+      label TEXT NOT NULL,
+      status TEXT DEFAULT 'setup' CHECK (status IN ('setup','active','locked','published','archived')),
+      start_date DATE,
+      end_date DATE,
+      submission_deadline DATE,
+      notes TEXT,
+      locked_at TIMESTAMPTZ,
+      locked_by UUID REFERENCES users(id),
+      published_at TIMESTAMPTZ,
+      published_by UUID REFERENCES users(id),
+      publish_hash TEXT,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      UNIQUE(org_id, framework_id, year)
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_reporting_periods_org ON reporting_periods(org_id, framework_id, year)`
+
+    // ── org_targets — sustainability targets per org ──
+    await sql`CREATE TABLE IF NOT EXISTS org_targets (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      framework_id TEXT NOT NULL DEFAULT 'gri',
+      kind TEXT NOT NULL,
+      label TEXT NOT NULL,
+      scope_coverage TEXT,
+      baseline_year INTEGER,
+      baseline_value NUMERIC,
+      baseline_unit TEXT,
+      target_year INTEGER,
+      target_reduction_pct NUMERIC,
+      status TEXT DEFAULT 'draft',
+      validated_by TEXT,
+      notes TEXT,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now()
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_org_targets_org ON org_targets(org_id, framework_id)`
+
+    // ── assurance_requests — third-party audit/assurance lifecycle ──
+    await sql`CREATE TABLE IF NOT EXISTS assurance_requests (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      period_id UUID,
+      requested_by UUID REFERENCES users(id),
+      auditor_name TEXT,
+      auditor_email TEXT NOT NULL,
+      auditor_firm TEXT,
+      opinion_type TEXT,
+      isae_reference TEXT,
+      notes TEXT,
+      upload_token TEXT,
+      status TEXT DEFAULT 'pending' CHECK (status IN ('pending','signed','withdrawn')),
+      signed_by TEXT,
+      signed_at TIMESTAMPTZ,
+      statement_pdf BYTEA,
+      statement_sha256 TEXT,
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_assurance_requests_org ON assurance_requests(org_id)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_assurance_requests_token ON assurance_requests(upload_token) WHERE upload_token IS NOT NULL`
+
+    // ── report_artifacts — published PDF reports with anchored hashes ──
+    await sql`CREATE TABLE IF NOT EXISTS report_artifacts (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      period_id UUID,
+      framework_id TEXT NOT NULL,
+      version INTEGER NOT NULL DEFAULT 1,
+      pdf_content BYTEA,
+      pdf_sha256 TEXT,
+      pdf_size INTEGER,
+      page_count INTEGER,
+      is_draft BOOLEAN DEFAULT true,
+      assurance_request_id UUID REFERENCES assurance_requests(id) ON DELETE SET NULL,
+      anchor_receipt BYTEA,
+      anchor_tip_hash TEXT,
+      anchor_calendar_url TEXT,
+      anchored_at TIMESTAMPTZ,
+      verification_token TEXT UNIQUE,
+      published_by UUID REFERENCES users(id),
+      published_at TIMESTAMPTZ DEFAULT now(),
+      metadata JSONB DEFAULT '{}'::jsonb
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_report_artifacts_org ON report_artifacts(org_id, framework_id, version DESC)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_report_artifacts_period ON report_artifacts(period_id)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_report_artifacts_token ON report_artifacts(verification_token)`
+
+    // ── report_share_links — public read-only share URLs for published reports ──
+    await sql`CREATE TABLE IF NOT EXISTS report_share_links (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      report_id UUID REFERENCES report_artifacts(id) ON DELETE CASCADE,
+      token TEXT UNIQUE NOT NULL,
+      expires_at TIMESTAMPTZ,
+      password_hash TEXT,
+      is_active BOOLEAN DEFAULT true,
+      view_count INTEGER DEFAULT 0,
+      created_by UUID REFERENCES users(id),
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_report_share_links_token ON report_share_links(token)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_report_share_links_org ON report_share_links(org_id)`
+
+    // ── published_reports — referenced by reset-workspace; legacy table.
+    //    Kept as a stub so DELETE … doesn't error on fresh DBs.
+    await sql`CREATE TABLE IF NOT EXISTS published_reports (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      framework_id TEXT,
+      period TEXT,
+      published_at TIMESTAMPTZ DEFAULT now()
+    )`
+
+    // ── saved_views — per-user filter presets ──
+    await sql`CREATE TABLE IF NOT EXISTS saved_views (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      page TEXT NOT NULL,
+      name TEXT NOT NULL,
+      filters JSONB NOT NULL DEFAULT '{}'::jsonb,
+      is_shared BOOLEAN DEFAULT false,
+      is_default BOOLEAN DEFAULT false,
+      created_at TIMESTAMPTZ DEFAULT now(),
+      updated_at TIMESTAMPTZ DEFAULT now()
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_saved_views_user ON saved_views(user_id, page)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_saved_views_org ON saved_views(org_id, page)`
+
+    // ── anomaly_status — UI-visible status (open/investigating/...) keyed by
+    //    the rule-engine's stable anomaly key. ON CONFLICT requires the
+    //    (org_id, anomaly_key) unique index.
+    await sql`CREATE TABLE IF NOT EXISTS anomaly_status (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      anomaly_key TEXT NOT NULL,
+      status TEXT NOT NULL CHECK (status IN ('open','investigating','resolved','dismissed')),
+      note TEXT,
+      changed_by UUID REFERENCES users(id),
+      changed_at TIMESTAMPTZ DEFAULT now(),
+      created_at TIMESTAMPTZ DEFAULT now(),
+      UNIQUE(org_id, anomaly_key)
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_anomaly_status_org ON anomaly_status(org_id)`
+
+    // ── anomaly_suppressions — explicit suppressions per assignment+type ──
+    await sql`CREATE TABLE IF NOT EXISTS anomaly_suppressions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      assignment_id UUID REFERENCES question_assignments(id) ON DELETE CASCADE,
+      anomaly_type TEXT NOT NULL,
+      reason TEXT NOT NULL,
+      suppressed_by UUID REFERENCES users(id),
+      suppressed_at TIMESTAMPTZ DEFAULT now(),
+      created_at TIMESTAMPTZ DEFAULT now(),
+      UNIQUE(assignment_id, anomaly_type)
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_anomaly_suppressions_org ON anomaly_suppressions(org_id)`
+
+    // ── chain_anchors — OpenTimestamps anchors of the per-org hash chain tip ──
+    await sql`CREATE TABLE IF NOT EXISTS chain_anchors (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+      tip_hash TEXT NOT NULL,
+      tip_block_number BIGINT,
+      calendar_url TEXT,
+      receipt BYTEA,
+      receipt_size INTEGER,
+      status TEXT DEFAULT 'pending' CHECK (status IN ('pending','submitted','anchored','failed')),
+      error_message TEXT,
+      anchored_at TIMESTAMPTZ DEFAULT now(),
+      created_at TIMESTAMPTZ DEFAULT now()
+    )`
+    await sql`CREATE INDEX IF NOT EXISTS idx_chain_anchors_org ON chain_anchors(org_id, anchored_at DESC)`
+    await sql`CREATE INDEX IF NOT EXISTS idx_chain_anchors_tip ON chain_anchors(org_id, tip_hash)`
+
     return res.status(200).json({ ok: true, message: 'Database setup complete — tables created and seeded' })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error'
