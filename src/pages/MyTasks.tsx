@@ -1,61 +1,62 @@
-import { useEffect, useMemo, useState } from 'react'
-import {
-  ClipboardList, Factory, Calendar, CheckCircle2, Clock, Paperclip,
-  PencilLine, Calculator as CalcIcon, Plug, Send, Upload, X, FileText,
-  Sparkles, Loader2, ChevronDown, ChevronUp, AlertTriangle,
-} from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ClipboardList, AlertTriangle } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+
 import { showWarning } from '../lib/toast'
 import { useAuth } from '../auth/AuthContext'
 import { orgStore, type QuestionAssignment, type OrgEntity, type OrgMember } from '../lib/orgStore'
 import { nexus, type NexusQuestionnaireItem } from '../lib/api'
-import { findCalculator, type CalcDescriptor, type CalcInputValues } from '../calculators/registry'
 import EmptyState from '../components/EmptyState'
 import { EmptyTasksIllustration } from '../data/illustrations'
-import JargonTooltip from '../components/JargonTooltip'
-import { resolveRole, ROLE_CATALOG } from '../lib/rbac'
+import { resolveRole } from '../lib/rbac'
 import PipelineJourney, { NextAction } from '../components/PipelineJourney'
 import { computePipeline, focusStage } from '../lib/journey'
 import { useOrgData } from '../lib/useOrgData'
-import { useNavigate } from 'react-router-dom'
-import { useFramework, getFramework } from '../lib/frameworks'
-import CommentThread from '../components/CommentThread'
+import { useFramework } from '../lib/frameworks'
 import SavedViewsBar from '../components/SavedViewsBar'
 import PageHeader from '../components/PageHeader'
 import { SkeletonTable } from '../components/Skeleton'
-import { Stagger, StaggerItem } from '../components/MotionPrimitives'
+import { FadeIn } from '../components/MotionPrimitives'
 
-type FilterState = 'all' | 'overdue' | 'pending' | 'in_progress' | 'submitted' | 'approved'
-
-// Server now stamps `is_overdue` but we re-derive client-side too so that the
-// pill still shows correctly if an older API ever returns the old shape.
-function isOverdue(a: { is_overdue?: boolean; due_date: string | null; status: string }): boolean {
-  if (a.is_overdue) return true
-  if (!a.due_date) return false
-  if (a.status === 'approved' || a.status === 'reviewed' || a.status === 'submitted') return false
-  return new Date(a.due_date).getTime() < Date.now()
-}
-
-function dueThisWeek(a: { due_date: string | null; status: string }): boolean {
-  if (!a.due_date) return false
-  if (a.status === 'approved' || a.status === 'reviewed' || a.status === 'submitted') return false
-  const days = (new Date(a.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-  return days >= 0 && days <= 7
-}
+import FocusCard from '../components/mytasks/FocusCard'
+import StatsStrip from '../components/mytasks/StatsStrip'
+import ViewToggle from '../components/mytasks/ViewToggle'
+import DateGroupedList from '../components/mytasks/DateGroupedList'
+import TaskBoard from '../components/mytasks/TaskBoard'
+import TaskCalendar from '../components/mytasks/TaskCalendar'
+import KeyboardShortcuts from '../components/mytasks/KeyboardShortcuts'
+import {
+  isOverdue, dueThisWeek, pickFocus,
+  type FilterState, type ViewMode,
+} from '../components/mytasks/shared'
 
 export default function MyTasks() {
   const { user } = useAuth()
   const { active: framework } = useFramework()
+  const navigate = useNavigate()
+
   const [assignments, setAssignments] = useState<QuestionAssignment[]>([])
   const [questions, setQuestions] = useState<NexusQuestionnaireItem[]>([])
   const [entities, setEntities] = useState<OrgEntity[]>([])
-  const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<FilterState>('all')
-  const [expanded, setExpanded] = useState<string | null>(null)
-
   const [members, setMembers] = useState<OrgMember[]>([])
+  const [loading, setLoading] = useState(true)
   const [treeWarning, setTreeWarning] = useState<string | null>(null)
 
-  const refresh = async () => {
+  const [filter, setFilter] = useState<FilterState>('all')
+  const [view, setView] = useState<ViewMode>('list')
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const [focusIdx, setFocusIdx] = useState(0)
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
+  const [dayFilter, setDayFilter] = useState<string | null>(null)
+  const [skipIds, setSkipIds] = useState<Set<string>>(new Set())
+
+  const rowRefs = useRef(new Map<string, HTMLDivElement>())
+  const registerRow = useCallback((id: string, n: HTMLDivElement | null) => {
+    if (n) rowRefs.current.set(id, n)
+    else rowRefs.current.delete(id)
+  }, [])
+
+  const refresh = useCallback(async () => {
     if (!user?.email) return
     try {
       const [rows, ents, mems] = await Promise.all([
@@ -66,8 +67,8 @@ export default function MyTasks() {
       setAssignments(rows.filter(a => a.framework_id === framework.id))
       setEntities(ents)
       setMembers(mems)
-    } catch { /* surface a banner later */ }
-  }
+    } catch { /* surfaced elsewhere */ }
+  }, [user?.email, framework.id])
 
   useEffect(() => {
     let cancelled = false
@@ -76,16 +77,8 @@ export default function MyTasks() {
       await refresh()
       try {
         const t = await nexus.tree(framework.id)
-        if (!cancelled) {
-          setQuestions(t)
-          setTreeWarning(null)
-        }
+        if (!cancelled) { setQuestions(t); setTreeWarning(null) }
       } catch (e) {
-        // Tree load failed — assignments still render (they carry their own
-        // gri_code / line_item) but the rich question metadata (section,
-        // scope_split, calculator hints) won't be available. Tell the user
-        // once via toast and keep an inline banner above the list so the
-        // degraded state is visible at a glance.
         if (!cancelled) {
           const msg = e instanceof Error ? e.message : 'Could not load question definitions'
           setTreeWarning(msg)
@@ -95,17 +88,14 @@ export default function MyTasks() {
       if (!cancelled) setLoading(false)
     })()
     return () => { cancelled = true }
-  // Safe: `refresh` and `nexus.tree` are stable module-level helpers; the
-  // effect should only re-run when the logged-in user or active framework
-  // changes. Including refresh would re-fetch on every render.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.email, framework.id])
+  }, [user?.email, framework.id, refresh])
 
   const entityById = useMemo(() => new Map(entities.map(e => [e.id, e])), [entities])
   const questionById = useMemo(() => new Map(questions.map(q => [q.id, q])), [questions])
 
   const filtered = useMemo(() => {
     const matched = assignments.filter(a => {
+      if (dayFilter && a.due_date !== dayFilter) return false
       if (filter === 'all') return true
       if (filter === 'overdue') return isOverdue(a)
       if (filter === 'pending') return a.status === 'not_started'
@@ -114,7 +104,6 @@ export default function MyTasks() {
       if (filter === 'approved') return a.status === 'approved'
       return true
     })
-    // Always sort overdue to the top so they're impossible to miss.
     return [...matched].sort((a, b) => {
       const oa = isOverdue(a) ? 0 : 1
       const ob = isOverdue(b) ? 0 : 1
@@ -123,7 +112,7 @@ export default function MyTasks() {
       const db = b.due_date ? new Date(b.due_date).getTime() : Infinity
       return da - db
     })
-  }, [assignments, filter])
+  }, [assignments, filter, dayFilter])
 
   const stats = useMemo(() => ({
     total: assignments.length,
@@ -135,33 +124,85 @@ export default function MyTasks() {
     approved: assignments.filter(a => a.status === 'approved').length,
   }), [assignments])
 
+  const approvedThisWeek = useMemo(() => {
+    const wk = Date.now() - 7 * 24 * 60 * 60 * 1000
+    return assignments.filter(a => a.status === 'approved' && a.last_updated && new Date(a.last_updated).getTime() >= wk).length
+  }, [assignments])
+
   const role = resolveRole(user)
-  const roleMeta = ROLE_CATALOG[role]
-  const completion = stats.total > 0 ? Math.round((stats.approved / stats.total) * 100) : 0
-
-  const firstName = user?.name?.split(' ')[0] || 'there'
-
-  const updateAssignment = async (id: string, patch: Partial<QuestionAssignment>) => {
-    await orgStore.updateAssignment(id, patch)
-    await refresh()
-  }
-
-  // Flow + next action data (role-aware)
   const { data: orgData } = useOrgData()
-  const navigate = useNavigate()
   const pipeline = useMemo(() => computePipeline(user, orgData ?? null), [user, orgData])
   const focus = useMemo(() => focusStage(user, orgData ?? null), [user, orgData])
   const openCount = useMemo(() =>
     assignments.filter(a => a.status === 'not_started' || a.status === 'in_progress' || a.status === 'rejected').length
   , [assignments])
 
+  const focusTask = useMemo(
+    () => pickFocus(assignments.filter(a => !skipIds.has(a.id))),
+    [assignments, skipIds]
+  )
+
+  const updateAssignment = useCallback(async (id: string, patch: Partial<QuestionAssignment>) => {
+    await orgStore.updateAssignment(id, patch)
+    await refresh()
+  }, [refresh])
+
+  // ── Keyboard shortcuts ───────────────────────────────────────────────
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null
+      const tag = t?.tagName
+      const editing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || t?.isContentEditable
+      if (editing && e.key !== 'Escape') return
+
+      if (e.key === '?') { e.preventDefault(); setShortcutsOpen(s => !s); return }
+      if (e.key === 'Escape') {
+        if (shortcutsOpen) { setShortcutsOpen(false); return }
+        if (expanded) { setExpanded(null); return }
+        return
+      }
+      if (e.key === '1') { setView('list'); return }
+      if (e.key === '2') { setView('board'); return }
+      if (e.key === '3') { setView('calendar'); return }
+      if (view !== 'list' || filtered.length === 0) return
+      if (e.key === 'j') {
+        e.preventDefault()
+        setFocusIdx(i => Math.min(i + 1, filtered.length - 1))
+      } else if (e.key === 'k') {
+        e.preventDefault()
+        setFocusIdx(i => Math.max(i - 1, 0))
+      } else if (e.key === 'Enter') {
+        e.preventDefault()
+        const a = filtered[focusIdx]
+        if (a) setExpanded(prev => prev === a.id ? null : a.id)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [view, filtered, focusIdx, shortcutsOpen, expanded])
+
+  useEffect(() => {
+    if (focusIdx >= filtered.length) setFocusIdx(Math.max(0, filtered.length - 1))
+  }, [filtered.length, focusIdx])
+
+  const focusedId = view === 'list' && filtered.length > 0 ? filtered[focusIdx]?.id ?? null : null
+
+  // Scroll focused row into view on j/k.
+  useEffect(() => {
+    if (!focusedId) return
+    const node = rowRefs.current.get(focusedId)
+    if (node) node.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [focusedId])
+
+  const handlePickDay = (iso: string) => {
+    setDayFilter(iso)
+    setView('list')
+  }
+
   return (
-    <div className="animate-fade-in space-y-5">
+    <div className="animate-fade-in space-y-6">
       <PageHeader
-        breadcrumbs={[
-          { label: 'Work', to: '/' },
-          { label: 'Tasks' },
-        ]}
+        breadcrumbs={[{ label: 'Work', to: '/' }, { label: 'Tasks' }]}
         title="My tasks"
         description={
           stats.total === 0
@@ -169,7 +210,7 @@ export default function MyTasks() {
             : `${stats.overdue} overdue · ${stats.dueThisWeek} due this week · ${stats.total} total`
         }
       />
-      {/* ─── Flow + Next Action — the same story every role sees ─── */}
+
       <div className="space-y-4">
         {focus && (
           <NextAction
@@ -191,180 +232,94 @@ export default function MyTasks() {
         <PipelineJourney stages={pipeline} activeKey={focus?.stage.key} myRole={role} />
       </div>
 
-      {/* Hero */}
-      <div className="rounded-[var(--radius-lg)] bg-gradient-to-br from-[var(--color-brand)] to-[var(--color-brand-strong)] text-white p-4 sm:p-6 mb-5">
-        <div className="flex items-start justify-between flex-wrap gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] font-semibold text-white/70">
-              <Sparkles className="w-3 h-3" /> {roleMeta.name}
-            </div>
-            <h1 className="font-display text-[22px] sm:text-[28px] font-bold mt-1">Hi {firstName} — here's what's on your plate.</h1>
-            <p className="text-[var(--text-sm)] text-white/80 mt-1 max-w-xl">
-              {stats.total === 0
-                ? 'You have no assigned questions yet. Once an admin or lead assigns you a GRI line item, it appears here.'
-                : `${stats.notStarted + stats.inProgress} to do · ${stats.submitted} waiting on review · ${stats.approved} approved`}
-            </p>
-          </div>
-          {stats.total > 0 && (
-            <div className="flex items-center gap-6">
-              <RingStat pct={completion} label="Complete" />
-            </div>
-          )}
-        </div>
+      {!loading && (
+        <FadeIn>
+          <FocusCard
+            focus={focusTask}
+            totalApproved={stats.approved}
+            onSkip={() => focusTask && setSkipIds(s => { const n = new Set(s); n.add(focusTask.id); return n })}
+            onSeeApproved={() => setFilter('approved')}
+          />
+        </FadeIn>
+      )}
 
-        {stats.total > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-5">
-            {([
-              { key: 'pending', label: 'To do', value: stats.notStarted, icon: Clock },
-              { key: 'in_progress', label: 'In progress', value: stats.inProgress, icon: PencilLine },
-              { key: 'submitted', label: 'Awaiting review', value: stats.submitted, icon: Send },
-              { key: 'approved', label: 'Approved', value: stats.approved, icon: CheckCircle2 },
-            ] as const).map(s => (
-              <button
-                key={s.key}
-                onClick={() => setFilter(s.key as FilterState)}
-                aria-pressed={filter === s.key}
-                aria-label={`Filter: ${s.label} (${s.value})`}
-                className={`rounded-[var(--radius-md)] text-left p-3 backdrop-blur transition-colors ${
-                  filter === s.key ? 'bg-white/25' : 'bg-white/10 hover:bg-white/15'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/70 font-semibold">
-                  <s.icon className="w-3 h-3" /> {s.label}
-                </div>
-                <div className="text-[26px] font-bold tabular-nums mt-0.5">{s.value}</div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Count badge — overdue / due-this-week / total */}
       {stats.total > 0 && (
-        <div
-          role="status"
-          aria-live="polite"
-          aria-label={`${stats.overdue} overdue, ${stats.dueThisWeek} due this week, ${stats.total} total`}
-          className="flex items-center gap-3 text-[var(--text-xs)] font-semibold flex-wrap"
-        >
-          {stats.overdue > 0 && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/10 text-red-300 border border-red-500/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-              {stats.overdue} overdue
-            </span>
-          )}
-          <span className="text-[var(--text-tertiary)]">·</span>
-          <span className="text-[var(--text-secondary)]">{stats.dueThisWeek} due this week</span>
-          <span className="text-[var(--text-tertiary)]">·</span>
-          <span className="text-[var(--text-secondary)]">{stats.total} total</span>
+        <StatsStrip
+          stats={stats}
+          approvedThisWeek={approvedThisWeek}
+          filter={filter}
+          onChange={(f) => { setFilter(f); setDayFilter(null) }}
+        />
+      )}
+
+      {dayFilter && (
+        <div className="flex items-center gap-2 text-[var(--text-xs)]">
+          <span className="text-[var(--text-tertiary)]">Filtered to</span>
+          <span className="px-2 py-0.5 rounded-full bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)] font-semibold tabular-nums">
+            {dayFilter}
+          </span>
+          <button
+            onClick={() => setDayFilter(null)}
+            className="text-[var(--color-brand)] hover:underline"
+          >
+            Clear
+          </button>
         </div>
       )}
 
-      {/* Saved views — Workiva-style named filter snapshots */}
-      <SavedViewsBar
-        page="my-tasks"
-        filters={{ filter } as { filter: FilterState }}
-        onApply={(f) => setFilter((f.filter as FilterState) ?? 'all')}
-        className="mb-3"
-      />
-
-      {/* Tabs — scroll horizontally on small screens instead of wrapping into
-          a chip-cloud, so the tab strip stays on one line and the active pill
-          remains visible after scroll. */}
-      <div role="toolbar" aria-label="Filter assignments" className="flex items-center gap-2 mb-4 overflow-x-auto -mx-page-x px-page-x pb-1 scrollbar-thin">
-        {(['all', 'overdue', 'pending', 'in_progress', 'submitted', 'approved'] as FilterState[]).map(f => {
-          const count = f === 'overdue' ? stats.overdue : null
-          if (f === 'overdue' && stats.overdue === 0) return null
-          return (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              aria-pressed={filter === f}
-              className={`px-3 py-1.5 rounded-full text-[var(--text-xs)] font-semibold transition-colors inline-flex items-center gap-1.5 whitespace-nowrap flex-shrink-0 min-h-[36px] ${
-                filter === f
-                  ? f === 'overdue'
-                    ? 'bg-red-500 text-white'
-                    : 'bg-[var(--color-brand)] text-white'
-                  : f === 'overdue'
-                    ? 'bg-red-500/10 text-red-300 border border-red-500/30 hover:bg-red-500/20'
-                    : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'
-              }`}
-            >
-              {f === 'all' ? 'All'
-                : f === 'overdue' ? 'Overdue'
-                : f === 'in_progress' ? 'In progress'
-                : f === 'pending' ? 'To do'
-                : f === 'submitted' ? 'Awaiting review'
-                : 'Approved'}
-              {count != null && count > 0 && (
-                <span className="text-[10px] opacity-80 tabular-nums">{count}</span>
-              )}
-            </button>
-          )
-        })}
+      <div className="flex items-center gap-3 flex-wrap">
+        <ViewToggle view={view} onChange={setView} />
+        <SavedViewsBar
+          page="my-tasks"
+          filters={{ filter, view } as { filter: FilterState; view: ViewMode }}
+          onApply={(f) => {
+            const fv = f as { filter?: FilterState; view?: ViewMode }
+            if (fv.filter) setFilter(fv.filter)
+            if (fv.view) setView(fv.view)
+          }}
+          className="flex-1 min-w-0"
+        />
       </div>
 
-      {/* Tree-load warning: assignments still render (they carry gri_code +
-          line_item) but question metadata (section, scope split, calculator
-          hints) is missing until the tree loads. */}
       {treeWarning && (
         <div
           role="status"
-          className="flex items-start gap-2 px-3 py-2 rounded-[var(--radius-md)] bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[12px] mb-3"
+          className="flex items-start gap-2 px-3 py-2 rounded-[var(--radius-md)] bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[12px]"
         >
           <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-          <span>
-            Could not load question definitions — assignment values may be missing context. {treeWarning}
-          </span>
+          <span>Could not load question definitions — assignment values may be missing context. {treeWarning}</span>
         </div>
       )}
 
-      {/* List */}
       {loading ? (
         <SkeletonTable rows={6} cols={5} />
-      ) : filtered.length === 0 ? (
+      ) : filtered.length === 0 && view !== 'calendar' ? (
         <EmptyList total={stats.total} filter={filter} />
+      ) : view === 'list' ? (
+        <DateGroupedList
+          assignments={filtered}
+          questionById={questionById}
+          entityById={entityById}
+          entities={entities}
+          members={members}
+          expandedId={expanded}
+          focusedId={focusedId}
+          onToggle={(id) => setExpanded(prev => prev === id ? null : id)}
+          onUpdate={updateAssignment}
+          registerRow={registerRow}
+        />
+      ) : view === 'board' ? (
+        <TaskBoard
+          assignments={filtered}
+          entityById={entityById}
+          onUpdate={updateAssignment}
+          onOpen={(id) => { setView('list'); setExpanded(id) }}
+        />
       ) : (
-        <Stagger>
-          <div className="space-y-2">
-            {filtered.map(a => (
-              <StaggerItem key={a.id}>
-                <AssignmentRow
-                  assignment={a}
-                  question={questionById.get(a.questionId)}
-                  entity={entityById.get(a.entityId)}
-                  expanded={expanded === a.id}
-                  onToggle={() => setExpanded(expanded === a.id ? null : a.id)}
-                  onUpdate={patch => updateAssignment(a.id, patch)}
-                  entities={entities}
-                  members={members}
-                />
-              </StaggerItem>
-            ))}
-          </div>
-        </Stagger>
+        <TaskCalendar assignments={assignments} onPickDay={handlePickDay} />
       )}
-    </div>
-  )
-}
 
-function RingStat({ pct, label }: { pct: number; label: string }) {
-  const r = 32
-  const c = 2 * Math.PI * r
-  const dash = (pct / 100) * c
-  return (
-    <div className="flex items-center gap-3">
-      <div className="relative w-[72px] h-[72px]">
-        <svg width={72} height={72} viewBox="0 0 72 72">
-          <circle cx={36} cy={36} r={r} fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth={6} />
-          <circle cx={36} cy={36} r={r} fill="none" stroke="#fff" strokeWidth={6} strokeLinecap="round"
-            strokeDasharray={`${dash} ${c}`} transform="rotate(-90 36 36)" />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-[16px] font-bold tabular-nums">{pct}%</span>
-        </div>
-      </div>
-      <div className="text-[10px] uppercase tracking-wider font-semibold text-white/80">{label}</div>
+      <KeyboardShortcuts open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </div>
   )
 }
@@ -382,639 +337,4 @@ function EmptyList({ total, filter }: { total: number; filter: FilterState }) {
       />
     </div>
   )
-}
-
-function AssignmentRow({
-  assignment, question, entity, expanded, onToggle, onUpdate, entities, members,
-}: {
-  assignment: QuestionAssignment
-  question: NexusQuestionnaireItem | undefined
-  entity: OrgEntity | undefined
-  expanded: boolean
-  onToggle: () => void
-  onUpdate: (patch: Partial<QuestionAssignment>) => Promise<void> | void
-  entities: OrgEntity[]
-  members: OrgMember[]
-}) {
-  const statusColor = {
-    not_started: 'var(--text-tertiary)',
-    in_progress: 'var(--status-draft)',
-    submitted:   'var(--status-pending)',
-    reviewed:    'var(--status-pending)',
-    approved:    'var(--status-ok)',
-    rejected:    'var(--status-reject)',
-  }[assignment.status]
-
-  const modes = assignment.entry_modes ?? ['Manual']
-
-  const overdue = isOverdue(assignment)
-  const dueSoon = !overdue && assignment.due_date ? (new Date(assignment.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24) < 7 : false
-
-  return (
-    <div className={`rounded-[var(--radius-lg)] border bg-[var(--bg-primary)] transition-all ${
-      expanded ? 'border-[var(--color-brand)]/40 shadow-md' : 'border-[var(--border-default)] hover:border-[var(--color-brand)]/30'
-    }`}>
-      {/* Row head */}
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={expanded}
-        aria-label={`${assignment.gri_code} ${assignment.line_item} for ${entity?.name ?? 'unknown entity'}, status ${assignment.status}${overdue ? ', overdue' : ''}${assignment.due_date ? `, due ${assignment.due_date}` : ''}`}
-        className="w-full text-left p-4 min-h-[64px] flex items-center gap-3 sm:gap-4 flex-wrap sm:flex-nowrap"
-      >
-        <span className="w-1 h-10 rounded-full flex-shrink-0" style={{ background: statusColor }} />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-            {(() => {
-              const fw = getFramework(assignment.framework_id)
-              return fw ? (
-                <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
-                      style={{ background: `${fw.color}22`, color: fw.color }}>
-                  {fw.code}
-                </span>
-              ) : null
-            })()}
-            <span className="text-[10px] font-bold text-[var(--color-brand)]">{assignment.gri_code}</span>
-            <span className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">· {question?.section ?? ''}</span>
-          </div>
-          <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{assignment.line_item}</div>
-          <div className="flex items-center gap-3 mt-1 text-[10px] text-[var(--text-tertiary)] flex-wrap">
-            <span className="inline-flex items-center gap-1"><Factory className="w-3 h-3" /> {entity?.name ?? 'Unknown entity'}</span>
-            <span className="inline-flex items-center gap-1">
-              {modes.map((m, i) => {
-                const Icon = m === 'Manual' ? PencilLine : m === 'Calculator' ? CalcIcon : Plug
-                return (
-                  <span key={m} className="inline-flex items-center gap-0.5">
-                    {i > 0 && <span className="mx-0.5">·</span>}
-                    <Icon className="w-3 h-3" /> {m}
-                  </span>
-                )
-              })}
-            </span>
-            {assignment.due_date && (
-              <span className={`inline-flex items-center gap-1 ${overdue ? 'text-red-300 font-semibold' : dueSoon ? 'text-[var(--status-reject)] font-semibold' : ''}`}>
-                <Calendar className="w-3 h-3" /> {assignment.due_date}
-              </span>
-            )}
-          </div>
-        </div>
-        {overdue && (
-          <span className="px-2 py-0.5 rounded-[var(--radius-sm)] text-[10px] font-semibold uppercase tracking-wider flex-shrink-0 bg-red-500/10 text-red-300 border border-red-500/30">
-            Overdue
-          </span>
-        )}
-        <StatusPill status={assignment.status} />
-        {expanded ? <ChevronUp className="w-4 h-4 text-[var(--text-tertiary)]" /> : <ChevronDown className="w-4 h-4 text-[var(--text-tertiary)]" />}
-      </button>
-
-      {expanded && (
-        <div className="px-4 pb-4 pt-1 border-t border-[var(--border-subtle)]">
-          <AnswerPanel
-            assignment={assignment}
-            question={question ?? synthesizeQuestion(assignment)}
-            onUpdate={onUpdate}
-            entities={entities}
-            members={members}
-          />
-        </div>
-      )}
-    </div>
-  )
-}
-
-/**
- * Build a minimal NexusQuestionnaireItem from an assignment. Used when the
- * assignment refers to a synthetic demo question id that isn't in the Neon
- * DB's questionnaire_item table — the panel can still render a Manual input,
- * a Calculator (if one matches the gri_code), and a Connector option.
- */
-function synthesizeQuestion(a: QuestionAssignment): NexusQuestionnaireItem {
-  const firstMode = a.entry_modes?.[0] ?? 'Manual'
-  return {
-    id: a.questionId,
-    section: 'Natural Capital',
-    subsection: 'Emissions',
-    gri_code: a.gri_code,
-    line_item: a.line_item,
-    unit: a.unit ?? null,
-    scope_split: a.gri_code.startsWith('305-1') ? 'Scope 1'
-      : a.gri_code.startsWith('305-2') ? 'Scope 2'
-      : a.gri_code.startsWith('305-3') ? 'Scope 3'
-      : null,
-    default_workflow_role: 'FM',
-    entry_mode_default: firstMode,
-    target_fy2026: null,
-    footnote_refs: [],
-    reporting_scope: 'group',
-  }
-}
-
-function StatusPill({ status }: { status: QuestionAssignment['status'] }) {
-  const map = {
-    not_started: { label: 'To do', bg: 'var(--bg-tertiary)', fg: 'var(--text-tertiary)' },
-    in_progress: { label: 'Draft', bg: 'var(--accent-amber-light)', fg: 'var(--status-draft)' },
-    submitted:   { label: 'Submitted', bg: 'var(--accent-blue-light)', fg: 'var(--status-pending)' },
-    reviewed:    { label: 'Reviewed', bg: 'var(--accent-blue-light)', fg: 'var(--status-pending)' },
-    approved:    { label: 'Approved', bg: 'var(--accent-green-light)', fg: 'var(--status-ok)' },
-    rejected:    { label: 'Rejected', bg: 'var(--accent-red-light)', fg: 'var(--status-reject)' },
-  }[status]
-  return (
-    <span className="px-2 py-0.5 rounded-[var(--radius-sm)] text-[10px] font-semibold uppercase tracking-wider flex-shrink-0" style={{ background: map.bg, color: map.fg }}>
-      {map.label}
-    </span>
-  )
-}
-
-function AnswerPanel({
-  assignment, question, onUpdate, entities, members,
-}: {
-  assignment: QuestionAssignment
-  question: NexusQuestionnaireItem
-  onUpdate: (patch: Partial<QuestionAssignment>) => Promise<void> | void
-  entities: OrgEntity[]
-  members: OrgMember[]
-}) {
-  // Narrative-type assignments get a dedicated panel — rich text, no value/calculator/connector.
-  if (assignment.response_type === 'narrative') {
-    return <NarrativeAnswerPanel assignment={assignment} question={question} onUpdate={onUpdate} entities={entities} members={members} />
-  }
-  const allowedModes = assignment.entry_modes ?? ['Manual']
-  const calculator: CalcDescriptor | null = findCalculator(question)
-  // Effective allowed modes: hide Calculator if no descriptor matches this question
-  const availableModes = useMemo(
-    () => allowedModes.filter(m => m !== 'Calculator' || calculator != null),
-    // Using the joined string of allowedModes as a value-based dep avoids
-    // re-running when the parent re-creates the array with identical contents.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [allowedModes.join(','), calculator]
-  )
-
-  // Which mode the assignee is currently filling in. Default to the one actually used
-  // (if resuming) or the first available.
-  const [activeMode, setActiveMode] = useState<'Manual' | 'Calculator' | 'Connector'>(
-    (assignment.used_mode && availableModes.includes(assignment.used_mode as any))
-      ? assignment.used_mode as any
-      : availableModes[0] ?? 'Manual'
-  )
-
-  const [value, setValue] = useState<string>(assignment.value != null ? String(assignment.value) : '')
-  const [comment, setComment] = useState(assignment.comment || '')
-  const [evidence, setEvidence] = useState<string[]>(assignment.evidence_ids || [])
-  const [busy, setBusy] = useState(false)
-  const [calcValues, setCalcValues] = useState<CalcInputValues>({})
-
-  const calcResult = useMemo(() => {
-    if (!calculator) return null
-    return calculator.compute(calcValues, question)
-  }, [calculator, calcValues, question])
-
-  const locked = assignment.status === 'submitted' || assignment.status === 'approved' || assignment.status === 'reviewed'
-
-  const effectiveValue = useMemo(() => {
-    if (activeMode === 'Calculator' && calculator) return calcResult
-    if (activeMode === 'Manual') {
-      const v = parseFloat(value)
-      return Number.isNaN(v) ? null : v
-    }
-    if (activeMode === 'Connector') return assignment.value ?? null
-    return null
-  }, [activeMode, calcResult, calculator, value, assignment.value])
-
-  const handleSaveDraft = async () => {
-    if (effectiveValue == null) return
-    setBusy(true)
-    onUpdate({
-      value: effectiveValue,
-      unit: question.unit,
-      comment,
-      status: 'in_progress',
-      used_mode: activeMode,
-    })
-    setBusy(false)
-  }
-
-  const handleSubmit = async () => {
-    if (effectiveValue == null) return
-    if (evidence.length === 0 && activeMode !== 'Connector') {
-      alert('Attach at least one piece of evidence before submitting.')
-      return
-    }
-    setBusy(true)
-    onUpdate({
-      value: effectiveValue,
-      unit: question.unit,
-      comment,
-      status: 'submitted',
-      evidence_ids: evidence,
-      used_mode: activeMode,
-    })
-    setBusy(false)
-  }
-
-  const handleConnectorPull = async () => {
-    setBusy(true)
-    const fabricated = question.target_fy2026
-      ? question.target_fy2026 * (0.9 + Math.random() * 0.2)
-      : Math.round(1000 + Math.random() * 9000)
-    onUpdate({
-      value: Number(fabricated.toFixed(2)),
-      unit: question.unit,
-      status: 'in_progress',
-      evidence_ids: [`connector:${pickConnector(question)}:${Date.now().toString(36)}`],
-      used_mode: 'Connector',
-    })
-    setBusy(false)
-  }
-
-  const handleAddEvidence = (name: string) => {
-    const id = `ev_${Date.now().toString(36)}_${name.slice(0, 20)}`
-    setEvidence(e => [...e, id])
-  }
-
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-5 mt-3">
-      {/* Main */}
-      <div className="space-y-4">
-        <div className="text-[var(--text-xs)] text-[var(--text-secondary)]">
-          <strong className="text-[var(--text-primary)]">Question:</strong> {question.line_item}
-          {question.unit && <span className="ml-2 text-[var(--text-tertiary)]">· Unit: {question.unit}</span>}
-          {question.scope_split && <span className="ml-2 text-[var(--text-tertiary)]">· {question.scope_split}</span>}
-        </div>
-
-        {/* Mode switcher — shown only when more than one mode is allowed */}
-        {availableModes.length > 1 && (
-          <div className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] overflow-hidden">
-            <div
-              className="grid divide-x divide-[var(--border-subtle)]"
-              style={{ gridTemplateColumns: `repeat(${availableModes.length}, minmax(0, 1fr))` }}
-            >
-              {availableModes.map(m => {
-                const Icon = m === 'Manual' ? PencilLine : m === 'Calculator' ? CalcIcon : Plug
-                const active = activeMode === m
-                return (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => !locked && setActiveMode(m)}
-                    disabled={locked}
-                    className={`px-3 py-2 text-[var(--text-xs)] font-semibold flex items-center justify-center gap-1.5 transition-colors ${
-                      active
-                        ? 'bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)]'
-                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
-                    } disabled:opacity-50 disabled:cursor-not-allowed`}
-                  >
-                    <Icon className="w-3.5 h-3.5" /> {m}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Mode-specific body */}
-        {activeMode === 'Manual' && (
-          <div>
-            <label className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">
-              Enter value {question.unit ? `(${question.unit})` : ''}
-            </label>
-            <input
-              type="number"
-              step="any"
-              value={value}
-              onChange={e => setValue(e.target.value)}
-              disabled={locked}
-              placeholder="e.g. 12345.67"
-              className="w-full px-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-base)] tabular-nums focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none disabled:bg-[var(--bg-secondary)]"
-            />
-          </div>
-        )}
-
-        {activeMode === 'Calculator' && calculator && (
-          <div>
-            <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand)] mb-1">{calculator.title}</div>
-            <p className="text-[var(--text-xs)] text-[var(--text-secondary)] mb-3">{calculator.description}</p>
-            <div className={`grid gap-2 ${calculator.inputs.length >= 3 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'}`}>
-              {calculator.inputs.map(input => (
-                <label key={input.key} className="block">
-                  <span className="block text-[9px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">
-                    {input.label} {input.unit && <span className="opacity-70">({input.unit})</span>}
-                  </span>
-                  {input.options ? (
-                    <select
-                      value={calcValues[input.key] ?? ''}
-                      onChange={e => setCalcValues(s => ({ ...s, [input.key]: e.target.value }))}
-                      className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)]"
-                    >
-                      <option value="">Select…</option>
-                      {input.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </select>
-                  ) : (
-                    <input
-                      type="number" step="any"
-                      value={calcValues[input.key] ?? ''}
-                      onChange={e => setCalcValues(s => ({ ...s, [input.key]: e.target.value }))}
-                      placeholder={input.placeholder}
-                      className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)] tabular-nums"
-                    />
-                  )}
-                </label>
-              ))}
-            </div>
-            <div className="mt-3 p-3 rounded-[var(--radius-md)] bg-[var(--color-brand-soft)] border border-[var(--color-brand)]/20 flex items-baseline justify-between">
-              <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand-strong)]">Computed</span>
-              <div className="flex items-baseline gap-1">
-                <span className="text-[var(--text-xl)] font-bold tabular-nums text-[var(--color-brand-strong)]">
-                  {calcResult != null ? calcResult.toFixed(2) : '—'}
-                </span>
-                {question.unit && <span className="text-[10px] text-[var(--color-brand-strong)]">{calculator.outputUnitHint ?? question.unit}</span>}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeMode === 'Connector' && (
-          <div className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <Plug className="w-5 h-5 text-[var(--color-brand)]" />
-              <div>
-                <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{pickConnector(question)}</div>
-                <div className="text-[10px] text-[var(--text-tertiary)]">Auto-pull · signed with receipt hash</div>
-              </div>
-            </div>
-            {assignment.value != null ? (
-              <div className="p-3 rounded-[var(--radius-sm)] bg-[var(--accent-green-light)] border border-[var(--status-ok)]/20">
-                <div className="flex items-center gap-2 text-[10px] font-semibold text-[var(--status-ok)] uppercase tracking-wider mb-1">
-                  <CheckCircle2 className="w-3 h-3" /> Pulled
-                </div>
-                <div className="text-[var(--text-xs)] text-[var(--text-secondary)]">
-                  Value: <strong className="text-[var(--text-primary)] tabular-nums">{assignment.value}</strong> {question.unit ?? ''}
-                </div>
-              </div>
-            ) : (
-              <button
-                onClick={handleConnectorPull}
-                disabled={locked || busy}
-                className="w-full px-4 py-2.5 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-60 inline-flex items-center justify-center gap-2"
-              >
-                {busy ? <><Loader2 className="w-4 h-4 animate-spin" /> Pulling…</> : <><Plug className="w-4 h-4" /> Pull from source</>}
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Comment */}
-        <div>
-          <label className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">
-            Comment (optional)
-          </label>
-          <textarea
-            value={comment}
-            onChange={e => setComment(e.target.value)}
-            rows={2}
-            disabled={locked}
-            placeholder="Notes, methodology, or caveats for the reviewer."
-            className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none disabled:bg-[var(--bg-secondary)] resize-none"
-          />
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-2 pt-2">
-          {!locked && activeMode !== 'Connector' && (
-            <button
-              onClick={handleSaveDraft}
-              disabled={effectiveValue == null || busy}
-              className="px-4 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 inline-flex items-center gap-1.5"
-            >
-              <Upload className="w-3.5 h-3.5" /> Save draft
-            </button>
-          )}
-          {!locked && (
-            <button
-              onClick={handleSubmit}
-              disabled={effectiveValue == null || busy}
-              className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-50 inline-flex items-center gap-1.5"
-            >
-              <Send className="w-3.5 h-3.5" /> Submit for review
-            </button>
-          )}
-          {locked && (
-            <HandoffHint
-              status={assignment.status}
-              entityId={assignment.entityId}
-              entities={entities}
-              members={members}
-            />
-          )}
-        </div>
-      </div>
-
-      {/* Evidence sidebar */}
-      <div className="space-y-4">
-        <EvidencePanel evidence={evidence} locked={locked} onAdd={handleAddEvidence} onRemove={i => setEvidence(e => e.filter((_, idx) => idx !== i))} />
-        <CommentThread assignmentId={assignment.id} />
-      </div>
-    </div>
-  )
-}
-
-/**
- * NarrativeAnswerPanel — for response_type='narrative' assignments.
- * Captures a long-form body (markdown-friendly textarea) instead of a number.
- */
-function NarrativeAnswerPanel({
-  assignment, question, onUpdate, entities, members,
-}: {
-  assignment: QuestionAssignment
-  question: NexusQuestionnaireItem
-  onUpdate: (patch: Partial<QuestionAssignment>) => Promise<void> | void
-  entities: OrgEntity[]
-  members: OrgMember[]
-}) {
-  const [body, setBody] = useState(assignment.narrative_body ?? '')
-  const [busy, setBusy] = useState(false)
-  const [evidence, setEvidence] = useState<string[]>(assignment.evidence_ids || [])
-  const locked = assignment.status === 'submitted' || assignment.status === 'approved' || assignment.status === 'reviewed'
-  const minLength = 80
-
-  const handleSave = async (nextStatus: 'in_progress' | 'submitted') => {
-    if (nextStatus === 'submitted' && body.trim().length < minLength) {
-      alert(`Narrative needs at least ${minLength} characters before submitting.`)
-      return
-    }
-    setBusy(true)
-    await onUpdate({
-      narrative_body: body,
-      status: nextStatus,
-      evidence_ids: evidence,
-    })
-    setBusy(false)
-  }
-
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-5 mt-3">
-      <div className="space-y-4">
-        <div className="text-[var(--text-xs)] text-[var(--text-secondary)]">
-          <strong className="text-[var(--text-primary)]">Disclosure prompt:</strong> {question.line_item}
-        </div>
-
-        <div className="rounded-[var(--radius-md)] border border-[var(--color-brand)]/20 bg-[var(--color-brand-soft)]/30 p-3 text-[10px] text-[var(--color-brand-strong)]">
-          ✍ This is a <strong>narrative disclosure</strong> (<JargonTooltip term="GRI" iconOnly /> GRI 2 / GRI 3 management approach). Write a factual description — policies, governance, how the topic is managed. Plain-text is fine; line breaks preserved.
-        </div>
-
-        <div>
-          <label className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">
-            Your response ({body.trim().length} chars)
-          </label>
-          <textarea
-            value={body}
-            onChange={e => setBody(e.target.value)}
-            disabled={locked}
-            rows={14}
-            placeholder="Describe the governance, strategy or management approach. Reference specific policies, frameworks, or processes. This text appears verbatim in the final GRI report."
-            className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)] leading-relaxed focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none disabled:bg-[var(--bg-secondary)] resize-y"
-            style={{ minHeight: 220 }}
-          />
-          {body.trim().length > 0 && body.trim().length < minLength && (
-            <div className="text-[10px] text-[var(--status-draft)] mt-1">
-              {minLength - body.trim().length} more characters needed before submit.
-            </div>
-          )}
-        </div>
-
-        {!locked && (
-          <div className="flex items-center gap-2 pt-1">
-            <button onClick={() => handleSave('in_progress')} disabled={busy} className="px-4 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 inline-flex items-center gap-1.5">
-              <Upload className="w-3.5 h-3.5" /> Save draft
-            </button>
-            <button onClick={() => handleSave('submitted')} disabled={busy || body.trim().length < minLength} className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-50 inline-flex items-center gap-1.5">
-              <Send className="w-3.5 h-3.5" /> Submit for review
-            </button>
-          </div>
-        )}
-        {locked && <HandoffHint status={assignment.status} entityId={assignment.entityId} entities={entities} members={members} />}
-      </div>
-
-      <div className="space-y-4">
-        <EvidencePanel evidence={evidence} locked={locked} onAdd={(n) => setEvidence(e => [...e, `ev_${Date.now()}_${n}`])} onRemove={i => setEvidence(e => e.filter((_, idx) => idx !== i))} />
-        <CommentThread assignmentId={assignment.id} />
-      </div>
-    </div>
-  )
-}
-
-function EvidencePanel({ evidence, locked, onAdd, onRemove }: {
-  evidence: string[]
-  locked: boolean
-  onAdd: (name: string) => void
-  onRemove: (idx: number) => void
-}) {
-  const [dragOver, setDragOver] = useState(false)
-
-  const handleFiles = (files: FileList | null) => {
-    if (!files) return
-    Array.from(files).forEach(f => onAdd(f.name))
-  }
-
-  return (
-    <aside className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 h-fit">
-      <h4 className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-primary)] mb-2 flex items-center gap-1">
-        <Paperclip className="w-3 h-3" /> Evidence
-      </h4>
-      <p className="text-[10px] text-[var(--text-tertiary)] mb-3">
-        Attach the source doc the reviewer will need. PDF, XLSX, CSV, PNG.
-      </p>
-
-      {!locked && (
-        <label
-          onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={e => {
-            e.preventDefault(); setDragOver(false)
-            handleFiles(e.dataTransfer.files)
-          }}
-          className={`block p-4 rounded-[var(--radius-md)] border-2 border-dashed text-center cursor-pointer transition-colors ${
-            dragOver ? 'border-[var(--color-brand)] bg-[var(--color-brand-soft)]' : evidence.length === 0 ? 'border-[var(--status-reject)]/30 bg-[var(--accent-red-light)]/30' : 'border-[var(--border-default)] bg-[var(--bg-primary)]'
-          }`}
-        >
-          <Upload className="w-4 h-4 mx-auto text-[var(--text-tertiary)] mb-1" />
-          <div className="text-[10px] font-semibold text-[var(--text-primary)]">
-            {evidence.length === 0 ? 'Drop file or browse' : 'Add another'}
-          </div>
-          <input type="file" multiple className="hidden" onChange={e => handleFiles(e.target.files)} />
-        </label>
-      )}
-
-      {evidence.length > 0 && (
-        <ul className="mt-3 space-y-1.5">
-          {evidence.map((e, i) => (
-            <li key={e + i} className="flex items-center gap-2 px-2 py-1.5 rounded-[var(--radius-sm)] bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
-              <FileText className="w-3 h-3 text-[var(--color-brand)] flex-shrink-0" />
-              <div className="text-[10px] font-medium text-[var(--text-primary)] truncate flex-1 font-mono">
-                {e.startsWith('connector:') ? e.split(':')[1] : e.split('_').slice(2).join('_') || e}
-              </div>
-              {!locked && (
-                <button onClick={() => onRemove(i)} className="w-4 h-4 rounded text-[var(--text-tertiary)] hover:text-[var(--status-reject)] flex items-center justify-center">
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </aside>
-  )
-}
-
-/**
- * Shows the user who picks up this task next, so they're not left guessing
- * after hitting "Submit for review".
- */
-function HandoffHint({
-  status, entityId, entities, members,
-}: {
-  status: QuestionAssignment['status']
-  entityId: string
-  entities: OrgEntity[]
-  members: OrgMember[]
-}) {
-  // Walk up the org tree to find the reviewer (subsidiary_lead) and approver (SO).
-  const path = orgStore.pathOf(entities, entityId)
-  const subsidiaryId = path.find(p => p.type === 'subsidiary')?.id
-  const reviewer = subsidiaryId
-    ? members.find(m => m.entityId === subsidiaryId && m.role === 'subsidiary_lead')
-    : undefined
-  const approver = members.find(m => m.role === 'group_sustainability_officer')
-
-  let label = ''
-  let name = ''
-  if (status === 'submitted') {
-    label = 'Sent to'
-    name = reviewer?.name ?? 'your subsidiary lead'
-  } else if (status === 'reviewed') {
-    label = 'With'
-    name = approver?.name ?? 'the group sustainability officer'
-  } else if (status === 'approved') {
-    label = 'Approved — included in the group rollup'
-    name = ''
-  }
-
-  return (
-    <div className="flex items-center gap-2 text-[var(--text-xs)]">
-      <CheckCircle2 className="w-3.5 h-3.5 text-[var(--status-ok)]" />
-      <span className="text-[var(--text-secondary)]">
-        {label} {name && <strong className="text-[var(--text-primary)]">{name}</strong>}
-        {status !== 'approved' && <span className="text-[var(--text-tertiary)]"> · you'll get a notification on the decision</span>}
-      </span>
-    </div>
-  )
-}
-
-function pickConnector(item: NexusQuestionnaireItem): string {
-  if (item.gri_code.startsWith('305-7')) return 'CEMS — Site telemetry'
-  if (item.gri_code.startsWith('302-')) return 'Utilities ERP'
-  if (item.gri_code.startsWith('303-')) return 'Water meter telemetry'
-  if (item.gri_code.startsWith('305-')) return 'GHG Inventory (IPCC)'
-  if (item.gri_code.startsWith('401-') || item.gri_code.startsWith('404-')) return 'SuccessFactors — HR'
-  if (item.gri_code.startsWith('201-')) return 'SAP ERP — FI/CO'
-  return 'Generic ERP'
 }
