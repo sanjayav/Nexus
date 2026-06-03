@@ -91,7 +91,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         a.detected_at DESC
       LIMIT 200
     `) as Array<Record<string, unknown>>
-    return res.status(200).json({ anomalies: rows })
+    // Neon returns NUMERIC columns as strings — coerce to number so the
+    // frontend can call .toFixed() / .toLocaleString() without crashing.
+    const num = (v: unknown): number | null => {
+      if (v == null) return null
+      const n = typeof v === 'number' ? v : Number(v)
+      return Number.isFinite(n) ? n : null
+    }
+    const coerced = rows.map(r => ({
+      ...r,
+      expected_value: num(r.expected_value),
+      actual_value: num(r.actual_value),
+      deviation_pct: num(r.deviation_pct),
+    }))
+    return res.status(200).json({ anomalies: coerced })
   }
 
   if (!process.env.ANTHROPIC_API_KEY) {

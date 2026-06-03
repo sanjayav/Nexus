@@ -609,10 +609,20 @@ function PersistedAnomaliesPanel() {
                         <span className="font-mono text-[11px] text-[var(--text-tertiary)]">{r.metric ?? '—'}</span>
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums text-[var(--text-secondary)]">
-                        {r.expected_value != null ? r.expected_value.toLocaleString() : '—'} → {r.actual_value != null ? r.actual_value.toLocaleString() : '—'}
+                        {(() => {
+                          const ev = r.expected_value == null ? null : Number(r.expected_value)
+                          const av = r.actual_value == null ? null : Number(r.actual_value)
+                          const left = ev == null || !Number.isFinite(ev) ? '—' : ev.toLocaleString()
+                          const right = av == null || !Number.isFinite(av) ? '—' : av.toLocaleString()
+                          return `${left} → ${right}`
+                        })()}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums">
-                        {r.deviation_pct == null ? '—' : `${r.deviation_pct > 0 ? '+' : ''}${r.deviation_pct.toFixed(1)}%`}
+                        {(() => {
+                          const d = r.deviation_pct == null ? null : Number(r.deviation_pct)
+                          if (d == null || !Number.isFinite(d)) return '—'
+                          return `${d > 0 ? '+' : ''}${d.toFixed(1)}%`
+                        })()}
                       </td>
                       <td className="px-3 py-2 text-right">
                         {(() => {
