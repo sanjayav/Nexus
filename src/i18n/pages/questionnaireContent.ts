@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { useLanguage } from '../../contexts/LanguageContext'
+import { sectionTitlesZhCN, fieldLabelsZhCN, fieldHintsZhCN, tagsZhCN, ownersZhCN, unitsZhCN } from './questionnaireContentCN'
 
 /**
  * Chinese translations for questionnaire content sourced from
@@ -10,6 +11,7 @@ import { useLanguage } from '../../contexts/LanguageContext'
  */
 
 export const sectionTitlesZh: Record<string, string> = {
+  ...sectionTitlesZhCN,
   // GRI
   'GRI-2-1': 'GRI 2-1：组织详情',
   'GRI-2-2': 'GRI 2-2：纳入可持续发展报告的实体',
@@ -60,6 +62,7 @@ export const sectionTitlesZh: Record<string, string> = {
 
 /** Keyed by field id (field ids are unique across sections). `sectionId.fieldId` overrides also supported. */
 export const fieldLabelsZh: Record<string, string> = {
+  ...fieldLabelsZhCN,
   // GRI 2-1
   org_name: '组织名称',
   org_nature: '所有权性质和法律形式',
@@ -259,9 +262,10 @@ export const fieldLabelsZh: Record<string, string> = {
 }
 
 /** Field hints / helper text, keyed like `fieldLabelsZh`. (Current mock data defines none.) */
-export const fieldHintsZh: Record<string, string> = {}
+export const fieldHintsZh: Record<string, string> = { ...fieldHintsZhCN }
 
 export const tagsZh: Record<string, string> = {
+  ...tagsZhCN,
   'General Disclosures': '一般披露',
   Foundation: '基础',
   'Reporting boundary': '报告边界',
@@ -317,6 +321,7 @@ export const tagsZh: Record<string, string> = {
 
 /** Role/department owners. Personal names (e.g. "Fatma Al Hinai") stay as-is. */
 export const ownersZh: Record<string, string> = {
+  ...ownersZhCN,
   'Corporate Sec.': '公司秘书处',
   Finance: '财务部',
   Strategy: '战略部',
@@ -336,6 +341,7 @@ export const ownersZh: Record<string, string> = {
 }
 
 export const unitsZh: Record<string, string> = {
+  ...unitsZhCN,
   Headcount: '人数',
   Count: '数量',
   Rate: '比率',
@@ -346,12 +352,14 @@ type SectionLike = { id: string; title: string }
 type FieldLike = { id: string; label: string; hint?: string }
 
 /**
- * Short sidebar label for a section title in either language:
- * strips BRSR "Section X – " / "X 部分 – " prefixes and anything after the first colon.
+ * Short sidebar label for a section title in either language. The sidebar is
+ * already scoped to one framework, so the framework / part prefix before the
+ * first " – " ("Section A – ", "港交所 – ", "交易所指引 – ") is dropped, as is
+ * anything after the first colon.
  */
 export function shortSectionTitle(title: string): string {
   return title
-    .replace(/^(Section [A-E]|BRSR Section [A-E]|[A-E] 部分) – /, '')
+    .replace(/^[^–]{1,40} – /, '')
     .split(/[:：]/)[0]
     .trim()
 }

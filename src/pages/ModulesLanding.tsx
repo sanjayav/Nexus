@@ -1,9 +1,10 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LayoutDashboard, Clock, CheckCircle, FileText, Play, ArrowRight, BarChart3, Layers, Gauge, Send } from 'lucide-react'
-import { mockData } from '../data/mockData'
 import { fmt, useFormat, useStrings } from '../i18n'
 import { modulesLandingStrings } from '../i18n/pages/modulesLanding'
-import { moduleCatalogStrings } from '../i18n/pages/moduleCatalog'
+import { moduleCatalogStrings, useFrameworkLabels } from '../i18n/pages/moduleCatalog'
+import { useMockData, useWorkspace } from '../workspace/WorkspaceContext'
 import { PageHeader, Card, Button, Badge, StatCard, Progress, EmptyState, Tone } from '../components/ui'
 import type { LucideIcon } from 'lucide-react'
 
@@ -20,7 +21,17 @@ export default function ModulesLanding() {
   const c = useStrings(moduleCatalogStrings)
   const f = useFormat()
 
-  const modules = mockData.modules
+  const fw = useFrameworkLabels()
+  const { region } = useWorkspace()
+  const mockData = useMockData()
+  // Region display order first; modules the region doesn't list keep data order at the end.
+  const modules = useMemo(() => {
+    const rank = (id: string) => {
+      const i = region.frameworks.indexOf(id)
+      return i === -1 ? Number.MAX_SAFE_INTEGER : i
+    }
+    return mockData.modules.map((m, i) => ({ m, i })).sort((a, b) => rank(a.m.id) - rank(b.m.id) || a.i - b.i).map(x => x.m)
+  }, [mockData.modules, region.frameworks])
 
   const relativeTime = (dateString: string) => {
     const diffInHours = Math.floor((Date.now() - new Date(dateString).getTime()) / (1000 * 60 * 60))
@@ -62,18 +73,18 @@ export default function ModulesLanding() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {modules.map(module => {
             const style = STATE_STYLE[module.state] ?? { tone: 'neutral' as Tone, icon: FileText }
-            const title = c.titles[module.id] ?? module.title
+            const title = fw.title(module.id, module.title)
             return (
               <Card key={module.id} className="flex flex-col transition-[box-shadow,border-color] hover:border-zinc-300 hover:shadow-pop">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="text-[15px] font-semibold text-zinc-900 leading-snug">{title}</h3>
                     <p className="mt-1 text-[13px] text-zinc-500 leading-relaxed line-clamp-2">
-                      {c.descriptions[module.id] ?? module.description}
+                      {fw.description(module.id, module.description)}
                     </p>
                   </div>
                   <Badge tone={style.tone} icon={style.icon}>
-                    {c.state[module.state] ?? module.state}
+                    {fw.state(module.state)}
                   </Badge>
                 </div>
 
@@ -128,7 +139,7 @@ export default function ModulesLanding() {
             icon={FileText}
             title={s.emptyTitle}
             description={s.emptyBody}
-            action={<Button variant="primary">{s.openRegistry}</Button>}
+            action={<Button variant="primary" onClick={() => navigate('/admin/organization')}>{s.openRegistry}</Button>}
           />
         </Card>
       )}

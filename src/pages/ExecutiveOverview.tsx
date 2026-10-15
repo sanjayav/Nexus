@@ -2,13 +2,17 @@ import {
   ExternalLink, Shield, Globe2, ArrowRight, ArrowUpRight, Database, CheckSquare2, BarChart3, Target, Sparkles,
   Gauge, Layers, Leaf, AlertTriangle, AlertCircle, FileWarning, CalendarClock, Check, Link2, Filter,
 } from 'lucide-react'
-import { mockData } from '../data/mockData'
 import { Link, useNavigate } from 'react-router-dom'
+import { useMemo } from 'react'
 import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import clsx from 'clsx'
-import { PageHeader, Card, CardHeader, Button, Badge, StatCard, Progress, chartTheme } from '../components/ui'
+import { PageHeader, Card, CardHeader, Button, Badge, StatCard, Progress, EmptyState, chartTheme } from '../components/ui'
 import { fmt, useFormat, useStrings } from '../i18n'
 import { executiveOverviewStrings } from '../i18n/pages/executiveOverview'
+import { useFrameworkLabels } from '../i18n/pages/moduleCatalog'
+import { useMockData, useWorkspace, useL10n } from '../workspace/WorkspaceContext'
+import { regulatoryCalendar, daysUntil } from '../data/regulatory'
+import type { Tone } from '../components/ui'
 
 const CORE_WAYS = [
   { key: 'collect', icon: Database, path: '/frameworks', ai: true },
@@ -38,7 +42,22 @@ export default function ExecutiveOverview() {
   const s = useStrings(executiveOverviewStrings)
   const f = useFormat()
   const navigate = useNavigate()
-  const { frameworks, dma, ghg, integrity, rollup, coverageByModule, approvalsFunnel, alerts } = mockData
+  const l10n = useL10n()
+  const fw = useFrameworkLabels()
+  const { workspace, region } = useWorkspace()
+  const mockData = useMockData()
+  const { frameworks, dma, ghg, integrity, coverageByModule, approvalsFunnel, alerts } = mockData
+  const network = l10n(region.chain.network)
+  const coverageData = useMemo(
+    () => coverageByModule.map(row => ({ ...row, label: fw.short(row.module) })),
+    [coverageByModule, fw],
+  )
+  // '0.5d' → localised "0.5 days"; anything else is shown as-is.
+  const avgTime = (t: string) => {
+    const m = /^([\d.]+)d$/.exec(t)
+    return m ? fmt(s.approvals.days, { n: f.number(Number(m[1])) }) : t
+  }
+  const helpCopy = s.help.links[region.id] ?? s.help.links.global
 
   const blocking = alerts.filter(a => a.level === 'error').length
   const fwEntries = Object.entries(frameworks)
@@ -57,10 +76,10 @@ export default function ExecutiveOverview() {
     <div>
       <PageHeader
         title={s.title}
-        description={fmt(s.description, { period: s.period })}
+        description={fmt(s.description, { period: workspace.reportingYear })}
         actions={
           <>
-            <Badge icon={Globe2}>{s.region}</Badge>
+            <Badge icon={Globe2}>{l10n(region.label)}</Badge>
             <Badge tone="success" icon={Shield}>{s.integrityVerified}</Badge>
             <Button variant="primary" size="sm" iconRight={ArrowRight} onClick={() => navigate('/workbench?filter=Critical')}>
               {s.resolveGaps}
@@ -147,7 +166,7 @@ export default function ExecutiveOverview() {
           </div>
           <div className="pt-5 flex flex-wrap items-center justify-between gap-3">
             {blocking > 0 ? (
-              <Badge tone="danger" dot>{fmt(s.pipeline.blocking, { count: blocking })}</Badge>
+              <Badge tone="danger" dot>{blocking === 1 ? s.pipeline.blockingOne : fmt(s.pipeline.blocking, { count: blocking })}</Badge>
             ) : (
               <Badge tone="success" dot>{s.pipeline.noBlocking}</Badge>
             )}
@@ -180,7 +199,7 @@ export default function ExecutiveOverview() {
               {alerts.map(a => (
                 <li key={a.id} className="flex items-start gap-2 text-[13px] text-zinc-700">
                   <AlertTriangle className={clsx('w-3.5 h-3.5 mt-0.5 shrink-0', a.level === 'error' ? 'text-rose-500' : 'text-amber-500')} />
-                  <span className="min-w-0">{s.risk.alerts[String(a.id)] ?? a.message}</span>
+                  <span className="min-w-0">{s.risk.alerts[a.message] ?? a.message}</span>
                 </li>
               ))}
             </ul>
@@ -235,7 +254,7 @@ export default function ExecutiveOverview() {
             {fwEntries.map(([key, value]) => (
               <div key={key}>
                 <div className="flex justify-between items-center text-[13px] mb-1.5">
-                  <span className="text-zinc-700">{key}</span>
+                  <span className="text-zinc-700 truncate pr-2">{fw.short(key)}</span>
                   <span className="font-medium text-zinc-900 tabular">{f.percent(value.covered)}</span>
                 </div>
                 <Progress value={value.covered} tone={value.covered >= 80 ? 'success' : 'neutral'} />
@@ -261,9 +280,11 @@ export default function ExecutiveOverview() {
               </div>
             ))}
           </dl>
-          <Button variant="secondary" size="sm" className="mt-auto w-full" iconRight={ExternalLink} onClick={() => navigate('/ghg')}>
-            {s.ghg.calculateRoots}
-          </Button>
+          <div className="mt-auto pt-4">
+            <Button variant="secondary" size="sm" className="w-full" iconRight={ExternalLink} onClick={() => navigate('/ghg')}>
+              {s.ghg.calculateRoots}
+            </Button>
+          </div>
         </Card>
 
         <Card className="flex flex-col">
@@ -299,22 +320,32 @@ export default function ExecutiveOverview() {
               <div className="text-[13px] font-medium text-zinc-500 mb-1.5">{s.rollup.root}</div>
               <div className="flex items-center gap-2 font-mono text-[13px] bg-zinc-50 border border-line px-3 py-2 rounded-[10px] text-zinc-900">
                 <Link2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                <span className="truncate">{rollup.shortRoot}</span>
+                <span className="truncate">{mockData.rollup.shortRoot}</span>
               </div>
             </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-zinc-600">{s.rollup.chain}</span>
-              <Badge>{rollup.chainId}</Badge>
+            <div>
+              <div className="text-[13px] font-medium text-zinc-500 mb-1.5">{s.rollup.chain}</div>
+              <div className="text-sm text-zinc-900 leading-snug">{network}</div>
+              <div className="text-xs text-zinc-500 mt-0.5">{l10n(region.chain.kind)}</div>
             </div>
           </div>
-          <Button variant="secondary" size="sm" className="mt-auto w-full" iconRight={ExternalLink}>
-            {s.rollup.viewExplorer}
-          </Button>
+          <div className="mt-auto pt-4">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="w-full"
+              iconRight={ExternalLink}
+              title={region.chain.explorer}
+              onClick={() => window.open(region.chain.explorer, '_blank', 'noopener,noreferrer')}
+            >
+              {s.rollup.viewExplorer}
+            </Button>
+          </div>
         </Card>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Charts + regulatory calendar */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
         <Card>
           <CardHeader title={s.approvals.title} description={s.approvals.description} icon={Filter} />
           <div className="space-y-4">
@@ -325,7 +356,7 @@ export default function ExecutiveOverview() {
                   <span className="text-zinc-500 tabular">
                     {fmt(s.approvals.files, { count: f.number(stage.count) })}
                     <span className="text-zinc-300 mx-1.5">·</span>
-                    {fmt(s.approvals.avg, { time: stage.avgTime })}
+                    {fmt(s.approvals.avg, { time: avgTime(stage.avgTime) })}
                   </span>
                 </div>
                 <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
@@ -340,10 +371,10 @@ export default function ExecutiveOverview() {
           <CardHeader title={s.coverage.title} description={s.coverage.description} icon={BarChart3} />
           <div className="h-[220px] -ml-3">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={coverageByModule} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+              <BarChart data={coverageData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                 <CartesianGrid vertical={false} stroke={chartTheme.grid} />
-                <XAxis dataKey="module" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: chartTheme.axis }} minTickGap={8} height={28} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: chartTheme.axis }} width={36} domain={[0, 100]} />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: chartTheme.axis }} minTickGap={8} height={28} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: chartTheme.axis }} width={44} domain={[0, 100]} tickFormatter={v => `${v}%`} />
                 <Tooltip
                   cursor={{ fill: 'rgba(0,0,0,0.03)' }}
                   contentStyle={chartTheme.tooltip.contentStyle}
@@ -355,6 +386,8 @@ export default function ExecutiveOverview() {
             </ResponsiveContainer>
           </div>
         </Card>
+
+        <RegulatoryCalendarCard className="lg:col-span-2 xl:col-span-1" />
       </div>
 
       {/* Help & shortcuts */}
@@ -367,7 +400,7 @@ export default function ExecutiveOverview() {
               {QUICK_LINKS.map(l => (
                 <li key={l.key}>
                   <Link to={l.path} className="group flex items-center justify-between gap-3 py-2 border-b border-line text-sm text-zinc-700 hover:text-zinc-900">
-                    <span>{s.help.links[l.key]}</span>
+                    <span>{helpCopy[l.key]}</span>
                     <ArrowUpRight className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900 shrink-0" />
                   </Link>
                 </li>
@@ -392,5 +425,70 @@ export default function ExecutiveOverview() {
       </Card>
       </div>
     </div>
+  )
+}
+
+/** Upcoming regulatory obligations for the active workspace region. */
+function RegulatoryCalendarCard({ className }: { className?: string }) {
+  const s = useStrings(executiveOverviewStrings)
+  const f = useFormat()
+  const l10n = useL10n()
+  const fw = useFrameworkLabels()
+  const { region } = useWorkspace()
+  const items = useMemo(() => regulatoryCalendar(region.id), [region.id])
+
+  const countdown = (date: string | null): { tone: Tone; label: string } | null => {
+    if (!date) return null
+    const d = daysUntil(date)
+    if (d < 0) return { tone: 'danger', label: fmt(s.calendar.overdue, { count: f.number(-d) }) }
+    if (d === 0) return { tone: 'danger', label: s.calendar.today }
+    return { tone: d <= 30 ? 'danger' : d <= 120 ? 'warning' : 'neutral', label: fmt(s.calendar.daysLeft, { count: f.number(d) }) }
+  }
+
+  return (
+    <Card className={clsx('flex flex-col', className)}>
+      <CardHeader
+        title={s.calendar.title}
+        description={fmt(s.calendar.description, { region: l10n(region.label) })}
+        icon={CalendarClock}
+      />
+      {items.length === 0 ? (
+        <EmptyState icon={CalendarClock} title={s.calendar.emptyTitle} description={s.calendar.emptyBody} />
+      ) : (
+        <ul className="-my-1 divide-y divide-line">
+          {items.map(item => {
+            const cd = countdown(item.date)
+            return (
+              <li key={item.id}>
+                <Link
+                  to={item.href ?? `/modules/${item.framework}`}
+                  title={l10n(item.detail)}
+                  className="group flex items-start gap-3 py-3 -mx-2 px-2 rounded-lg hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge className="h-5 px-1.5 text-[11px]">{fw.short(item.framework)}</Badge>
+                      {item.kind === 'voluntary' && <Badge tone="info" className="h-5 px-1.5 text-[11px]">{s.calendar.voluntary}</Badge>}
+                    </div>
+                    <div className="mt-1.5 text-[13px] font-medium text-zinc-900 leading-snug group-hover:underline decoration-zinc-300 underline-offset-2">
+                      {l10n(item.title)}
+                    </div>
+                    <div className="mt-0.5 text-xs text-zinc-500 tabular">
+                      {item.date ? f.date(item.date, { dateStyle: 'long' }) : item.dateNote ? l10n(item.dateNote) : s.calendar.tbc}
+                    </div>
+                  </div>
+                  {cd ? (
+                    <Badge tone={cd.tone} className="shrink-0 tabular">{cd.label}</Badge>
+                  ) : (
+                    <Badge className="shrink-0">{s.calendar.byNotice}</Badge>
+                  )}
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+      <p className="mt-auto pt-4 text-xs text-zinc-400 leading-relaxed">{s.calendar.disclaimer}</p>
+    </Card>
   )
 }

@@ -50,6 +50,7 @@ export const moduleHubStrings = defineStrings({
       pack: { title: 'Module pack', body: 'Generate pack' },
       request: { title: 'Request review', body: 'Submit for approval' },
     },
+    requestSent: 'Review requested — approvers notified',
   },
   zh: {
     eyebrow: '框架模块',
@@ -100,5 +101,6 @@ export const moduleHubStrings = defineStrings({
       pack: { title: '模块资料包', body: '生成资料包' },
       request: { title: '申请审核', body: '提交审批' },
     },
+    requestSent: '已申请审核，已通知审批人',
   },
 })

@@ -26,10 +26,16 @@ import {
   History,
   Bell,
   ArrowRight,
+  Globe2,
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { Badge, Card, CardHeader, PageHeader, StatCard, chartTheme, type Tone } from '../components/ui'
 import { fmt, useFormat, useStrings } from '../i18n'
 import { settingsAnalyticsStrings } from '../i18n/pages/settingsAnalytics'
+import { adminSettingsStrings } from '../i18n/pages/adminSettings'
+import { useWorkspace, useL10n } from '../workspace/WorkspaceContext'
+import type { L10n } from '../workspace/regions'
+import { useComplianceSettings } from '../components/useComplianceSettings'
 
 type S = typeof settingsAnalyticsStrings.en
 type Ago = { n: number; unit: 'min' | 'hour' | 'day' }
@@ -81,11 +87,20 @@ const userPermissions: { role: string; users: number; perm: keyof S['perms'] }[]
   { role: 'Viewer', users: 7, perm: 'viewer' },
 ]
 
-const integrationStatus: { name: string; type: string; status: 'connected'; lastSync: Ago; requests: number }[] = [
+type Integration = { name: string | L10n; type: string; status: 'connected'; lastSync: Ago; requests: number }
+const integrationStatus: Integration[] = [
   { name: 'Polygon zkEVM', type: 'Blockchain', status: 'connected', lastSync: { n: 2, unit: 'min' }, requests: 1247 },
   { name: 'IPFS Pinata', type: 'Storage', status: 'connected', lastSync: { n: 5, unit: 'min' }, requests: 892 },
   { name: 'Auth0', type: 'Authentication', status: 'connected', lastSync: { n: 1, unit: 'min' }, requests: 3421 },
   { name: 'SendGrid', type: 'Email', status: 'connected', lastSync: { n: 10, unit: 'min' }, requests: 234 },
+]
+
+// Mainland tenant: chain and storage names come from the region profile.
+const cnIntegrationStatus: Integration[] = [
+  { name: { en: 'ChainMaker (BSN)', zh: '长安链 ChainMaker（BSN）' }, type: 'Blockchain', status: 'connected', lastSync: { n: 3, unit: 'min' }, requests: 1186 },
+  { name: { en: 'Alibaba Cloud OSS', zh: '阿里云 OSS' }, type: 'Storage', status: 'connected', lastSync: { n: 4, unit: 'min' }, requests: 941 },
+  { name: { en: 'WeCom group bot', zh: '企业微信群机器人' }, type: 'Notification', status: 'connected', lastSync: { n: 12, unit: 'min' }, requests: 318 },
+  { name: { en: 'Alibaba Cloud SMS', zh: '阿里云短信服务' }, type: 'SMS', status: 'connected', lastSync: { n: 1, unit: 'hour' }, requests: 57 },
 ]
 
 type ConfigValue = (s: S) => string
@@ -116,7 +131,28 @@ const storageColors = chartTheme.series
 
 export default function SettingsAnalytics() {
   const s = useStrings(settingsAnalyticsStrings)
+  const a = useStrings(adminSettingsStrings)
   const f = useFormat()
+  const l10n = useL10n()
+  const { region } = useWorkspace()
+  const isCn = region.id === 'cn'
+  const [compliance] = useComplianceSettings()
+  const integrations = isCn ? cnIntegrationStatus : integrationStatus
+  const storageName = l10n(region.storage.provider)
+  const componentLabel = (c: string) =>
+    c === 'IPFS Gateway' ? storageName : c === 'Blockchain Node' ? l10n(region.chain.network) : s.components[c] ?? c
+  const complianceRows = [
+    { k: a.hosting, v: l10n(region.hosting.provider) },
+    { k: a.hostingRegion, v: l10n(region.hosting.residency) },
+    { k: a.privacyRegime, v: l10n(region.privacy) },
+    { k: a.crossBorder, v: (isCn ? a.crossBorderCn : a.crossBorderGlobal)[compliance.crossBorder] ?? '—' },
+    ...(isCn
+      ? [
+          { k: a.mlps, v: a.mlpsOptions[compliance.mlps] ?? '—' },
+          { k: a.icp, v: compliance.icp || s.notSet, muted: !compliance.icp },
+        ]
+      : []),
+  ]
 
   const totalStorage = storageUsage.reduce((sum, item) => sum + item.size, 0)
   const avgUptime = systemHealth.reduce((sum, c) => sum + c.uptime, 0) / systemHealth.length
@@ -158,7 +194,7 @@ export default function SettingsAnalytics() {
             return (
               <div key={c.component} className="rounded-xl border border-line p-4 hover:bg-zinc-50 transition-colors">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-zinc-900 truncate">{s.components[c.component] ?? c.component}</span>
+                  <span className="text-sm font-medium text-zinc-900 truncate" title={componentLabel(c.component)}>{componentLabel(c.component)}</span>
                   <Badge tone={ok ? 'success' : 'danger'} dot>{ok ? s.healthy : s.degraded}</Badge>
                 </div>
                 <div className="mt-2 text-xs text-zinc-500 tabular">
@@ -168,6 +204,28 @@ export default function SettingsAnalytics() {
             )
           })}
         </div>
+      </Card>
+
+      {/* Data residency & compliance */}
+      <Card>
+        <CardHeader
+          title={s.complianceTitle}
+          description={s.complianceDesc}
+          icon={Globe2}
+          action={
+            <Link to="/admin" className="inline-flex items-center gap-1 h-8 px-3 rounded-lg text-[13px] font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 transition-colors">
+              {s.manage} <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          }
+        />
+        <dl className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-px rounded-xl border border-line bg-line overflow-hidden">
+          {complianceRows.map(r => (
+            <div key={r.k} className="bg-white p-3.5 min-w-0">
+              <dt className="text-xs text-zinc-500">{r.k}</dt>
+              <dd className={`text-sm font-medium mt-0.5 break-words ${'muted' in r && r.muted ? 'text-zinc-400' : 'text-zinc-900'}`}>{r.v}</dd>
+            </div>
+          ))}
+        </dl>
       </Card>
 
       {/* API usage & security events */}
@@ -262,10 +320,12 @@ export default function SettingsAnalytics() {
       <Card>
         <CardHeader title={s.integrationsTitle} description={s.integrationsDesc} icon={Plug} />
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          {integrationStatus.map(it => (
-            <div key={it.name} className="rounded-xl border border-line p-4 hover:bg-zinc-50 transition-colors">
+          {integrations.map(it => {
+            const name = typeof it.name === 'string' ? it.name : l10n(it.name)
+            return (
+            <div key={name} className="rounded-xl border border-line p-4 hover:bg-zinc-50 transition-colors">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-zinc-900 truncate">{it.name}</span>
+                <span className="text-sm font-medium text-zinc-900 truncate" title={name}>{name}</span>
                 <Badge tone="success" dot>{s.connected}</Badge>
               </div>
               <div className="mt-2 text-xs text-zinc-500">
@@ -273,7 +333,8 @@ export default function SettingsAnalytics() {
               </div>
               <div className="mt-1 text-xs text-zinc-400">{fmt(s.lastSync, { time: ago(it.lastSync) })}</div>
             </div>
-          ))}
+            )
+          })}
         </div>
       </Card>
 
@@ -302,18 +363,18 @@ export default function SettingsAnalytics() {
         <Card>
           <CardHeader title={s.alertsTitle} description={s.alertsDesc} icon={Bell} />
           <div className="divide-y divide-line">
-            {systemAlerts.map(a => {
-              const Icon = alertIcon[a.severity]
+            {systemAlerts.map(al => {
+              const Icon = alertIcon[al.severity]
               return (
-                <div key={a.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${alertIconClass[a.severity]}`}>
+                <div key={al.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${alertIconClass[al.severity]}`}>
                     <Icon className="w-4 h-4" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm text-zinc-800">{s.alerts[a.message]}</div>
+                    <div className="text-sm text-zinc-800">{fmt(s.alerts[al.message], { storage: storageName })}</div>
                     <div className="mt-1 flex items-center gap-2">
-                      <Badge tone={alertTone[a.severity]}>{s.severity[a.severity]}</Badge>
-                      <span className="text-xs text-zinc-500">{ago(a.timestamp)}</span>
+                      <Badge tone={alertTone[al.severity]}>{s.severity[al.severity]}</Badge>
+                      <span className="text-xs text-zinc-500">{ago(al.timestamp)}</span>
                     </div>
                   </div>
                 </div>

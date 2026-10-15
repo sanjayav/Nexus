@@ -2,17 +2,32 @@ import { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import {
   Shield, CheckCircle2, Lock, FileText, Download,
-  Fingerprint, Box, Cpu, Activity, Database, Key, ChevronRight,
+  Fingerprint, Box, Cpu, Activity, Database, Key, ChevronRight, ExternalLink,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { PageHeader, Card, CardHeader, Button, Tabs, inputClass } from '../components/ui'
-import { useStrings } from '../i18n'
+import { fmt, useStrings } from '../i18n'
 import { verificationCenterStrings } from '../i18n/pages/verificationCenter'
+import { useWorkspace, useL10n } from '../workspace/WorkspaceContext'
+import { useToast } from '../components/useToast'
 
 const ARTIFACTS = [
   { id: 'EV-2024-001', key: 'ledger' },
   { id: 'REP-FY25-Q1', key: 'report' },
   { id: 'AUD-992-DK', key: 'signoff' },
 ] as const
+
+const CN_ARTIFACTS = [
+  { id: 'EV-2026-0412', key: 'ledger' },
+  { id: 'RPT-FY26-H1', key: 'report' },
+  { id: 'ASR-LY-0921', key: 'signoff' },
+] as const
+
+/** Per-region proof details (ChainMaker tx IDs are 64-hex without 0x). */
+const PROOF = {
+  global: { blockNumber: '14,092,118', txHash: '0x94f...c3a8e2', merkleRoot: '0x8b12a...991cd', signerDid: 'did:nexus:0x44fa...11c', payload: '{"payloadCID": "bafybeig...","merkleRoot": "0xB2..."}' },
+  cn: { blockNumber: '2,418,903', txHash: '17f9c2d4e8a1…b07e55a4e0', merkleRoot: 'sm3:6c1e…9a2f', signerDid: 'did:nexus:0x4F9D...27e5', payload: '{"txId": "17f9c2d4e8a1…b07e55a4e0","ossKey": "evidence/2026/EV-2026-0412.pdf"}' },
+}
 
 interface VerifyResult {
   status: 'verified'
@@ -26,14 +41,31 @@ interface VerifyResult {
 }
 
 export default function PremiumVerificationCenter() {
+  const { workspace } = useWorkspace()
+  // Remount per workspace so a verification result never shows under another tenant.
+  return <VerificationView key={workspace.id} />
+}
+
+function VerificationView() {
   const s = useStrings(verificationCenterStrings)
+  const l10n = useL10n()
+  const navigate = useNavigate()
+  const { region } = useWorkspace()
+  const isCn = region.id === 'cn'
+  const { toast, show } = useToast()
+  const chainName = l10n(region.chain.network)
+  const artifacts = isCn ? CN_ARTIFACTS : ARTIFACTS
+  const artifactText = isCn ? s.artifactsCn : s.artifacts
+  const stages = isCn ? s.stagesCn.map(line => fmt(line, { chain: chainName, storage: l10n(region.storage.provider) })) : s.stages
+  const proof = PROOF[region.id]
   const [activeTab, setActiveTab] = useState<'paste' | 'pick'>('pick')
-  const [selected, setSelected] = useState<string>(ARTIFACTS[0].id)
+  const [selected, setSelected] = useState<string>(artifacts[0].id)
+  const [payload, setPayload] = useState(proof.payload)
   const [isVerifying, setIsVerifying] = useState(false)
   const [stage, setStage] = useState(-1)
   const [result, setResult] = useState<VerifyResult | null>(null)
   const timer = useRef<ReturnType<typeof setInterval>>()
-  const stageCount = s.stages.length
+  const stageCount = stages.length
 
   useEffect(() => () => clearInterval(timer.current), [])
 
@@ -51,18 +83,40 @@ export default function PremiumVerificationCenter() {
         setIsVerifying(false)
         setResult({
           status: 'verified',
-          chainId: 'Polygon zkEVM',
-          blockNumber: '14,092,118',
-          txHash: '0x94f...c3a8e2',
-          merkleRoot: '0x8b12a...991cd',
+          chainId: chainName,
+          blockNumber: proof.blockNumber,
+          txHash: proof.txHash,
+          merkleRoot: proof.merkleRoot,
           anchoredAt: new Date().toISOString(),
-          signerDid: 'did:nexus:0x44fa...11c',
+          signerDid: proof.signerDid,
           signerRole: 'seniorAuditor',
         })
       } else {
         setStage(currentStage)
       }
     }, 800)
+  }
+
+  const saveCertificate = () => {
+    if (!result) return
+    const cert = {
+      artifact: activeTab === 'pick' ? selected : 'pasted-payload',
+      network: result.chainId,
+      networkKind: l10n(region.chain.kind),
+      block: result.blockNumber,
+      transaction: result.txHash,
+      root: result.merkleRoot,
+      signer: result.signerDid,
+      verifiedAt: result.anchoredAt,
+      explorer: region.chain.explorer,
+    }
+    const url = URL.createObjectURL(new Blob([JSON.stringify(cert, null, 2)], { type: 'application/json' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `verification-${cert.artifact}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    show(s.certSaved)
   }
 
   const details = [
@@ -74,7 +128,7 @@ export default function PremiumVerificationCenter() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={s.title} description={s.description} />
+      <PageHeader title={s.title} description={isCn ? fmt(s.descriptionCn, { chain: chainName }) : s.description} />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left: input & trigger */}
@@ -93,8 +147,8 @@ export default function PremiumVerificationCenter() {
             <fieldset>
               <legend className="text-[13px] font-medium text-zinc-700 mb-3">{s.selectArtifact}</legend>
               <div className="space-y-2">
-                {ARTIFACTS.map(item => {
-                  const text = s.artifacts[item.key]
+                {artifacts.map(item => {
+                  const text = artifactText[item.key]
                   const checked = selected === item.id
                   return (
                     <label
@@ -125,12 +179,13 @@ export default function PremiumVerificationCenter() {
             </fieldset>
           ) : (
             <div className="space-y-1.5">
-              <label htmlFor="zk-payload" className="block text-[13px] font-medium text-zinc-700">{s.rawPayload}</label>
+              <label htmlFor="zk-payload" className="block text-[13px] font-medium text-zinc-700">{isCn ? s.rawPayloadCn : s.rawPayload}</label>
               <textarea
                 id="zk-payload"
-                placeholder={s.payloadPlaceholder}
+                placeholder={isCn ? s.payloadPlaceholderCn : s.payloadPlaceholder}
                 className={clsx(inputClass, 'h-48 py-3 font-mono text-xs resize-none')}
-                defaultValue='{"payloadCID": "bafybeig...","merkleRoot": "0xB2..."}'
+                value={payload}
+                onChange={e => setPayload(e.target.value)}
               />
             </div>
           )}
@@ -139,11 +194,11 @@ export default function PremiumVerificationCenter() {
             variant="primary"
             size="lg"
             onClick={handleVerify}
-            disabled={isVerifying}
+            disabled={isVerifying || (activeTab === 'paste' && !payload.trim())}
             className="mt-6 w-full"
           >
             {isVerifying ? <Cpu className="w-4 h-4 animate-spin" /> : <Fingerprint className="w-4 h-4" />}
-            {isVerifying ? s.verifying : s.verify}
+            {isVerifying ? (isCn ? s.verifyingCn : s.verifying) : s.verify}
           </Button>
         </Card>
 
@@ -156,7 +211,7 @@ export default function PremiumVerificationCenter() {
             <div className="space-y-2.5 font-mono text-xs leading-relaxed">
               {!isVerifying && !result && <div className="text-zinc-500">{s.waiting}</div>}
               {(isVerifying || result) &&
-                s.stages.slice(0, result ? stageCount : stage + 1).map((line, i) => (
+                stages.slice(0, result ? stageCount : stage + 1).map((line, i) => (
                   <div key={i} className="flex items-start gap-3">
                     <ChevronRight className="w-3.5 h-3.5 mt-0.5 text-emerald-400 shrink-0" />
                     <span className={clsx(isVerifying && i === stage ? 'text-white' : 'text-zinc-500')}>{line}</span>
@@ -202,12 +257,23 @@ export default function PremiumVerificationCenter() {
             </dl>
 
             <div className="mt-6 flex flex-col sm:flex-row gap-2">
-              <Button variant="brand" disabled={!result} icon={Download} className="flex-1">{s.saveCert}</Button>
-              <Button disabled={!result} icon={FileText} className="flex-1">{s.viewReport}</Button>
+              <Button variant="brand" disabled={!result} icon={Download} className="flex-1" onClick={saveCertificate}>{s.saveCert}</Button>
+              <Button disabled={!result} icon={FileText} className="flex-1" onClick={() => navigate('/publish')}>{s.viewReport}</Button>
             </div>
+            {result && (
+              <a
+                href={region.chain.explorer}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-zinc-600 hover:text-zinc-900"
+              >
+                {s.explorer} · {chainName} <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            )}
           </Card>
         </div>
       </div>
+      {toast}
     </div>
   )
 }

@@ -28,6 +28,12 @@ export const gapAnalyticsDashboardStrings = defineStrings({
       empty: 'No gaps match this filter',
       cols: { disclosure: 'Disclosure', buSite: 'BU / site', gapType: 'Gap type', severity: 'Severity', owner: 'Owner', due: 'Due', status: 'Status', action: 'Action' },
       resolve: 'Resolve',
+      resolved: 'Resolved',
+    },
+    toast: {
+      assigned: '{count} critical gaps assigned to their owners.',
+      resolved: '{code} marked resolved.',
+      noneToAssign: 'All critical gaps are already assigned.',
     },
     heatmap: {
       title: 'Gap heatmap: business unit × topic',
@@ -38,7 +44,7 @@ export const gapAnalyticsDashboardStrings = defineStrings({
     },
     sites: { title: 'Site evidence status', description: 'Key evidence items per site' },
     severity: { Critical: 'Critical', High: 'High', Medium: 'Medium', Low: 'Low' } as Record<string, string>,
-    status: { Open: 'Open', 'In Progress': 'In progress', OK: 'OK', Missing: 'Missing', Pending: 'Pending' } as Record<string, string>,
+    status: { Open: 'Open', 'In Progress': 'In progress', Resolved: 'Resolved', OK: 'OK', Missing: 'Missing', Pending: 'Pending' } as Record<string, string>,
     gapType: {
       'Missing Evidence': 'Missing evidence',
       'Validation Error': 'Validation error',
@@ -57,6 +63,7 @@ export const gapAnalyticsDashboardStrings = defineStrings({
     topics: {
       'GHG Emissions': 'GHG emissions', Energy: 'Energy', 'Health & Safety': 'Health & safety',
       'BRSR Principles': 'BRSR principles', Governance: 'Governance', 'RE Metrics': 'RE metrics',
+      'Pollution & Waste': 'Pollution & waste', 'Supply Chain': 'Supply chain', Biodiversity: 'Biodiversity',
     } as Record<string, string>,
     evidence: {
       'Emissions Data': 'Emissions data', 'REC Certificates': 'REC certificates', 'CPCB Consent': 'CPCB consent',
@@ -64,6 +71,10 @@ export const gapAnalyticsDashboardStrings = defineStrings({
       'Training Records': 'Training records', 'IFRS S2 Climate': 'IFRS S2 climate', 'Grid Factor FY25': 'Grid factor FY25',
       'Energy Data': 'Energy data', 'Land Consent': 'Land consent', Biodiversity: 'Biodiversity', 'CSR Report': 'CSR report',
       'Board Minutes': 'Board minutes', 'BRSR Filing': 'BRSR filing',
+      'Green Certificates': 'Green electricity certificates (GEC)', 'Discharge Permit': 'Pollutant discharge permit',
+      'Restoration Plan': 'Ecological restoration plan', 'Hazardous Waste Manifests': 'Hazardous waste transfer manifests',
+      'Safety Standardisation': 'Work safety standardisation', 'Energy Monitoring': 'Energy online monitoring data',
+      'Scenario Analysis': 'Climate scenario analysis', 'ESG Working Papers': 'ESG working papers',
     } as Record<string, string>,
   },
   zh: {
@@ -93,6 +104,12 @@ export const gapAnalyticsDashboardStrings = defineStrings({
       empty: '没有符合筛选条件的差距',
       cols: { disclosure: '披露项', buSite: '业务单元 / 场站', gapType: '差距类型', severity: '严重性', owner: '负责人', due: '截止日期', status: '状态', action: '操作' },
       resolve: '处理',
+      resolved: '已解决',
+    },
+    toast: {
+      assigned: '已将 {count} 项关键差距分配给对应负责人。',
+      resolved: '{code} 已标记为解决。',
+      noneToAssign: '所有关键差距均已分配。',
     },
     heatmap: {
       title: '差距热力图：业务单元 × 议题',
@@ -103,7 +120,7 @@ export const gapAnalyticsDashboardStrings = defineStrings({
     },
     sites: { title: '场站证据状态', description: '各场站关键证据项' },
     severity: { Critical: '关键', High: '高', Medium: '中', Low: '低' },
-    status: { Open: '未关闭', 'In Progress': '处理中', OK: '正常', Missing: '缺失', Pending: '待提交' },
+    status: { Open: '未关闭', 'In Progress': '处理中', Resolved: '已解决', OK: '正常', Missing: '缺失', Pending: '待提交' },
     gapType: {
       'Missing Evidence': '缺失证据',
       'Validation Error': '校验错误',
@@ -122,6 +139,7 @@ export const gapAnalyticsDashboardStrings = defineStrings({
     topics: {
       'GHG Emissions': '温室气体排放', Energy: '能源', 'Health & Safety': '职业健康与安全',
       'BRSR Principles': 'BRSR 原则', Governance: '治理', 'RE Metrics': '可再生能源指标',
+      'Pollution & Waste': '污染物与废弃物', 'Supply Chain': '供应链', Biodiversity: '生物多样性',
     },
     evidence: {
       'Emissions Data': '排放数据', 'REC Certificates': '绿证（REC）', 'CPCB Consent': 'CPCB 许可',
@@ -129,6 +147,10 @@ export const gapAnalyticsDashboardStrings = defineStrings({
       'Training Records': '培训记录', 'IFRS S2 Climate': 'IFRS S2 气候披露', 'Grid Factor FY25': 'FY25 电网排放因子',
       'Energy Data': '能源数据', 'Land Consent': '土地许可', Biodiversity: '生物多样性', 'CSR Report': '社会责任报告',
       'Board Minutes': '董事会会议纪要', 'BRSR Filing': 'BRSR 申报',
+      'Green Certificates': '绿色电力证书（GEC）', 'Discharge Permit': '排污许可证',
+      'Restoration Plan': '生态修复方案', 'Hazardous Waste Manifests': '危险废物转移联单',
+      'Safety Standardisation': '安全生产标准化', 'Energy Monitoring': '能耗在线监测数据',
+      'Scenario Analysis': '气候情景分析', 'ESG Working Papers': 'ESG 报告底稿',
     },
   },
 })

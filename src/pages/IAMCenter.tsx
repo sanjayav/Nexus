@@ -6,11 +6,17 @@ import {
     CheckCircle2, XCircle, UserPlus, BadgeCheck,
     Lock, AlertTriangle, Eye, Edit2,
     Link2, Clock, Check, X, Info, Sparkles, Loader2,
+    Unlock, LogIn, Smartphone, Mail, KeyRound, ArrowRight, FileLock2,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { fmt, useFormat, useStrings, LOCALES } from '../i18n'
 import { iamCenterStrings } from '../i18n/pages/iamCenter'
+import { integrationStrings, SSO_MARK } from '../i18n/pages/integrations'
 import { useLanguage } from '../contexts/LanguageContext'
-import { PageHeader, Card, Button, Badge, StatCard, Tabs, EmptyState, Field, inputClass, tableClass, Tone } from '../components/ui'
+import { PageHeader, Card, CardHeader, Button, Badge, StatCard, Tabs, EmptyState, Field, inputClass, tableClass, Tone } from '../components/ui'
+import { useWorkspace, useL10n } from '../workspace/WorkspaceContext'
+import type { L10n } from '../workspace/regions'
+import { useToast } from '../components/useToast'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -41,6 +47,8 @@ interface User {
     id: string
     name: string
     email: string
+    /** Masked mobile number (mainland tenants sign in by phone as well as email). */
+    phone?: string
     role: RoleId
     did: string
     vcHash: string
@@ -93,7 +101,8 @@ const initialUsers: User[] = [
 ]
 
 // Action text is in the dictionary (`auditActions`), matched by index.
-const auditLog: { actor: string | null; ago: Ago; type: 'issue' | 'grant' | 'revoke' | 'invite' | 'audit'; did: string; txHash: string; severity: 'info' | 'warning' | 'danger' }[] = [
+type AuditEntry = { actor: string | null; ago: Ago; type: 'issue' | 'grant' | 'revoke' | 'invite' | 'audit'; did: string; txHash: string; severity: 'info' | 'warning' | 'danger'; text?: L10n }
+const auditLog: AuditEntry[] = [
     { actor: 'Layla Al-Rashid', ago: { n: 2, unit: 'minute' }, type: 'issue', did: 'did:nexus:0xA1B2', txHash: '0x1a2b3c...', severity: 'info' },
     { actor: 'Layla Al-Rashid', ago: { n: 1, unit: 'hour' }, type: 'grant', did: 'did:nexus:0xA1B2', txHash: '0x4d5e6f...', severity: 'info' },
     { actor: null, ago: { n: 3, unit: 'hour' }, type: 'revoke', did: 'system', txHash: '0x7g8h9i...', severity: 'warning' },
@@ -104,7 +113,34 @@ const auditLog: { actor: string | null; ago: Ago; type: 'issue' | 'grant' | 'rev
 
 const MODULES = ['GRI', 'MSX', 'IFRS S1', 'IFRS S2']
 
-type Tab = 'users' | 'roles' | 'matrix' | 'audit'
+// ─── Mainland China tenant (绿源控股集团) ───────────────────────────────────────
+
+const cnUsers: User[] = [
+    { id: 'c1', name: '王立新', email: 'wang.lixin@lvyuan-demo.example', phone: '+86 138****2041', role: 'platform_admin', did: 'did:nexus:0x7C1E', vcHash: '0xvc3b...e01a', vcIssued: '2026-01-08', lastActive: { n: 4, unit: 'minute' }, status: 'active', modules: ['CN-SSE', 'HKEX-ESG', 'CN-CSDS', 'IFRS S2'] },
+    { id: 'c2', name: '陈思远', email: 'chen.siyuan@lvyuan-demo.example', phone: '+86 139****7756', role: 'org_admin', did: 'did:nexus:0x91AF', vcHash: '0xvc5e...a7c2', vcIssued: '2026-01-08', lastActive: { n: 1, unit: 'hour' }, status: 'active', modules: ['CN-SSE', 'HKEX-ESG'] },
+    { id: 'c3', name: '李婉清', email: 'li.wanqing@lvyuan-demo.example', phone: '+86 186****3310', role: 'approver', did: 'did:nexus:0x2D4B', vcHash: '0xvc8a...41d9', vcIssued: '2026-02-03', lastActive: { n: 2, unit: 'hour' }, status: 'active', modules: ['CN-SSE', 'HKEX-ESG', 'CN-CSDS'] },
+    { id: 'c4', name: '赵海峰', email: 'zhao.haifeng@lvyuan-demo.example', phone: '+86 137****0928', role: 'framework_owner', did: 'did:nexus:0x6E02', vcHash: '0xvc0f...93be', vcIssued: '2026-02-11', lastActive: { n: 1, unit: 'day' }, status: 'active', modules: ['HKEX-ESG', 'IFRS S2'] },
+    { id: 'c5', name: '刘佳怡', email: 'liu.jiayi@lvyuan-demo.example', phone: '+86 150****6612', role: 'data_contributor', did: 'did:nexus:0xB7C3', vcHash: '0xvc2c...6f40', vcIssued: '2026-03-02', lastActive: { n: 3, unit: 'hour' }, status: 'active', modules: ['CN-SSE'] },
+    { id: 'c6', name: '郑明轩', email: 'zheng.mingxuan@assurance-partner.cn', phone: '+86 135****4487', role: 'external_auditor', did: 'did:nexus:0x4F9D', vcHash: '0xvc9d...27e5', vcIssued: '2026-03-18', lastActive: { n: 2, unit: 'day' }, status: 'active', modules: ['CN-SSE', 'HKEX-ESG', 'CN-CSDS', 'IFRS S2'] },
+    { id: 'c7', name: '孙晓彤', email: 'sun.xiaotong@lvyuan-demo.example', phone: '+86 152****8803', role: 'reviewer', did: 'did:nexus:0xA0E8', vcHash: '0xvc6a...d215', vcIssued: '2026-04-07', lastActive: { n: 5, unit: 'hour' }, status: 'active', modules: ['HKEX-ESG', 'CN-CSDS'] },
+    { id: 'c8', name: '周子豪', email: 'zhou.zihao@lvyuan-demo.example', phone: '+86 187****1159', role: 'reviewer', did: '—', vcHash: '—', vcIssued: '—', lastActive: null, status: 'pending', modules: [] },
+]
+
+const cnAuditLog: AuditEntry[] = [
+    { actor: '王立新', ago: { n: 4, unit: 'minute' }, type: 'issue', did: 'did:nexus:0x7C1E', txHash: '0x3f9a1c...', severity: 'info', text: { en: 'Issued VC to 郑明轩 (External Auditor)', zh: '已向 郑明轩（外部审计师）签发 VC' } },
+    { actor: '王立新', ago: { n: 1, unit: 'hour' }, type: 'grant', did: 'did:nexus:0x7C1E', txHash: '0x8b20e4...', severity: 'info', text: { en: 'Role changed: 刘佳怡 → Data Contributor', zh: '角色变更：刘佳怡 → 数据填报人' } },
+    { actor: null, ago: { n: 3, unit: 'hour' }, type: 'revoke', did: 'system', txHash: '0x51c7d0...', severity: 'warning', text: { en: 'Permission matrix updated: Reviewer role — removed evidence.upload', zh: '权限矩阵已更新：复核人角色移除 evidence.upload' } },
+    { actor: '陈思远', ago: { n: 1, unit: 'day' }, type: 'invite', did: 'did:nexus:0x91AF', txHash: '—', severity: 'info', text: { en: 'Invited 周子豪 as Reviewer', zh: '已邀请 周子豪 担任复核人' } },
+    { actor: '王立新', ago: { n: 3, unit: 'day' }, type: 'revoke', did: 'did:nexus:0x7C1E', txHash: '0xrev7e2...', severity: 'danger', text: { en: 'VC revoked: departed employee did:nexus:0x0LD9', zh: 'VC 已撤销：离职员工 did:nexus:0x0LD9' } },
+    { actor: null, ago: { n: 5, unit: 'day' }, type: 'audit', did: 'system', txHash: '0xaud3c1...', severity: 'info', text: { en: 'Periodic VC validity audit — all 7 VCs valid', zh: '定期 VC 有效性审计：全部 7 个 VC 均有效' } },
+    { actor: null, ago: { n: 6, unit: 'day' }, type: 'audit', did: 'system', txHash: '—', severity: 'info', text: { en: 'Personal-information access log archived (PIPL processing record)', zh: '个人信息访问日志已归档（个人信息处理活动记录）' } },
+]
+
+const CN_MODULES = ['CN-SSE', 'HKEX-ESG', 'CN-CSDS', 'IFRS S2']
+
+const initials = (name: string) => (/[\u4e00-\u9fff]/.test(name) ? name.slice(-2) : name.split(' ').map(n => n[0]).join('').slice(0, 2))
+
+type Tab = 'users' | 'roles' | 'matrix' | 'identity' | 'audit'
 
 // ─── Local UI ─────────────────────────────────────────────────────────────────
 
@@ -159,21 +195,60 @@ function Callout({ tone, icon: Icon, children }: { tone: 'info' | 'success' | 'w
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function IAMCenter() {
+    const { workspace } = useWorkspace()
+    // Remount per workspace so users, roles and edits never leak across tenants.
+    return <IAMCenterView key={workspace.id} />
+}
+
+function IAMCenterView() {
     const s = useStrings(iamCenterStrings)
+    const names = useStrings(integrationStrings)
     const f = useFormat()
+    const l10n = useL10n()
+    const navigate = useNavigate()
+    const { region } = useWorkspace()
+    const isCn = region.id === 'cn'
+    const { toast, show } = useToast()
     const { locale } = useLanguage()
     const rtf = useMemo(() => new Intl.RelativeTimeFormat(LOCALES.find(l => l.code === locale)!.intl, { numeric: 'auto' }), [locale])
     const ago = (a: Ago) => (a ? rtf.format(-a.n, a.unit) : s.never)
 
+    const modules = isCn ? CN_MODULES : MODULES
+    const tenantAudit = isCn ? cnAuditLog : auditLog
+    const auditText = (entry: AuditEntry, i: number) => (entry.text ? l10n(entry.text) : s.auditActions[i])
+
     const [tab, setTab] = useState<Tab>('users')
     const [roles, setRoles] = useState<Role[]>(initialRoles)
-    const [users, setUsers] = useState<User[]>(initialUsers)
+    const [users, setUsers] = useState<User[]>(isCn ? cnUsers : initialUsers)
     const [search, setSearch] = useState('')
     const [selectedRole, setSelectedRole] = useState<RoleId | null>(null)
     const [showInviteModal, setShowInviteModal] = useState(false)
     const [showGrantModal, setShowGrantModal] = useState<User | null>(null)
+    const [grantRole, setGrantRole] = useState<RoleId>('data_contributor')
     const [vcIssueing, setVcIssuing] = useState<string | null>(null)
-    const [inviteForm, setInviteForm] = useState({ name: '', email: '', role: 'data_contributor' as RoleId, modules: [] as string[] })
+    const [inviteForm, setInviteForm] = useState({ name: '', email: '', phone: '', role: 'data_contributor' as RoleId, modules: [] as string[] })
+    const [activityUser, setActivityUser] = useState<string | null>(null)
+    const [consentOn, setConsentOn] = useState(true)
+
+    const visibleAudit = tenantAudit
+        .map((entry, i) => ({ entry, text: auditText(entry, i) }))
+        .filter(({ entry, text }) => !activityUser || entry.actor === activityUser || text.includes(activityUser))
+
+    const openActivity = (user: User) => {
+        setActivityUser(user.name)
+        setTab('audit')
+    }
+
+    const toggleSuspend = (user: User) => {
+        const next = user.status === 'suspended' ? 'active' : 'suspended'
+        setUsers(prev => prev.map(u => (u.id === user.id ? { ...u, status: next } : u)))
+        show(fmt(next === 'suspended' ? s.suspendedToast : s.reactivatedToast, { name: user.name }), next === 'suspended' ? 'warning' : 'success')
+    }
+
+    const openGrant = (user: User) => {
+        setGrantRole(user.role)
+        setShowGrantModal(user)
+    }
 
     const getRoleById = (id: RoleId) => roles.find(r => r.id === id)!
     const roleName = (id: RoleId) => s.roles[id].name
@@ -205,8 +280,11 @@ export default function IAMCenter() {
 
     const sendInvite = () => {
         if (!inviteForm.name || !inviteForm.email) return
-        setUsers(prev => [...prev, { id: `u${Date.now()}`, name: inviteForm.name, email: inviteForm.email, role: inviteForm.role, did: '—', vcHash: '—', vcIssued: '—', lastActive: null, status: 'pending', modules: inviteForm.modules }])
-        setInviteForm({ name: '', email: '', role: 'data_contributor', modules: [] })
+        const digits = inviteForm.phone.replace(/\D/g, '')
+        const phone = digits.length >= 7 ? `+86 ${digits.slice(0, 3)}****${digits.slice(-4)}` : undefined
+        setUsers(prev => [...prev, { id: `u${Date.now()}`, name: inviteForm.name, email: inviteForm.email, phone, role: inviteForm.role, did: '—', vcHash: '—', vcIssued: '—', lastActive: null, status: 'pending', modules: inviteForm.modules }])
+        show(fmt(s.invitedToast, { email: inviteForm.email }))
+        setInviteForm({ name: '', email: '', phone: '', role: 'data_contributor', modules: [] })
         setShowInviteModal(false)
     }
 
@@ -236,7 +314,7 @@ export default function IAMCenter() {
                     </div>
                     <div className="min-w-0">
                         <h3 className="text-[15px] font-semibold text-zinc-900">{s.calloutTitle}</h3>
-                        <p className="text-[13px] text-zinc-600 leading-relaxed mt-1 max-w-4xl">{s.calloutBody}</p>
+                        <p className="text-[13px] text-zinc-600 leading-relaxed mt-1 max-w-4xl">{fmt(s.calloutBody, { chain: l10n(region.chain.network) })}</p>
                     </div>
                 </Card>
 
@@ -247,6 +325,7 @@ export default function IAMCenter() {
                         { value: 'users', label: <><Users className="w-3.5 h-3.5" />{s.tabs.users}</>, count: users.length },
                         { value: 'roles', label: <><Shield className="w-3.5 h-3.5" />{s.tabs.roles}</>, count: roles.length },
                         { value: 'matrix', label: <><Key className="w-3.5 h-3.5" />{s.tabs.matrix}</> },
+                        { value: 'identity', label: <><LogIn className="w-3.5 h-3.5" />{s.tabs.identity}</> },
                         { value: 'audit', label: <><Activity className="w-3.5 h-3.5" />{s.tabs.audit}</> },
                     ]}
                 />
@@ -291,11 +370,12 @@ export default function IAMCenter() {
                                                     <td className={tableClass.td}>
                                                         <div className="flex items-center gap-3 min-w-[200px]">
                                                             <div className="w-8 h-8 rounded-full bg-zinc-100 text-zinc-700 flex items-center justify-center text-xs font-semibold shrink-0">
-                                                                {user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                                                                {initials(user.name)}
                                                             </div>
                                                             <div className="min-w-0">
                                                                 <div className="text-sm font-medium text-zinc-900">{user.name}</div>
-                                                                <div className="text-xs text-zinc-500">{user.email}</div>
+                                                                <div className="text-xs text-zinc-500 whitespace-nowrap">{user.email}</div>
+                                                                {user.phone && <div className="text-xs text-zinc-400 tabular">{user.phone}</div>}
                                                             </div>
                                                         </div>
                                                     </td>
@@ -323,9 +403,13 @@ export default function IAMCenter() {
                                                     <td className={tableClass.td + ' whitespace-nowrap text-[13px] text-zinc-500'}>{ago(user.lastActive)}</td>
                                                     <td className={tableClass.td}>
                                                         <div className="flex items-center justify-end gap-0.5">
-                                                            <Button variant="ghost" size="sm" className="w-8 px-0" aria-label={s.editRole} title={s.editRole} onClick={() => setShowGrantModal(user)}><Edit2 className="w-4 h-4" /></Button>
-                                                            <Button variant="ghost" size="sm" className="w-8 px-0" aria-label={s.viewActivity} title={s.viewActivity}><Eye className="w-4 h-4" /></Button>
-                                                            <Button variant="ghost" size="sm" className="w-8 px-0 hover:text-rose-600" aria-label={s.suspend} title={s.suspend}><Lock className="w-4 h-4" /></Button>
+                                                            <Button variant="ghost" size="sm" className="w-8 px-0" aria-label={s.editRole} title={s.editRole} onClick={() => openGrant(user)}><Edit2 className="w-4 h-4" /></Button>
+                                                            <Button variant="ghost" size="sm" className="w-8 px-0" aria-label={s.viewActivity} title={s.viewActivity} onClick={() => openActivity(user)}><Eye className="w-4 h-4" /></Button>
+                                                            {user.status === 'suspended' ? (
+                                                                <Button variant="ghost" size="sm" className="w-8 px-0 hover:text-emerald-600" aria-label={s.reactivate} title={s.reactivate} onClick={() => toggleSuspend(user)}><Unlock className="w-4 h-4" /></Button>
+                                                            ) : (
+                                                                <Button variant="ghost" size="sm" className="w-8 px-0 hover:text-rose-600" aria-label={s.suspend} title={s.suspend} disabled={user.role === 'platform_admin'} onClick={() => toggleSuspend(user)}><Lock className="w-4 h-4" /></Button>
+                                                            )}
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -446,11 +530,97 @@ export default function IAMCenter() {
                     </Card>
                 )}
 
+                {/* ── Sign-in & SSO ── */}
+                {tab === 'identity' && (
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 items-start">
+                        <Card>
+                            <CardHeader icon={LogIn} title={s.identity.providersTitle} description={fmt(s.identity.providersDesc, { region: l10n(region.label) })} />
+                            <ul className="rounded-xl border border-line divide-y divide-line overflow-hidden">
+                                {region.sso.map(p => (
+                                    <li key={p} className="flex items-center gap-3 px-4 py-3.5">
+                                        <span className={clsx('w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center shrink-0', SSO_MARK[p].className)} aria-hidden>{SSO_MARK[p].mark}</span>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-medium text-zinc-900">{names.sso[p]}</div>
+                                            <div className="text-xs text-zinc-500 mt-0.5">{s.identity.protocols[p]}</div>
+                                        </div>
+                                        <Badge tone="neutral" dot className="hidden sm:inline-flex">{s.identity.notConfigured}</Badge>
+                                        <Button size="sm" onClick={() => show(fmt(s.identity.configureNote, { provider: names.sso[p] }), 'info')}>{s.identity.configure}</Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </Card>
+
+                        <Card>
+                            <CardHeader icon={KeyRound} title={s.identity.methodsTitle} description={s.identity.methodsDesc} />
+                            <ul className="rounded-xl border border-line divide-y divide-line overflow-hidden">
+                                {[
+                                    { icon: Mail, title: s.identity.emailPassword, sub: s.identity.emailPasswordSub, badge: <Badge tone="success" dot>{s.identity.enabled}</Badge> },
+                                    { icon: Shield, title: s.identity.mfa, sub: s.identity.mfaSub, badge: <Badge tone="info">{s.identity.optional}</Badge> },
+                                    ...(isCn ? [{ icon: Smartphone, title: s.identity.sms, sub: s.identity.smsSub, badge: <Badge tone="neutral" dot>{s.identity.notConfigured}</Badge> }] : []),
+                                ].map(m => (
+                                    <li key={m.title} className="flex items-center gap-3 px-4 py-3.5">
+                                        <div className="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-600 flex items-center justify-center shrink-0"><m.icon className="w-4 h-4" /></div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-medium text-zinc-900">{m.title}</div>
+                                            <div className="text-xs text-zinc-500 mt-0.5">{m.sub}</div>
+                                        </div>
+                                        {m.badge}
+                                    </li>
+                                ))}
+                            </ul>
+                        </Card>
+
+                        {isCn && (
+                            <Card className="xl:col-span-2">
+                                <CardHeader icon={FileLock2} title={s.identity.piplTitle} description={s.identity.piplDesc} />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <label className="flex items-start gap-3 rounded-xl border border-line p-4 cursor-pointer hover:bg-zinc-50/70 transition-colors">
+                                        <input type="checkbox" checked={consentOn} onChange={e => setConsentOn(e.target.checked)} className="mt-0.5 w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-brand-500/40" />
+                                        <div>
+                                            <div className="text-sm font-medium text-zinc-900">{s.identity.consent}</div>
+                                            <div className="text-xs text-zinc-500 mt-0.5 leading-relaxed">{s.identity.consentSub}</div>
+                                        </div>
+                                    </label>
+                                    <div className="rounded-xl border border-line p-4">
+                                        <div className="text-sm font-medium text-zinc-900">{s.identity.minimal}</div>
+                                        <div className="text-xs text-zinc-500 mt-0.5 leading-relaxed">{s.identity.minimalSub}</div>
+                                    </div>
+                                    <div className="rounded-xl border border-line p-4">
+                                        <Field label={s.identity.logRetention} htmlFor="pipl-retention">
+                                            <select id="pipl-retention" defaultValue={s.identity.logOptions[1]} className={inputClass + ' cursor-pointer'}>
+                                                {s.identity.logOptions.map(o => <option key={o}>{o}</option>)}
+                                            </select>
+                                        </Field>
+                                    </div>
+                                    <div className="rounded-xl border border-line p-4 flex items-start justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <div className="text-sm font-medium text-zinc-900">{s.identity.crossBorder}</div>
+                                            <div className="text-xs text-zinc-500 mt-0.5 leading-relaxed">{s.identity.crossBorderSub}</div>
+                                        </div>
+                                        <Button size="sm" iconRight={ArrowRight} onClick={() => navigate('/admin')}>{s.identity.open}</Button>
+                                    </div>
+                                </div>
+                            </Card>
+                        )}
+                    </div>
+                )}
+
                 {/* ── Audit ── */}
                 {tab === 'audit' && (
+                    <div className="space-y-4">
+                        {isCn && <Callout tone="info" icon={FileLock2}>{s.identity.auditPipl}</Callout>}
+                        {activityUser && (
+                            <div className="flex flex-wrap items-center gap-2 text-[13px] text-zinc-600">
+                                <span>{fmt(s.activityFor, { name: activityUser })}</span>
+                                <Button size="sm" variant="ghost" icon={X} onClick={() => setActivityUser(null)}>{s.showAll}</Button>
+                            </div>
+                        )}
                     <Card padded={false}>
+                        {visibleAudit.length === 0 ? (
+                            <EmptyState icon={Activity} title={s.noActivity} action={<Button size="sm" onClick={() => setActivityUser(null)}>{s.showAll}</Button>} />
+                        ) : (
                         <ul className="divide-y divide-line">
-                            {auditLog.map((entry, i) => {
+                            {visibleAudit.map(({ entry, text }, i) => {
                                 const iconTone = entry.type === 'revoke' ? 'bg-rose-50 text-rose-600' : entry.type === 'grant' ? 'bg-emerald-50 text-emerald-600' : 'bg-zinc-100 text-zinc-600'
                                 const Icon = entry.type === 'issue' ? Link2 : entry.type === 'revoke' ? XCircle : entry.type === 'grant' ? CheckCircle2 : entry.type === 'invite' ? Plus : Activity
                                 return (
@@ -460,7 +630,7 @@ export default function IAMCenter() {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-4">
-                                                <p className="text-sm font-medium text-zinc-900 break-words">{s.auditActions[i]}</p>
+                                                <p className="text-sm font-medium text-zinc-900 break-words">{text}</p>
                                                 <span className="text-xs text-zinc-500 whitespace-nowrap inline-flex items-center gap-1 shrink-0"><Clock className="w-3 h-3" />{ago(entry.ago)}</span>
                                             </div>
                                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-1.5 text-xs text-zinc-500">
@@ -474,7 +644,9 @@ export default function IAMCenter() {
                                 )
                             })}
                         </ul>
+                        )}
                     </Card>
+                    </div>
                 )}
             </div>
 
@@ -495,8 +667,16 @@ export default function IAMCenter() {
                         <input id="inv-name" value={inviteForm.name} onChange={e => setInviteForm(p => ({ ...p, name: e.target.value }))} type="text" className={inputClass} placeholder={s.invite.namePlaceholder} />
                     </Field>
                     <Field label={s.invite.email} htmlFor="inv-email">
-                        <input id="inv-email" value={inviteForm.email} onChange={e => setInviteForm(p => ({ ...p, email: e.target.value }))} type="email" className={inputClass} placeholder="jane@company.com" />
+                        <input id="inv-email" value={inviteForm.email} onChange={e => setInviteForm(p => ({ ...p, email: e.target.value }))} type="email" className={inputClass} placeholder={s.invite.emailPlaceholder} />
                     </Field>
+                    {isCn && (
+                        <Field label={s.invite.phone} htmlFor="inv-phone">
+                            <div className="flex">
+                                <span className="inline-flex items-center px-3 rounded-l-[10px] border border-r-0 border-line bg-zinc-50 text-sm text-zinc-600 tabular">+86</span>
+                                <input id="inv-phone" value={inviteForm.phone} onChange={e => setInviteForm(p => ({ ...p, phone: e.target.value.replace(/[^\d ]/g, '') }))} type="tel" inputMode="numeric" maxLength={13} className={inputClass + ' rounded-l-none tabular'} placeholder={s.invite.phonePlaceholder} />
+                            </div>
+                        </Field>
+                    )}
                     <Field label={s.invite.role} htmlFor="inv-role" hint={s.roles[inviteForm.role].description}>
                         <select id="inv-role" value={inviteForm.role} onChange={e => setInviteForm(p => ({ ...p, role: e.target.value as RoleId }))} className={inputClass + ' cursor-pointer'}>
                             {roles.filter(r => r.id !== 'platform_admin').map(r => <option key={r.id} value={r.id}>{roleName(r.id)}</option>)}
@@ -505,7 +685,7 @@ export default function IAMCenter() {
                     <div className="space-y-1.5">
                         <div className="text-[13px] font-medium text-zinc-700">{s.invite.modules}</div>
                         <div className="flex gap-2 flex-wrap">
-                            {MODULES.map(m => {
+                            {modules.map(m => {
                                 const on = inviteForm.modules.includes(m)
                                 return (
                                     <button
@@ -522,6 +702,7 @@ export default function IAMCenter() {
                         </div>
                     </div>
                     <Callout tone="success" icon={Link2}>{s.invite.note}</Callout>
+                    {isCn && <Callout tone="info" icon={FileLock2}>{fmt(s.invite.piplNote, { privacy: l10n(region.privacy) })}</Callout>}
                 </Modal>
             )}
 
@@ -535,7 +716,17 @@ export default function IAMCenter() {
                     footer={
                         <>
                             <Button onClick={() => setShowGrantModal(null)}>{s.grant.cancel}</Button>
-                            <Button variant="primary" onClick={() => { issueVC(showGrantModal.id); setShowGrantModal(null) }}>{s.grant.save}</Button>
+                            <Button
+                                variant="primary"
+                                onClick={() => {
+                                    setUsers(prev => prev.map(u => (u.id === showGrantModal.id ? { ...u, role: grantRole } : u)))
+                                    issueVC(showGrantModal.id)
+                                    show(fmt(s.savedToast, { name: showGrantModal.name }))
+                                    setShowGrantModal(null)
+                                }}
+                            >
+                                {s.grant.save}
+                            </Button>
                         </>
                     }
                 >
@@ -547,8 +738,8 @@ export default function IAMCenter() {
                         <select
                             id="grant-role"
                             className={inputClass + ' cursor-pointer'}
-                            defaultValue={showGrantModal.role}
-                            onChange={e => setUsers(prev => prev.map(u => u.id === showGrantModal.id ? { ...u, role: e.target.value as RoleId } : u))}
+                            value={grantRole}
+                            onChange={e => setGrantRole(e.target.value as RoleId)}
                         >
                             {roles.map(r => <option key={r.id} value={r.id}>{roleName(r.id)}</option>)}
                         </select>
@@ -556,6 +747,7 @@ export default function IAMCenter() {
                     <Callout tone="warning" icon={AlertTriangle}>{s.grant.warning}</Callout>
                 </Modal>
             )}
+            {toast}
         </div>
     )
 }

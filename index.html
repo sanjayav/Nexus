@@ -4,9 +4,21 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!--
+      Web fonts are an enhancement, never a dependency: Google Fonts is
+      unreachable from mainland China, so the stylesheet loads without
+      blocking render and the type stack falls back to PingFang SC /
+      Microsoft YaHei (see tailwind.config.js). Chinese glyphs always come from
+      the OS; no multi-MB CJK web font is downloaded.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
     <title>Nexus · ESG Reporting</title>
   </head>
   <body>
@@ -14,4 +26,3 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

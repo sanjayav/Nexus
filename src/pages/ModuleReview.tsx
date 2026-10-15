@@ -1,27 +1,28 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { CheckCircle, XCircle, AlertTriangle, Info, FileText, Shield, ExternalLink, Clock, User, MessageSquare, ArrowLeft, GitCompare, KeyRound, ShieldCheck } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import clsx from 'clsx'
-import { mockData } from '../data/mockData'
 import { fmt, useFormat, useStrings } from '../i18n'
 import { moduleReviewStrings } from '../i18n/pages/moduleReview'
-import { moduleCatalogStrings } from '../i18n/pages/moduleCatalog'
+import { moduleCatalogStrings, useFrameworkLabels } from '../i18n/pages/moduleCatalog'
+import { useMockData, useWorkspace, useL10n } from '../workspace/WorkspaceContext'
 import { PageHeader, Card, CardHeader, Button, Badge, Tabs, EmptyState, inputClass, Tone } from '../components/ui'
 
 type TabId = 'diffs' | 'findings' | 'proofs' | 'approvals'
 
-// Mock validation findings (message/suggestion text lives in the dictionary, by index)
-const FINDINGS = [
-  { severity: 'error', rule: 'GRI-2-27-REQ', field: 'GRI 2-27' },
-  { severity: 'warning', rule: 'GRI-3-3-MATERIAL', field: 'GRI 3-3' },
-  { severity: 'info', rule: 'BEST-PRACTICE', field: 'GRI 2-22' },
-]
+// Validation rules behind the findings (message/suggestion text lives in the dictionary, by index).
+// The field each finding points at is resolved from the tenant's questionnaire sections for the module.
+const FINDING_RULES = [
+  { severity: 'error', rule: 'EVIDENCE-REQUIRED' },
+  { severity: 'warning', rule: 'MATERIAL-TOPIC-DMA' },
+  { severity: 'info', rule: 'BEST-PRACTICE' },
+] as const
 
-// Mock approval history (comment text lives in the dictionary, by index)
+// Approval history (comment text lives in the dictionary, by index); timestamps are offsets from the latest version.
 const APPROVAL_HISTORY = [
-  { did: 'did:ethr:0x1234...5678', role: 'Reviewer', decision: 'approved', timestamp: '2024-11-10T14:30:00Z', vcHash: '0xabcd...ef01' },
-  { did: 'did:ethr:0xabcd...ef01', role: 'Analyst', decision: 'submitted', timestamp: '2024-11-10T10:15:00Z', vcHash: '0x1234...5678' },
+  { did: 'did:ethr:0x1234...5678', role: 'Reviewer', decision: 'approved', hoursAfter: 0, vcHash: '0xabcd...ef01' },
+  { did: 'did:ethr:0xabcd...ef01', role: 'Analyst', decision: 'submitted', hoursAfter: -4, vcHash: '0x1234...5678' },
 ]
 
 const SEVERITY: Record<string, { tone: Tone; icon: LucideIcon; iconClass: string }> = {
@@ -38,14 +39,39 @@ export default function ModuleReview() {
   const s = useStrings(moduleReviewStrings)
   const c = useStrings(moduleCatalogStrings)
   const f = useFormat()
+  const fw = useFrameworkLabels()
+  const l10n = useL10n()
+  const { region } = useWorkspace()
+  const mockData = useMockData()
   const [activeTab, setActiveTab] = useState<TabId>('findings')
   const [approvalDecision, setApprovalDecision] = useState<'approve' | 'reject' | null>(null)
   const [comment, setComment] = useState('')
+  const [submitted, setSubmitted] = useState<'approve' | 'reject' | null>(null)
 
   const module = mockData.modules.find(m => m.id === moduleId)
   const versions = mockData.submissionVersions.filter(v => v.moduleId === moduleId)
   const currentVersion = versions[0]
   const previousVersion = versions[1]
+
+  const sections = useMemo(
+    () => mockData.questionnaireSections.filter(sec => sec.module === moduleId),
+    [mockData.questionnaireSections, moduleId],
+  )
+  const findings = useMemo(() => {
+    const evidenceGap = sections.find(sec => (sec.meta?.evidence.missing ?? 0) > 0)
+    const material = sections.find(sec => sec.material && sec.meta?.status !== 'Approved') ?? sections.find(sec => sec.material)
+    const targets = [evidenceGap, material, sections[sections.length - 1]]
+    return FINDING_RULES.map((r, i) => ({ ...r, field: targets[i]?.id ?? fw.short(moduleId ?? '') }))
+  }, [sections, fw, moduleId])
+  // Fields that changed since the previous version: first answered field of the leading sections.
+  const diffs = useMemo(
+    () =>
+      sections.slice(0, 2).flatMap(sec => {
+        const field = sec.fields.find(fd => String(fd.value ?? '').trim() !== '')
+        return field ? [{ key: `${sec.id}:${field.id}`, label: `${sec.title} · ${field.label}`, value: String(field.value) }] : []
+      }),
+    [sections],
+  )
 
   if (!module) {
     return (
@@ -60,11 +86,11 @@ export default function ModuleReview() {
     )
   }
 
-  const reviewStart = new Date('2024-11-10T14:30:00Z')
-  const slaDays = Math.floor((Date.now() - reviewStart.getTime()) / (1000 * 60 * 60 * 24))
+  const reviewStart = new Date(currentVersion?.createdAt ?? module.lastActivity)
+  const slaDays = Math.max(0, Math.floor((Date.now() - reviewStart.getTime()) / (1000 * 60 * 60 * 24)))
   const slaOverdue = slaDays > 5
 
-  const moduleName = c.titles[module.id] ?? module.title
+  const moduleName = fw.title(module.id, module.title)
 
   return (
     <div className="space-y-6">
@@ -74,7 +100,7 @@ export default function ModuleReview() {
         description={
           currentVersion
             ? fmt(s.subtitle, { version: currentVersion.version, id: currentVersion.submissionId })
-            : c.descriptions[module.id] ?? module.description
+            : fw.description(module.id, module.description)
         }
         actions={
           <Badge tone={slaOverdue ? 'danger' : 'info'} icon={Clock} className="h-8 px-2.5 text-[13px]">
@@ -88,8 +114,8 @@ export default function ModuleReview() {
         value={activeTab}
         onChange={setActiveTab}
         items={[
-          { value: 'findings', label: s.tabs.findings, count: FINDINGS.length },
-          { value: 'diffs', label: s.tabs.diffs, count: previousVersion ? 12 : 0 },
+          { value: 'findings', label: s.tabs.findings, count: findings.length },
+          { value: 'diffs', label: s.tabs.diffs, count: previousVersion ? diffs.length : 0 },
           { value: 'proofs', label: s.tabs.proofs, count: currentVersion ? 1 : 0 },
           { value: 'approvals', label: s.tabs.approvals, count: APPROVAL_HISTORY.length },
         ]}
@@ -98,7 +124,7 @@ export default function ModuleReview() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-2 space-y-4 min-w-0">
           {activeTab === 'findings' &&
-            FINDINGS.map((finding, index) => {
+            findings.map((finding, index) => {
               const sev = SEVERITY[finding.severity]
               const text = s.findings[index]
               return (
@@ -130,27 +156,19 @@ export default function ModuleReview() {
 
           {activeTab === 'diffs' && (
             <Card>
-              {previousVersion ? (
+              {previousVersion && diffs.length > 0 ? (
                 <>
                   <CardHeader title={fmt(s.changesFrom, { version: previousVersion.version })} icon={GitCompare} />
                   <div className="space-y-3">
-                    <div className="rounded-lg border border-line p-4">
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className="text-sm font-medium text-zinc-900">{s.diffOrgName}</span>
-                        <Badge tone="warning">{s.modified}</Badge>
+                    {diffs.map(d => (
+                      <div key={d.key} className="rounded-lg border border-line p-4 min-w-0">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                          <span className="text-sm font-medium text-zinc-900 min-w-0">{d.label}</span>
+                          <Badge tone="success">{s.added}</Badge>
+                        </div>
+                        <div className="text-[13px] font-mono text-emerald-700 bg-emerald-50/60 rounded px-2 py-1 line-clamp-3 break-words">+ {d.value}</div>
                       </div>
-                      <div className="space-y-1 text-[13px] font-mono">
-                        <div className="text-rose-600 bg-rose-50/60 rounded px-2 py-0.5">- Asyad Holdings</div>
-                        <div className="text-emerald-700 bg-emerald-50/60 rounded px-2 py-0.5">+ Asyad Group</div>
-                      </div>
-                    </div>
-                    <div className="rounded-lg border border-line p-4">
-                      <div className="flex flex-wrap items-center gap-2 mb-2">
-                        <span className="text-sm font-medium text-zinc-900">{s.diffValueChain}</span>
-                        <Badge tone="success">{s.added}</Badge>
-                      </div>
-                      <div className="text-[13px] font-mono text-emerald-700 bg-emerald-50/60 rounded px-2 py-0.5">+ {s.diffValueChainAdded}</div>
-                    </div>
+                    ))}
                   </div>
                 </>
               ) : (
@@ -167,7 +185,9 @@ export default function ModuleReview() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <ProofTile label={s.payloadCid}>
                       <code className="text-[13px] text-zinc-900 break-all">{currentVersion.payloadCID}</code>
-                      <Button variant="ghost" size="sm" icon={ExternalLink} className="mt-2 -ml-2">{s.viewIpfs}</Button>
+                      <Button variant="ghost" size="sm" icon={ExternalLink} className="mt-2 -ml-2" onClick={() => navigate('/evidence')}>
+                        {s.viewPayload}
+                      </Button>
                     </ProofTile>
                     <ProofTile label={s.sha256}>
                       <code className="text-[13px] text-zinc-900 break-all">{currentVersion.sha256.slice(0, 32)}…</code>
@@ -177,7 +197,16 @@ export default function ModuleReview() {
                     </ProofTile>
                     <ProofTile label={s.transaction}>
                       <code className="text-[13px] text-zinc-900">0x1234...abcd</code>
-                      <Button variant="ghost" size="sm" icon={ExternalLink} className="mt-2 -ml-2">{s.viewExplorer}</Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={ExternalLink}
+                        className="mt-2 -ml-2"
+                        title={l10n(region.chain.network)}
+                        onClick={() => window.open(region.chain.explorer, '_blank', 'noopener,noreferrer')}
+                      >
+                        {s.viewExplorer}
+                      </Button>
                     </ProofTile>
                   </div>
                 </>
@@ -209,7 +238,9 @@ export default function ModuleReview() {
                   <p className="rounded-lg bg-zinc-50 border border-line px-3 py-2.5 text-[13px] text-zinc-700 mb-3">{s.approvalComments[index]}</p>
                 )}
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-500">
-                  <span className="tabular">{f.date(approval.timestamp, { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                  <span className="tabular">
+                    {f.date(new Date(reviewStart.getTime() + approval.hoursAfter * 3_600_000), { dateStyle: 'medium', timeStyle: 'short' })}
+                  </span>
                   <code>{s.vc}: {approval.vcHash}</code>
                 </div>
               </Card>
@@ -225,7 +256,10 @@ export default function ModuleReview() {
                 type="button"
                 role="radio"
                 aria-checked={approvalDecision === 'approve'}
-                onClick={() => setApprovalDecision('approve')}
+                onClick={() => {
+                  setApprovalDecision('approve')
+                  setSubmitted(null)
+                }}
                 className={clsx(
                   'h-10 flex items-center justify-center gap-2 rounded-[10px] text-sm font-medium border transition-colors',
                   approvalDecision === 'approve'
@@ -240,7 +274,10 @@ export default function ModuleReview() {
                 type="button"
                 role="radio"
                 aria-checked={approvalDecision === 'reject'}
-                onClick={() => setApprovalDecision('reject')}
+                onClick={() => {
+                  setApprovalDecision('reject')
+                  setSubmitted(null)
+                }}
                 className={clsx(
                   'h-10 flex items-center justify-center gap-2 rounded-[10px] text-sm font-medium border transition-colors',
                   approvalDecision === 'reject'
@@ -268,9 +305,23 @@ export default function ModuleReview() {
               />
             </div>
 
-            <Button variant="primary" className="w-full" disabled={!approvalDecision}>
+            <Button
+              variant="primary"
+              className="w-full"
+              disabled={!approvalDecision || submitted === approvalDecision || (approvalDecision === 'reject' && !comment.trim())}
+              onClick={() => setSubmitted(approvalDecision)}
+            >
               {s.submitDecision}
             </Button>
+            {approvalDecision === 'reject' && !comment.trim() && !submitted && (
+              <p className="text-xs text-zinc-500 -mt-2">{s.rejectNeedsComment}</p>
+            )}
+            {submitted && (
+              <div role="status" className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[13px] text-emerald-800">
+                <CheckCircle className="w-4 h-4 shrink-0" />
+                {submitted === 'approve' ? s.submittedApprove : s.submittedReject}
+              </div>
+            )}
 
             <dl className="pt-4 border-t border-line text-xs space-y-2">
               <div className="flex items-center justify-between gap-3">

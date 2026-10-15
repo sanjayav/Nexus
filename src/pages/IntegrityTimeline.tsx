@@ -18,13 +18,17 @@ import {
   TimerReset,
   UserCheck,
   FileText,
+  Circle,
+  ExternalLink,
   LucideIcon,
 } from 'lucide-react'
 import clsx from 'clsx'
-import { mockData } from '../data/mockData'
-import { PageHeader, Card, CardHeader, Button, Badge, StatCard, Tone } from '../components/ui'
+import { PageHeader, Card, CardHeader, Button, Badge, StatCard, EmptyState, Tone } from '../components/ui'
 import { fmt, useFormat, useStrings } from '../i18n'
 import { integrityTimelineStrings } from '../i18n/pages/integrityTimeline'
+import { moduleIdOf, useFrameworkLabels } from '../i18n/pages/moduleCatalog'
+import { useL10n, useMockData, useWorkspace } from '../workspace/WorkspaceContext'
+import { useToast } from '../components/useToast'
 
 type StageKey = 'upload' | 'validation' | 'dmaRoot' | 'draftSection' | 'griIndex' | 'ghgRoot' | 'rollup'
 
@@ -73,15 +77,15 @@ interface Milestone {
 }
 
 interface ModuleData {
+  /** Normalised module id. */
   module: string
-  stageStatus: Partial<Record<StageKey, string>>
+  label: string
   milestones: Milestone[]
 }
 
 interface Selected extends Milestone {
   module: string
-  stageKey: StageKey
-  prevSubmission: string
+  label: string
 }
 
 type S = typeof integrityTimelineStrings.en
@@ -96,40 +100,33 @@ function Rail({ fromStatus, toStatus }: { fromStatus: string; toStatus: string |
   )
 }
 
-function ModuleRow({ mod, s, onSelect }: { mod: ModuleData; s: S; onSelect: (sel: Selected) => void }) {
+/** Known pipeline stage for a milestone name (data names are matched case/punctuation-insensitively). */
+const stageOf = (name: string) => STAGES.find(st => norm(st.match) === norm(name))
+
+function ModuleRow({ mod, s, milestoneLabel, onSelect }: { mod: ModuleData; s: S; milestoneLabel: (name: string) => string; onSelect: (sel: Selected) => void }) {
   return (
     <div className="flex flex-col md:flex-row md:items-center gap-3 py-4 first:pt-0 last:pb-0">
-      <div className="md:w-28 shrink-0">
-        <span className="inline-flex text-[13px] font-semibold text-zinc-900">{mod.module}</span>
+      <div className="md:w-44 shrink-0 min-w-0">
+        <span className="block text-[13px] font-semibold text-zinc-900 leading-snug line-clamp-2" title={mod.label}>{mod.label}</span>
       </div>
       <div className="flex flex-wrap items-center gap-y-2 min-w-0">
-        {STAGES.map((st, idx) => {
-          const status = mod.stageStatus[st.key] ?? 'pending'
-          const nextStatus = STAGES[idx + 1] ? mod.stageStatus[STAGES[idx + 1].key] : null
-          const milestone = mod.milestones.find(m => norm(m.name) === norm(st.match))
-          const label = s.stages[st.key]
+        {mod.milestones.map((ms, idx) => {
+          const status = ms.status || 'pending'
+          const next = mod.milestones[idx + 1]
+          const label = milestoneLabel(ms.name)
           const statusLabel = s.status[status] ?? status
           const StatusIcon = STATUS_ICON[status] || Info
-          const Icon = st.icon
+          const Icon = stageOf(ms.name)?.icon ?? Circle
           return (
-            <div key={st.key} className="flex items-center">
+            <div key={`${ms.name}-${idx}`} className="flex items-center">
               <button
                 type="button"
-                disabled={!milestone}
-                onClick={() =>
-                  milestone &&
-                  onSelect({
-                    ...milestone,
-                    module: mod.module,
-                    stageKey: st.key,
-                    prevSubmission: `SUB-2024-${Math.floor(Math.random() * 100).toString().padStart(3, '0')}`,
-                  })
-                }
+                onClick={() => onSelect({ ...ms, status, module: mod.module, label: mod.label })}
                 title={fmt(s.stageTitle, { stage: label, status: statusLabel })}
                 aria-label={fmt(s.stageTitle, { stage: label, status: statusLabel })}
                 className={clsx(
                   'inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs font-medium ring-1 ring-inset transition-shadow whitespace-nowrap',
-                  'disabled:cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900',
                   STATUS_PILL[status] || STATUS_PILL.pending,
                 )}
               >
@@ -137,7 +134,7 @@ function ModuleRow({ mod, s, onSelect }: { mod: ModuleData; s: S; onSelect: (sel
                 <span>{label}</span>
                 <StatusIcon className="h-3 w-3 opacity-70" />
               </button>
-              {idx < STAGES.length - 1 && <Rail fromStatus={status} toStatus={nextStatus} />}
+              {next && <Rail fromStatus={status} toStatus={next.status} />}
             </div>
           )
         })}
@@ -161,8 +158,14 @@ export default function IntegrityTimeline() {
   const s = useStrings(integrityTimelineStrings)
   const f = useFormat()
   const navigate = useNavigate()
+  const fw = useFrameworkLabels()
+  const l10n = useL10n()
+  const mockData = useMockData()
+  const { region } = useWorkspace()
+  const { toast, show } = useToast()
   const { timelineMilestones } = mockData
   const [selected, setSelected] = useState<Selected | null>(null)
+  const network = l10n(region.chain.network)
 
   useEffect(() => {
     if (!selected) return
@@ -171,43 +174,60 @@ export default function IntegrityTimeline() {
     return () => window.removeEventListener('keydown', onKey)
   }, [selected])
 
-  const modulesData: ModuleData[] = useMemo(
-    () =>
-      timelineMilestones.map(tm => {
-        const stageStatus: ModuleData['stageStatus'] = {}
-        tm.milestones.forEach(m => {
-          const stage = STAGES.find(st => norm(st.match) === norm(m.name))
-          if (stage) stageStatus[stage.key] = m.status
-        })
-        return { module: tm.module, stageStatus, milestones: tm.milestones }
-      }),
-    [timelineMilestones],
-  )
+  const moduleById = useMemo(() => new Map(mockData.modules.map(m => [m.id, m])), [mockData])
 
+  // Rows follow the tenant's milestones, ordered by the region's framework list (unknown modules last).
+  const modulesData: ModuleData[] = useMemo(() => {
+    const order = (id: string) => {
+      const i = region.frameworks.indexOf(id)
+      return i === -1 ? Number.MAX_SAFE_INTEGER : i
+    }
+    return timelineMilestones
+      .map(tm => {
+        const id = moduleIdOf(tm.module)
+        return { module: id, label: fw.title(id, moduleById.get(id)?.title ?? tm.module), milestones: tm.milestones }
+      })
+      .sort((a, b) => order(a.module) - order(b.module))
+  }, [timelineMilestones, region.frameworks, fw, moduleById])
+
+  const milestoneLabel = (name: string) => {
+    const stage = stageOf(name)
+    return stage ? s.stages[stage.key] : s.milestoneNames[name] ?? name
+  }
+
+  const all = modulesData.flatMap(m => m.milestones)
   const bottlenecks = [
-    { icon: Clock, value: 3, label: s.bottlenecks.longReview },
-    { icon: AlertTriangle, value: 1, label: s.bottlenecks.failed },
-    { icon: UserCheck, value: 5, label: s.bottlenecks.awaiting },
+    { icon: Clock, value: all.filter(m => m.status === 'in_review').length, label: s.bottlenecks.longReview },
+    { icon: AlertTriangle, value: all.filter(m => m.status === 'failed').length, label: s.bottlenecks.failed },
+    { icon: UserCheck, value: all.filter(m => m.status === 'pending').length, label: s.bottlenecks.awaiting },
   ]
 
-  const legend = ['pending', 'anchored', 'approved', 'published', 'failed']
+  const legend = ['pending', 'in_review', 'anchored', 'approved', 'published', 'failed']
+
+  // Proof details for the open drawer: tenant roll-up, module submission and linked evidence.
+  const selModule = selected ? moduleById.get(selected.module) : undefined
+  const selEvidence = selected ? mockData.evidence.filter(ev => ev.linkedModule && moduleIdOf(ev.linkedModule) === selected.module) : []
+  const selAnchored = selected ? ['anchored', 'approved', 'published'].includes(selected.status) : false
+  const txHash = mockData.rollup.txHash
+  const explorerUrl = `${region.chain.explorer.replace(/\/$/, '')}/tx/${txHash}`
 
   return (
     <div className="space-y-6">
+      {toast}
       <PageHeader
         title={s.title}
-        description={s.description}
+        description={fmt(s.description, { network })}
         actions={
           <>
-            <Button icon={TimerReset}>{s.refresh}</Button>
-            <Button variant="primary" iconRight={ChevronRight}>{s.auditPack}</Button>
+            <Button icon={TimerReset} onClick={() => show(fmt(s.refreshed, { network }), 'info')}>{s.refresh}</Button>
+            <Button variant="primary" iconRight={ChevronRight} onClick={() => navigate('/verify')}>{s.auditPack}</Button>
           </>
         }
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {bottlenecks.map(b => (
-          <StatCard key={b.label} icon={b.icon} label={b.label} value={b.value} />
+          <StatCard key={b.label} icon={b.icon} label={b.label} value={f.number(b.value)} />
         ))}
       </div>
 
@@ -226,7 +246,7 @@ export default function IntegrityTimeline() {
             <span key={st} className="inline-flex items-center gap-1.5">
               <span className={clsx('w-2 h-2 rounded-full', {
                 'bg-zinc-300': st === 'pending',
-                'bg-sky-500': st === 'anchored',
+                'bg-sky-500': st === 'anchored' || st === 'in_review',
                 'bg-emerald-500': st === 'approved',
                 'bg-zinc-900': st === 'published',
                 'bg-rose-500': st === 'failed',
@@ -235,11 +255,15 @@ export default function IntegrityTimeline() {
             </span>
           ))}
         </div>
-        <div className="divide-y divide-line">
-          {modulesData.map(m => (
-            <ModuleRow key={m.module} mod={m} s={s} onSelect={setSelected} />
-          ))}
-        </div>
+        {modulesData.length === 0 ? (
+          <EmptyState icon={Activity} title={s.emptyTitle} description={s.emptyDesc} />
+        ) : (
+          <div className="divide-y divide-line">
+            {modulesData.map(m => (
+              <ModuleRow key={m.module} mod={m} s={s} milestoneLabel={milestoneLabel} onSelect={setSelected} />
+            ))}
+          </div>
+        )}
       </Card>
 
       <div className="sm:hidden">
@@ -274,11 +298,11 @@ export default function IntegrityTimeline() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-line p-3.5">
                   <div className="text-xs font-medium text-zinc-500">{s.module}</div>
-                  <div className="text-sm font-semibold text-zinc-900 mt-1">{selected.module}</div>
+                  <div className="text-sm font-semibold text-zinc-900 mt-1 break-words">{selected.label}</div>
                 </div>
                 <div className="rounded-xl border border-line p-3.5">
                   <div className="text-xs font-medium text-zinc-500">{s.milestone}</div>
-                  <div className="text-sm font-semibold text-zinc-900 mt-1">{s.stages[selected.stageKey] || selected.name}</div>
+                  <div className="text-sm font-semibold text-zinc-900 mt-1 break-words">{milestoneLabel(selected.name)}</div>
                 </div>
               </div>
 
@@ -296,58 +320,79 @@ export default function IntegrityTimeline() {
               </div>
 
               <div className="border-t border-line pt-5 space-y-4">
+                <DetailBlock label={s.network}>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm text-zinc-900">{network}</span>
+                    <Badge>{l10n(region.chain.kind)}</Badge>
+                  </div>
+                </DetailBlock>
                 <DetailBlock label={s.payloadCid}>
-                  <div className={monoBox}>bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi</div>
+                  <div className={monoBox}>{selEvidence[0]?.cid ?? mockData.evidence[0]?.cid ?? s.notAvailable}</div>
                 </DetailBlock>
                 <DetailBlock label={s.merkleRoot}>
-                  <div className={monoBox}>0xB2C3D4E5F67890A1B2C3D4E5F67890A1B2C3D4...7D</div>
+                  <div className={monoBox}>{mockData.rollup.root}</div>
                 </DetailBlock>
                 <DetailBlock label={s.txHash}>
-                  <div className={monoBox}>0x1234567890abcdef1234567890abcdef12345678...</div>
-                  <button type="button" className="text-xs font-medium text-emerald-700 hover:text-emerald-600 mt-2 inline-flex items-center gap-0.5">
-                    {s.viewExplorer}
-                    <ChevronRight className="w-3 h-3" />
-                  </button>
+                  {selAnchored ? (
+                    <>
+                      <div className={monoBox}>{txHash}</div>
+                      <a
+                        href={explorerUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-medium text-emerald-700 hover:text-emerald-600 mt-2 inline-flex items-center gap-1"
+                      >
+                        {fmt(s.viewExplorer, { network })}
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </>
+                  ) : (
+                    <Badge tone="warning" dot>{fmt(s.notAnchoredYet, { network })}</Badge>
+                  )}
                 </DetailBlock>
               </div>
 
               <DetailBlock label={s.actor}>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs text-zinc-700">did:ethr:0x1234...5678</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-xs text-zinc-700 break-all">{selModule?.approver ?? mockData.rolesCredentials[0]?.did ?? s.notAvailable}</span>
                   <Badge tone="info">{s.approver}</Badge>
                 </div>
               </DetailBlock>
 
-              <DetailBlock label={s.prevSubmission}>
-                <div className={monoBox}>{selected.prevSubmission}</div>
-              </DetailBlock>
+              {selModule?.submissionId && (
+                <DetailBlock label={s.submission}>
+                  <div className={monoBox}>{selModule.submissionId}</div>
+                </DetailBlock>
+              )}
 
               <DetailBlock label={s.linkedEvidence}>
-                <div className="space-y-2">
-                  {[
-                    { id: 'EV-2024-001', file: 'emissions_data.xlsx' },
-                    { id: 'EV-2024-002', file: 'verification_report.json' },
-                  ].map(ev => (
-                    <div key={ev.id} className="flex items-center gap-3 p-3 rounded-xl border border-line hover:border-zinc-300 hover:bg-zinc-50/60 transition-colors">
-                      <FileText className="w-4 h-4 text-zinc-400 shrink-0" />
-                      <div className="min-w-0">
-                        <div className="text-xs font-mono font-medium text-zinc-900">{ev.id}</div>
-                        <div className="text-xs text-zinc-500 mt-0.5 truncate">{ev.file}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                {selEvidence.length === 0 ? (
+                  <p className="text-[13px] text-zinc-500">{s.noEvidence}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {selEvidence.map(ev => (
+                      <button
+                        key={ev.id}
+                        type="button"
+                        onClick={() => navigate('/evidence')}
+                        className="w-full text-left flex items-center gap-3 p-3 rounded-xl border border-line hover:border-zinc-300 hover:bg-zinc-50/60 transition-colors"
+                      >
+                        <FileText className="w-4 h-4 text-zinc-400 shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-mono font-medium text-zinc-900">{ev.id}</div>
+                          <div className="text-xs font-mono text-zinc-500 mt-0.5 truncate">{ev.sha256}</div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </DetailBlock>
             </div>
           </aside>
         </div>
       )}
 
-      <style>{`
-        @keyframes slide-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
-        .animate-slide-in { animation: slide-in 0.25s cubic-bezier(0.32, 0.72, 0, 1); }
-        @media (prefers-reduced-motion: reduce) { .animate-slide-in { animation: none; } }
-      `}</style>
     </div>
   )
 }

@@ -1,13 +1,18 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, ArrowRight, CheckCircle2, TrendingUp, FileQuestion, SearchX, MapPin } from 'lucide-react';
 import clsx from 'clsx';
 import { PageHeader, Card, CardHeader, Button, Badge, StatCard, Tabs, EmptyState, tableClass, Tone } from '../components/ui';
 import { fmt, useFormat, useStrings } from '../i18n';
 import { gapAnalyticsDashboardStrings } from '../i18n/pages/gapAnalyticsDashboard';
+import { useWorkspace } from '../workspace/WorkspaceContext';
+import { useToast } from '../components/useToast';
 
 type Severity = 'Critical' | 'High' | 'Medium';
+type Gap = { disclosure: string; bu: string; site: string; gapType: string; severity: Severity; owner: string; dueDate: string; status: string };
+type SiteEvidence = { site: string; items: { type: string; status: string }[] }[];
 
-const GAP_DATA: { disclosure: string; bu: string; site: string; gapType: string; severity: Severity; owner: string; dueDate: string; status: string }[] = [
+const GAP_DATA: Gap[] = [
   { disclosure: 'BRSR P5-E1', bu: 'Solar Division', site: 'Rajasthan 400MW', gapType: 'Missing Evidence', severity: 'Critical', owner: 'EHS Team', dueDate: '2025-12-05', status: 'Open' },
   { disclosure: 'GRI 305-2', bu: 'Wind Division', site: 'Gujarat 250MW', gapType: 'Validation Error', severity: 'High', owner: 'Sustainability', dueDate: '2025-12-08', status: 'In Progress' },
   { disclosure: 'GRI 403-9', bu: 'O&M', site: 'Tamil Nadu Hub', gapType: 'Missing Required Field', severity: 'Critical', owner: 'HR / Safety', dueDate: '2025-12-03', status: 'Open' },
@@ -38,8 +43,44 @@ const SITE_EVIDENCE = [
   { site: 'Mumbai HQ', items: [{ type: 'CSR Report', status: 'Pending' }, { type: 'Board Minutes', status: 'OK' }, { type: 'BRSR Filing', status: 'Pending' }] },
 ];
 
+// ─── Mainland China tenant (绿源控股集团) ─────────────────────────────────────
+// Business units, sites and owners are tenant data (Chinese); gap types, topics and
+// evidence types are dictionary keys.
+
+const CN_GAP_DATA: Gap[] = [
+  { disclosure: 'HKEX A1.2', bu: '绿源新材料', site: '宜宾负极材料基地', gapType: 'Missing Evidence', severity: 'Critical', owner: 'EHS 部', dueDate: '2026-10-28', status: 'Open' },
+  { disclosure: 'CN-SSE 气候-治理', bu: '集团总部', site: '上海总部', gapType: 'Not Started', severity: 'Critical', owner: '董事会办公室', dueDate: '2026-10-24', status: 'Open' },
+  { disclosure: 'HKEX A2.1', bu: '绿源光伏', site: '盐城组件工厂', gapType: 'Validation Error', severity: 'High', owner: '能源管理部', dueDate: '2026-11-04', status: 'In Progress' },
+  { disclosure: 'HKEX B2.1', bu: '绿源智造', site: '合肥智能装备园区', gapType: 'Missing Required Field', severity: 'Critical', owner: '安全环保部', dueDate: '2026-10-30', status: 'Open' },
+  { disclosure: 'CN-SSE 循环经济', bu: '绿源储能', site: '肇庆储能系统工厂', gapType: 'Incomplete Data', severity: 'Medium', owner: '生产运营部', dueDate: '2026-11-18', status: 'Open' },
+  { disclosure: 'CN-CSDS 气候-财务影响', bu: '集团总部', site: '上海总部', gapType: 'Incomplete Data', severity: 'High', owner: '财务部', dueDate: '2026-11-08', status: 'Open' },
+  { disclosure: 'CN-SSE 生物多样性', bu: '绿源风电', site: '乌兰察布风电场', gapType: 'Missing Evidence', severity: 'High', owner: '项目开发部', dueDate: '2026-11-06', status: 'Open' },
+  { disclosure: 'HKEX B5.2', bu: '绿源光伏', site: '盐城组件工厂', gapType: 'Incomplete Data', severity: 'Medium', owner: '采购部', dueDate: '2026-11-20', status: 'Open' },
+  { disclosure: 'HKEX B1.1', bu: '绿源智造', site: '合肥智能装备园区', gapType: 'Missing Required Field', severity: 'High', owner: '人力资源部', dueDate: '2026-11-02', status: 'Open' },
+  { disclosure: 'HKEX A1.6', bu: '绿源储能', site: '肇庆储能系统工厂', gapType: 'Missing Evidence', severity: 'Critical', owner: 'EHS 部', dueDate: '2026-10-26', status: 'Open' },
+];
+
+const CN_BUS = ['绿源光伏', '绿源风电', '绿源储能', '绿源智造', '绿源新材料', '集团总部'];
+const CN_TOPICS = ['GHG Emissions', 'Energy', 'Pollution & Waste', 'Health & Safety', 'Supply Chain', 'Governance'];
+const CN_HEATMAP: Record<string, Record<string, number>> = {
+  绿源光伏: { 'GHG Emissions': 0, Energy: 1, 'Pollution & Waste': 0, 'Health & Safety': 0, 'Supply Chain': 1, Governance: 0 },
+  绿源风电: { 'GHG Emissions': 0, Energy: 0, 'Pollution & Waste': 1, 'Health & Safety': 0, 'Supply Chain': 0, Governance: 0 },
+  绿源储能: { 'GHG Emissions': 0, Energy: 0, 'Pollution & Waste': 2, 'Health & Safety': 0, 'Supply Chain': 0, Governance: 0 },
+  绿源智造: { 'GHG Emissions': 0, Energy: 0, 'Pollution & Waste': 0, 'Health & Safety': 2, 'Supply Chain': 0, Governance: 0 },
+  绿源新材料: { 'GHG Emissions': 2, Energy: 1, 'Pollution & Waste': 0, 'Health & Safety': 0, 'Supply Chain': 0, Governance: 0 },
+  集团总部: { 'GHG Emissions': 1, Energy: 0, 'Pollution & Waste': 0, 'Health & Safety': 0, 'Supply Chain': 0, Governance: 3 },
+};
+const CN_SITE_EVIDENCE: SiteEvidence = [
+  { site: '盐城组件工厂', items: [{ type: 'Emissions Data', status: 'OK' }, { type: 'Green Certificates', status: 'Pending' }, { type: 'Discharge Permit', status: 'OK' }] },
+  { site: '乌兰察布风电场', items: [{ type: 'Generation Logs', status: 'OK' }, { type: 'Restoration Plan', status: 'Missing' }, { type: 'Safety Audit', status: 'OK' }] },
+  { site: '肇庆储能系统工厂', items: [{ type: 'Energy Data', status: 'OK' }, { type: 'Hazardous Waste Manifests', status: 'Missing' }, { type: 'Training Records', status: 'OK' }] },
+  { site: '合肥智能装备园区', items: [{ type: 'Incident Reports', status: 'Missing' }, { type: 'Safety Standardisation', status: 'OK' }, { type: 'Training Records', status: 'Pending' }] },
+  { site: '宜宾负极材料基地', items: [{ type: 'Emissions Data', status: 'Missing' }, { type: 'Energy Monitoring', status: 'Pending' }, { type: 'Discharge Permit', status: 'OK' }] },
+  { site: '上海总部', items: [{ type: 'Board Minutes', status: 'OK' }, { type: 'Scenario Analysis', status: 'Missing' }, { type: 'ESG Working Papers', status: 'Pending' }] },
+];
+
 const SEVERITY_TONE: Record<string, Tone> = { Critical: 'danger', High: 'warning', Medium: 'info', Low: 'neutral' };
-const STATUS_TONE: Record<string, Tone> = { Open: 'neutral', 'In Progress': 'info', OK: 'success', Missing: 'danger', Pending: 'warning' };
+const STATUS_TONE: Record<string, Tone> = { Open: 'neutral', 'In Progress': 'info', Resolved: 'success', OK: 'success', Missing: 'danger', Pending: 'warning' };
 
 // Calm sequential scale (zinc → rose) so the heatmap reads by intensity, not rainbow.
 const HEAT = [
@@ -51,20 +92,49 @@ const HEAT = [
 const heatClass = (count: number) => HEAT[Math.min(count, 3)];
 
 export default function GapAnalyticsDashboard() {
+  const { workspace } = useWorkspace();
+  // Remount per workspace so assignments made in one tenant don't carry over.
+  return <GapAnalyticsView key={workspace.id} />;
+}
+
+function GapAnalyticsView() {
   const s = useStrings(gapAnalyticsDashboardStrings);
   const f = useFormat();
+  const navigate = useNavigate();
+  const { region } = useWorkspace();
+  const isCn = region.id === 'cn';
+  const { toast, show } = useToast();
   const [view, setView] = useState<'table' | 'heatmap'>('table');
   const [severityFilter, setSeverityFilter] = useState<Severity | 'all'>('all');
+  const [gaps, setGaps] = useState<Gap[]>(isCn ? CN_GAP_DATA : GAP_DATA);
+  const [resolvedCount, setResolvedCount] = useState(isCn ? 9 : 14);
 
-  const filteredGaps = severityFilter === 'all' ? GAP_DATA : GAP_DATA.filter(g => g.severity === severityFilter);
-  const topGaps = GAP_DATA
+  const BUS = isCn ? CN_BUS : HEATMAP_BUS;
+  const TOPICS = isCn ? CN_TOPICS : HEATMAP_TOPICS;
+  const HEATMAP = isCn ? CN_HEATMAP : HEATMAP_DATA;
+  const SITES = isCn ? CN_SITE_EVIDENCE : SITE_EVIDENCE;
+
+  const filteredGaps = severityFilter === 'all' ? gaps : gaps.filter(g => g.severity === severityFilter);
+  const topGaps = gaps
     .filter(g => g.status === 'Open' && g.severity === 'Critical')
     .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
   const tr = (map: Record<string, string>, v: string) => map[v] ?? v;
   const date = (d: string) => f.date(d, { day: 'numeric', month: 'short', year: 'numeric' });
-  const countBy = (sev: Severity) => GAP_DATA.filter(g => g.severity === sev).length;
-  const openBy = (sev: Severity) => GAP_DATA.filter(g => g.severity === sev && g.status === 'Open').length;
+  const countBy = (sev: Severity) => gaps.filter(g => g.severity === sev).length;
+  const openBy = (sev: Severity) => gaps.filter(g => g.severity === sev && g.status === 'Open').length;
+
+  const assignAll = () => {
+    if (topGaps.length === 0) return show(s.toast.noneToAssign, 'info');
+    const codes = new Set(topGaps.map(g => g.disclosure));
+    setGaps(prev => prev.map(g => (codes.has(g.disclosure) ? { ...g, status: 'In Progress' } : g)));
+    show(fmt(s.toast.assigned, { count: codes.size }));
+  };
+  const resolve = (gap: Gap) => {
+    setGaps(prev => prev.map(g => (g.disclosure === gap.disclosure ? { ...g, status: 'Resolved' } : g)));
+    setResolvedCount(c => c + 1);
+    show(fmt(s.toast.resolved, { code: gap.disclosure }));
+  };
 
   return (
     <div>
@@ -87,8 +157,8 @@ export default function GapAnalyticsDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard label={s.stats.critical} value={countBy('Critical')} icon={AlertTriangle} deltaLabel={fmt(s.stats.openOf, { count: openBy('Critical') })} />
         <StatCard label={s.stats.high} value={countBy('High')} icon={FileQuestion} deltaLabel={fmt(s.stats.openOf, { count: openBy('High') })} />
-        <StatCard label={s.stats.inProgress} value={GAP_DATA.filter(g => g.status === 'In Progress').length} icon={TrendingUp} />
-        <StatCard label={s.stats.resolvedWeek} value={14} icon={CheckCircle2} />
+        <StatCard label={s.stats.inProgress} value={gaps.filter(g => g.status === 'In Progress').length} icon={TrendingUp} />
+        <StatCard label={s.stats.resolvedWeek} value={resolvedCount} icon={CheckCircle2} />
       </div>
 
       {/* Critical gaps */}
@@ -96,7 +166,7 @@ export default function GapAnalyticsDashboard() {
         <CardHeader
           title={s.top.title}
           description={s.top.description}
-          action={<Button variant="primary" size="sm">{s.top.assignAll}</Button>}
+          action={<Button variant="primary" size="sm" onClick={assignAll} disabled={topGaps.length === 0}>{s.top.assignAll}</Button>}
         />
         {topGaps.length === 0 ? (
           <EmptyState icon={CheckCircle2} title={s.top.empty} />
@@ -121,6 +191,7 @@ export default function GapAnalyticsDashboard() {
                 </div>
                 <button
                   type="button"
+                  onClick={() => navigate('/tasks')}
                   aria-label={s.top.open}
                   title={s.top.open}
                   className="w-8 h-8 rounded-lg border border-line text-zinc-500 flex items-center justify-center shrink-0 hover:border-zinc-300 hover:text-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
@@ -156,7 +227,7 @@ export default function GapAnalyticsDashboard() {
             <EmptyState icon={SearchX} title={s.all.empty} />
           ) : (
             <div className={tableClass.wrap}>
-              <table className={tableClass.table}>
+              <table className={clsx(tableClass.table, 'min-w-[920px]')}>
                 <thead>
                   <tr>
                     <th className={tableClass.th}>{s.all.cols.disclosure}</th>
@@ -183,7 +254,11 @@ export default function GapAnalyticsDashboard() {
                       <td className={clsx(tableClass.td, 'text-[13px] text-zinc-600 tabular whitespace-nowrap')}>{date(gap.dueDate)}</td>
                       <td className={tableClass.td}><Badge tone={STATUS_TONE[gap.status]} dot>{tr(s.status, gap.status)}</Badge></td>
                       <td className={clsx(tableClass.td, 'text-right')}>
-                        <Button size="sm" variant="secondary">{s.all.resolve}</Button>
+                        {gap.status === 'Resolved' ? (
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600"><CheckCircle2 className="w-3.5 h-3.5" />{s.all.resolved}</span>
+                        ) : (
+                          <Button size="sm" variant="secondary" onClick={() => resolve(gap)}>{s.all.resolve}</Button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -203,17 +278,17 @@ export default function GapAnalyticsDashboard() {
                 <thead>
                   <tr>
                     <th className="text-left text-xs font-medium text-zinc-500 pb-1 pr-2">{s.heatmap.bu}</th>
-                    {HEATMAP_TOPICS.map(topic => (
+                    {TOPICS.map(topic => (
                       <th key={topic} className="text-center text-xs font-medium text-zinc-500 pb-1">{tr(s.topics, topic)}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {HEATMAP_BUS.map(bu => (
+                  {BUS.map(bu => (
                     <tr key={bu}>
                       <td className="text-sm font-medium text-zinc-800 pr-2 whitespace-nowrap">{tr(s.bu, bu)}</td>
-                      {HEATMAP_TOPICS.map(topic => {
-                        const count = HEATMAP_DATA[bu]?.[topic] || 0;
+                      {TOPICS.map(topic => {
+                        const count = HEATMAP[bu]?.[topic] || 0;
                         return (
                           <td key={topic}>
                             <div className={clsx('h-12 flex items-center justify-center rounded-lg ring-1 ring-inset text-base font-semibold tabular', heatClass(count))}>
@@ -241,7 +316,7 @@ export default function GapAnalyticsDashboard() {
           <Card>
             <CardHeader title={s.sites.title} description={s.sites.description} />
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {SITE_EVIDENCE.map(site => (
+              {SITES.map(site => (
                 <div key={site.site} className="rounded-xl border border-line p-4 hover:border-zinc-300 transition-colors">
                   <p className="flex items-center gap-1.5 text-sm font-medium text-zinc-900 mb-3">
                     <MapPin className="w-3.5 h-3.5 text-zinc-400" />
@@ -262,6 +337,7 @@ export default function GapAnalyticsDashboard() {
         </div>
       )}
       </div>
+      {toast}
     </div>
   );
 }

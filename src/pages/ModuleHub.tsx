@@ -1,11 +1,12 @@
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { CheckCircle, Clock, AlertCircle, FileText, Package, GitBranch, ChevronRight, User, Calendar, ArrowRight, ListChecks, Workflow, ArrowLeft } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import clsx from 'clsx'
-import { mockData } from '../data/mockData'
 import { fmt, useFormat, useStrings } from '../i18n'
 import { moduleHubStrings } from '../i18n/pages/moduleHub'
-import { moduleCatalogStrings } from '../i18n/pages/moduleCatalog'
+import { moduleCatalogStrings, useFrameworkLabels } from '../i18n/pages/moduleCatalog'
+import { useMockData } from '../workspace/WorkspaceContext'
 import { PageHeader, Card, CardHeader, Button, Badge, EmptyState, Tone } from '../components/ui'
 
 type StepStatus = 'completed' | 'in-progress' | 'pending'
@@ -19,6 +20,9 @@ export default function ModuleHub() {
   const s = useStrings(moduleHubStrings)
   const c = useStrings(moduleCatalogStrings)
   const f = useFormat()
+  const fw = useFrameworkLabels()
+  const mockData = useMockData()
+  const [requested, setRequested] = useState(false)
 
   const module = mockData.modules.find(m => m.id === moduleId)
   const moduleTasks = mockData.moduleTasks.filter(t => t.moduleId === moduleId)
@@ -37,27 +41,30 @@ export default function ModuleHub() {
     )
   }
 
-  const progressSteps: { key: keyof typeof s.steps; status: StepStatus; date: string | null }[] = [
-    { key: 'upload', status: 'completed', date: '2024-11-01' },
-    { key: 'validation', status: module.validationsPassed ? 'completed' : 'in-progress', date: '2024-11-02' },
-    { key: 'dma', status: module.coverage > 80 ? 'completed' : 'pending', date: module.coverage > 80 ? '2024-11-05' : null },
-    { key: 'pack', status: module.state === 'Published' ? 'completed' : 'pending', date: module.state === 'Published' ? '2024-11-08' : null },
-    { key: 'rollup', status: module.state === 'Published' ? 'completed' : 'pending', date: module.state === 'Published' ? '2024-11-10' : null },
+  // Step dates are derived from the module's last activity so they stay consistent with the tenant data.
+  const daysBefore = (n: number) => new Date(new Date(module.lastActivity).getTime() - n * 86_400_000)
+  const published = module.state === 'Published'
+  const progressSteps: { key: keyof typeof s.steps; status: StepStatus; date: Date | null }[] = [
+    { key: 'upload', status: 'completed', date: daysBefore(9) },
+    { key: 'validation', status: module.validationsPassed ? 'completed' : 'in-progress', date: module.validationsPassed ? daysBefore(8) : null },
+    { key: 'dma', status: module.coverage > 80 ? 'completed' : 'pending', date: module.coverage > 80 ? daysBefore(5) : null },
+    { key: 'pack', status: published ? 'completed' : 'pending', date: published ? daysBefore(2) : null },
+    { key: 'rollup', status: published ? 'completed' : 'pending', date: published ? daysBefore(0) : null },
   ]
 
   const actionCards: { key: keyof typeof s.actions; icon: LucideIcon; onClick?: () => void }[] = [
     { key: 'questionnaire', icon: FileText, onClick: () => navigate(`/modules/${moduleId}/questionnaire`) },
     { key: 'review', icon: CheckCircle, onClick: () => navigate(`/modules/${moduleId}/review`) },
-    { key: 'pack', icon: Package },
-    { key: 'request', icon: AlertCircle },
+    { key: 'pack', icon: Package, onClick: () => navigate('/publish') },
+    { key: 'request', icon: requested ? CheckCircle : AlertCircle, onClick: () => setRequested(true) },
   ]
 
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow={s.eyebrow}
-        title={c.titles[module.id] ?? module.title}
-        description={c.descriptions[module.id] ?? module.description}
+        title={fw.title(module.id, module.title)}
+        description={fw.description(module.id, module.description)}
         actions={
           <>
             <Button variant="secondary" onClick={() => navigate(`/modules/${moduleId}/review`)}>{s.openReview}</Button>
@@ -125,7 +132,9 @@ export default function ModuleHub() {
                         {fmt(s.due, { date: f.date(task.dueDate) })}
                       </span>
                     </div>
-                    <Button variant="ghost" size="sm" iconRight={ArrowRight}>{s.view}</Button>
+                    <Button variant="ghost" size="sm" iconRight={ArrowRight} onClick={() => navigate(`/modules/${moduleId}/questionnaire`)}>
+                      {s.view}
+                    </Button>
                   </div>
                 </li>
               ))}
@@ -153,14 +162,16 @@ export default function ModuleHub() {
                       <span className="text-sm font-semibold text-zinc-900">{version.version}</span>
                       {index === 0 && <span className="text-xs text-zinc-500">{s.latest}</span>}
                     </div>
-                    <Badge tone={VERSION_TONE[version.state] ?? 'neutral'}>{c.state[version.state] ?? version.state}</Badge>
+                    <Badge tone={VERSION_TONE[version.state] ?? 'neutral'}>{fw.state(version.state)}</Badge>
                   </div>
                   <dl className="text-xs text-zinc-500 space-y-1">
                     <div className="flex gap-2 min-w-0"><dt className="shrink-0">{s.cid}</dt><dd className="font-mono text-zinc-700 truncate">{version.payloadCID.slice(0, 12)}…</dd></div>
                     <div className="flex gap-2"><dt>{s.root}</dt><dd className="font-mono text-zinc-700">{version.merkleRoot}</dd></div>
                     <div className="tabular">{f.date(version.createdAt)}</div>
                   </dl>
-                  <Button variant="ghost" size="sm" className="mt-2 -ml-2">{s.viewDiff}</Button>
+                  <Button variant="ghost" size="sm" className="mt-2 -ml-2" onClick={() => navigate(`/modules/${moduleId}/review`)}>
+                    {s.viewDiff}
+                  </Button>
                 </div>
               ))}
             </div>
@@ -177,13 +188,16 @@ export default function ModuleHub() {
             key={key}
             type="button"
             onClick={onClick}
+            aria-pressed={key === 'request' ? requested : undefined}
             className="group text-left bg-surface border border-line rounded-card shadow-card p-4 sm:p-5 transition-[box-shadow,border-color] hover:border-zinc-300 hover:shadow-pop focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30"
           >
             <div className="w-8 h-8 rounded-lg bg-zinc-100 text-zinc-600 flex items-center justify-center mb-3 group-hover:bg-zinc-900 group-hover:text-white transition-colors">
               <Icon className="w-4 h-4" />
             </div>
             <div className="text-sm font-medium text-zinc-900">{s.actions[key].title}</div>
-            <div className="text-[13px] text-zinc-500 mt-0.5">{s.actions[key].body}</div>
+            <div className={clsx('text-[13px] mt-0.5', key === 'request' && requested ? 'text-emerald-700' : 'text-zinc-500')}>
+              {key === 'request' && requested ? s.requestSent : s.actions[key].body}
+            </div>
           </button>
         ))}
       </div>

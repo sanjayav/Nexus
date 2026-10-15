@@ -4,8 +4,6 @@ export const executiveOverviewStrings = defineStrings({
   en: {
     title: 'Command center',
     description: "You're on track. Close the remaining gaps to publish the {period} pack.",
-    period: 'FY2025',
-    region: 'Global + China',
     integrityVerified: 'Integrity verified',
     resolveGaps: 'Resolve gaps',
 
@@ -28,6 +26,7 @@ export const executiveOverviewStrings = defineStrings({
       current: 'In progress',
       upcoming: 'Upcoming',
       blocking: '{count} blocking issues',
+      blockingOne: '1 blocking issue',
       noBlocking: 'No blocking issues',
       openWorkbench: 'Open workbench',
       trend: 'DMA completion trend',
@@ -42,10 +41,11 @@ export const executiveOverviewStrings = defineStrings({
       expiringTargets: 'Expiring targets',
       alertsTitle: 'Latest alerts',
       levels: { error: 'Blocking', warning: 'Warning', info: 'Info' },
+      /** Keyed by the tenant's alert message; unknown messages render as-is. */
       alerts: {
-        '1': 'GRI index CID missing',
-        '2': '3 items over SLA in review',
-        '3': 'IPFS replica drift detected',
+        'GRI.index.cid missing': 'GRI index CID missing',
+        '3 items > SLA in review': '3 items over SLA in review',
+        'IPFS replica drift detected': 'IPFS replica drift detected',
       } as Record<string, string>,
     },
 
@@ -80,7 +80,7 @@ export const executiveOverviewStrings = defineStrings({
       anchored: 'Anchored completeness',
       approvals: 'Approvals passed',
       validations: 'Zero failed validations',
-      active: 'Web3 integrity active',
+      active: 'On-chain anchoring active',
     },
 
     rollup: {
@@ -88,7 +88,7 @@ export const executiveOverviewStrings = defineStrings({
       description: 'Merkle root anchored on-chain',
       root: 'Blockchain root',
       chain: 'Network',
-      viewExplorer: 'View on zkEVM explorer',
+      viewExplorer: 'Open block explorer',
     },
 
     approvals: {
@@ -96,20 +96,44 @@ export const executiveOverviewStrings = defineStrings({
       description: 'Data submissions by workflow stage',
       files: '{count} files',
       avg: 'avg {time}',
+      days: '{n}d',
       stages: { Submitted: 'Submitted', 'In Review': 'In review', Approved: 'Approved', Published: 'Published' } as Record<string, string>,
     },
 
     coverage: { title: 'Coverage by module', description: 'Percentage of required data points covered', series: 'Covered' },
 
+    calendar: {
+      title: 'Regulatory calendar',
+      description: 'Upcoming obligations · {region}',
+      daysLeft: '{count} days',
+      today: 'Due today',
+      overdue: '{count} days overdue',
+      byNotice: 'By notice',
+      tbc: 'Date to be confirmed',
+      voluntary: 'Voluntary',
+      emptyTitle: 'No upcoming obligations',
+      emptyBody: 'Nothing regulatory is scheduled for this workspace region.',
+      disclaimer: 'Indicative dates for planning; confirm against the latest regulator notices.',
+    },
+
     help: {
       title: 'Help and shortcuts',
       quickLinks: 'Quick links',
+      /** Region-specific FAQ copy. */
       links: {
-        csrd: 'How does Nexus support CSRD / BRSR compliance?',
-        edci: 'How can I submit EDCI and GHG data?',
-        targets: 'How can I set targets and action plans?',
-        scope3: 'Scope 3 calculator and supply chain',
-      },
+        global: {
+          csrd: 'How does Nexus support CSRD / BRSR compliance?',
+          edci: 'How can I submit EDCI and GHG data?',
+          targets: 'How can I set targets and action plans?',
+          scope3: 'Scope 3 calculator and supply chain',
+        },
+        cn: {
+          csrd: 'How does Nexus support SSE/SZSE/BSE and HKEX ESG disclosure?',
+          edci: 'How do I prepare GHG data for the national carbon market?',
+          targets: 'How can I set dual-carbon targets and action plans?',
+          scope3: 'Scope 3 calculator and supply chain',
+        },
+      } as Record<string, { csrd: string; edci: string; targets: string; scope3: string }>,
       pioneer: 'Pioneer features',
       pioneerLinks: { scope3: 'Scope 3 calculator', ai: 'AI Studio', workflow: 'Workflow config', xbrl: 'XBRL export' },
     },
@@ -117,8 +141,6 @@ export const executiveOverviewStrings = defineStrings({
   zh: {
     title: '指挥中心',
     description: '进展顺利。补齐剩余差距即可发布 {period} 报告包。',
-    period: 'FY2025',
-    region: '全球 + 中国',
     integrityVerified: '完整性已验证',
     resolveGaps: '处理差距',
 
@@ -141,6 +163,7 @@ export const executiveOverviewStrings = defineStrings({
       current: '进行中',
       upcoming: '待开始',
       blocking: '{count} 个阻塞问题',
+      blockingOne: '1 个阻塞问题',
       noBlocking: '无阻塞问题',
       openWorkbench: '打开工作台',
       trend: '双重重要性评估完成度趋势',
@@ -156,9 +179,9 @@ export const executiveOverviewStrings = defineStrings({
       alertsTitle: '最新提醒',
       levels: { error: '阻塞', warning: '警告', info: '提示' },
       alerts: {
-        '1': 'GRI 索引 CID 缺失',
-        '2': '3 项审核超出 SLA',
-        '3': '检测到 IPFS 副本偏差',
+        'GRI.index.cid missing': 'GRI 索引 CID 缺失',
+        '3 items > SLA in review': '3 项审核超出 SLA',
+        'IPFS replica drift detected': '检测到 IPFS 副本偏差',
       },
     },
 
@@ -193,7 +216,7 @@ export const executiveOverviewStrings = defineStrings({
       anchored: '锚定完整度',
       approvals: '审批通过率',
       validations: '零校验失败',
-      active: 'Web3 完整性校验已启用',
+      active: '链上存证已启用',
     },
 
     rollup: {
@@ -201,7 +224,7 @@ export const executiveOverviewStrings = defineStrings({
       description: 'Merkle 根已上链锚定',
       root: '区块链根哈希',
       chain: '网络',
-      viewExplorer: '在 zkEVM 浏览器中查看',
+      viewExplorer: '打开区块浏览器',
     },
 
     approvals: {
@@ -209,19 +232,42 @@ export const executiveOverviewStrings = defineStrings({
       description: '按流程阶段统计的数据提交',
       files: '{count} 个文件',
       avg: '平均 {time}',
+      days: '{n} 天',
       stages: { Submitted: '已提交', 'In Review': '审核中', Approved: '已批准', Published: '已发布' },
     },
 
     coverage: { title: '各模块覆盖率', description: '所需数据点的覆盖百分比', series: '已覆盖' },
 
+    calendar: {
+      title: '监管日历',
+      description: '即将到期的合规事项 · {region}',
+      daysLeft: '剩余 {count} 天',
+      today: '今日到期',
+      overdue: '已逾期 {count} 天',
+      byNotice: '以通知为准',
+      tbc: '日期待定',
+      voluntary: '自愿',
+      emptyTitle: '暂无待办合规事项',
+      emptyBody: '当前工作区所属地区暂无监管日程。',
+      disclaimer: '日期仅供规划参考，请以监管机构最新通知为准。',
+    },
+
     help: {
       title: '帮助与快捷入口',
       quickLinks: '常见问题',
       links: {
-        csrd: 'Nexus 如何支持 CSRD / BRSR 合规？',
-        edci: '如何提交 EDCI 与温室气体数据？',
-        targets: '如何设定目标与行动计划？',
-        scope3: '范围三计算器与供应链',
+        global: {
+          csrd: 'Nexus 如何支持 CSRD / BRSR 合规？',
+          edci: '如何提交 EDCI 与温室气体数据？',
+          targets: '如何设定目标与行动计划？',
+          scope3: '范围三计算器与供应链',
+        },
+        cn: {
+          csrd: 'Nexus 如何支持沪深北交易所及港交所 ESG 披露？',
+          edci: '如何为全国碳市场准备温室气体数据？',
+          targets: '如何设定“双碳”目标与行动计划？',
+          scope3: '范围三计算器与供应链',
+        },
       },
       pioneer: '先锋功能',
       pioneerLinks: { scope3: '范围三计算器', ai: 'AI 工作室', workflow: '流程配置', xbrl: 'XBRL 导出' },

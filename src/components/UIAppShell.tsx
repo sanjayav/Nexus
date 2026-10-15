@@ -10,6 +10,8 @@ import { useAuth } from '../auth/AuthContext'
 import { useStrings } from '../i18n'
 import { shellStrings } from '../i18n/pages/shell'
 import LanguageSwitcher from './LanguageSwitcher'
+import { useWorkspace, useL10n } from '../workspace/WorkspaceContext'
+import { REGIONS, WORKSPACES } from '../workspace/regions'
 
 type NavKey = keyof typeof shellStrings.en.nav
 type GroupKey = keyof typeof shellStrings.en.groups
@@ -84,6 +86,7 @@ export default function UIAppShell({ children }: { children: React.ReactNode }) 
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
+  const { workspace } = useWorkspace()
   const [collapsed, setCollapsed] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -283,7 +286,7 @@ export default function UIAppShell({ children }: { children: React.ReactNode }) 
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
-          <div key={location.pathname} className={clsx('min-h-full animate-fade-in', !FULL_BLEED.test(location.pathname) && 'px-4 sm:px-6 lg:px-8 py-6 lg:py-8 max-w-[1440px] mx-auto')}>
+          <div key={`${workspace.id}:${location.pathname}`} className={clsx('min-h-full animate-fade-in', !FULL_BLEED.test(location.pathname) && 'px-4 sm:px-6 lg:px-8 py-6 lg:py-8 max-w-[1440px] mx-auto')}>
             {children}
           </div>
         </div>
@@ -307,11 +310,10 @@ export default function UIAppShell({ children }: { children: React.ReactNode }) 
 
 // ─── Org switcher ─────────────────────────────────────────────────────────────
 
-const ORGS = ['Aeiforo Green Energy', 'Asyad Group']
-
 function OrgSwitcher({ collapsed, label, addLabel }: { collapsed: boolean; label: string; addLabel: string }) {
   const [open, setOpen] = useState(false)
-  const [org, setOrg] = useState(ORGS[0])
+  const { workspace, setWorkspace } = useWorkspace()
+  const t = useL10n()
   const ref = useRef<HTMLDivElement>(null)
   useDismiss(ref, open, () => setOpen(false))
 
@@ -321,6 +323,7 @@ function OrgSwitcher({ collapsed, label, addLabel }: { collapsed: boolean; label
         type="button"
         onClick={() => setOpen(o => !o)}
         aria-label={label}
+        aria-expanded={open}
         className={clsx('flex items-center gap-2.5 rounded-lg hover:bg-zinc-900/[0.04] transition-colors', collapsed ? 'p-1.5' : 'w-full p-1.5 pr-2')}
       >
         <div className="w-7 h-7 rounded-lg bg-zinc-900 flex items-center justify-center shrink-0 shadow-sm">
@@ -332,26 +335,35 @@ function OrgSwitcher({ collapsed, label, addLabel }: { collapsed: boolean; label
               <div className="text-[13px] font-semibold text-zinc-900">
                 Nexus<span className="text-brand-500">.</span>
               </div>
-              <div className="text-[11px] text-zinc-500 truncate">{org}</div>
+              <div className="text-[11px] text-zinc-500 truncate">{t(workspace.name)}</div>
             </div>
             <ChevronsUpDown className="w-3.5 h-3.5 text-zinc-400 ml-auto shrink-0" />
           </>
         )}
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1 w-56 p-1 bg-white border border-line rounded-xl shadow-pop z-50 animate-scale-in origin-top-left">
+        <div className="absolute left-0 top-full mt-1 w-64 p-1 bg-white border border-line rounded-xl shadow-pop z-50 animate-scale-in origin-top-left">
           <div className="px-2.5 pt-1.5 pb-1 text-[11px] font-medium text-zinc-400">{label}</div>
-          {ORGS.map(o => (
+          {WORKSPACES.map(w => (
             <button
-              key={o}
+              key={w.id}
               type="button"
               onClick={() => {
-                setOrg(o)
+                setWorkspace(w.id)
                 setOpen(false)
               }}
-              className={clsx('w-full text-left px-2.5 h-9 rounded-lg text-sm truncate', o === org ? 'bg-zinc-100 text-zinc-900' : 'text-zinc-600 hover:bg-zinc-50')}
+              className={clsx(
+                'w-full flex items-center gap-2 text-left px-2.5 py-2 rounded-lg',
+                w.id === workspace.id ? 'bg-zinc-100' : 'hover:bg-zinc-50',
+              )}
             >
-              {o}
+              <div className="min-w-0 flex-1">
+                <div className={clsx('text-sm truncate', w.id === workspace.id ? 'text-zinc-900 font-medium' : 'text-zinc-700')}>{t(w.name)}</div>
+                <div className="text-[11px] text-zinc-500 truncate">{t(w.listing)}</div>
+              </div>
+              <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-white border border-line text-zinc-600">
+                {t(REGIONS[w.region].label)}
+              </span>
             </button>
           ))}
           <div className="my-1 h-px bg-line" />

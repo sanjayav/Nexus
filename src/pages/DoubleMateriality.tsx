@@ -1,29 +1,78 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import clsx from 'clsx'
 import {
   ArrowRight, Shield, FileCheck,
   AlertTriangle, CheckCircle2, BarChart3, ChevronRight, Send,
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
-import { mockData } from '../data/mockData'
 import { Badge, Button, Card, CardHeader, PageHeader, Progress, StatCard, Tabs, tableClass, type Tone } from '../components/ui'
 import { fmt, useFormat, useStrings } from '../i18n'
 import { doubleMaterialityStrings } from '../i18n/pages/doubleMateriality'
+import { moduleIdOf, useFrameworkLabels } from '../i18n/pages/moduleCatalog'
+import { useMockData, useWorkspace } from '../workspace/WorkspaceContext'
+import { useToast } from '../components/useToast'
 
 type Category = 'Environment' | 'Social' | 'Governance'
 
-// Material topics with full DMA data (CSRD / BRSR aligned)
-const materialTopics: { id: string; name: string; envImpact: number; finImpact: number; category: Category; disclosures: string[]; status: 'approved' | 'in_review'; stakeholders: number }[] = [
-  { id: '1', name: 'GHG Emissions (Scope 1 & 2)', envImpact: 92, finImpact: 95, category: 'Environment', disclosures: ['GRI 305-1', 'IFRS S2', 'BRSR P5'], status: 'approved', stakeholders: 95 },
-  { id: '2', name: 'Renewable Energy Generation', envImpact: 95, finImpact: 88, category: 'Environment', disclosures: ['GRI 302-1', 'BRSR P5-E1'], status: 'approved', stakeholders: 92 },
-  { id: '3', name: 'Data Security & Privacy', envImpact: 25, finImpact: 90, category: 'Governance', disclosures: ['GRI 418-1', 'BRSR P1'], status: 'approved', stakeholders: 88 },
-  { id: '4', name: 'Supply Chain Human Rights', envImpact: 72, finImpact: 65, category: 'Social', disclosures: ['GRI 414', 'BRSR P6'], status: 'in_review', stakeholders: 75 },
-  { id: '5', name: 'Water Management', envImpact: 68, finImpact: 45, category: 'Environment', disclosures: ['GRI 303', 'BRSR P5'], status: 'approved', stakeholders: 82 },
-  { id: '6', name: 'Employee Health & Safety', envImpact: 55, finImpact: 72, category: 'Social', disclosures: ['GRI 403', 'BRSR P3'], status: 'approved', stakeholders: 90 },
-  { id: '7', name: 'Waste & Circular Economy', envImpact: 78, finImpact: 38, category: 'Environment', disclosures: ['GRI 306', 'BRSR P5'], status: 'approved', stakeholders: 70 },
-  { id: '8', name: 'Board Diversity & Inclusion', envImpact: 42, finImpact: 58, category: 'Governance', disclosures: ['GRI 405', 'BRSR P4'], status: 'approved', stakeholders: 85 },
-  { id: '9', name: 'Community & CSR', envImpact: 65, finImpact: 52, category: 'Social', disclosures: ['GRI 413', 'BRSR P8'], status: 'in_review', stakeholders: 78 },
+type Area = 'climate' | 'energy' | 'privacy' | 'supplyChain' | 'water' | 'healthSafety' | 'waste' | 'diversity' | 'community' | 'environment' | 'social' | 'governance'
+
+/**
+ * A framework reference: either a precise, language-neutral code (e.g. GRI 305-1)
+ * or a topic area rendered as "<framework short label> · <area>" where article
+ * numbering is not pinned down.
+ */
+type Ref = { code: string } | { area: Area }
+
+type TopicId = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
+
+// Material topics with full DMA data
+const materialTopics: { id: TopicId; name: string; envImpact: number; finImpact: number; category: Category; status: 'approved' | 'in_review'; stakeholders: number }[] = [
+  { id: '1', name: 'GHG Emissions (Scope 1 & 2)', envImpact: 92, finImpact: 95, category: 'Environment', status: 'approved', stakeholders: 95 },
+  { id: '2', name: 'Renewable Energy Generation', envImpact: 95, finImpact: 88, category: 'Environment', status: 'approved', stakeholders: 92 },
+  { id: '3', name: 'Data Security & Privacy', envImpact: 25, finImpact: 90, category: 'Governance', status: 'approved', stakeholders: 88 },
+  { id: '4', name: 'Supply Chain Human Rights', envImpact: 72, finImpact: 65, category: 'Social', status: 'in_review', stakeholders: 75 },
+  { id: '5', name: 'Water Management', envImpact: 68, finImpact: 45, category: 'Environment', status: 'approved', stakeholders: 82 },
+  { id: '6', name: 'Employee Health & Safety', envImpact: 55, finImpact: 72, category: 'Social', status: 'approved', stakeholders: 90 },
+  { id: '7', name: 'Waste & Circular Economy', envImpact: 78, finImpact: 38, category: 'Environment', status: 'approved', stakeholders: 70 },
+  { id: '8', name: 'Board Diversity & Inclusion', envImpact: 42, finImpact: 58, category: 'Governance', status: 'approved', stakeholders: 85 },
+  { id: '9', name: 'Community & CSR', envImpact: 65, finImpact: 52, category: 'Social', status: 'in_review', stakeholders: 78 },
 ]
+
+/**
+ * Per-framework references for each topic. Frameworks listed here but without an
+ * entry for a topic are treated as not applicable to it; frameworks not listed at
+ * all fall back to the topic's E/S/G category area.
+ */
+const TOPIC_REFS: Record<string, Partial<Record<TopicId, Ref>>> = {
+  GRI: {
+    '1': { code: '305-1' }, '2': { code: '302-1' }, '3': { code: '418-1' }, '4': { code: '414' }, '5': { code: '303' },
+    '6': { code: '403' }, '7': { code: '306' }, '8': { code: '405' }, '9': { code: '413' },
+  },
+  'IFRS-S2': { '1': { area: 'climate' }, '2': { area: 'energy' } },
+  TCFD: { '1': { area: 'climate' }, '2': { area: 'energy' } },
+  'CSRD-ESRS': {
+    '1': { code: 'E1' }, '2': { code: 'E1' }, '3': { code: 'S4' }, '4': { code: 'S2' }, '5': { code: 'E3' },
+    '6': { code: 'S1' }, '7': { code: 'E5' }, '8': { code: 'S1' }, '9': { code: 'S3' },
+  },
+  // SEBI NGRBC principles: P3 employees, P5 human rights, P6 environment, P8 inclusive growth, P9 consumers.
+  'BRSR-Core': {
+    '1': { code: 'P6' }, '2': { code: 'P6' }, '3': { code: 'P9' }, '4': { code: 'P5' }, '5': { code: 'P6' },
+    '6': { code: 'P3' }, '7': { code: 'P6' }, '8': { code: 'P3' }, '9': { code: 'P8' },
+  },
+  // HKEX ESG Reporting Code aspects (A environmental, B social).
+  'HKEX-ESG': {
+    '1': { code: 'A1' }, '2': { code: 'A2' }, '3': { code: 'B6' }, '4': { code: 'B5' }, '5': { code: 'A2' },
+    '6': { code: 'B2' }, '7': { code: 'A1' }, '8': { code: 'B1' }, '9': { code: 'B8' },
+  },
+  'CN-SSE': {
+    '1': { area: 'climate' }, '2': { area: 'energy' }, '3': { area: 'privacy' }, '4': { area: 'supplyChain' }, '5': { area: 'water' },
+    '6': { area: 'healthSafety' }, '7': { area: 'waste' }, '8': { area: 'diversity' }, '9': { area: 'community' },
+  },
+  'CN-CSDS': { '1': { area: 'climate' }, '2': { area: 'energy' } },
+  'CN-ETS': { '1': { area: 'climate' } },
+}
+
+const CATEGORY_AREA: Record<Category, Area> = { Environment: 'environment', Social: 'social', Governance: 'governance' }
 
 const DMA_PROCESS_STEPS = [1, 2, 3, 4, 5].map(step => ({ step, done: true }))
 
@@ -49,16 +98,41 @@ export default function DoubleMateriality() {
   const [selectedTopic, setSelectedTopic] = useState(materialTopics[0])
   const [activeTab, setActiveTab] = useState<Tab>('matrix')
   const navigate = useNavigate()
-  const { dma } = mockData
+  const fw = useFrameworkLabels()
+  const { region, workspace } = useWorkspace()
+  const mockData = useMockData()
+  const { dma, modules } = mockData
+  const { toast, show } = useToast()
+  const regional = s.regional[region.id] ?? s.regional.global
 
   const topicName = (t: { id: string; name: string }) => s.topics[t.id] ?? t.name
   const inReview = materialTopics.filter(t => t.status === 'in_review')
+
+  // Active frameworks: region catalogue order first, then any extra tenant modules.
+  const activeFrameworks = useMemo(() => {
+    const tenant = modules.map(m => moduleIdOf(m.id))
+    const ids = [...region.frameworks, ...tenant]
+    return ids.filter((id, i) => ids.indexOf(id) === i)
+  }, [modules, region.frameworks])
+  const tenantModules = useMemo(() => new Set(modules.map(m => moduleIdOf(m.id))), [modules])
+
+  const disclosuresFor = (topic: (typeof materialTopics)[number]) =>
+    activeFrameworks.flatMap(id => {
+      const table = TOPIC_REFS[id]
+      const ref: Ref | undefined = table ? table[topic.id] : { area: CATEGORY_AREA[topic.category] }
+      if (!ref) return []
+      const label = 'code' in ref ? `${fw.short(id)} ${ref.code}` : `${fw.short(id)} · ${s.areas[ref.area]}`
+      return [{ id, label }]
+    })
+
+  const leadFrameworks = activeFrameworks.slice(0, 2).map(id => fw.short(id)).join(s.listSep)
+  const openFramework = (id?: string) => navigate(id && tenantModules.has(id) ? `/modules/${id}` : '/modules')
 
   return (
     <div className="space-y-6">
       <PageHeader
         title={s.title}
-        description={s.description}
+        description={fmt(s.description, { frameworks: leadFrameworks })}
         actions={
           <>
             <Link
@@ -67,7 +141,7 @@ export default function DoubleMateriality() {
             >
               <BarChart3 className="w-4 h-4" /> {s.benchmark}
             </Link>
-            <Button variant="primary" iconRight={ArrowRight} onClick={() => navigate('/frameworks')}>{s.mapToDisclosures}</Button>
+            <Button variant="primary" iconRight={ArrowRight} onClick={() => setActiveTab('disclosures')}>{s.mapToDisclosures}</Button>
           </>
         }
       />
@@ -77,7 +151,7 @@ export default function DoubleMateriality() {
         <StatCard label={s.kpi.completion} value={f.percent(dma.percentage)} delta={dma.change} deltaLabel={s.kpi.vsLast} />
         <StatCard label={s.kpi.totalTopics} value={dma.totalMaterialTopics} deltaLabel={s.kpi.assessed} />
         <StatCard label={s.kpi.materialTopics} value={dma.topicsWithCompleteDMA} deltaLabel={s.kpi.withComplete} />
-        <StatCard label={s.kpi.frameworks} value={s.kpi.aligned} icon={Shield} footer={<Badge tone="success" dot>{s.kpi.frameworkReady}</Badge>} />
+        <StatCard label={s.kpi.frameworks} value={activeFrameworks.length} unit={s.kpi.aligned} icon={Shield} footer={<Badge tone="success" dot>{s.kpi.frameworkReady}</Badge>} />
         <StatCard label={s.kpi.inReview} value={inReview.length} footer={<Badge tone="warning" dot>{s.kpi.pendingValidation}</Badge>} className="col-span-2 md:col-span-1" />
       </div>
 
@@ -145,12 +219,19 @@ export default function DoubleMateriality() {
             <Card>
               <Badge tone={categoryTone[selectedTopic.category]}>{fmt(s.categoryMateriality, { category: s.categories[selectedTopic.category] })}</Badge>
               <h3 className="text-lg font-semibold text-zinc-900 mt-3">{topicName(selectedTopic)}</h3>
-              <p className="text-[13px] text-zinc-500 mt-1 mb-5 leading-relaxed">{s.highHighNote}</p>
+              <p className="text-[13px] text-zinc-500 mt-1 leading-relaxed">
+                {selectedTopic.envImpact >= 50 && selectedTopic.finImpact >= 50 ? fmt(s.highHighNote, { frameworks: leadFrameworks }) : s.monitorNote}
+              </p>
+              <div className="flex flex-wrap gap-1.5 mt-3 mb-5">
+                {disclosuresFor(selectedTopic).map(d => (
+                  <span key={d.label} className="inline-flex items-center h-6 px-2 rounded-md text-[11px] font-medium bg-zinc-100 text-zinc-600 ring-1 ring-inset ring-zinc-200">{d.label}</span>
+                ))}
+              </div>
               <div className="space-y-4">
                 <ScoreBar label={s.financialImpact} value={selectedTopic.finImpact} display={fmt(s.outOf100, { value: selectedTopic.finImpact })} />
                 <ScoreBar label={s.envSocImpact} value={selectedTopic.envImpact} display={fmt(s.outOf100, { value: selectedTopic.envImpact })} />
               </div>
-              <Button variant="secondary" iconRight={ArrowRight} className="w-full mt-5" onClick={() => navigate('/frameworks')}>{s.viewPolicies}</Button>
+              <Button variant="secondary" iconRight={ArrowRight} className="w-full mt-5" onClick={() => openFramework(disclosuresFor(selectedTopic)[0]?.id)}>{s.viewPolicies}</Button>
             </Card>
 
             <Card>
@@ -166,7 +247,7 @@ export default function DoubleMateriality() {
                   </div>
                 ))}
               </div>
-              <Button variant="secondary" icon={Send} className="w-full mt-5">{s.sendSurvey}</Button>
+              <Button variant="secondary" icon={Send} className="w-full mt-5" onClick={() => show(fmt(s.surveySent, { count: STAKEHOLDERS.length }))}>{s.sendSurvey}</Button>
             </Card>
           </div>
         </div>
@@ -175,7 +256,7 @@ export default function DoubleMateriality() {
       {activeTab === 'process' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
           <Card>
-            <CardHeader title={s.processTitle} description={s.processDesc} icon={FileCheck} />
+            <CardHeader title={s.processTitle} description={fmt(s.processDesc, { frameworks: leadFrameworks })} icon={FileCheck} />
             <ol className="relative space-y-1">
               {DMA_PROCESS_STEPS.map((st, i) => (
                 <li key={st.step} className="relative flex items-start gap-4 py-3">
@@ -197,14 +278,14 @@ export default function DoubleMateriality() {
           <div className="space-y-4 sm:space-y-6">
             <Card>
               <CardHeader title={s.docTitle} icon={FileCheck} className="mb-3" />
-              <p className="text-[13px] text-zinc-600 leading-relaxed">{s.docBody}</p>
+              <p className="text-[13px] text-zinc-600 leading-relaxed">{fmt(s.docBody, { year: workspace.reportingYear })}</p>
             </Card>
             <Card>
               <CardHeader title={s.quickLinks} className="mb-3" />
               <div className="divide-y divide-line -mx-2">
                 {[
-                  { to: '/analytics', label: s.links.csrd },
-                  { to: '/carbon', label: s.links.ghg },
+                  { to: '/analytics', label: fmt(s.links.csrd, { framework: fw.short(activeFrameworks[0] ?? 'GRI') }) },
+                  { to: '/carbon', label: regional.ghgLink },
                   { to: '/ghg', label: s.links.targets },
                 ].map(l => (
                   <Link key={l.to} to={l.to} className="flex items-center justify-between gap-3 px-2 py-3 rounded-lg hover:bg-zinc-50 transition-colors text-sm text-zinc-700 hover:text-zinc-900">
@@ -237,11 +318,18 @@ export default function DoubleMateriality() {
                   <tr key={t.id} className={tableClass.tr}>
                     <td className={clsx(tableClass.td, 'font-medium text-zinc-900')}>{topicName(t)}</td>
                     <td className={tableClass.td}><Badge tone={categoryTone[t.category]}>{s.categories[t.category]}</Badge></td>
-                    <td className={tableClass.td}><span className="text-xs font-mono text-zinc-500">{t.disclosures.join(', ')}</span></td>
+                    <td className={tableClass.td}>
+                      <div className="flex flex-wrap gap-1.5 max-w-[340px]">
+                        {disclosuresFor(t).length === 0 && <span className="text-zinc-400">—</span>}
+                        {disclosuresFor(t).map(d => (
+                          <span key={d.label} className="inline-flex items-center h-6 px-2 rounded-md text-[11px] font-medium bg-zinc-100 text-zinc-600 ring-1 ring-inset ring-zinc-200 whitespace-nowrap">{d.label}</span>
+                        ))}
+                      </div>
+                    </td>
                     <td className={tableClass.td}><Badge tone={t.status === 'approved' ? 'success' : 'warning'} dot>{s.status[t.status]}</Badge></td>
                     <td className={clsx(tableClass.td, 'text-right tabular font-medium text-zinc-900')}>{f.percent(t.stakeholders)}</td>
                     <td className={clsx(tableClass.td, 'text-right')}>
-                      <Button size="sm" variant="secondary" onClick={() => navigate('/frameworks')}>{s.open}</Button>
+                      <Button size="sm" variant="secondary" onClick={() => openFramework(disclosuresFor(t)[0]?.id)}>{s.open}</Button>
                     </td>
                   </tr>
                 ))}
@@ -252,18 +340,21 @@ export default function DoubleMateriality() {
       )}
 
       {/* Validation alert */}
+      {inReview.length > 0 && (
       <div className="rounded-card bg-amber-50 ring-1 ring-inset ring-amber-200/70 p-5 flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex items-start gap-3 flex-1">
           <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
           <div>
             <h4 className="text-sm font-semibold text-amber-900">{s.validationTitle}</h4>
             <p className="text-[13px] text-amber-900/80 mt-0.5">
-              {fmt(s.validationBody, { count: inReview.length, a: topicName(inReview[0]), b: topicName(inReview[1]) })}
+              {fmt(s.validationBody, { count: inReview.length, topics: inReview.map(x => `“${topicName(x)}”`).join(s.listSep) })}
             </p>
           </div>
         </div>
         <Button variant="secondary" size="sm" onClick={() => setActiveTab('disclosures')}>{s.reviewNow}</Button>
       </div>
+      )}
+      {toast}
     </div>
   )
 }

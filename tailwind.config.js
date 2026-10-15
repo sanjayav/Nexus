@@ -28,7 +28,7 @@ export default {
         accent: '#00D48E',
       },
       fontFamily: {
-        sans: ['Inter', '"Noto Sans SC"', '"PingFang SC"', '"Microsoft YaHei"', 'system-ui', 'sans-serif'],
+        sans: ['Inter', '"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', '"Noto Sans SC"', '"Source Han Sans SC"', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       borderRadius: {
@@ -42,11 +42,13 @@ export default {
         'fade-up': { from: { opacity: 0, transform: 'translateY(4px)' }, to: { opacity: 1, transform: 'none' } },
         'fade-in': { from: { opacity: 0 }, to: { opacity: 1 } },
         'scale-in': { from: { opacity: 0, transform: 'scale(0.97)' }, to: { opacity: 1, transform: 'none' } },
+        'slide-in': { from: { transform: 'translateX(100%)' }, to: { transform: 'none' } },
       },
       animation: {
         'fade-up': 'fade-up 240ms cubic-bezier(0.2, 0, 0, 1) both',
         'fade-in': 'fade-in 200ms ease-out both',
         'scale-in': 'scale-in 160ms cubic-bezier(0.2, 0, 0, 1) both',
+        'slide-in': 'slide-in 250ms cubic-bezier(0.32, 0.72, 0, 1) both',
       },
     },
   },

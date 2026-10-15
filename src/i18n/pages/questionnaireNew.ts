@@ -43,14 +43,23 @@ export const questionnaireNewStrings = defineStrings({
     valuePlaceholder: 'Enter value…',
     generate: 'Generate text',
     generating: 'Generating…',
-    aiDraft:
-      'Based on our corporate policy and localised operational data, we are committed to aligning with the Science Based Targets initiative (SBTi). We aim to reduce Scope 1 emissions by 24% and Scope 2 by 15% by 2030, through extensive fleet modernisation and localised green grid integration.',
+    /** AI draft sample, per workspace region. */
+    aiDraft: {
+      global:
+        'Based on our corporate policy and localised operational data, we are committed to aligning with the Science Based Targets initiative (SBTi). We aim to reduce Scope 1 emissions by 24% and Scope 2 by 15% by 2030, through extensive fleet modernisation and localised green grid integration.',
+      cn: "In line with China's dual-carbon goals (carbon peak before 2030, carbon neutrality before 2060) and our corporate policy, we aim to reduce Scope 1 emissions by 24% and Scope 2 by 15% by 2030 through process electrification, distributed solar at our manufacturing bases and green electricity certificate (GEC) purchases.",
+    } as Record<string, string>,
     actions: 'Actions and delegation',
     requestData: 'Request data',
     linkedApi: 'Linked API source',
     addComment: 'Add comment',
     filled: 'Value entered',
     createMetric: 'Create your own metric',
+    customMetric: 'Custom metric {n}',
+    sectionSubmitted: 'Section submitted',
+    requestSent: 'Request sent',
+    commentPlaceholder: 'Write a comment for reviewers…',
+    uploaded: 'Uploaded',
   },
   zh: {
     back: '返回框架列表',
@@ -94,13 +103,21 @@ export const questionnaireNewStrings = defineStrings({
     valuePlaceholder: '请输入数值…',
     generate: '生成文本',
     generating: '正在生成…',
-    aiDraft:
-      '根据公司政策及本地运营数据，我们承诺与科学碳目标倡议（SBTi）保持一致。我们计划通过全面的车队现代化改造和本地绿色电网接入，到 2030 年将范围一排放降低 24%，范围二排放降低 15%。',
+    aiDraft: {
+      global:
+        '根据公司政策及本地运营数据，我们承诺与科学碳目标倡议（SBTi）保持一致。我们计划通过全面的车队现代化改造和本地绿色电网接入，到 2030 年将范围一排放降低 24%，范围二排放降低 15%。',
+      cn: '围绕国家“双碳”目标（2030 年前碳达峰、2060 年前碳中和）及公司政策，我们计划通过生产工艺电气化、制造基地分布式光伏以及购买绿色电力证书（绿证），到 2030 年将范围一排放降低 24%，范围二排放降低 15%。',
+    },
     actions: '操作与委派',
     requestData: '请求数据',
     linkedApi: '关联 API 数据源',
     addComment: '添加评论',
     filled: '已填写',
     createMetric: '创建自定义指标',
+    customMetric: '自定义指标 {n}',
+    sectionSubmitted: '本章节已提交',
+    requestSent: '已发送请求',
+    commentPlaceholder: '为审核人填写评论…',
+    uploaded: '已上传',
   },
 })
