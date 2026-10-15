@@ -1,25 +1,57 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="demo-flat">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!--
-      Web fonts are an enhancement, never a dependency: Google Fonts is
-      unreachable from mainland China, so the stylesheet loads without
-      blocking render and the type stack falls back to PingFang SC /
-      Microsoft YaHei (see tailwind.config.js). Chinese glyphs always come from
-      the OS; no multi-MB CJK web font is downloaded.
-    -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-      media="print"
-      onload="this.media='all'"
-    />
-    <title>Nexus · ESG Reporting</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://rsms.me/" />
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <title>Nexus — CSRD-ready in 48 hours. Published pricing. Built ESG-first.</title>
+    <meta name="description" content="The modern alternative to Workiva. 24 frameworks, AI-native, self-serve onboarding, transparent pricing from £500/mo. CSRD, ISSB, GRI, TCFD, CDP — all in one platform." />
+    <meta name="theme-color" content="#10B981" />
+
+    <!-- Open Graph / social sharing -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Nexus — CSRD-ready in 48 hours. Published pricing. Built ESG-first." />
+    <meta property="og:description" content="The modern alternative to Workiva. 24 frameworks, AI-native, self-serve onboarding, transparent pricing from £500/mo. CSRD, ISSB, GRI, TCFD, CDP — all in one platform." />
+    <meta property="og:site_name" content="Nexus by Aeiforo" />
+    <meta property="og:url" content="https://nexus.aeiforo.co.uk/" />
+
+    <!-- Twitter card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Nexus — CSRD-ready in 48 hours. Published pricing. Built ESG-first." />
+    <meta name="twitter:description" content="The modern alternative to Workiva. 24 frameworks, AI-native, self-serve onboarding, transparent pricing from £500/mo. CSRD, ISSB, GRI, TCFD, CDP — all in one platform." />
+    <script>
+      // Apply persisted theme + color mode before first paint to avoid flash.
+      (function() {
+        try {
+          var t = localStorage.getItem('nexus-theme');
+          if (t === 'glass' || t === 'demo-flat') {
+            document.documentElement.setAttribute('data-theme', t);
+          }
+        } catch (e) {}
+        try {
+          var m = localStorage.getItem('aeiforo_color_mode') || 'auto';
+          var resolved = m;
+          if (m === 'auto') {
+            resolved = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark' : 'light';
+          }
+          if (resolved === 'light' || resolved === 'dark') {
+            document.documentElement.setAttribute('data-color-mode', resolved);
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <style>
+      html { background-color: #F4F6F8; }
+      html[data-theme='glass'] { background-color: #FAFAF8; }
+      html[data-color-mode='light'] { background-color: #FAFBFC; }
+      html[data-color-mode='dark']  { background-color: #0B0E13; }
+    </style>
   </head>
   <body>
     <div id="root"></div>

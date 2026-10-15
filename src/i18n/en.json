@@ -1,0 +1,103 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "search": "Search",
+    "all": "All",
+    "yes": "Yes",
+    "no": "No",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "ok": "OK",
+    "actions": "Actions",
+    "status": "Status",
+    "details": "Details"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "myTasks": "My tasks",
+    "calculators": "Calculators",
+    "data": "Data collection",
+    "workflow": "Workflow",
+    "reports": "Reports",
+    "analytics": "Analytics",
+    "admin": "Admin",
+    "settings": "Settings",
+    "auditLog": "Audit log",
+    "logout": "Sign out",
+    "search": "Search or jump to…"
+  },
+  "login": {
+    "signIn": "Sign in",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "signInWithSso": "Sign in with SSO",
+    "rememberMe": "Remember me",
+    "welcome": "Welcome back",
+    "subtitle": "Sign in to your Nexus workspace"
+  },
+  "myTasks": {
+    "title": "My tasks",
+    "subtitle": "Here is what is on your plate.",
+    "filterAll": "All",
+    "filterOverdue": "Overdue",
+    "filterPending": "Not started",
+    "filterInProgress": "In progress",
+    "filterSubmitted": "Submitted",
+    "filterApproved": "Approved",
+    "empty": "No assignments yet",
+    "dueThisWeek": "{{count}} due this week",
+    "total": "{{count}} total"
+  },
+  "savedViews": {
+    "label": "Views",
+    "default": "Default",
+    "saveAs": "Save current as…",
+    "nameLabel": "Name",
+    "shareLabel": "Share with my organisation",
+    "defaultLabel": "Set as my default for this page",
+    "delete": "Delete view",
+    "saving": "Saving…",
+    "title": "Save current view"
+  },
+  "anomaly": {
+    "title": "Anomaly detection",
+    "scanNow": "Scan now",
+    "investigate": "Investigate",
+    "markResolved": "Mark resolved",
+    "dismiss": "Dismiss",
+    "status": {
+      "open": "Open",
+      "investigating": "Investigating",
+      "resolved": "Resolved",
+      "dismissed": "Dismissed"
+    },
+    "severity": {
+      "info": "Info",
+      "warn": "Warning",
+      "critical": "Critical"
+    }
+  },
+  "publicReport": {
+    "header": "Nexus — Published Sustainability Report",
+    "verifyBlockchain": "Verify on blockchain",
+    "generated": "Generated",
+    "lastVerified": "Last verified",
+    "passwordRequired": "This report is password protected",
+    "passwordPrompt": "Enter the password to view",
+    "invalid": "This link is invalid or has been revoked",
+    "expired": "This link has expired"
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "th": "ไทย"
+  }
+}

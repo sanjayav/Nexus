@@ -1,0 +1,70 @@
+name: Auto-migrate production after deploy
+
+# Runs after every push to main. Waits for the Vercel deploy to be ready,
+# then triggers /api/setup so any new CREATE TABLE IF NOT EXISTS / ALTER
+# ADD COLUMN IF NOT EXISTS statements get applied to the live Neon DB.
+#
+# Required GitHub repo secrets:
+#   SETUP_TOKEN — same value set in Vercel as the SETUP_TOKEN env var
+#   PROD_URL    — optional; defaults to https://nexus.aeiforo.co.uk
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}     # Manual trigger button in the GitHub UI
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Resolve production URL
+        id: url
+        run: echo "url=${{ vars.PROD_URL || 'https://nexus.aeiforo.co.uk' }}" >> $GITHUB_OUTPUT
+
+      - name: Wait for new Vercel deploy to be ready
+        id: wait
+        # Poll /api/health until the version header matches the just-pushed
+        # commit SHA, or 5 minutes elapse. Vercel typically deploys in 1-2 min.
+        run: |
+          set -e
+          target="${GITHUB_SHA:0:7}"
+          echo "Waiting for deploy of $target at ${{ steps.url.outputs.url }}"
+          for i in $(seq 1 60); do
+            current=$(curl -fsS "${{ steps.url.outputs.url }}/api/health" 2>/dev/null | jq -r '.version' 2>/dev/null || echo "")
+            if [ "$current" = "$target" ]; then
+              echo "Deploy ready: $current"
+              echo "ready=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            echo "  [$i/60] current=$current target=$target — sleeping 5s"
+            sleep 5
+          done
+          echo "Timed out waiting for $target after 5 minutes. Last seen: $current"
+          # Don't fail — still try to migrate against whatever version is live.
+          echo "ready=false" >> $GITHUB_OUTPUT
+
+      - name: Run /api/setup migration
+        env:
+          SETUP_TOKEN: ${{ secrets.SETUP_TOKEN }}
+        run: |
+          if [ -z "$SETUP_TOKEN" ]; then
+            echo "::error::SETUP_TOKEN repo secret is not set."
+            echo "Set it under: Repo Settings → Secrets and variables → Actions → New repository secret"
+            echo "Use the same value you set in Vercel as the SETUP_TOKEN env var."
+            exit 1
+          fi
+          echo "Triggering migration..."
+          response=$(curl -fsS -w "\nHTTP_CODE:%{http_code}" \
+            -X POST \
+            -H "x-setup-token: $SETUP_TOKEN" \
+            "${{ steps.url.outputs.url }}/api/setup" || true)
+          body=$(echo "$response" | sed '$d')
+          code=$(echo "$response" | tail -1 | sed 's/HTTP_CODE://')
+          echo "Response: $body"
+          echo "Status: $code"
+          if [ "$code" != "200" ]; then
+            echo "::error::Migration failed with HTTP $code"
+            exit 1
+          fi
+          echo "::notice::Production DB migrated successfully"

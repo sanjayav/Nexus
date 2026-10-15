@@ -1,0 +1,10 @@
+{
+  "_comment": "Translator notes for th.json. Use polite formal register (suitable for an enterprise dashboard). Where a confirmed Thai term wasn't available, the JSON keeps the English term verbatim — these are listed below with a TODO so a native reviewer can finalise.",
+  "todo": {
+    "nav.workflow": "Currently keeps the English term 'Workflow'. Confirm preferred Thai: e.g. 'กระบวนการทำงาน'.",
+    "login.signInWithSso": "Keeps 'SSO' as-is (industry standard acronym).",
+    "anomaly.title": "การตรวจจับความผิดปกติ is a literal translation; verify with domain SME for ESG reporting parlance.",
+    "publicReport.verifyBlockchain": "Blockchain kept untransliterated; confirm whether บล็อกเชน is preferred.",
+    "common.actions": "Confirm context-appropriate term — currently 'การดำเนินการ'."
+  }
+}

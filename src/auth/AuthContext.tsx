@@ -1,77 +1,167 @@
-import { createContext, useContext, useState, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import { auth as authApi, setToken, clearToken, type AuthUser } from '../lib/api'
+import { resolvePermissions } from '../lib/rbac'
+import { setUserContext } from '../lib/sentry'
 
-/** Demo sign-in shown on the login screen and validated by `login`. */
-export const DEMO_EMAIL = 'user1@marklytics.co.uk'
-export const DEMO_PASSWORD = 'marklytics'
+export type Role = 'PA' | 'TL' | 'FM' | 'SO' | 'AUD' | 'AUTO'
 
-type DemoUser = {
+export interface User {
+  id?: string
   email: string
   name: string
-  role: 'Admin'
+  role: Role
+  tenantId: string
+  groups?: string[]
+  subdivisions?: string[]
+  sources?: string[]
+  roles?: string[]
+  roleNames?: string[]
+  permissions?: string[]
+  preferredFrameworkId?: string
 }
 
 type AuthContextValue = {
-  user: DemoUser | null
+  user: User | null
   isAuthenticated: boolean
+  permissions: string[]
   login: (email: string, password: string) => Promise<boolean>
+  register: (data: { email: string; name: string; password: string; workspaceName?: string; inviteToken?: string }) => Promise<boolean>
   logout: () => void
+  refreshUser: () => Promise<void>
+  dbConnected: boolean
+}
+
+const LEGACY_EMAILS: Record<string, string> = {
+  'demo@gcgroup.com': 'admin@aeiforo.com',
+  'user1@marklytics.co.uk': 'admin@aeiforo.com',
+}
+
+// Map DB role slugs to legacy short codes (for Role field backwards compat).
+const SLUG_TO_ROLE: Record<string, Role> = {
+  'admin': 'PA',
+  'platform_admin': 'PA',
+  'team-lead': 'TL',
+  'subsidiary_lead': 'TL',
+  'group_sustainability_officer': 'SO',
+  'plant_manager': 'FM',
+  'analyst': 'FM',
+  'data_contributor': 'FM',
+  'viewer': 'SO',
+  'auditor': 'AUD',
+}
+
+function dbUserToUser(u: AuthUser): User {
+  const primarySlug = u.roles?.[0] || 'viewer'
+  return {
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    role: SLUG_TO_ROLE[primarySlug] || 'SO',
+    tenantId: u.orgId,
+    roles: u.roles,
+    roleNames: u.roleNames,
+    permissions: u.permissions,
+    preferredFrameworkId: u.preferredFrameworkId,
+  }
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<DemoUser | null>(() => {
+  const [user, setUser] = useState<User | null>(() => {
     const stored = localStorage.getItem('aeiforo_auth_user')
-    if (stored) {
-      try {
-        return JSON.parse(stored)
-      } catch {
-        return null
-      }
+    const token = localStorage.getItem('aeiforo_token')
+    if (!stored) return null
+    if (!token) {
+      localStorage.removeItem('aeiforo_auth_user')
+      return null
     }
-    return null
+    try { return JSON.parse(stored) } catch { return null }
   })
+  const [dbConnected, setDbConnected] = useState(false)
 
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('aeiforo_auth_user', JSON.stringify(user))
+    }
+  }, [user])
+
+  const refreshUser = useCallback(async () => {
+    const token = localStorage.getItem('aeiforo_token')
+    if (!token) return
+    try {
+      const me = await authApi.me()
+      const u = dbUserToUser(me)
+      setUser(u)
+      setDbConnected(true)
+      // No-op when VITE_SENTRY_DSN is unset.
+      setUserContext({ id: u.id, email: u.email })
+    } catch {
+      // Token expired — let the next API call trigger the global 401 → /login redirect
+    }
+  }, [])
+
+  /**
+   * Live auth only. Hits /api/auth/login against Neon. Any failure (including
+   * network) returns false — we never fall back to demo credentials.
+   */
   const login = async (email: string, password: string): Promise<boolean> => {
     const normalizedEmail = email.trim().toLowerCase()
-    const valid =
-      normalizedEmail === DEMO_EMAIL.toLowerCase() && password === DEMO_PASSWORD
-
-    if (!valid) {
+    const resolvedEmail = LEGACY_EMAILS[normalizedEmail] || normalizedEmail
+    try {
+      const res = await authApi.login(resolvedEmail, password)
+      // MFA-required flow returns `{ mfaRequired: true, tempToken }`. Current
+      // UI doesn't have the verify step wired in, so we treat it as a failed
+      // login. When MFA verify is built, swap this branch to set MFA state.
+      if ('mfaRequired' in res && res.mfaRequired) {
+        return false
+      }
+      setToken(res.token)
+      const u = dbUserToUser(res.user)
+      setUser(u)
+      setDbConnected(true)
+      setUserContext({ id: u.id, email: u.email })
+      return true
+    } catch {
       return false
     }
+  }
 
-    const demoUser: DemoUser = {
-      email: DEMO_EMAIL,
-      name: 'Marklytics User',
-      role: 'Admin',
+  const register = async (data: { email: string; name: string; password: string; workspaceName?: string; inviteToken?: string }): Promise<boolean> => {
+    try {
+      const res = await authApi.register(data)
+      setToken(res.token)
+      const u = dbUserToUser(res.user)
+      setUser(u)
+      setDbConnected(true)
+      setUserContext({ id: u.id, email: u.email })
+      return true
+    } catch {
+      return false
     }
-
-    setUser(demoUser)
-    localStorage.setItem('aeiforo_auth_user', JSON.stringify(demoUser))
-
-    return true
   }
 
   const logout = () => {
     setUser(null)
+    clearToken()
     localStorage.removeItem('aeiforo_auth_user')
+    setDbConnected(false)
+    setUserContext(null)
   }
 
-  const value: AuthContextValue = {
-    user,
-    isAuthenticated: Boolean(user),
-    login,
-    logout,
-  }
+  const permissions = user
+    ? ((user.permissions && user.permissions.length > 0) ? user.permissions : resolvePermissions(user))
+    : []
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ user, isAuthenticated: Boolean(user), permissions, login, register, logout, refreshUser, dbConnected }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {
   const ctx = useContext(AuthContext)
-  if (!ctx) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider')
   return ctx
 }
