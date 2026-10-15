@@ -1,372 +1,396 @@
-import { ExternalLink, Shield, Globe2, Flag, ArrowRight, Database, CheckSquare2, BarChart3, Target, Sparkles } from 'lucide-react'
+import {
+  ExternalLink, Shield, Globe2, ArrowRight, ArrowUpRight, Database, CheckSquare2, BarChart3, Target, Sparkles,
+  Gauge, Layers, Leaf, AlertTriangle, AlertCircle, FileWarning, CalendarClock, Check, Link2, Filter,
+} from 'lucide-react'
 import { mockData } from '../data/mockData'
 import { Link, useNavigate } from 'react-router-dom'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from 'recharts'
+import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import clsx from 'clsx'
+import { PageHeader, Card, CardHeader, Button, Badge, StatCard, Progress, chartTheme } from '../components/ui'
+import { fmt, useFormat, useStrings } from '../i18n'
+import { executiveOverviewStrings } from '../i18n/pages/executiveOverview'
 
 const CORE_WAYS = [
-  {
-    id: 1,
-    title: 'Collect',
-    desc: 'Select the relevant metrics, invite users to collect ESG data and track progress of data requests.',
-    icon: Database,
-    path: '/frameworks',
-    badge: 'AI',
-    color: 'from-emerald-500 to-teal-600',
-  },
-  {
-    id: 2,
-    title: 'Comply',
-    desc: 'Comply with the latest ESG regulations and frameworks as they evolve.',
-    icon: CheckSquare2,
-    path: '/dma',
-    badge: null,
-    color: 'from-indigo-500 to-violet-600',
-  },
-  {
-    id: 3,
-    title: 'Report',
-    desc: 'Measure, analyse and report your ESG performance from a centralised platform.',
-    icon: BarChart3,
-    path: '/analytics',
-    badge: 'AI',
-    color: 'from-amber-500 to-orange-600',
-  },
-  {
-    id: 4,
-    title: 'Improve',
-    desc: 'Set targets and action plans to improve your ESG performance.',
-    icon: Target,
-    path: '/ghg',
-    badge: null,
-    color: 'from-rose-500 to-pink-600',
-  },
-]
+  { key: 'collect', icon: Database, path: '/frameworks', ai: true },
+  { key: 'comply', icon: CheckSquare2, path: '/dma', ai: false },
+  { key: 'report', icon: BarChart3, path: '/analytics', ai: true },
+  { key: 'improve', icon: Target, path: '/ghg', ai: false },
+] as const
 
-// Pioneer features (all-in-one)
+const QUICK_LINKS = [
+  { key: 'csrd', path: '/dma' },
+  { key: 'edci', path: '/carbon' },
+  { key: 'targets', path: '/ghg' },
+  { key: 'scope3', path: '/scope3' },
+] as const
+
 const PIONEER_LINKS = [
-  { label: 'Scope 3 Calculator', path: '/scope3' },
-  { label: 'AI Studio', path: '/ai' },
-  { label: 'Workflow Config', path: '/workflow' },
-  { label: 'XBRL Export', path: '/publish' },
-]
+  { key: 'scope3', path: '/scope3' },
+  { key: 'ai', path: '/ai' },
+  { key: 'workflow', path: '/workflow' },
+  { key: 'xbrl', path: '/publish' },
+] as const
+
+const STAGES = ['setup', 'dma', 'collection', 'review', 'publish'] as const
+const CURRENT_STAGE = 1 // DMA
 
 export default function ExecutiveOverview() {
+  const s = useStrings(executiveOverviewStrings)
+  const f = useFormat()
   const navigate = useNavigate()
-  const {
-    frameworks,
-    dma,
-    ghg,
-    integrity,
-    rollup,
-    coverageByModule,
-    approvalsFunnel,
-    alerts,
-  } = mockData
+  const { frameworks, dma, ghg, integrity, rollup, coverageByModule, approvalsFunnel, alerts } = mockData
 
-  const periodLabel = 'FY2025'
-  const regionMode = 'Global + China'
+  const blocking = alerts.filter(a => a.level === 'error').length
+  const fwEntries = Object.entries(frameworks)
+  const avgCoverage = Math.round(fwEntries.reduce((sum, [, v]) => sum + v.covered, 0) / fwEntries.length)
+  const scope12 = ghg.scope1.value + ghg.scope2Market.value
+  const funnelMax = Math.max(...approvalsFunnel.map(a => a.count))
+  // Last N months of DMA completion, ending this month.
+  const trend = dma.sparkline.map((value, i, arr) => {
+    const d = new Date()
+    d.setDate(1)
+    d.setMonth(d.getMonth() - (arr.length - 1 - i))
+    return { value, label: f.date(d, { month: 'short' }) }
+  })
 
   return (
-    <div className="flex flex-col h-full space-y-8 animate-in fade-in duration-500">
+    <div>
+      <PageHeader
+        title={s.title}
+        description={fmt(s.description, { period: s.period })}
+        actions={
+          <>
+            <Badge icon={Globe2}>{s.region}</Badge>
+            <Badge tone="success" icon={Shield}>{s.integrityVerified}</Badge>
+            <Button variant="primary" size="sm" iconRight={ArrowRight} onClick={() => navigate('/workbench?filter=Critical')}>
+              {s.resolveGaps}
+            </Button>
+          </>
+        }
+      />
 
-      {/* Header aligned with Light Glassmorphism Growth UI */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 shrink-0">
-        <div>
-          <h1 className="text-3xl font-bold text-black tracking-tight flex items-center gap-3">
-            Command Center
-          </h1>
-          <p className="text-sm text-black/60 mt-2 max-w-2xl font-medium tracking-wide">
-            You're on track. Close the remaining gaps to publish the {periodLabel} pack.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/60 border border-white rounded-xl text-[10px] font-bold uppercase tracking-widest text-black/70 shadow-sm">
-            <Globe2 className="w-3.5 h-3.5" />
-            {regionMode}
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-md">
-            <Shield className="w-3.5 h-3.5" />
-            Integrity Verified
-          </div>
-        </div>
+      <div className="space-y-6">
+      {/* KPI row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <StatCard label={s.kpi.dma} value={f.percent(dma.percentage)} icon={Gauge} delta={dma.change} deltaLabel={s.kpi.dmaDelta} />
+        <StatCard label={s.kpi.coverage} value={f.percent(avgCoverage)} icon={Layers} deltaLabel={fmt(s.kpi.coverageFoot, { count: fwEntries.length })} />
+        <StatCard label={s.kpi.integrity} value={integrity.score} unit={s.trust.outOf} icon={Shield} deltaLabel={s.kpi.integrityFoot} />
+        <StatCard label={s.kpi.emissions} value={f.number(scope12)} unit={ghg.scope1.unit} icon={Leaf} deltaLabel={s.kpi.emissionsFoot} />
       </div>
 
-      {/* 4 Core Ways — Collect, Comply, Report, Improve */}
-      <div className="bg-white/80 backdrop-blur-xl border border-white/80 rounded-[2rem] p-8 shadow-xl">
-        <h3 className="text-sm font-bold text-black/60 uppercase tracking-widest mb-6">Features</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {CORE_WAYS.map((way) => {
-            const Icon = way.icon
-            return (
-              <button
-                key={way.id}
-                onClick={() => navigate(way.path)}
-                className="group relative flex flex-col items-start p-6 rounded-2xl bg-black text-white text-left hover:scale-[1.02] transition-all shadow-lg shadow-black/10 overflow-hidden"
-              >
-                <div className={clsx('absolute inset-0 bg-gradient-to-br opacity-90', way.color)} />
-                <div className="relative z-10 w-full">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="text-4xl font-bold text-white/90">{way.id}</span>
-                    {way.badge && (
-                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-bold uppercase tracking-widest">
-                        <Sparkles className="w-3 h-3" /> {way.badge}
-                      </span>
+      {/* Pipeline + risks */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <Card className="lg:col-span-2 flex flex-col">
+          <CardHeader
+            title={s.pipeline.title}
+            description={fmt(s.pipeline.description, { done: dma.topicsWithCompleteDMA, total: dma.totalMaterialTopics })}
+            action={<span className="text-2xl font-semibold tracking-tight text-zinc-900 tabular">{f.percent(dma.percentage)}</span>}
+          />
+          <ol className="grid grid-cols-5 gap-2 sm:gap-3">
+            {STAGES.map((stage, i) => {
+              const state = i < CURRENT_STAGE ? 'done' : i === CURRENT_STAGE ? 'current' : 'upcoming'
+              return (
+                <li key={stage} className="min-w-0">
+                  <div
+                    className={clsx(
+                      'h-1.5 rounded-full',
+                      state === 'done' && 'bg-emerald-500',
+                      state === 'current' && 'bg-zinc-200 overflow-hidden',
+                      state === 'upcoming' && 'bg-zinc-100',
                     )}
+                  >
+                    {state === 'current' && <div className="h-full bg-zinc-900 rounded-full" style={{ width: `${dma.percentage}%` }} />}
                   </div>
-                  <h4 className="text-lg font-bold text-white mb-2">{way.title}</h4>
-                  <p className="text-sm text-white/80 font-medium leading-relaxed">{way.desc}</p>
-                  <div className="mt-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white/60 group-hover:text-white transition-colors">
-                    <Icon className="w-4 h-4" /> Open
-                    <ArrowRight className="w-3.5 h-3.5" />
+                  <div className="mt-2.5 flex items-center gap-1.5 min-w-0">
+                    {state === 'done' ? (
+                      <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                        <Check className="w-2.5 h-2.5" strokeWidth={3} />
+                      </span>
+                    ) : (
+                      <span className={clsx('w-4 h-4 rounded-full border-2 shrink-0', state === 'current' ? 'border-zinc-900' : 'border-zinc-300')} />
+                    )}
+                    <span className={clsx('text-[13px] font-medium truncate', state === 'upcoming' ? 'text-zinc-400' : 'text-zinc-900')}>
+                      {s.pipeline.stages[stage]}
+                    </span>
                   </div>
+                  <div className="hidden sm:block mt-0.5 pl-[22px] text-xs text-zinc-500">{s.pipeline[state]}</div>
+                </li>
+              )
+            })}
+          </ol>
+          <div className="mt-6 pt-5 border-t border-line flex-1 flex flex-col min-h-[180px]">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[13px] font-medium text-zinc-500">{s.pipeline.trend}</span>
+              <Badge tone="success">{fmt(s.pipeline.trendDelta, { pct: f.percent(dma.change) })}</Badge>
+            </div>
+            <div className="flex-1 min-h-[140px] -ml-3">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trend} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="dmaFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={chartTheme.series[1]} stopOpacity={0.18} />
+                      <stop offset="100%" stopColor={chartTheme.series[1]} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid vertical={false} stroke={chartTheme.grid} />
+                  <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: chartTheme.axis }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: chartTheme.axis }} width={44} domain={[50, 100]} ticks={[50, 75, 100]} tickFormatter={v => `${v}%`} />
+                  <Tooltip
+                    contentStyle={chartTheme.tooltip.contentStyle}
+                    labelStyle={chartTheme.tooltip.labelStyle}
+                    formatter={(v: number) => [f.percent(v), s.kpi.dma]}
+                  />
+                  <Area type="monotone" dataKey="value" stroke={chartTheme.series[1]} strokeWidth={2} fill="url(#dmaFill)" dot={false} activeDot={{ r: 4 }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          <div className="pt-5 flex flex-wrap items-center justify-between gap-3">
+            {blocking > 0 ? (
+              <Badge tone="danger" dot>{fmt(s.pipeline.blocking, { count: blocking })}</Badge>
+            ) : (
+              <Badge tone="success" dot>{s.pipeline.noBlocking}</Badge>
+            )}
+            <Button variant="ghost" size="sm" iconRight={ArrowRight} onClick={() => navigate('/workbench')}>
+              {s.pipeline.openWorkbench}
+            </Button>
+          </div>
+        </Card>
+
+        <Card className="flex flex-col">
+          <CardHeader title={s.risk.title} description={s.risk.description} />
+          <dl className="divide-y divide-line -my-1">
+            {[
+              { label: s.risk.critical, value: blocking, icon: AlertCircle, tone: 'text-rose-600' },
+              { label: s.risk.missingEvidence, value: 12, icon: FileWarning, tone: 'text-amber-600' },
+              { label: s.risk.expiringTargets, value: 2, icon: CalendarClock, tone: 'text-zinc-900' },
+            ].map(row => (
+              <div key={row.label} className="flex items-center justify-between py-2.5">
+                <dt className="flex items-center gap-2 text-sm text-zinc-700">
+                  <row.icon className="w-4 h-4 text-zinc-400" />
+                  {row.label}
+                </dt>
+                <dd className={clsx('text-lg font-semibold tabular', row.tone)}>{row.value}</dd>
+              </div>
+            ))}
+          </dl>
+          <div className="mt-4 pt-4 border-t border-line">
+            <div className="text-[13px] font-medium text-zinc-500 mb-2">{s.risk.alertsTitle}</div>
+            <ul className="space-y-2">
+              {alerts.map(a => (
+                <li key={a.id} className="flex items-start gap-2 text-[13px] text-zinc-700">
+                  <AlertTriangle className={clsx('w-3.5 h-3.5 mt-0.5 shrink-0', a.level === 'error' ? 'text-rose-500' : 'text-amber-500')} />
+                  <span className="min-w-0">{s.risk.alerts[String(a.id)] ?? a.message}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <Button variant="primary" className="mt-5 w-full" iconRight={ArrowRight} onClick={() => navigate('/workbench?filter=Critical')}>
+            {s.resolveGaps}
+          </Button>
+        </Card>
+      </div>
+
+      {/* Feature entry cards */}
+      <section>
+        <div className="flex items-end justify-between mb-3">
+          <div>
+            <h2 className="text-[15px] font-semibold text-zinc-900">{s.features.title}</h2>
+            <p className="text-[13px] text-zinc-500 mt-0.5">{s.features.description}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {CORE_WAYS.map(way => {
+            const Icon = way.icon
+            const copy = s.features.items[way.key]
+            return (
+              <Link
+                key={way.key}
+                to={way.path}
+                className="group bg-surface border border-line rounded-card shadow-card p-5 flex flex-col transition-[box-shadow,border-color] hover:border-zinc-300 hover:shadow-pop focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="w-9 h-9 rounded-lg bg-zinc-100 text-zinc-700 flex items-center justify-center group-hover:bg-zinc-900 group-hover:text-white transition-colors">
+                    <Icon className="w-[18px] h-[18px]" />
+                  </div>
+                  {way.ai && <Badge icon={Sparkles}>{s.features.ai}</Badge>}
                 </div>
-              </button>
+                <h3 className="mt-4 text-[15px] font-semibold text-zinc-900">{copy.title}</h3>
+                <p className="mt-1 text-[13px] text-zinc-500 leading-relaxed flex-1">{copy.desc}</p>
+                <span className="mt-4 inline-flex items-center gap-1 text-[13px] font-medium text-zinc-700 group-hover:text-zinc-900">
+                  {s.features.open}
+                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                </span>
+              </Link>
             )
           })}
         </div>
-        <div className="mt-8 pt-8 border-t border-black/5 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <h4 className="text-[10px] font-bold text-black/40 uppercase tracking-widest col-span-full">Quick Links</h4>
-          <Link to="/dma" className="text-sm font-medium text-black/70 hover:text-black hover:underline">How does Nexus support CSRD / BRSR compliance?</Link>
-          <Link to="/carbon" className="text-sm font-medium text-black/70 hover:text-black hover:underline">How can I submit EDCI and GHG data?</Link>
-          <Link to="/ghg" className="text-sm font-medium text-black/70 hover:text-black hover:underline">How can I set targets and action plans to improve?</Link>
-          <Link to="/scope3" className="text-sm font-medium text-black/70 hover:text-black hover:underline">Scope 3 calculator & supply chain</Link>
-        </div>
-        <div className="mt-4 pt-4 border-t border-black/5">
-          <h4 className="text-[10px] font-bold text-black/40 uppercase tracking-widest mb-3">Pioneer Features</h4>
-          <div className="flex flex-wrap gap-2">
-            {PIONEER_LINKS.map((l) => (
-              <Link key={l.path} to={l.path} className="px-3 py-1.5 bg-black/5 hover:bg-black/10 rounded-lg text-xs font-bold text-black/70 hover:text-black transition-colors border border-black/5">
-                {l.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </div>
+      </section>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr),minmax(0,1fr)]">
-        {/* Pipeline / DMA Progress (Black Card) */}
-        <div className="bg-black text-white rounded-[2rem] p-8 shadow-2xl shadow-black/20 flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none" />
-
-          <div>
-            <div className="flex justify-between items-start mb-6">
-              <span className="text-sm font-semibold opacity-80 uppercase tracking-widest">Reporting Pipeline</span>
-              <div className="flex flex-col text-right">
-                <span className="text-3xl font-bold">{dma.percentage}%</span>
-                <span className="text-[10px] text-white/50 uppercase tracking-widest">DMA Completion</span>
-              </div>
-            </div>
-
-            <div className="mt-8 relative z-10 text-[10px] font-bold uppercase tracking-widest text-white/50 flex justify-between mb-2">
-              <span>Setup</span>
-              <span className="text-white">DMA</span>
-              <span>Collection</span>
-              <span>Review</span>
-              <span>Publish</span>
-            </div>
-            <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden relative z-10">
-              <div
-                className="h-full bg-white rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(255,255,255,0.5)]"
-                style={{ width: `${dma.percentage}%` }}
-              />
-            </div>
-            <p className="mt-4 text-[10px] font-medium text-white/50 uppercase tracking-widest">
-              {alerts.filter(a => a.level === 'error').length} blocking issues.
-            </p>
-          </div>
-        </div>
-
-        {/* Risk / Alerts summary (White Card) */}
-        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-lg flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-sm font-bold text-black uppercase tracking-widest opacity-60">Risk Strip</span>
-            <Flag className="w-5 h-5 text-rose-500" />
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-bold text-black">Critical gaps</span>
-              <span className="text-xl font-bold text-rose-500">{alerts.filter(a => a.level === 'error').length}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-bold text-black">Missing evidence</span>
-              <span className="text-xl font-bold text-amber-500">12</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-black/60 font-medium">Expiring targets</span>
-              <span className="text-lg font-bold text-black/60">2</span>
-            </div>
-          </div>
-
-          <Link
-            to="/workbench?filter=Critical"
-            className="mt-6 w-full py-3 bg-black text-white text-xs font-bold uppercase tracking-widest rounded-xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-2 shadow-xl shadow-black/10"
-          >
-            Resolve Gaps <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-      </div>
-
-      {/* Grid for KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-
-        {/* Framework Coverage */}
-        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-6 shadow-lg">
-          <h3 className="text-xs font-bold text-black/50 uppercase tracking-widest mb-6 border-b border-black/5 pb-3">Framework Coverage</h3>
-          <div className="space-y-4">
-            {Object.entries(frameworks).map(([key, value]) => (
+      {/* Detail cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader title={s.frameworks.title} description={s.frameworks.description} />
+          <div className="space-y-3">
+            {fwEntries.map(([key, value]) => (
               <div key={key}>
-                <div className="flex justify-between items-center text-xs font-bold text-black uppercase tracking-widest mb-1">
-                  <span>{key}</span>
-                  <span>{value.covered}%</span>
+                <div className="flex justify-between items-center text-[13px] mb-1.5">
+                  <span className="text-zinc-700">{key}</span>
+                  <span className="font-medium text-zinc-900 tabular">{f.percent(value.covered)}</span>
                 </div>
-                <div className="h-1.5 bg-black/5 rounded-full overflow-hidden">
-                  <div
-                    className={clsx("h-full rounded-full transition-all duration-1000", value.covered > 80 ? 'bg-indigo-500' : 'bg-black')}
-                    style={{ width: `${value.covered}%` }}
-                  />
-                </div>
+                <Progress value={value.covered} tone={value.covered >= 80 ? 'success' : 'neutral'} />
               </div>
             ))}
           </div>
-        </div>
+        </Card>
 
-        {/* GHG Snapshot */}
-        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-6 shadow-lg">
-          <h3 className="text-xs font-bold text-black/50 uppercase tracking-widest mb-6 border-b border-black/5 pb-3">GHG Snapshot</h3>
+        <Card className="flex flex-col">
+          <CardHeader title={s.ghg.title} description={s.ghg.description} />
+          <dl className="divide-y divide-line -my-1">
+            {[
+              { label: s.ghg.scope1, v: ghg.scope1 },
+              { label: s.ghg.scope2Loc, v: ghg.scope2Location },
+              { label: s.ghg.scope2Mkt, v: ghg.scope2Market },
+            ].map(row => (
+              <div key={row.label} className="flex items-baseline justify-between py-2.5 gap-3">
+                <dt className="text-sm text-zinc-600">{row.label}</dt>
+                <dd className="text-right">
+                  <span className="text-base font-semibold text-zinc-900 tabular">{f.number(row.v.value)}</span>
+                  <span className="text-xs text-zinc-500 ml-1">{row.v.unit}</span>
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <Button variant="secondary" size="sm" className="mt-auto w-full" iconRight={ExternalLink} onClick={() => navigate('/ghg')}>
+            {s.ghg.calculateRoots}
+          </Button>
+        </Card>
+
+        <Card className="flex flex-col">
+          <CardHeader title={s.trust.title} description={s.trust.description} />
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[40px] font-semibold tracking-[-0.03em] text-zinc-900 tabular leading-none">{integrity.score}</span>
+            <span className="text-sm text-zinc-500">{s.trust.outOf}</span>
+          </div>
+          <div className="mt-5 space-y-3">
+            {[
+              { label: s.trust.anchored, value: integrity.weights.anchoredCompleteness.score },
+              { label: s.trust.approvals, value: integrity.weights.approvalsPass.score },
+              { label: s.trust.validations, value: integrity.weights.zeroFailedValidations.score },
+            ].map(row => (
+              <div key={row.label}>
+                <div className="flex justify-between text-[13px] mb-1.5">
+                  <span className="text-zinc-600">{row.label}</span>
+                  <span className="font-medium text-zinc-900 tabular">{f.percent(row.value)}</span>
+                </div>
+                <Progress value={row.value} tone="success" />
+              </div>
+            ))}
+          </div>
+          <div className="mt-auto pt-5">
+            <Badge tone="success" dot>{s.trust.active}</Badge>
+          </div>
+        </Card>
+
+        <Card className="flex flex-col">
+          <CardHeader title={s.rollup.title} description={s.rollup.description} />
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-black/60 uppercase tracking-widest">Scope 1</span>
-              <div className="text-right">
-                <span className="text-lg font-bold text-black">{ghg.scope1.value.toLocaleString()}</span>
-                <span className="text-[10px] text-black/40 font-bold ml-1">{ghg.scope1.unit}</span>
+            <div>
+              <div className="text-[13px] font-medium text-zinc-500 mb-1.5">{s.rollup.root}</div>
+              <div className="flex items-center gap-2 font-mono text-[13px] bg-zinc-50 border border-line px-3 py-2 rounded-[10px] text-zinc-900">
+                <Link2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                <span className="truncate">{rollup.shortRoot}</span>
               </div>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-black/60 uppercase tracking-widest">Scope 2 (loc)</span>
-              <div className="text-right">
-                <span className="text-lg font-bold text-black">{ghg.scope2Location.value.toLocaleString()}</span>
-              </div>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs font-bold text-black/60 uppercase tracking-widest">Scope 2 (mkt)</span>
-              <div className="text-right">
-                <span className="text-lg font-bold text-black">{ghg.scope2Market.value.toLocaleString()}</span>
-              </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-zinc-600">{s.rollup.chain}</span>
+              <Badge>{rollup.chainId}</Badge>
             </div>
           </div>
-          <button className="w-full mt-4 py-2 border border-black/10 rounded-xl text-[10px] font-bold text-black uppercase tracking-widest hover:bg-black hover:text-white transition-colors flex justify-center items-center gap-1.5">
-            Calculate Roots <ExternalLink className="w-3 h-3" />
-          </button>
-        </div>
-
-        {/* Integrity Index */}
-        <div className="bg-black text-white rounded-[2rem] p-6 shadow-xl shadow-black/20 flex flex-col justify-between overflow-hidden relative">
-          <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-indigo-500/20 rounded-full blur-[40px] pointer-events-none" />
-          <h3 className="text-xs font-bold text-white/50 uppercase tracking-widest mb-6 border-b border-white/10 pb-3">Trust Layer</h3>
-
-          <div className="flex items-baseline gap-2 mb-2">
-            <span className="text-5xl font-bold tracking-tighter text-white">{integrity.score}</span>
-            <span className="text-xs text-white/40 uppercase font-bold tracking-widest">/ 100</span>
-          </div>
-
-          <div className="space-y-2 mt-4 text-[10px] font-bold text-white/50 uppercase tracking-widest">
-            <div className="flex justify-between items-center">
-              <span>Anchored</span>
-              <span className="text-white">{integrity.weights.anchoredCompleteness.score}%</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>Approvals</span>
-              <span className="text-white">{integrity.weights.approvalsPass.score}%</span>
-            </div>
-          </div>
-
-          <div className="w-full text-center mt-4 bg-white/10 py-1.5 rounded-lg text-[10px] font-bold text-white uppercase tracking-widest flex items-center justify-center gap-1.5">
-            <Shield className="w-3 h-3 text-indigo-400" /> Web3 Integrity Active
-          </div>
-        </div>
-
-        {/* Period Roll-up */}
-        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-6 shadow-lg flex flex-col justify-between">
-          <h3 className="text-xs font-bold text-black/50 uppercase tracking-widest mb-6 border-b border-black/5 pb-3">Roll-up Data</h3>
-
-          <div>
-            <p className="text-[10px] font-bold text-black/60 uppercase tracking-widest mb-2">Blockchain Root</p>
-            <div className="font-mono text-xs bg-black/5 border border-black/10 px-3 py-2 rounded-xl text-black truncate">
-              {rollup.shortRoot}
-            </div>
-          </div>
-
-          <button className="w-full py-3 bg-white text-black font-bold text-[10px] uppercase tracking-widest rounded-xl mt-4 hover:shadow-md transition-all border border-black/10 flex justify-center items-center gap-2">
-            View on zkEVM Explorer <ExternalLink className="w-3.5 h-3.5" />
-          </button>
-        </div>
+          <Button variant="secondary" size="sm" className="mt-auto w-full" iconRight={ExternalLink}>
+            {s.rollup.viewExplorer}
+          </Button>
+        </Card>
       </div>
 
-      {/* Row: Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-lg">
-          <h3 className="text-sm font-bold text-black uppercase tracking-widest mb-6 opacity-80 border-b border-black/10 pb-4">Activity Approvals</h3>
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader title={s.approvals.title} description={s.approvals.description} icon={Filter} />
           <div className="space-y-4">
-            {approvalsFunnel.map((stage) => (
+            {approvalsFunnel.map(stage => (
               <div key={stage.stage}>
-                <div className="flex justify-between items-center mb-1 text-[10px] font-bold text-black/60 uppercase tracking-widest">
-                  <span>{stage.stage}</span>
-                  <span>{stage.count} Files</span>
+                <div className="flex justify-between items-center mb-1.5 text-[13px]">
+                  <span className="font-medium text-zinc-700">{s.approvals.stages[stage.stage] ?? stage.stage}</span>
+                  <span className="text-zinc-500 tabular">
+                    {fmt(s.approvals.files, { count: f.number(stage.count) })}
+                    <span className="text-zinc-300 mx-1.5">·</span>
+                    {fmt(s.approvals.avg, { time: stage.avgTime })}
+                  </span>
                 </div>
-                <div className="h-6 w-full bg-black/5 rounded-full overflow-hidden flex items-center">
-                  <div
-                    className="h-full bg-black rounded-full"
-                    style={{
-                      width: `${(stage.count / approvalsFunnel[0].count) * 100}%`,
-                    }}
-                  />
+                <div className="h-2 w-full bg-zinc-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-zinc-900 rounded-full" style={{ width: `${(stage.count / funnelMax) * 100}%` }} />
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
 
-        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-lg">
-          <div className="flex items-center justify-between mb-6 border-b border-black/10 pb-4">
-            <h3 className="text-sm font-bold text-black uppercase tracking-widest opacity-80">Coverage By Module</h3>
-          </div>
-          <div className="h-[200px]">
+        <Card>
+          <CardHeader title={s.coverage.title} description={s.coverage.description} icon={BarChart3} />
+          <div className="h-[220px] -ml-3">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={coverageByModule}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
-                <XAxis dataKey="module" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'rgba(0,0,0,0.5)', fontWeight: 'bold' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'rgba(0,0,0,0.5)', fontWeight: 'bold' }} />
+              <BarChart data={coverageByModule} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                <CartesianGrid vertical={false} stroke={chartTheme.grid} />
+                <XAxis dataKey="module" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: chartTheme.axis }} minTickGap={8} height={28} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: chartTheme.axis }} width={36} domain={[0, 100]} />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'rgba(255,255,255,0.9)',
-                    border: '1px solid rgba(0,0,0,0.1)',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                    color: '#000',
-                    fontWeight: 'bold',
-                    fontSize: '12px'
-                  }}
+                  cursor={{ fill: 'rgba(0,0,0,0.03)' }}
+                  contentStyle={chartTheme.tooltip.contentStyle}
+                  labelStyle={chartTheme.tooltip.labelStyle}
+                  formatter={(v: number) => [f.percent(v), s.coverage.series]}
                 />
-                <Bar dataKey="covered" fill="#000" radius={[4, 4, 0, 0]} barSize={24} />
+                <Bar dataKey="covered" name={s.coverage.series} fill={chartTheme.series[0]} radius={[4, 4, 0, 0]} maxBarSize={28} />
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
-
+        </Card>
       </div>
 
+      {/* Help & shortcuts */}
+      <Card>
+        <CardHeader title={s.help.title} />
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,2fr),minmax(0,1fr)] gap-6">
+          <div>
+            <div className="text-[13px] font-medium text-zinc-500 mb-2">{s.help.quickLinks}</div>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+              {QUICK_LINKS.map(l => (
+                <li key={l.key}>
+                  <Link to={l.path} className="group flex items-center justify-between gap-3 py-2 border-b border-line text-sm text-zinc-700 hover:text-zinc-900">
+                    <span>{s.help.links[l.key]}</span>
+                    <ArrowUpRight className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900 shrink-0" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <div className="text-[13px] font-medium text-zinc-500 mb-2">{s.help.pioneer}</div>
+            <div className="flex flex-wrap gap-2">
+              {PIONEER_LINKS.map(l => (
+                <Link
+                  key={l.key}
+                  to={l.path}
+                  className="inline-flex items-center h-8 px-3 rounded-lg border border-line bg-white text-[13px] font-medium text-zinc-700 hover:border-zinc-300 hover:text-zinc-900 transition-colors"
+                >
+                  {s.help.pioneerLinks[l.key]}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Card>
+      </div>
     </div>
   )
 }

@@ -1,11 +1,43 @@
-import { useState } from 'react';
-import { Calendar, Globe, FileText, CheckCircle, ArrowRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import clsx from 'clsx';
+import { useState, type ReactNode } from 'react'
+import { Calendar, Globe, FileText, CheckCircle, ArrowRight, ArrowLeft, Check, type LucideIcon } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import clsx from 'clsx'
+import { Badge, Button, Card, CardHeader, Field, PageHeader, inputClass } from '../components/ui'
+import { fmt, useFormat, useStrings } from '../i18n'
+import { periodCreateStrings } from '../i18n/pages/periodCreate'
+
+const BOUNDARIES = ['Group', 'BU', 'Site', 'Asset']
+const REGIONS = ['Global', 'India', 'GCC', 'China', 'India + Global', 'GCC + Global', 'Global + China']
+const PACKS = ['GRI', 'IFRS S1', 'IFRS S2', 'MSX', 'BRSR Core', 'China ESG Pack', 'TCFD']
+const STEP_ICONS: LucideIcon[] = [Calendar, Globe, FileText, CheckCircle]
+
+function Chip({ active, onClick, children, multi }: { active: boolean; onClick: () => void; children: ReactNode; multi?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={clsx(
+        'inline-flex items-center gap-2 h-9 px-3.5 rounded-[10px] text-sm font-medium border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30',
+        active ? 'bg-zinc-900 text-white border-zinc-900' : 'bg-white text-zinc-700 border-line hover:border-zinc-300 hover:bg-zinc-50',
+        multi && 'justify-between h-11 w-full',
+      )}
+    >
+      {children}
+      {multi && (
+        <span className={clsx('w-4 h-4 rounded flex items-center justify-center border', active ? 'bg-white border-white text-zinc-900' : 'border-zinc-300')}>
+          {active && <Check className="w-3 h-3" />}
+        </span>
+      )}
+    </button>
+  )
+}
 
 export default function PeriodCreate() {
-  const navigate = useNavigate();
-  const [step, setStep] = useState(1);
+  const s = useStrings(periodCreateStrings)
+  const f = useFormat()
+  const navigate = useNavigate()
+  const [step, setStep] = useState(1)
   const [period, setPeriod] = useState({
     name: 'FY2025',
     startDate: '2025-01-01',
@@ -13,276 +45,207 @@ export default function PeriodCreate() {
     boundary: 'Group',
     regionMode: 'Global + China',
     packs: ['GRI', 'China ESG Pack'],
-  });
+  })
 
   const handleCreate = () => {
-    navigate('/executive');
-  };
+    navigate('/executive')
+  }
+
+  const packLabel = (p: string) => (p === 'China ESG Pack' ? s.packs.chinaPack : p)
+  const safeDate = (d: string) => {
+    const dt = new Date(d)
+    return isNaN(dt.getTime()) ? d : f.date(dt)
+  }
+  const total = s.steps.length
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-black tracking-tight">Create Reporting Period</h1>
-        <p className="text-sm text-black/60 font-medium mt-2 max-w-2xl tracking-wide">
-          Set up a new reporting cycle with framework packs, scope boundary, and disclosure checklist.
-        </p>
-      </div>
+    <div className="max-w-3xl mx-auto space-y-6">
+      <PageHeader title={s.title} description={s.description} />
 
       {/* Stepper */}
-      <div className="flex items-center justify-between mb-8">
-        {[
-          { num: 1, label: 'Period Details' },
-          { num: 2, label: 'Scope & Region' },
-          { num: 3, label: 'Framework Packs' },
-          { num: 4, label: 'Review & Create' },
-        ].map((s, idx) => (
-          <div key={s.num} className="flex items-center flex-1">
-            <div className="flex flex-col items-center">
-              <div
-                className={clsx(
-                  'w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 transition-all shadow-sm',
-                  step >= s.num
-                    ? 'bg-black text-white border-black'
-                    : 'bg-white/60 text-black/40 border-black/10'
-                )}
-              >
-                {step > s.num ? <CheckCircle className="w-5 h-5" /> : s.num}
-              </div>
-              <span
-                className={clsx(
-                  'text-xs mt-3 font-bold uppercase tracking-widest',
-                  step >= s.num ? 'text-black' : 'text-black/40'
-                )}
-              >
-                {s.label}
-              </span>
-            </div>
-            {idx < 3 && (
-              <div
-                className={clsx(
-                  'flex-1 h-0.5 mx-4 transition-all rounded-full',
-                  step > s.num ? 'bg-black' : 'bg-black/10'
-                )}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Step 1: Period Details */}
-      {step === 1 && (
-        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-lg flex flex-col relative overflow-hidden">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-black/5 rounded-xl border border-black/5">
-              <Calendar className="w-5 h-5 text-black" />
-            </div>
-            <h2 className="text-xl font-bold text-black">Period Details</h2>
-          </div>
-          <div className="space-y-6">
-            <div>
-              <label className="block text-xs font-bold text-black/60 uppercase tracking-widest mb-2">Period Name</label>
-              <input
-                type="text"
-                value={period.name}
-                onChange={(e) => setPeriod({ ...period, name: e.target.value })}
-                className="w-full px-4 py-3 bg-white border border-black/10 rounded-xl text-black font-semibold focus:border-black focus:outline-none shadow-sm transition-colors"
-                placeholder="e.g., FY2025"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label className="block text-xs font-bold text-black/60 uppercase tracking-widest mb-2">Start Date</label>
-                <input
-                  type="date"
-                  value={period.startDate}
-                  onChange={(e) => setPeriod({ ...period, startDate: e.target.value })}
-                  className="w-full px-4 py-3 bg-white border border-black/10 rounded-xl text-black font-semibold focus:border-black focus:outline-none shadow-sm transition-colors appearance-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-black/60 uppercase tracking-widest mb-2">End Date</label>
-                <input
-                  type="date"
-                  value={period.endDate}
-                  onChange={(e) => setPeriod({ ...period, endDate: e.target.value })}
-                  className="w-full px-4 py-3 bg-white border border-black/10 rounded-xl text-black font-semibold focus:border-black focus:outline-none shadow-sm transition-colors appearance-none"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Step 2: Scope & Region */}
-      {step === 2 && (
-        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-lg flex flex-col relative overflow-hidden">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-black/5 rounded-xl border border-black/5">
-              <Globe className="w-5 h-5 text-black" />
-            </div>
-            <h2 className="text-xl font-bold text-black">Scope Boundary & Region</h2>
-          </div>
-          <div className="space-y-6">
-            <div>
-              <label className="block text-xs font-bold text-black/60 uppercase tracking-widest mb-3">Scope Boundary</label>
-              <div className="flex flex-wrap gap-3">
-                {['Group', 'BU', 'Site', 'Asset'].map((b) => (
-                  <button
-                    key={b}
-                    onClick={() => setPeriod({ ...period, boundary: b })}
+      <nav aria-label={fmt(s.stepOf, { current: step, total })}>
+        <p className="sm:hidden text-[13px] text-zinc-500 mb-2">
+          {fmt(s.stepOf, { current: step, total })} · <span className="font-medium text-zinc-900">{s.steps[step - 1]}</span>
+        </p>
+        <ol className="flex items-center gap-2">
+          {s.steps.map((label, idx) => {
+            const num = idx + 1
+            const done = step > num
+            const current = step === num
+            return (
+              <li key={label} className="flex items-center flex-1 min-w-0 gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span
+                    aria-current={current ? 'step' : undefined}
                     className={clsx(
-                      'px-6 py-3 rounded-xl text-sm font-bold border transition-all shadow-sm',
-                      period.boundary === b
-                        ? 'bg-black text-white border-black'
-                        : 'bg-white border-black/10 text-black/70 hover:border-black/30'
+                      'w-7 h-7 rounded-full flex items-center justify-center text-[13px] font-semibold shrink-0 transition-colors',
+                      done ? 'bg-zinc-900 text-white' : current ? 'bg-zinc-900 text-white ring-4 ring-zinc-900/10' : 'bg-white text-zinc-400 border border-line',
                     )}
                   >
-                    {b}
-                  </button>
-                ))}
+                    {done ? <Check className="w-3.5 h-3.5" /> : num}
+                  </span>
+                  <span className={clsx('hidden sm:block text-[13px] font-medium truncate', step >= num ? 'text-zinc-900' : 'text-zinc-400')}>{label}</span>
+                </div>
+                {idx < total - 1 && <div className={clsx('flex-1 h-px min-w-[12px]', done ? 'bg-zinc-900' : 'bg-line')} />}
+              </li>
+            )
+          })}
+        </ol>
+      </nav>
+
+      <Card>
+        {step === 1 && (
+          <>
+            <CardHeader title={s.details.title} description={s.details.desc} icon={STEP_ICONS[0]} />
+            <div className="space-y-5">
+              <Field label={s.details.name} htmlFor="period-name">
+                <input
+                  id="period-name"
+                  type="text"
+                  value={period.name}
+                  onChange={e => setPeriod({ ...period, name: e.target.value })}
+                  className={inputClass}
+                  placeholder={s.details.namePlaceholder}
+                />
+              </Field>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <Field label={s.details.start} htmlFor="period-start">
+                  <input
+                    id="period-start"
+                    type="date"
+                    value={period.startDate}
+                    onChange={e => setPeriod({ ...period, startDate: e.target.value })}
+                    className={inputClass}
+                  />
+                </Field>
+                <Field label={s.details.end} htmlFor="period-end">
+                  <input
+                    id="period-end"
+                    type="date"
+                    value={period.endDate}
+                    onChange={e => setPeriod({ ...period, endDate: e.target.value })}
+                    className={inputClass}
+                  />
+                </Field>
               </div>
             </div>
-            <div>
-              <label className="block text-xs font-bold text-black/60 uppercase tracking-widest mb-3">Region Mode</label>
-              <div className="flex flex-wrap gap-3">
-                {['Global', 'India', 'GCC', 'China', 'India + Global', 'GCC + Global', 'Global + China'].map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => setPeriod({ ...period, regionMode: r })}
-                    className={clsx(
-                      'px-6 py-3 rounded-xl text-sm font-bold border transition-all shadow-sm',
-                      period.regionMode === r
-                        ? 'bg-[#12C87A]/10 text-[#013328] border-[#12C87A]/30'
-                        : 'bg-white border-black/10 text-black/70 hover:border-black/30'
-                    )}
+          </>
+        )}
+
+        {step === 2 && (
+          <>
+            <CardHeader title={s.scope.title} description={s.scope.desc} icon={STEP_ICONS[1]} />
+            <div className="space-y-6">
+              <div>
+                <div className="text-[13px] font-medium text-zinc-700 mb-2">{s.scope.boundary}</div>
+                <div className="flex flex-wrap gap-2">
+                  {BOUNDARIES.map(b => (
+                    <Chip key={b} active={period.boundary === b} onClick={() => setPeriod({ ...period, boundary: b })}>
+                      {s.boundaries[b] ?? b}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="text-[13px] font-medium text-zinc-700 mb-2">{s.scope.region}</div>
+                <div className="flex flex-wrap gap-2">
+                  {REGIONS.map(r => (
+                    <Chip key={r} active={period.regionMode === r} onClick={() => setPeriod({ ...period, regionMode: r })}>
+                      {s.regions[r] ?? r}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {step === 3 && (
+          <>
+            <CardHeader
+              title={s.packs.title}
+              description={s.packs.desc}
+              icon={STEP_ICONS[2]}
+              action={<Badge tone="neutral">{fmt(s.packs.selected, { count: period.packs.length })}</Badge>}
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {PACKS.map(pack => {
+                const isActive = period.packs.includes(pack)
+                return (
+                  <Chip
+                    key={pack}
+                    multi
+                    active={isActive}
+                    onClick={() =>
+                      setPeriod({
+                        ...period,
+                        packs: isActive ? period.packs.filter(p => p !== pack) : [...period.packs, pack],
+                      })
+                    }
                   >
-                    {r}
-                  </button>
-                ))}
-              </div>
+                    {packLabel(pack)}
+                  </Chip>
+                )
+              })}
             </div>
-          </div>
-        </div>
-      )}
+            <div className="mt-5 flex items-start gap-2.5 rounded-xl bg-emerald-50 ring-1 ring-inset ring-emerald-200/70 px-4 py-3">
+              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <p className="text-[13px] text-emerald-900">{s.packs.autoNote}</p>
+            </div>
+          </>
+        )}
 
-      {/* Step 3: Framework Packs */}
-      {step === 3 && (
-        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-lg flex flex-col relative overflow-hidden">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-black/5 rounded-xl border border-black/5">
-              <FileText className="w-5 h-5 text-black" />
-            </div>
-            <h2 className="text-xl font-bold text-black">Select Framework Packs</h2>
-          </div>
-          <p className="text-sm font-medium text-black/60 mb-6">
-            Choose which disclosure frameworks are required for this reporting period.
-          </p>
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            {['GRI', 'IFRS S1', 'IFRS S2', 'MSX', 'BRSR Core', 'China ESG Pack', 'TCFD'].map((pack) => (
-              <button
-                key={pack}
-                onClick={() => {
-                  const isActive = period.packs.includes(pack);
-                  setPeriod({
-                    ...period,
-                    packs: isActive
-                      ? period.packs.filter((p) => p !== pack)
-                      : [...period.packs, pack],
-                  });
-                }}
-                className={clsx(
-                  'px-4 py-4 rounded-xl text-sm font-bold border transition-all shadow-sm text-left',
-                  period.packs.includes(pack)
-                    ? 'bg-black text-white border-black shadow-md scale-[1.02]'
-                    : 'bg-white border-black/10 text-black/70 hover:border-black/30 hover:scale-[1.01]'
+        {step === 4 && (
+          <>
+            <CardHeader title={s.review.title} description={s.review.desc} icon={STEP_ICONS[3]} />
+            <dl className="divide-y divide-line rounded-xl border border-line">
+              <ReviewRow label={s.review.name} onEdit={() => setStep(1)} editLabel={s.review.edit}>{period.name}</ReviewRow>
+              <ReviewRow label={s.review.range} onEdit={() => setStep(1)} editLabel={s.review.edit}>
+                <span className="tabular">{fmt(s.review.rangeValue, { start: safeDate(period.startDate), end: safeDate(period.endDate) })}</span>
+              </ReviewRow>
+              <ReviewRow label={s.review.boundary} onEdit={() => setStep(2)} editLabel={s.review.edit}>{s.boundaries[period.boundary] ?? period.boundary}</ReviewRow>
+              <ReviewRow label={s.review.region} onEdit={() => setStep(2)} editLabel={s.review.edit}>{s.regions[period.regionMode] ?? period.regionMode}</ReviewRow>
+              <ReviewRow label={s.review.packs} onEdit={() => setStep(3)} editLabel={s.review.edit}>
+                {period.packs.length === 0 ? (
+                  <span className="text-zinc-400">{s.review.none}</span>
+                ) : (
+                  <div className="flex flex-wrap justify-end gap-1.5">
+                    {period.packs.map(p => <Badge key={p} tone="success">{packLabel(p)}</Badge>)}
+                  </div>
                 )}
-              >
-                {pack}
-              </button>
-            ))}
-          </div>
-          <div className="mt-6 p-4 bg-[#12C87A]/5 border border-[#12C87A]/20 rounded-xl flex items-center gap-3">
-            <CheckCircle className="w-5 h-5 text-[#12C87A] shrink-0" />
-            <p className="text-xs font-bold text-[#013328]">
-              Auto-generates disclosure checklist + required evidence rules per pack selected.
-            </p>
-          </div>
-        </div>
-      )}
+              </ReviewRow>
+            </dl>
+            <div className="mt-5 rounded-xl bg-zinc-50 border border-line px-4 py-3">
+              <p className="text-sm font-medium text-zinc-900">{s.review.readyTitle}</p>
+              <p className="text-[13px] text-zinc-500 mt-0.5">{s.review.readyBody}</p>
+            </div>
+          </>
+        )}
+      </Card>
 
-      {/* Step 4: Review & Create */}
-      {step === 4 && (
-        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-lg flex flex-col relative overflow-hidden">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-black/5 rounded-xl border border-black/5">
-              <CheckCircle className="w-5 h-5 text-black" />
-            </div>
-            <h2 className="text-xl font-bold text-black">Review & Create</h2>
-          </div>
-
-          <div className="grid gap-4 bg-white border border-black/10 rounded-2xl p-6 shadow-sm mb-6">
-            <div className="flex justify-between items-center py-2 border-b border-black/5">
-              <span className="text-xs font-bold text-black/50 uppercase tracking-widest">Period Name</span>
-              <span className="text-sm font-bold text-black">{period.name}</span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b border-black/5">
-              <span className="text-xs font-bold text-black/50 uppercase tracking-widest">Date Range</span>
-              <span className="text-sm font-bold text-black">
-                {period.startDate} <span className="text-black/40 mx-1">to</span> {period.endDate}
-              </span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b border-black/5">
-              <span className="text-xs font-bold text-black/50 uppercase tracking-widest">Boundary</span>
-              <span className="text-sm font-bold text-black">{period.boundary}</span>
-            </div>
-            <div className="flex justify-between items-center py-2 border-b border-black/5">
-              <span className="text-xs font-bold text-black/50 uppercase tracking-widest">Region Mode</span>
-              <span className="text-sm font-bold text-black">{period.regionMode}</span>
-            </div>
-            <div className="flex justify-between items-center py-2">
-              <span className="text-xs font-bold text-black/50 uppercase tracking-widest">Framework Packs</span>
-              <span className="text-sm font-bold text-[#12C87A] bg-[#12C87A]/10 px-2 py-0.5 rounded">{period.packs.join(', ')}</span>
-            </div>
-          </div>
-
-          <div className="p-4 bg-black border border-black rounded-xl text-white shadow-lg">
-            <p className="text-sm font-bold mb-1">Ready to Create</p>
-            <p className="text-xs text-white/60 font-medium">
-              This will generate your Period Workspace with disclosure checklist, evidence rules, and DMA setup.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Navigation Buttons */}
-      <div className="flex items-center justify-between pt-4">
-        <button
-          onClick={() => setStep(Math.max(1, step - 1))}
-          disabled={step === 1}
-          className="px-6 py-3 rounded-xl text-xs uppercase tracking-widest font-bold border border-black/10 bg-white text-black/60 hover:text-black hover:border-black/30 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-        >
-          Back
-        </button>
+      {/* Navigation */}
+      <div className="flex items-center justify-between gap-3">
+        <Button variant="secondary" icon={ArrowLeft} onClick={() => setStep(Math.max(1, step - 1))} disabled={step === 1}>
+          {s.back}
+        </Button>
         {step < 4 ? (
-          <button
-            onClick={() => setStep(step + 1)}
-            className="px-6 py-3 rounded-xl text-xs uppercase tracking-widest font-bold bg-black text-white shadow-lg hover:bg-black/80 hover:scale-[1.02] flex items-center gap-2 transition-all"
-          >
-            Continue
-            <ArrowRight className="w-4 h-4" />
-          </button>
+          <Button variant="primary" iconRight={ArrowRight} onClick={() => setStep(step + 1)}>{s.continue}</Button>
         ) : (
-          <button
-            onClick={handleCreate}
-            className="px-6 py-3 rounded-xl text-xs uppercase tracking-widest font-bold bg-[#12C87A] text-[#013328] shadow-lg shadow-[#12C87A]/20 hover:scale-[1.02] flex items-center gap-2 transition-all border border-[#12C87A]/50"
-          >
-            <CheckCircle className="w-4 h-4" />
-            Create Period Workspace
-          </button>
+          <Button variant="brand" icon={CheckCircle} onClick={handleCreate}>{s.create}</Button>
         )}
       </div>
     </div>
-  );
+  )
 }
 
+function ReviewRow({ label, children, onEdit, editLabel }: { label: string; children: ReactNode; onEdit: () => void; editLabel: string }) {
+  return (
+    <div className="flex items-start sm:items-center justify-between gap-4 px-4 py-3">
+      <dt className="text-[13px] text-zinc-500 shrink-0 pt-0.5 sm:pt-0">{label}</dt>
+      <dd className="flex items-center gap-3 min-w-0 text-sm font-medium text-zinc-900 text-right">
+        <div className="min-w-0">{children}</div>
+        <button type="button" onClick={onEdit} className="text-xs text-zinc-500 hover:text-zinc-900 shrink-0">{editLabel}</button>
+      </dd>
+    </div>
+  )
+}

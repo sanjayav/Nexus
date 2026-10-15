@@ -22,7 +22,17 @@ import {
   CheckCircle2,
   Server,
   Lock,
+  Plug,
+  History,
+  Bell,
+  ArrowRight,
 } from 'lucide-react'
+import { Badge, Card, CardHeader, PageHeader, StatCard, chartTheme, type Tone } from '../components/ui'
+import { fmt, useFormat, useStrings } from '../i18n'
+import { settingsAnalyticsStrings } from '../i18n/pages/settingsAnalytics'
+
+type S = typeof settingsAnalyticsStrings.en
+type Ago = { n: number; unit: 'min' | 'hour' | 'day' }
 
 // Mock data for settings analytics
 const systemHealth = [
@@ -34,501 +44,284 @@ const systemHealth = [
 ]
 
 const apiUsage = [
-  { date: 'Nov 1', requests: 12450, errors: 23, avgLatency: 145 },
-  { date: 'Nov 2', requests: 13200, errors: 18, avgLatency: 138 },
-  { date: 'Nov 3', requests: 11800, errors: 31, avgLatency: 152 },
-  { date: 'Nov 4', requests: 14100, errors: 15, avgLatency: 142 },
-  { date: 'Nov 5', requests: 15600, errors: 28, avgLatency: 149 },
-  { date: 'Nov 6', requests: 14800, errors: 22, avgLatency: 144 },
-  { date: 'Nov 7', requests: 13900, errors: 19, avgLatency: 141 },
-  { date: 'Nov 8', requests: 16200, errors: 25, avgLatency: 147 },
-  { date: 'Nov 9', requests: 15400, errors: 21, avgLatency: 143 },
-  { date: 'Nov 10', requests: 14600, errors: 17, avgLatency: 139 },
-  { date: 'Nov 11', requests: 17100, errors: 29, avgLatency: 151 },
-  { date: 'Nov 12', requests: 16500, errors: 24, avgLatency: 146 },
+  { date: '2025-11-01', requests: 12450, errors: 23, avgLatency: 145 },
+  { date: '2025-11-02', requests: 13200, errors: 18, avgLatency: 138 },
+  { date: '2025-11-03', requests: 11800, errors: 31, avgLatency: 152 },
+  { date: '2025-11-04', requests: 14100, errors: 15, avgLatency: 142 },
+  { date: '2025-11-05', requests: 15600, errors: 28, avgLatency: 149 },
+  { date: '2025-11-06', requests: 14800, errors: 22, avgLatency: 144 },
+  { date: '2025-11-07', requests: 13900, errors: 19, avgLatency: 141 },
+  { date: '2025-11-08', requests: 16200, errors: 25, avgLatency: 147 },
+  { date: '2025-11-09', requests: 15400, errors: 21, avgLatency: 143 },
+  { date: '2025-11-10', requests: 14600, errors: 17, avgLatency: 139 },
+  { date: '2025-11-11', requests: 17100, errors: 29, avgLatency: 151 },
+  { date: '2025-11-12', requests: 16500, errors: 24, avgLatency: 146 },
 ]
 
 const storageUsage = [
-  { type: 'Documents', size: 245, color: '#3b82f6' },
-  { type: 'Evidence Files', size: 187, color: '#8b5cf6' },
-  { type: 'Reports', size: 98, color: '#00D48E' },
-  { type: 'Blockchain Data', size: 45, color: '#f59e0b' },
-  { type: 'Cache', size: 32, color: '#ef4444' },
+  { type: 'Documents', size: 245 },
+  { type: 'Evidence Files', size: 187 },
+  { type: 'Reports', size: 98 },
+  { type: 'Blockchain Data', size: 45 },
+  { type: 'Cache', size: 32 },
 ]
 
 const securityEvents = [
-  { week: 'Week 1', logins: 342, failedAuth: 12, suspicious: 2 },
-  { week: 'Week 2', logins: 368, failedAuth: 8, suspicious: 1 },
-  { week: 'Week 3', logins: 391, failedAuth: 15, suspicious: 3 },
-  { week: 'Week 4', logins: 425, failedAuth: 10, suspicious: 1 },
+  { week: 1, logins: 342, failedAuth: 12, suspicious: 2 },
+  { week: 2, logins: 368, failedAuth: 8, suspicious: 1 },
+  { week: 3, logins: 391, failedAuth: 15, suspicious: 3 },
+  { week: 4, logins: 425, failedAuth: 10, suspicious: 1 },
 ]
 
-const userPermissions = [
-  { role: 'Admin', users: 3, permissions: 'Full Access' },
-  { role: 'Approver', users: 8, permissions: 'Approve, Review, Read' },
-  { role: 'Reviewer', users: 15, permissions: 'Review, Read, Comment' },
-  { role: 'Analyst', users: 12, permissions: 'Read, Upload, Comment' },
-  { role: 'Viewer', users: 7, permissions: 'Read Only' },
+const userPermissions: { role: string; users: number; perm: keyof S['perms'] }[] = [
+  { role: 'Admin', users: 3, perm: 'full' },
+  { role: 'Approver', users: 8, perm: 'approver' },
+  { role: 'Reviewer', users: 15, perm: 'reviewer' },
+  { role: 'Analyst', users: 12, perm: 'analyst' },
+  { role: 'Viewer', users: 7, perm: 'viewer' },
 ]
 
-const integrationStatus = [
-  {
-    name: 'Polygon zkEVM',
-    type: 'Blockchain',
-    status: 'connected',
-    lastSync: '2 mins ago',
-    requests: 1247,
-  },
-  {
-    name: 'IPFS Pinata',
-    type: 'Storage',
-    status: 'connected',
-    lastSync: '5 mins ago',
-    requests: 892,
-  },
-  {
-    name: 'Auth0',
-    type: 'Authentication',
-    status: 'connected',
-    lastSync: '1 min ago',
-    requests: 3421,
-  },
-  {
-    name: 'SendGrid',
-    type: 'Email',
-    status: 'connected',
-    lastSync: '10 mins ago',
-    requests: 234,
-  },
+const integrationStatus: { name: string; type: string; status: 'connected'; lastSync: Ago; requests: number }[] = [
+  { name: 'Polygon zkEVM', type: 'Blockchain', status: 'connected', lastSync: { n: 2, unit: 'min' }, requests: 1247 },
+  { name: 'IPFS Pinata', type: 'Storage', status: 'connected', lastSync: { n: 5, unit: 'min' }, requests: 892 },
+  { name: 'Auth0', type: 'Authentication', status: 'connected', lastSync: { n: 1, unit: 'min' }, requests: 3421 },
+  { name: 'SendGrid', type: 'Email', status: 'connected', lastSync: { n: 10, unit: 'min' }, requests: 234 },
 ]
 
-const configChanges = [
-  {
-    id: 1,
-    setting: 'API Rate Limit',
-    oldValue: '1000/hour',
-    newValue: '1500/hour',
-    changedBy: 'Admin',
-    timestamp: '2025-11-10 14:32',
-  },
-  {
-    id: 2,
-    setting: 'Session Timeout',
-    oldValue: '30 minutes',
-    newValue: '60 minutes',
-    changedBy: 'Admin',
-    timestamp: '2025-11-08 09:15',
-  },
-  {
-    id: 3,
-    setting: 'Max File Size',
-    oldValue: '10 MB',
-    newValue: '25 MB',
-    changedBy: 'System',
-    timestamp: '2025-11-05 16:48',
-  },
-  {
-    id: 4,
-    setting: 'Backup Frequency',
-    oldValue: 'Daily',
-    newValue: 'Every 6 hours',
-    changedBy: 'Admin',
-    timestamp: '2025-11-02 11:22',
-  },
+type ConfigValue = (s: S) => string
+const configChanges: { id: number; setting: keyof S['settings']; oldValue: ConfigValue; newValue: ConfigValue; changedBy: string; timestamp: string }[] = [
+  { id: 1, setting: 'rateLimit', oldValue: s => fmt(s.values.perHour, { n: '1,000' }), newValue: s => fmt(s.values.perHour, { n: '1,500' }), changedBy: 'Admin', timestamp: '2025-11-10T14:32' },
+  { id: 2, setting: 'sessionTimeout', oldValue: s => fmt(s.values.minutes, { n: 30 }), newValue: s => fmt(s.values.minutes, { n: 60 }), changedBy: 'Admin', timestamp: '2025-11-08T09:15' },
+  { id: 3, setting: 'maxFile', oldValue: () => '10 MB', newValue: () => '25 MB', changedBy: 'System', timestamp: '2025-11-05T16:48' },
+  { id: 4, setting: 'backup', oldValue: s => s.values.daily, newValue: s => s.values.every6h, changedBy: 'Admin', timestamp: '2025-11-02T11:22' },
 ]
 
-const systemAlerts = [
-  {
-    id: 1,
-    severity: 'warning',
-    message: 'IPFS gateway latency increased by 15%',
-    timestamp: '2 hours ago',
-  },
-  {
-    id: 2,
-    severity: 'info',
-    message: 'Scheduled maintenance completed successfully',
-    timestamp: '5 hours ago',
-  },
-  {
-    id: 3,
-    severity: 'warning',
-    message: 'Storage usage exceeded 80% threshold',
-    timestamp: '1 day ago',
-  },
-  {
-    id: 4,
-    severity: 'success',
-    message: 'All security scans passed',
-    timestamp: '2 days ago',
-  },
+const systemAlerts: { id: number; severity: 'warning' | 'info' | 'success'; message: keyof S['alerts']; timestamp: Ago }[] = [
+  { id: 1, severity: 'warning', message: 'latency', timestamp: { n: 2, unit: 'hour' } },
+  { id: 2, severity: 'info', message: 'maintenance', timestamp: { n: 5, unit: 'hour' } },
+  { id: 3, severity: 'warning', message: 'storage', timestamp: { n: 1, unit: 'day' } },
+  { id: 4, severity: 'success', message: 'scans', timestamp: { n: 2, unit: 'day' } },
 ]
 
-function StatCard({
-  title,
-  value,
-  subtitle,
-  icon: Icon,
-  trend,
-  color = 'emerald',
-}: {
-  title: string
-  value: string | number
-  subtitle?: string
-  icon: any
-  trend?: string
-  color?: string
-}) {
-  const colorClasses = {
-    emerald: 'text-emerald-400 bg-emerald-500/10',
-    blue: 'text-blue-400 bg-blue-500/10',
-    amber: 'text-amber-400 bg-amber-500/10',
-    purple: 'text-purple-400 bg-purple-500/10',
-  }
-
-  return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="text-sm text-slate-400 mb-1">{title}</div>
-          <div className="text-3xl font-bold text-slate-100 mb-1">{value}</div>
-          {subtitle && <div className="text-xs text-slate-500">{subtitle}</div>}
-          {trend && <div className="mt-2 text-xs text-emerald-400">{trend}</div>}
-        </div>
-        <div className={`rounded-xl p-3 ${colorClasses[color as keyof typeof colorClasses]}`}>
-          <Icon className="h-6 w-6" />
-        </div>
-      </div>
-    </div>
-  )
+const alertIcon = { warning: AlertCircle, info: Settings, success: CheckCircle2 }
+const alertTone: Record<'warning' | 'info' | 'success', Tone> = { warning: 'warning', info: 'info', success: 'success' }
+const alertIconClass = {
+  warning: 'bg-amber-50 text-amber-600',
+  info: 'bg-sky-50 text-sky-600',
+  success: 'bg-emerald-50 text-emerald-600',
 }
 
+const axisTick = { fontSize: 12, fill: chartTheme.axis }
+const storageColors = chartTheme.series
+
 export default function SettingsAnalytics() {
+  const s = useStrings(settingsAnalyticsStrings)
+  const f = useFormat()
+
   const totalStorage = storageUsage.reduce((sum, item) => sum + item.size, 0)
-  const avgUptime =
-    systemHealth.reduce((sum, component) => sum + component.uptime, 0) / systemHealth.length
+  const avgUptime = systemHealth.reduce((sum, c) => sum + c.uptime, 0) / systemHealth.length
+
+  const ago = (a: Ago) => {
+    const key = (a.n === 1 ? a.unit : `${a.unit}s`) as keyof S['ago']
+    return fmt(s.ago[key], { n: a.n })
+  }
+
+  const apiData = apiUsage.map(d => ({ ...d, label: f.date(d.date, { month: 'short', day: 'numeric' }) }))
+  const securityData = securityEvents.map(d => ({ ...d, label: fmt(s.week, { n: d.week }) }))
+  const storageData = storageUsage.map(d => ({ ...d, name: s.storageTypes[d.type] ?? d.type }))
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-100 mb-2">Settings Analytics</h1>
-        <p className="text-sm text-slate-400">
-          System health, security, and configuration monitoring
-        </p>
-      </div>
+      <PageHeader title={s.title} description={s.description} />
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Key metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
-          title="System Uptime"
-          value={`${avgUptime.toFixed(2)}%`}
-          subtitle="30-day average"
+          label={s.kpi.uptime}
+          value={f.number(avgUptime, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          unit="%"
           icon={Activity}
-          trend="All systems operational"
-          color="emerald"
+          deltaLabel={s.kpi.uptimeSub}
+          footer={<Badge tone="success" dot>{s.kpi.operational}</Badge>}
         />
-        <StatCard
-          title="Storage Used"
-          value={`${totalStorage} GB`}
-          subtitle="Of 1 TB capacity"
-          icon={Database}
-          color="blue"
-        />
-        <StatCard
-          title="Active Users"
-          value={45}
-          subtitle="Across all roles"
-          icon={Shield}
-          color="purple"
-        />
-        <StatCard
-          title="API Requests"
-          value="185K"
-          subtitle="Last 30 days"
-          icon={Server}
-          trend="+12% from last month"
-          color="amber"
-        />
+        <StatCard label={s.kpi.storage} value={f.number(totalStorage)} unit="GB" icon={Database} deltaLabel={s.kpi.storageSub} />
+        <StatCard label={s.kpi.users} value={45} icon={Shield} deltaLabel={s.kpi.usersSub} />
+        <StatCard label={s.kpi.api} value={f.compact(185000)} icon={Server} delta={12} deltaLabel={s.kpi.vsLastMonth} footer={<span className="text-xs text-zinc-500">{s.kpi.apiSub}</span>} />
       </div>
 
-      {/* System Health Status */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold text-slate-100">System Health Status</h3>
-          <p className="text-xs text-slate-400">Real-time monitoring of key components</p>
-        </div>
-        <div className="space-y-4">
-          {systemHealth.map((component) => (
-            <div
-              key={component.component}
-              className="flex items-center gap-4 p-4 rounded-xl border border-slate-800 bg-slate-900/60"
-            >
-              <div className="flex-shrink-0">
-                {component.status === 'healthy' ? (
-                  <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
-                ) : (
-                  <div className="w-3 h-3 rounded-full bg-red-400" />
-                )}
-              </div>
-              <div className="flex-1">
-                <div className="text-sm font-medium text-slate-300">{component.component}</div>
-                <div className="text-xs text-slate-500">
-                  Uptime: {component.uptime}% • Latency: {component.latency}ms
+      {/* System health */}
+      <Card>
+        <CardHeader title={s.healthTitle} description={s.healthDesc} icon={Activity} />
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+          {systemHealth.map(c => {
+            const ok = c.status === 'healthy'
+            return (
+              <div key={c.component} className="rounded-xl border border-line p-4 hover:bg-zinc-50 transition-colors">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-zinc-900 truncate">{s.components[c.component] ?? c.component}</span>
+                  <Badge tone={ok ? 'success' : 'danger'} dot>{ok ? s.healthy : s.degraded}</Badge>
+                </div>
+                <div className="mt-2 text-xs text-zinc-500 tabular">
+                  {fmt(s.uptimeLatency, { uptime: `${f.number(c.uptime, { minimumFractionDigits: 2 })}%`, latency: c.latency })}
                 </div>
               </div>
-              <div className="text-right">
-                <span
-                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs border ${
-                    component.status === 'healthy'
-                      ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
-                      : 'bg-red-500/10 text-red-300 border-red-500/20'
-                  }`}
-                >
-                  {component.status === 'healthy' ? 'Healthy' : 'Degraded'}
-                </span>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
-      </div>
+      </Card>
 
-      {/* API Usage & Security Events */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-slate-100">API Usage Trends</h3>
-            <p className="text-xs text-slate-400">Daily request volume and latency</p>
-          </div>
-          <div className="h-80">
+      {/* API usage & security events */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <Card>
+          <CardHeader title={s.apiTitle} description={s.apiDesc} />
+          <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={apiUsage}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                <XAxis dataKey="date" stroke="#94a3b8" style={{ fontSize: '11px' }} />
-                <YAxis yAxisId="left" stroke="#94a3b8" style={{ fontSize: '12px' }} />
-                <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" style={{ fontSize: '12px' }} />
-                <Tooltip
-                  contentStyle={{
-                    background: '#0f172a',
-                    border: '1px solid #1f2937',
-                    borderRadius: '8px',
-                  }}
-                />
-                <Legend />
-                <Line
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="requests"
-                  stroke="#00D48E"
-                  strokeWidth={2}
-                  name="Requests"
-                  dot={{ r: 3 }}
-                />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="avgLatency"
-                  stroke="#f59e0b"
-                  strokeWidth={2}
-                  name="Avg Latency (ms)"
-                  dot={{ r: 3 }}
-                />
+              <LineChart data={apiData} margin={{ top: 8, right: 0, left: -8, bottom: 0 }}>
+                <CartesianGrid vertical={false} stroke={chartTheme.grid} />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={axisTick} minTickGap={16} />
+                <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={axisTick} tickFormatter={v => f.compact(Number(v))} />
+                <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={axisTick} />
+                <Tooltip {...chartTheme.tooltip} formatter={(v: number) => f.number(v)} />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                <Line yAxisId="left" type="monotone" dataKey="requests" stroke={chartTheme.series[0]} strokeWidth={2} name={s.requests} dot={false} />
+                <Line yAxisId="right" type="monotone" dataKey="avgLatency" stroke={chartTheme.series[3]} strokeWidth={2} name={s.avgLatency} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </Card>
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-slate-100">Security Events</h3>
-            <p className="text-xs text-slate-400">Authentication and security monitoring</p>
-          </div>
-          <div className="h-80">
+        <Card>
+          <CardHeader title={s.securityTitle} description={s.securityDesc} />
+          <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={securityEvents}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                <XAxis dataKey="week" stroke="#94a3b8" style={{ fontSize: '12px' }} />
-                <YAxis stroke="#94a3b8" style={{ fontSize: '12px' }} />
-                <Tooltip
-                  contentStyle={{
-                    background: '#0f172a',
-                    border: '1px solid #1f2937',
-                    borderRadius: '8px',
-                  }}
-                />
-                <Legend />
-                <Bar dataKey="logins" fill="#00D48E" name="Successful Logins" />
-                <Bar dataKey="failedAuth" fill="#f59e0b" name="Failed Auth" />
-                <Bar dataKey="suspicious" fill="#ef4444" name="Suspicious Activity" />
+              <BarChart data={securityData} margin={{ top: 8, right: 0, left: -16, bottom: 0 }}>
+                <CartesianGrid vertical={false} stroke={chartTheme.grid} />
+                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={axisTick} />
+                <YAxis axisLine={false} tickLine={false} tick={axisTick} />
+                <Tooltip {...chartTheme.tooltip} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="logins" fill={chartTheme.series[0]} name={s.logins} radius={[4, 4, 0, 0]} maxBarSize={20} />
+                <Bar dataKey="failedAuth" fill={chartTheme.series[3]} name={s.failedAuth} radius={[4, 4, 0, 0]} maxBarSize={20} />
+                <Bar dataKey="suspicious" fill={chartTheme.series[5]} name={s.suspicious} radius={[4, 4, 0, 0]} maxBarSize={20} />
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </Card>
       </div>
 
-      {/* Storage Usage & User Permissions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-slate-100">Storage Distribution</h3>
-            <p className="text-xs text-slate-400">Breakdown by data type ({totalStorage} GB total)</p>
+      {/* Storage & permissions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <Card>
+          <CardHeader title={s.storageTitle} description={fmt(s.storageDesc, { total: totalStorage })} icon={Database} />
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            <div className="w-48 h-48 shrink-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={storageData} dataKey="size" nameKey="name" innerRadius={56} outerRadius={84} paddingAngle={2} stroke="none">
+                    {storageData.map((_, i) => (
+                      <Cell key={i} fill={storageColors[i % storageColors.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip {...chartTheme.tooltip} formatter={(v: number) => `${f.number(v)} GB`} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <ul className="flex-1 w-full space-y-2.5">
+              {storageData.map((d, i) => (
+                <li key={d.type} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="flex items-center gap-2 text-zinc-700 min-w-0">
+                    <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: storageColors[i % storageColors.length] }} />
+                    <span className="truncate">{d.name}</span>
+                  </span>
+                  <span className="tabular text-zinc-900 font-medium shrink-0">
+                    {f.number(d.size)} GB <span className="text-zinc-500 font-normal">· {f.percent((d.size / totalStorage) * 100)}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
-          <div className="h-80 flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={storageUsage}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ type, size, percent }) =>
-                    `${type}: ${size}GB (${(percent * 100).toFixed(0)}%)`
-                  }
-                  outerRadius={100}
-                  fill="#8884d8"
-                  dataKey="size"
-                >
-                  {storageUsage.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    background: '#0f172a',
-                    border: '1px solid #1f2937',
-                    borderRadius: '8px',
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        </Card>
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-slate-100">User Permissions</h3>
-            <p className="text-xs text-slate-400">Role distribution and access levels</p>
-          </div>
-          <div className="space-y-3">
-            {userPermissions.map((permission) => (
-              <div
-                key={permission.role}
-                className="flex items-center justify-between p-3 rounded-xl border border-slate-800 bg-slate-900/60"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-                    <Lock className="h-5 w-5 text-blue-400" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium text-slate-300">{permission.role}</div>
-                    <div className="text-xs text-slate-500">{permission.permissions}</div>
-                  </div>
+        <Card>
+          <CardHeader title={s.permissionsTitle} description={s.permissionsDesc} icon={Lock} />
+          <div className="divide-y divide-line -mx-2">
+            {userPermissions.map(p => (
+              <div key={p.role} className="flex items-center justify-between gap-3 px-2 py-3 rounded-lg hover:bg-zinc-50 transition-colors">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-zinc-900">{s.roles[p.role] ?? p.role}</div>
+                  <div className="text-xs text-zinc-500 mt-0.5">{s.perms[p.perm]}</div>
                 </div>
-                <div className="text-right">
-                  <div className="text-lg font-bold text-slate-100">{permission.users}</div>
-                  <div className="text-xs text-slate-500">users</div>
-                </div>
+                <span className="text-sm text-zinc-600 tabular shrink-0">{fmt(s.usersCount, { count: p.users })}</span>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       </div>
 
-      {/* Integration Status */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold text-slate-100">Integration Status</h3>
-          <p className="text-xs text-slate-400">External service connections and health</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {integrationStatus.map((integration) => (
-            <div
-              key={integration.name}
-              className="flex items-center gap-4 p-4 rounded-xl border border-slate-800 bg-slate-900/60"
-            >
-              <div className="flex-shrink-0">
-                <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse" />
+      {/* Integrations */}
+      <Card>
+        <CardHeader title={s.integrationsTitle} description={s.integrationsDesc} icon={Plug} />
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+          {integrationStatus.map(it => (
+            <div key={it.name} className="rounded-xl border border-line p-4 hover:bg-zinc-50 transition-colors">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium text-zinc-900 truncate">{it.name}</span>
+                <Badge tone="success" dot>{s.connected}</Badge>
               </div>
-              <div className="flex-1">
-                <div className="text-sm font-medium text-slate-300">{integration.name}</div>
-                <div className="text-xs text-slate-500">
-                  {integration.type} • {integration.requests.toLocaleString()} requests
-                </div>
+              <div className="mt-2 text-xs text-zinc-500">
+                {s.integrationTypes[it.type] ?? it.type} · <span className="tabular">{fmt(s.requestsCount, { count: f.number(it.requests) })}</span>
               </div>
-              <div className="text-right">
-                <div className="text-xs text-slate-400">{integration.lastSync}</div>
-              </div>
+              <div className="mt-1 text-xs text-zinc-400">{fmt(s.lastSync, { time: ago(it.lastSync) })}</div>
             </div>
           ))}
         </div>
-      </div>
+      </Card>
 
-      {/* Configuration Changes & System Alerts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-slate-100">Recent Configuration Changes</h3>
-            <p className="text-xs text-slate-400">System settings modification history</p>
-          </div>
-          <div className="space-y-3">
-            {configChanges.map((change) => (
-              <div
-                key={change.id}
-                className="p-3 rounded-xl border border-slate-800 bg-slate-900/60"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-sm font-medium text-slate-300">{change.setting}</div>
-                  <div className="text-xs text-slate-500">{change.timestamp}</div>
+      {/* Config changes & alerts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <Card>
+          <CardHeader title={s.configTitle} description={s.configDesc} icon={History} />
+          <div className="divide-y divide-line">
+            {configChanges.map(c => (
+              <div key={c.id} className="py-3 first:pt-0 last:pb-0">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="text-sm font-medium text-zinc-900">{s.settings[c.setting]}</div>
+                  <div className="text-xs text-zinc-500 tabular shrink-0">{f.date(c.timestamp, { dateStyle: 'medium', timeStyle: 'short' })}</div>
                 </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="text-slate-500">{change.oldValue}</span>
-                  <span className="text-slate-600">→</span>
-                  <span className="text-emerald-400">{change.newValue}</span>
+                <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[13px]">
+                  <span className="text-zinc-500 line-through decoration-zinc-300">{c.oldValue(s)}</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-zinc-400" />
+                  <span className="font-medium text-emerald-700">{c.newValue(s)}</span>
                 </div>
-                <div className="mt-1 text-xs text-slate-500">by {change.changedBy}</div>
+                <div className="mt-1 text-xs text-zinc-500">{fmt(s.changedBy, { who: s.actors[c.changedBy] ?? c.changedBy })}</div>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-slate-100">System Alerts</h3>
-            <p className="text-xs text-slate-400">Recent notifications and warnings</p>
-          </div>
-          <div className="space-y-3">
-            {systemAlerts.map((alert) => {
-              const iconMap = {
-                warning: AlertCircle,
-                info: Settings,
-                success: CheckCircle2,
-              }
-              const colorMap = {
-                warning: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-                info: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
-                success: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-              }
-              const Icon = iconMap[alert.severity as keyof typeof iconMap]
-              const colorClass = colorMap[alert.severity as keyof typeof colorMap]
-
+        <Card>
+          <CardHeader title={s.alertsTitle} description={s.alertsDesc} icon={Bell} />
+          <div className="divide-y divide-line">
+            {systemAlerts.map(a => {
+              const Icon = alertIcon[a.severity]
               return (
-                <div
-                  key={alert.id}
-                  className="flex items-start gap-3 p-3 rounded-xl border border-slate-800 bg-slate-900/60"
-                >
-                  <div className={`rounded-lg p-2 border ${colorClass}`}>
-                    <Icon className="h-4 w-4" />
+                <div key={a.id} className="flex items-start gap-3 py-3 first:pt-0 last:pb-0">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${alertIconClass[a.severity]}`}>
+                    <Icon className="w-4 h-4" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm text-slate-300">{alert.message}</div>
-                    <div className="text-xs text-slate-500 mt-1">{alert.timestamp}</div>
+                    <div className="text-sm text-zinc-800">{s.alerts[a.message]}</div>
+                    <div className="mt-1 flex items-center gap-2">
+                      <Badge tone={alertTone[a.severity]}>{s.severity[a.severity]}</Badge>
+                      <span className="text-xs text-zinc-500">{ago(a.timestamp)}</span>
+                    </div>
                   </div>
                 </div>
               )
             })}
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   )
 }
-

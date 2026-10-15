@@ -1,13 +1,44 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { CheckCircle, XCircle, AlertTriangle, FileText, Shield, ExternalLink, Clock, User, MessageSquare } from 'lucide-react'
-import { mockData } from '../data/mockData'
+import { CheckCircle, XCircle, AlertTriangle, Info, FileText, Shield, ExternalLink, Clock, User, MessageSquare, ArrowLeft, GitCompare, KeyRound, ShieldCheck } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import clsx from 'clsx'
+import { mockData } from '../data/mockData'
+import { fmt, useFormat, useStrings } from '../i18n'
+import { moduleReviewStrings } from '../i18n/pages/moduleReview'
+import { moduleCatalogStrings } from '../i18n/pages/moduleCatalog'
+import { PageHeader, Card, CardHeader, Button, Badge, Tabs, EmptyState, inputClass, Tone } from '../components/ui'
+
+type TabId = 'diffs' | 'findings' | 'proofs' | 'approvals'
+
+// Mock validation findings (message/suggestion text lives in the dictionary, by index)
+const FINDINGS = [
+  { severity: 'error', rule: 'GRI-2-27-REQ', field: 'GRI 2-27' },
+  { severity: 'warning', rule: 'GRI-3-3-MATERIAL', field: 'GRI 3-3' },
+  { severity: 'info', rule: 'BEST-PRACTICE', field: 'GRI 2-22' },
+]
+
+// Mock approval history (comment text lives in the dictionary, by index)
+const APPROVAL_HISTORY = [
+  { did: 'did:ethr:0x1234...5678', role: 'Reviewer', decision: 'approved', timestamp: '2024-11-10T14:30:00Z', vcHash: '0xabcd...ef01' },
+  { did: 'did:ethr:0xabcd...ef01', role: 'Analyst', decision: 'submitted', timestamp: '2024-11-10T10:15:00Z', vcHash: '0x1234...5678' },
+]
+
+const SEVERITY: Record<string, { tone: Tone; icon: LucideIcon; iconClass: string }> = {
+  error: { tone: 'danger', icon: XCircle, iconClass: 'bg-rose-50 text-rose-600' },
+  warning: { tone: 'warning', icon: AlertTriangle, iconClass: 'bg-amber-50 text-amber-600' },
+  info: { tone: 'info', icon: Info, iconClass: 'bg-sky-50 text-sky-600' },
+}
+
+const DECISION_TONE: Record<string, Tone> = { approved: 'success', rejected: 'danger', submitted: 'info' }
 
 export default function ModuleReview() {
   const { moduleId } = useParams<{ moduleId: string }>()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<'diffs' | 'findings' | 'proofs' | 'approvals'>('findings')
+  const s = useStrings(moduleReviewStrings)
+  const c = useStrings(moduleCatalogStrings)
+  const f = useFormat()
+  const [activeTab, setActiveTab] = useState<TabId>('findings')
   const [approvalDecision, setApprovalDecision] = useState<'approve' | 'reject' | null>(null)
   const [comment, setComment] = useState('')
 
@@ -18,375 +49,255 @@ export default function ModuleReview() {
 
   if (!module) {
     return (
-      <div className="text-center py-12">
-        <FileText className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-white mb-2">Module not found</h2>
-        <button
-          onClick={() => navigate('/modules')}
-          className="text-accent hover:underline"
-        >
-          Back to modules
-        </button>
-      </div>
+      <Card>
+        <EmptyState
+          icon={FileText}
+          title={c.notFound}
+          description={c.notFoundBody}
+          action={<Button icon={ArrowLeft} onClick={() => navigate('/modules')}>{c.backToModules}</Button>}
+        />
+      </Card>
     )
   }
 
-  // Mock validation findings
-  const findings = [
-    {
-      severity: 'error',
-      rule: 'GRI-2-27-REQ',
-      message: 'Missing evidence attachment for compliance statement',
-      field: 'GRI 2-27',
-      suggestion: 'Upload compliance documentation or certificate',
-    },
-    {
-      severity: 'warning',
-      rule: 'GRI-3-3-MATERIAL',
-      message: 'Material topic without complete DMA',
-      field: 'GRI 3-3',
-      suggestion: 'Complete all DMA sections for material topics',
-    },
-    {
-      severity: 'info',
-      rule: 'BEST-PRACTICE',
-      message: 'Consider adding quantitative targets',
-      field: 'GRI 2-22',
-      suggestion: 'Enhance disclosure with measurable targets',
-    },
-  ]
+  const reviewStart = new Date('2024-11-10T14:30:00Z')
+  const slaDays = Math.floor((Date.now() - reviewStart.getTime()) / (1000 * 60 * 60 * 24))
+  const slaOverdue = slaDays > 5
 
-  // Mock approval history
-  const approvalHistory = [
-    {
-      did: 'did:ethr:0x1234...5678',
-      role: 'Reviewer',
-      decision: 'approved',
-      comment: 'Data quality looks good, minor formatting issues fixed',
-      timestamp: '2024-11-10T14:30:00Z',
-      vcHash: '0xabcd...ef01',
-    },
-    {
-      did: 'did:ethr:0xabcd...ef01',
-      role: 'Analyst',
-      decision: 'submitted',
-      comment: 'Ready for review',
-      timestamp: '2024-11-10T10:15:00Z',
-      vcHash: '0x1234...5678',
-    },
-  ]
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'error':
-        return 'bg-red-500/10 text-red-400 border-red-500/30'
-      case 'warning':
-        return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
-      case 'info':
-        return 'bg-blue-500/10 text-blue-400 border-blue-500/30'
-      default:
-        return 'bg-gray-500/10 text-gray-400 border-gray-500/30'
-    }
-  }
-
-  const getSeverityIcon = (severity: string) => {
-    switch (severity) {
-      case 'error':
-        return <XCircle className="w-5 h-5" />
-      case 'warning':
-        return <AlertTriangle className="w-5 h-5" />
-      case 'info':
-        return <CheckCircle className="w-5 h-5" />
-      default:
-        return null
-    }
-  }
-
-  const calculateSLA = () => {
-    const reviewStart = new Date('2024-11-10T14:30:00Z')
-    const now = new Date()
-    const diffInDays = Math.floor((now.getTime() - reviewStart.getTime()) / (1000 * 60 * 60 * 24))
-    return { days: diffInDays, overdue: diffInDays > 5 }
-  }
-
-  const sla = calculateSLA()
+  const moduleName = c.titles[module.id] ?? module.title
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Review: {module.title}</h1>
-          <p className="text-gray-400">Version {currentVersion?.version} • Submission {currentVersion?.submissionId}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className={clsx(
-            'px-3 py-2 rounded-lg border text-sm font-medium flex items-center gap-2',
-            sla.overdue ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-blue-500/10 text-blue-400 border-blue-500/30'
-          )}>
-            <Clock className="w-4 h-4" />
-            In review for {sla.days}d {sla.overdue && '(Overdue)'}
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow={s.eyebrow}
+        title={fmt(s.title, { name: moduleName })}
+        description={
+          currentVersion
+            ? fmt(s.subtitle, { version: currentVersion.version, id: currentVersion.submissionId })
+            : c.descriptions[module.id] ?? module.description
+        }
+        actions={
+          <Badge tone={slaOverdue ? 'danger' : 'info'} icon={Clock} className="h-8 px-2.5 text-[13px]">
+            {fmt(s.inReviewFor, { days: f.number(slaDays) })}
+            {slaOverdue && <span className="font-semibold">· {s.overdue}</span>}
+          </Badge>
+        }
+      />
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-dark-border">
-        {[
-          { id: 'findings', label: 'Findings', count: findings.length },
-          { id: 'diffs', label: 'Validation Diffs', count: previousVersion ? 12 : 0 },
-          { id: 'proofs', label: 'Proofs', count: 1 },
-          { id: 'approvals', label: 'Approvals', count: approvalHistory.length },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={clsx(
-              'px-4 py-3 font-medium transition-colors relative',
-              activeTab === tab.id
-                ? 'text-accent'
-                : 'text-gray-400 hover:text-white'
-            )}
-          >
-            {tab.label}
-            {tab.count > 0 && (
-              <span className={clsx(
-                'ml-2 px-2 py-0.5 rounded text-xs',
-                activeTab === tab.id ? 'bg-accent/20 text-accent' : 'bg-dark-surface text-gray-400'
-              )}>
-                {tab.count}
-              </span>
-            )}
-            {activeTab === tab.id && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent" />
-            )}
-          </button>
-        ))}
-      </div>
+      <Tabs<TabId>
+        value={activeTab}
+        onChange={setActiveTab}
+        items={[
+          { value: 'findings', label: s.tabs.findings, count: FINDINGS.length },
+          { value: 'diffs', label: s.tabs.diffs, count: previousVersion ? 12 : 0 },
+          { value: 'proofs', label: s.tabs.proofs, count: currentVersion ? 1 : 0 },
+          { value: 'approvals', label: s.tabs.approvals, count: APPROVAL_HISTORY.length },
+        ]}
+      />
 
-      {/* Tab Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          {/* Findings Tab */}
-          {activeTab === 'findings' && (
-            <>
-              {findings.map((finding, index) => (
-                <div
-                  key={index}
-                  className="bg-dark-surface border border-dark-border rounded-xl p-6"
-                >
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div className="lg:col-span-2 space-y-4 min-w-0">
+          {activeTab === 'findings' &&
+            FINDINGS.map((finding, index) => {
+              const sev = SEVERITY[finding.severity]
+              const text = s.findings[index]
+              return (
+                <Card key={finding.rule}>
                   <div className="flex items-start gap-4">
-                    <div className={clsx('p-2 rounded-lg', getSeverityColor(finding.severity))}>
-                      {getSeverityIcon(finding.severity)}
+                    <div className={clsx('w-9 h-9 rounded-lg flex items-center justify-center shrink-0', sev.iconClass)}>
+                      <sev.icon className="w-[18px] h-[18px]" />
                     </div>
-                    <div className="flex-1">
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h3 className="font-medium text-white mb-1">{finding.message}</h3>
-                          <div className="flex items-center gap-2 text-sm text-gray-400">
-                            <span>Rule: {finding.rule}</span>
-                            <span>•</span>
-                            <span>Field: {finding.field}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col-reverse sm:flex-row sm:items-start sm:justify-between gap-2">
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-semibold text-zinc-900">{text.message}</h3>
+                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-500">
+                            <span>{fmt(s.rule, { v: finding.rule })}</span>
+                            <span>{fmt(s.field, { v: finding.field })}</span>
                           </div>
                         </div>
-                        <div className={clsx('px-2 py-1 rounded text-xs font-medium border', getSeverityColor(finding.severity))}>
-                          {finding.severity}
-                        </div>
+                        <Badge tone={sev.tone} className="self-start">{s.severity[finding.severity]}</Badge>
                       </div>
-                      <div className="bg-dark-bg rounded-lg p-3 mt-3">
-                        <p className="text-sm text-gray-300">
-                          <span className="font-medium text-accent">Suggestion: </span>
-                          {finding.suggestion}
-                        </p>
+                      <div className="mt-3 rounded-lg bg-zinc-50 border border-line px-3 py-2.5 text-[13px] text-zinc-700">
+                        <span className="font-medium text-zinc-900">{s.suggestion}</span>
+                        {text.suggestion}
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </>
-          )}
+                </Card>
+              )
+            })}
 
-          {/* Diffs Tab */}
           {activeTab === 'diffs' && (
-            <div className="bg-dark-surface border border-dark-border rounded-xl p-6">
-              <h3 className="font-bold text-white mb-4">Changes from {previousVersion?.version}</h3>
-              <div className="space-y-3">
-                <div className="bg-dark-bg rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm font-medium text-white">GRI 2-1: Organization name</span>
-                    <span className="text-xs px-2 py-0.5 bg-yellow-500/10 text-yellow-400 rounded">Modified</span>
+            <Card>
+              {previousVersion ? (
+                <>
+                  <CardHeader title={fmt(s.changesFrom, { version: previousVersion.version })} icon={GitCompare} />
+                  <div className="space-y-3">
+                    <div className="rounded-lg border border-line p-4">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <span className="text-sm font-medium text-zinc-900">{s.diffOrgName}</span>
+                        <Badge tone="warning">{s.modified}</Badge>
+                      </div>
+                      <div className="space-y-1 text-[13px] font-mono">
+                        <div className="text-rose-600 bg-rose-50/60 rounded px-2 py-0.5">- Asyad Holdings</div>
+                        <div className="text-emerald-700 bg-emerald-50/60 rounded px-2 py-0.5">+ Asyad Group</div>
+                      </div>
+                    </div>
+                    <div className="rounded-lg border border-line p-4">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <span className="text-sm font-medium text-zinc-900">{s.diffValueChain}</span>
+                        <Badge tone="success">{s.added}</Badge>
+                      </div>
+                      <div className="text-[13px] font-mono text-emerald-700 bg-emerald-50/60 rounded px-2 py-0.5">+ {s.diffValueChainAdded}</div>
+                    </div>
                   </div>
-                  <div className="space-y-1 text-sm font-mono">
-                    <div className="text-red-400">- Asyad Holdings</div>
-                    <div className="text-emerald-400">+ Asyad Group</div>
-                  </div>
-                </div>
-                <div className="bg-dark-bg rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm font-medium text-white">GRI 2-6: Value chain</span>
-                    <span className="text-xs px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded">Added</span>
-                  </div>
-                  <div className="text-sm text-emerald-400 font-mono">
-                    + Complete value chain description added
-                  </div>
-                </div>
-              </div>
-            </div>
+                </>
+              ) : (
+                <EmptyState icon={GitCompare} title={s.noPrevious} description={s.noPreviousBody} />
+              )}
+            </Card>
           )}
 
-          {/* Proofs Tab */}
           {activeTab === 'proofs' && (
-            <div className="bg-dark-surface border border-dark-border rounded-xl p-6">
-              <h3 className="font-bold text-white mb-4">Cryptographic Proofs</h3>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-dark-bg rounded-lg p-4">
-                    <div className="text-xs text-gray-400 mb-1">Payload CID</div>
-                    <code className="text-sm text-white break-all">{currentVersion?.payloadCID}</code>
-                    <button className="mt-2 text-xs text-accent hover:underline flex items-center gap-1">
-                      <ExternalLink className="w-3 h-3" />
-                      View on IPFS
-                    </button>
+            <Card>
+              {currentVersion ? (
+                <>
+                  <CardHeader title={s.proofsTitle} description={s.proofsDesc} icon={KeyRound} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <ProofTile label={s.payloadCid}>
+                      <code className="text-[13px] text-zinc-900 break-all">{currentVersion.payloadCID}</code>
+                      <Button variant="ghost" size="sm" icon={ExternalLink} className="mt-2 -ml-2">{s.viewIpfs}</Button>
+                    </ProofTile>
+                    <ProofTile label={s.sha256}>
+                      <code className="text-[13px] text-zinc-900 break-all">{currentVersion.sha256.slice(0, 32)}…</code>
+                    </ProofTile>
+                    <ProofTile label={s.merkleRoot}>
+                      <code className="text-[13px] text-emerald-700">{currentVersion.merkleRoot}</code>
+                    </ProofTile>
+                    <ProofTile label={s.transaction}>
+                      <code className="text-[13px] text-zinc-900">0x1234...abcd</code>
+                      <Button variant="ghost" size="sm" icon={ExternalLink} className="mt-2 -ml-2">{s.viewExplorer}</Button>
+                    </ProofTile>
                   </div>
-                  <div className="bg-dark-bg rounded-lg p-4">
-                    <div className="text-xs text-gray-400 mb-1">SHA-256</div>
-                    <code className="text-sm text-white break-all">{currentVersion?.sha256.slice(0, 32)}...</code>
-                  </div>
-                  <div className="bg-dark-bg rounded-lg p-4">
-                    <div className="text-xs text-gray-400 mb-1">Merkle Root</div>
-                    <code className="text-sm text-emerald-400">{currentVersion?.merkleRoot}</code>
-                  </div>
-                  <div className="bg-dark-bg rounded-lg p-4">
-                    <div className="text-xs text-gray-400 mb-1">Transaction</div>
-                    <code className="text-sm text-blue-400">0x1234...abcd</code>
-                    <button className="mt-2 text-xs text-accent hover:underline flex items-center gap-1">
-                      <ExternalLink className="w-3 h-3" />
-                      View on Explorer
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+                </>
+              ) : (
+                <EmptyState icon={KeyRound} title={s.noProofs} description={s.noProofsBody} />
+              )}
+            </Card>
           )}
 
-          {/* Approvals Tab */}
-          {activeTab === 'approvals' && (
-            <div className="space-y-3">
-              {approvalHistory.map((approval, index) => (
-                <div
-                  key={index}
-                  className="bg-dark-surface border border-dark-border rounded-xl p-6"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
-                        <User className="w-5 h-5 text-accent" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-white">{approval.role}</div>
-                        <div className="text-xs text-gray-400">{approval.did}</div>
-                      </div>
+          {activeTab === 'approvals' &&
+            APPROVAL_HISTORY.map((approval, index) => (
+              <Card key={approval.vcHash + index}>
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-zinc-100 flex items-center justify-center shrink-0">
+                      <User className="w-4 h-4 text-zinc-600" />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className={clsx(
-                        'px-2 py-1 rounded text-xs font-medium',
-                        approval.decision === 'approved' ? 'bg-emerald-500/10 text-emerald-400' :
-                        approval.decision === 'rejected' ? 'bg-red-500/10 text-red-400' :
-                        'bg-blue-500/10 text-blue-400'
-                      )}>
-                        {approval.decision}
-                      </div>
-                      <Shield className="w-4 h-4 text-gray-400" />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-zinc-900">{s.roles[approval.role] ?? approval.role}</div>
+                      <code className="block text-xs text-zinc-500 truncate">{approval.did}</code>
                     </div>
                   </div>
-                  {approval.comment && (
-                    <div className="bg-dark-bg rounded-lg p-3 mb-3">
-                      <p className="text-sm text-gray-300">{approval.comment}</p>
-                    </div>
-                  )}
-                  <div className="flex items-center justify-between text-xs text-gray-400">
-                    <span>{new Date(approval.timestamp).toLocaleString()}</span>
-                    <code className="text-gray-500">VC: {approval.vcHash}</code>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge tone={DECISION_TONE[approval.decision] ?? 'neutral'}>{s.decision[approval.decision] ?? approval.decision}</Badge>
+                    <span title={s.signed} aria-label={s.signed}><Shield className="w-4 h-4 text-zinc-400" /></span>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+                {s.approvalComments[index] && (
+                  <p className="rounded-lg bg-zinc-50 border border-line px-3 py-2.5 text-[13px] text-zinc-700 mb-3">{s.approvalComments[index]}</p>
+                )}
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-500">
+                  <span className="tabular">{f.date(approval.timestamp, { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                  <code>{s.vc}: {approval.vcHash}</code>
+                </div>
+              </Card>
+            ))}
         </div>
 
-        {/* Approval Panel */}
-        <div className="bg-dark-surface border border-dark-border rounded-xl p-6 h-fit sticky top-6">
-          <h3 className="font-bold text-white mb-4">Your Approval</h3>
-          
+        {/* Approval panel */}
+        <Card className="lg:sticky lg:top-6">
+          <CardHeader title={s.yourApproval} description={s.yourApprovalDesc} icon={ShieldCheck} />
           <div className="space-y-4">
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={s.yourApproval}>
               <button
+                type="button"
+                role="radio"
+                aria-checked={approvalDecision === 'approve'}
                 onClick={() => setApprovalDecision('approve')}
                 className={clsx(
-                  'flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-colors',
+                  'h-10 flex items-center justify-center gap-2 rounded-[10px] text-sm font-medium border transition-colors',
                   approvalDecision === 'approve'
-                    ? 'bg-emerald-500/20 text-emerald-400 border-2 border-emerald-500/50'
-                    : 'bg-dark-bg border border-dark-border hover:border-emerald-500/30'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300 ring-1 ring-emerald-300'
+                    : 'bg-white text-zinc-700 border-line hover:border-zinc-300 hover:bg-zinc-50',
                 )}
               >
-                <CheckCircle className="w-5 h-5" />
-                Approve
+                <CheckCircle className="w-4 h-4" />
+                {s.approve}
               </button>
               <button
+                type="button"
+                role="radio"
+                aria-checked={approvalDecision === 'reject'}
                 onClick={() => setApprovalDecision('reject')}
                 className={clsx(
-                  'flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-colors',
+                  'h-10 flex items-center justify-center gap-2 rounded-[10px] text-sm font-medium border transition-colors',
                   approvalDecision === 'reject'
-                    ? 'bg-red-500/20 text-red-400 border-2 border-red-500/50'
-                    : 'bg-dark-bg border border-dark-border hover:border-red-500/30'
+                    ? 'bg-rose-50 text-rose-700 border-rose-300 ring-1 ring-rose-300'
+                    : 'bg-white text-zinc-700 border-line hover:border-zinc-300 hover:bg-zinc-50',
                 )}
               >
-                <XCircle className="w-5 h-5" />
-                Reject
+                <XCircle className="w-4 h-4" />
+                {s.reject}
               </button>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">
-                <MessageSquare className="w-4 h-4 inline mr-1" />
-                Comment
+            <div className="space-y-1.5">
+              <label htmlFor="review-comment" className="flex items-center gap-1.5 text-[13px] font-medium text-zinc-700">
+                <MessageSquare className="w-3.5 h-3.5 text-zinc-400" />
+                {s.comment}
               </label>
               <textarea
+                id="review-comment"
                 value={comment}
-                onChange={(e) => setComment(e.target.value)}
+                onChange={e => setComment(e.target.value)}
                 rows={4}
-                className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent resize-none"
-                placeholder="Add your review comments..."
+                className={clsx(inputClass, 'h-auto py-2.5 resize-none')}
+                placeholder={s.commentPlaceholder}
               />
             </div>
 
-            <button
-              disabled={!approvalDecision}
-              className="w-full px-4 py-3 bg-accent text-dark-bg rounded-xl font-medium hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Submit Decision
-            </button>
+            <Button variant="primary" className="w-full" disabled={!approvalDecision}>
+              {s.submitDecision}
+            </Button>
 
-            <div className="pt-4 border-t border-dark-border">
-              <div className="text-xs text-gray-400 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span>Your DID:</span>
-                  <code className="text-white">did:ethr:0x1234...5678</code>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Role:</span>
-                  <span className="text-white">Approver</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>VC Hash:</span>
-                  <code className="text-emerald-400">0xabcd...ef01</code>
-                </div>
+            <dl className="pt-4 border-t border-line text-xs space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-zinc-500">{s.yourDid}</dt>
+                <dd><code className="text-zinc-900">did:ethr:0x1234...5678</code></dd>
               </div>
-            </div>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-zinc-500">{s.role}</dt>
+                <dd className="text-zinc-900">{s.roles.Approver}</dd>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <dt className="text-zinc-500">{s.vcHash}</dt>
+                <dd><code className="text-emerald-700">0xabcd...ef01</code></dd>
+              </div>
+            </dl>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   )
 }
 
+function ProofTile({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-lg border border-line bg-zinc-50/60 p-4 min-w-0">
+      <div className="text-xs font-medium text-zinc-500 mb-1">{label}</div>
+      {children}
+    </div>
+  )
+}

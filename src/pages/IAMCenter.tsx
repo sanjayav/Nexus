@@ -1,11 +1,16 @@
-import { useState } from 'react'
+import { Fragment, ReactNode, useEffect, useMemo, useState } from 'react'
 import clsx from 'clsx'
+import { createPortal } from 'react-dom'
 import {
     Users, Shield, Key, Activity, Plus, Search,
-    CheckCircle2, XCircle,
+    CheckCircle2, XCircle, UserPlus, BadgeCheck,
     Lock, AlertTriangle, Eye, Edit2,
-    Link2, Clock, Check, X, Info, Sparkles
+    Link2, Clock, Check, X, Info, Sparkles, Loader2,
 } from 'lucide-react'
+import { fmt, useFormat, useStrings, LOCALES } from '../i18n'
+import { iamCenterStrings } from '../i18n/pages/iamCenter'
+import { useLanguage } from '../contexts/LanguageContext'
+import { PageHeader, Card, Button, Badge, StatCard, Tabs, EmptyState, Field, inputClass, tableClass, Tone } from '../components/ui'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -20,14 +25,13 @@ type Permission =
     | 'audit.view' | 'chain.verify'
 
 type RoleId = 'platform_admin' | 'org_admin' | 'framework_owner' | 'data_contributor' | 'reviewer' | 'approver' | 'external_auditor' | 'read_only'
+type Risk = 'low' | 'medium' | 'high'
+/** Relative time: amount + unit in the past, or null for "never". */
+type Ago = { n: number; unit: Intl.RelativeTimeFormatUnit } | null
 
 interface Role {
     id: RoleId
-    name: string
-    description: string
-    color: string
-    bgColor: string
-    borderColor: string
+    dot: string
     userCount: number
     isSystem: boolean
     permissions: Permission[]
@@ -41,104 +45,126 @@ interface User {
     did: string
     vcHash: string
     vcIssued: string
-    lastActive: string
+    lastActive: Ago
     status: 'active' | 'pending' | 'suspended'
     modules: string[]
 }
 
-// ─── Permission Groups ────────────────────────────────────────────────────────
+// ─── Permission groups ────────────────────────────────────────────────────────
 
-const permissionGroups: { group: string; icon: string; perms: { id: Permission; label: string; risk: 'low' | 'medium' | 'high' }[] }[] = [
-    {
-        group: 'Dashboards & Analytics', icon: '📊',
-        perms: [
-            { id: 'dashboard.view', label: 'View Dashboards', risk: 'low' },
-            { id: 'dashboard.export', label: 'Export Data', risk: 'low' },
-            { id: 'analytics.view', label: 'View Analytics', risk: 'low' },
-            { id: 'analytics.export', label: 'Export Analytics', risk: 'low' },
-        ],
-    },
-    {
-        group: 'Questionnaire', icon: '📝',
-        perms: [
-            { id: 'questionnaire.view', label: 'View Responses', risk: 'low' },
-            { id: 'questionnaire.edit', label: 'Edit & Fill', risk: 'medium' },
-            { id: 'questionnaire.submit', label: 'Submit for Review', risk: 'medium' },
-            { id: 'questionnaire.configure', label: 'Configure Schema', risk: 'high' },
-        ],
-    },
-    {
-        group: 'Evidence', icon: '📁',
-        perms: [
-            { id: 'evidence.view', label: 'View Evidence', risk: 'low' },
-            { id: 'evidence.upload', label: 'Upload Evidence', risk: 'medium' },
-            { id: 'evidence.delete', label: 'Delete Evidence', risk: 'high' },
-        ],
-    },
-    {
-        group: 'Review & Approvals', icon: '✅',
-        perms: [
-            { id: 'approval.view', label: 'View Submissions', risk: 'low' },
-            { id: 'approval.review', label: 'Comment & Review', risk: 'medium' },
-            { id: 'approval.approve', label: 'Approve / Reject', risk: 'high' },
-        ],
-    },
-    {
-        group: 'Reports & Publishing', icon: '📄',
-        perms: [
-            { id: 'report.view', label: 'View Reports', risk: 'low' },
-            { id: 'report.build', label: 'Build Reports', risk: 'medium' },
-            { id: 'report.publish', label: 'Publish Reports', risk: 'high' },
-            { id: 'report.anchor', label: 'Anchor to Chain', risk: 'high' },
-        ],
-    },
-    {
-        group: 'Blockchain & Verification', icon: '⛓️',
-        perms: [
-            { id: 'chain.verify', label: 'Verify Proofs', risk: 'low' },
-            { id: 'audit.view', label: 'View Audit Trail', risk: 'low' },
-        ],
-    },
-    {
-        group: 'Administration', icon: '⚙️',
-        perms: [
-            { id: 'admin.users', label: 'Manage Users & Roles', risk: 'high' },
-            { id: 'admin.org', label: 'Configure Organization', risk: 'high' },
-            { id: 'admin.chain', label: 'Chain Configuration', risk: 'high' },
-            { id: 'admin.billing', label: 'Billing & Licensing', risk: 'high' },
-        ],
-    },
+type GroupId = 'dashboards' | 'questionnaire' | 'evidence' | 'approvals' | 'reports' | 'chain' | 'admin'
+
+const permissionGroups: { id: GroupId; perms: { id: Permission; risk: Risk }[] }[] = [
+    { id: 'dashboards', perms: [{ id: 'dashboard.view', risk: 'low' }, { id: 'dashboard.export', risk: 'low' }, { id: 'analytics.view', risk: 'low' }, { id: 'analytics.export', risk: 'low' }] },
+    { id: 'questionnaire', perms: [{ id: 'questionnaire.view', risk: 'low' }, { id: 'questionnaire.edit', risk: 'medium' }, { id: 'questionnaire.submit', risk: 'medium' }, { id: 'questionnaire.configure', risk: 'high' }] },
+    { id: 'evidence', perms: [{ id: 'evidence.view', risk: 'low' }, { id: 'evidence.upload', risk: 'medium' }, { id: 'evidence.delete', risk: 'high' }] },
+    { id: 'approvals', perms: [{ id: 'approval.view', risk: 'low' }, { id: 'approval.review', risk: 'medium' }, { id: 'approval.approve', risk: 'high' }] },
+    { id: 'reports', perms: [{ id: 'report.view', risk: 'low' }, { id: 'report.build', risk: 'medium' }, { id: 'report.publish', risk: 'high' }, { id: 'report.anchor', risk: 'high' }] },
+    { id: 'chain', perms: [{ id: 'chain.verify', risk: 'low' }, { id: 'audit.view', risk: 'low' }] },
+    { id: 'admin', perms: [{ id: 'admin.users', risk: 'high' }, { id: 'admin.org', risk: 'high' }, { id: 'admin.chain', risk: 'high' }, { id: 'admin.billing', risk: 'high' }] },
 ]
 
 const ALL_PERMS: Permission[] = permissionGroups.flatMap(g => g.perms.map(p => p.id))
+const RISK_TONE: Record<Risk, Tone> = { low: 'success', medium: 'warning', high: 'danger' }
+const STATUS_TONE: Record<User['status'], Tone> = { active: 'success', pending: 'warning', suspended: 'danger' }
 
-// ─── Roles Data ───────────────────────────────────────────────────────────────
+// ─── Roles & users ────────────────────────────────────────────────────────────
 
 const initialRoles: Role[] = [
-    { id: 'platform_admin', name: 'Platform Admin', description: 'Full system access including billing and org management', color: 'text-rose-600', bgColor: 'bg-rose-500/10', borderColor: 'border-rose-500/20', userCount: 2, isSystem: true, permissions: ALL_PERMS },
-    { id: 'org_admin', name: 'Org Admin', description: 'Full org scope: user management, configuration, all modules', color: 'text-orange-600', bgColor: 'bg-orange-500/10', borderColor: 'border-orange-500/20', userCount: 3, isSystem: true, permissions: ALL_PERMS.filter(p => !p.startsWith('admin.billing')) },
-    { id: 'framework_owner', name: 'Framework Owner', description: 'Owns one or more reporting frameworks; configures, assigns, reviews', color: 'text-violet-600', bgColor: 'bg-violet-500/10', borderColor: 'border-violet-500/20', userCount: 4, isSystem: false, permissions: ['dashboard.view', 'dashboard.export', 'questionnaire.view', 'questionnaire.edit', 'questionnaire.submit', 'questionnaire.configure', 'evidence.view', 'evidence.upload', 'approval.view', 'approval.review', 'report.view', 'report.build', 'analytics.view', 'analytics.export', 'audit.view', 'chain.verify'] },
-    { id: 'data_contributor', name: 'Data Contributor', description: 'Fills questionnaire responses and uploads supporting evidence', color: 'text-blue-600', bgColor: 'bg-blue-500/10', borderColor: 'border-blue-500/20', userCount: 18, isSystem: false, permissions: ['dashboard.view', 'questionnaire.view', 'questionnaire.edit', 'questionnaire.submit', 'evidence.view', 'evidence.upload', 'approval.view', 'report.view', 'analytics.view'] },
-    { id: 'reviewer', name: 'Reviewer', description: 'Reviews submissions, adds comments, requests changes', color: 'text-cyan-600', bgColor: 'bg-cyan-500/10', borderColor: 'border-cyan-500/20', userCount: 12, isSystem: false, permissions: ['dashboard.view', 'dashboard.export', 'questionnaire.view', 'evidence.view', 'approval.view', 'approval.review', 'report.view', 'analytics.view', 'audit.view'] },
-    { id: 'approver', name: 'Approver', description: 'Signs off submissions with DID/VC; approval recorded on-chain', color: 'text-emerald-600', bgColor: 'bg-emerald-500/10', borderColor: 'border-emerald-500/20', userCount: 8, isSystem: false, permissions: ['dashboard.view', 'dashboard.export', 'questionnaire.view', 'evidence.view', 'approval.view', 'approval.review', 'approval.approve', 'report.view', 'report.build', 'analytics.view', 'analytics.export', 'audit.view', 'chain.verify'] },
-    { id: 'external_auditor', name: 'External Auditor', description: 'Read-only access plus on-chain proof verification rights', color: 'text-amber-600', bgColor: 'bg-amber-500/10', borderColor: 'border-amber-500/20', userCount: 5, isSystem: false, permissions: ['dashboard.view', 'questionnaire.view', 'evidence.view', 'approval.view', 'report.view', 'analytics.view', 'audit.view', 'chain.verify'] },
-    { id: 'read_only', name: 'Read Only', description: 'View-only access to dashboards and published reports', color: 'text-black/60', bgColor: 'bg-black/5', borderColor: 'border-black/10', userCount: 22, isSystem: false, permissions: ['dashboard.view', 'report.view', 'analytics.view'] },
+    { id: 'platform_admin', dot: 'bg-rose-500', userCount: 2, isSystem: true, permissions: ALL_PERMS },
+    { id: 'org_admin', dot: 'bg-orange-500', userCount: 3, isSystem: true, permissions: ALL_PERMS.filter(p => !p.startsWith('admin.billing')) },
+    { id: 'framework_owner', dot: 'bg-violet-500', userCount: 4, isSystem: false, permissions: ['dashboard.view', 'dashboard.export', 'questionnaire.view', 'questionnaire.edit', 'questionnaire.submit', 'questionnaire.configure', 'evidence.view', 'evidence.upload', 'approval.view', 'approval.review', 'report.view', 'report.build', 'analytics.view', 'analytics.export', 'audit.view', 'chain.verify'] },
+    { id: 'data_contributor', dot: 'bg-sky-500', userCount: 18, isSystem: false, permissions: ['dashboard.view', 'questionnaire.view', 'questionnaire.edit', 'questionnaire.submit', 'evidence.view', 'evidence.upload', 'approval.view', 'report.view', 'analytics.view'] },
+    { id: 'reviewer', dot: 'bg-cyan-500', userCount: 12, isSystem: false, permissions: ['dashboard.view', 'dashboard.export', 'questionnaire.view', 'evidence.view', 'approval.view', 'approval.review', 'report.view', 'analytics.view', 'audit.view'] },
+    { id: 'approver', dot: 'bg-emerald-500', userCount: 8, isSystem: false, permissions: ['dashboard.view', 'dashboard.export', 'questionnaire.view', 'evidence.view', 'approval.view', 'approval.review', 'approval.approve', 'report.view', 'report.build', 'analytics.view', 'analytics.export', 'audit.view', 'chain.verify'] },
+    { id: 'external_auditor', dot: 'bg-amber-500', userCount: 5, isSystem: false, permissions: ['dashboard.view', 'questionnaire.view', 'evidence.view', 'approval.view', 'report.view', 'analytics.view', 'audit.view', 'chain.verify'] },
+    { id: 'read_only', dot: 'bg-zinc-400', userCount: 22, isSystem: false, permissions: ['dashboard.view', 'report.view', 'analytics.view'] },
 ]
 
 const initialUsers: User[] = [
-    { id: 'u1', name: 'Layla Al-Rashid', email: 'layla@asyad.om', role: 'platform_admin', did: 'did:nexus:0xA1B2', vcHash: '0xvc9f...32ab', vcIssued: '2025-01-15', lastActive: '2 min ago', status: 'active', modules: ['GRI', 'MSX', 'IFRS S1', 'IFRS S2'] },
-    { id: 'u2', name: 'Ahmed Al-Balushi', email: 'ahmed@asyad.om', role: 'org_admin', did: 'did:nexus:0xC3D4', vcHash: '0xvc7a...19bc', vcIssued: '2025-01-15', lastActive: '1 hr ago', status: 'active', modules: ['GRI', 'MSX'] },
-    { id: 'u3', name: 'Sana Sharma', email: 'sana@asyad.in', role: 'approver', did: 'did:nexus:0xE5F6', vcHash: '0xvc4c...88de', vcIssued: '2025-02-01', lastActive: '3 hrs ago', status: 'active', modules: ['GRI', 'IFRS S1'] },
-    { id: 'u4', name: 'Marcus Weber', email: 'marcus@asyad.de', role: 'framework_owner', did: 'did:nexus:0xG7H8', vcHash: '0xvc2e...45ff', vcIssued: '2025-02-10', lastActive: 'Yesterday', status: 'active', modules: ['IFRS S2'] },
-    { id: 'u5', name: 'Priya Menon', email: 'priya@asyad.in', role: 'data_contributor', did: 'did:nexus:0xI9J0', vcHash: '0xvc1a...72ca', vcIssued: '2025-03-01', lastActive: '4 hrs ago', status: 'active', modules: ['GRI'] },
-    { id: 'u6', name: 'Kevin Lam', email: 'kevin@pwc.com', role: 'external_auditor', did: 'did:nexus:0xK1L2', vcHash: '0xvc6b...31ea', vcIssued: '2025-02-20', lastActive: '3 days ago', status: 'active', modules: ['GRI', 'MSX', 'IFRS S1', 'IFRS S2'] },
-    { id: 'u7', name: 'Fatima Malik', email: 'fatima@asyad.om', role: 'reviewer', did: 'did:nexus:0xM3N4', vcHash: '0xvc8d...09fa', vcIssued: '2025-03-05', lastActive: '6 hrs ago', status: 'active', modules: ['MSX', 'IFRS S2'] },
-    { id: 'u8', name: "James O'Brien", email: 'james@asyad.ie', role: 'reviewer', did: '—', vcHash: '—', vcIssued: '—', lastActive: 'Never', status: 'pending', modules: [] },
+    { id: 'u1', name: 'Layla Al-Rashid', email: 'layla@asyad.om', role: 'platform_admin', did: 'did:nexus:0xA1B2', vcHash: '0xvc9f...32ab', vcIssued: '2025-01-15', lastActive: { n: 2, unit: 'minute' }, status: 'active', modules: ['GRI', 'MSX', 'IFRS S1', 'IFRS S2'] },
+    { id: 'u2', name: 'Ahmed Al-Balushi', email: 'ahmed@asyad.om', role: 'org_admin', did: 'did:nexus:0xC3D4', vcHash: '0xvc7a...19bc', vcIssued: '2025-01-15', lastActive: { n: 1, unit: 'hour' }, status: 'active', modules: ['GRI', 'MSX'] },
+    { id: 'u3', name: 'Sana Sharma', email: 'sana@asyad.in', role: 'approver', did: 'did:nexus:0xE5F6', vcHash: '0xvc4c...88de', vcIssued: '2025-02-01', lastActive: { n: 3, unit: 'hour' }, status: 'active', modules: ['GRI', 'IFRS S1'] },
+    { id: 'u4', name: 'Marcus Weber', email: 'marcus@asyad.de', role: 'framework_owner', did: 'did:nexus:0xG7H8', vcHash: '0xvc2e...45ff', vcIssued: '2025-02-10', lastActive: { n: 1, unit: 'day' }, status: 'active', modules: ['IFRS S2'] },
+    { id: 'u5', name: 'Priya Menon', email: 'priya@asyad.in', role: 'data_contributor', did: 'did:nexus:0xI9J0', vcHash: '0xvc1a...72ca', vcIssued: '2025-03-01', lastActive: { n: 4, unit: 'hour' }, status: 'active', modules: ['GRI'] },
+    { id: 'u6', name: 'Kevin Lam', email: 'kevin@pwc.com', role: 'external_auditor', did: 'did:nexus:0xK1L2', vcHash: '0xvc6b...31ea', vcIssued: '2025-02-20', lastActive: { n: 3, unit: 'day' }, status: 'active', modules: ['GRI', 'MSX', 'IFRS S1', 'IFRS S2'] },
+    { id: 'u7', name: 'Fatima Malik', email: 'fatima@asyad.om', role: 'reviewer', did: 'did:nexus:0xM3N4', vcHash: '0xvc8d...09fa', vcIssued: '2025-03-05', lastActive: { n: 6, unit: 'hour' }, status: 'active', modules: ['MSX', 'IFRS S2'] },
+    { id: 'u8', name: "James O'Brien", email: 'james@asyad.ie', role: 'reviewer', did: '—', vcHash: '—', vcIssued: '—', lastActive: null, status: 'pending', modules: [] },
 ]
+
+// Action text is in the dictionary (`auditActions`), matched by index.
+const auditLog: { actor: string | null; ago: Ago; type: 'issue' | 'grant' | 'revoke' | 'invite' | 'audit'; did: string; txHash: string; severity: 'info' | 'warning' | 'danger' }[] = [
+    { actor: 'Layla Al-Rashid', ago: { n: 2, unit: 'minute' }, type: 'issue', did: 'did:nexus:0xA1B2', txHash: '0x1a2b3c...', severity: 'info' },
+    { actor: 'Layla Al-Rashid', ago: { n: 1, unit: 'hour' }, type: 'grant', did: 'did:nexus:0xA1B2', txHash: '0x4d5e6f...', severity: 'info' },
+    { actor: null, ago: { n: 3, unit: 'hour' }, type: 'revoke', did: 'system', txHash: '0x7g8h9i...', severity: 'warning' },
+    { actor: 'Ahmed Al-Balushi', ago: { n: 1, unit: 'day' }, type: 'invite', did: 'did:nexus:0xC3D4', txHash: '—', severity: 'info' },
+    { actor: 'Layla Al-Rashid', ago: { n: 3, unit: 'day' }, type: 'revoke', did: 'did:nexus:0xA1B2', txHash: '0xrev001...', severity: 'danger' },
+    { actor: null, ago: { n: 5, unit: 'day' }, type: 'audit', did: 'system', txHash: '0xaudit...', severity: 'info' },
+]
+
+const MODULES = ['GRI', 'MSX', 'IFRS S1', 'IFRS S2']
 
 type Tab = 'users' | 'roles' | 'matrix' | 'audit'
 
+// ─── Local UI ─────────────────────────────────────────────────────────────────
+
+function Modal({ title, subtitle, onClose, closeLabel, children, footer }: { title: ReactNode; subtitle?: ReactNode; onClose: () => void; closeLabel: string; children: ReactNode; footer: ReactNode }) {
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+    }, [onClose])
+    return createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true">
+            <div className="absolute inset-0 bg-zinc-900/30" onClick={onClose} />
+            <div className="relative w-full max-w-lg bg-surface border border-line rounded-card shadow-pop max-h-[calc(100vh-2rem)] flex flex-col">
+                <div className="flex items-start justify-between gap-4 px-5 sm:px-6 pt-5 pb-4 border-b border-line">
+                    <div className="min-w-0">
+                        <h2 className="text-base font-semibold text-zinc-900">{title}</h2>
+                        {subtitle && <p className="text-[13px] text-zinc-500 mt-0.5">{subtitle}</p>}
+                    </div>
+                    <Button variant="ghost" size="sm" className="w-8 px-0 -mr-1" aria-label={closeLabel} onClick={onClose}><X className="w-4 h-4" /></Button>
+                </div>
+                <div className="px-5 sm:px-6 py-5 space-y-4 overflow-y-auto">{children}</div>
+                <div className="px-5 sm:px-6 py-4 border-t border-line flex justify-end gap-2">{footer}</div>
+            </div>
+        </div>,
+        document.body,
+    )
+}
+
+function RoleTag({ role, label }: { role: Role; label: string }) {
+    return (
+        <span className="inline-flex items-center gap-1.5 h-6 px-2 rounded-md bg-zinc-100 text-zinc-700 text-xs font-medium whitespace-nowrap">
+            <span className={clsx('w-1.5 h-1.5 rounded-full', role.dot)} />
+            {label}
+        </span>
+    )
+}
+
+function Callout({ tone, icon: Icon, children }: { tone: 'info' | 'success' | 'warning'; icon: React.ElementType; children: ReactNode }) {
+    const styles = {
+        info: 'bg-zinc-50 border-line text-zinc-600 [&_svg]:text-zinc-500',
+        success: 'bg-emerald-50/60 border-emerald-200/70 text-emerald-900 [&_svg]:text-emerald-600',
+        warning: 'bg-amber-50/70 border-amber-200/70 text-amber-900 [&_svg]:text-amber-600',
+    }[tone]
+    return (
+        <div className={clsx('flex items-start gap-3 rounded-xl border p-3.5 text-[13px] leading-relaxed', styles)}>
+            <Icon className="w-4 h-4 shrink-0 mt-0.5" />
+            <div>{children}</div>
+        </div>
+    )
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function IAMCenter() {
+    const s = useStrings(iamCenterStrings)
+    const f = useFormat()
+    const { locale } = useLanguage()
+    const rtf = useMemo(() => new Intl.RelativeTimeFormat(LOCALES.find(l => l.code === locale)!.intl, { numeric: 'auto' }), [locale])
+    const ago = (a: Ago) => (a ? rtf.format(-a.n, a.unit) : s.never)
+
     const [tab, setTab] = useState<Tab>('users')
     const [roles, setRoles] = useState<Role[]>(initialRoles)
     const [users, setUsers] = useState<User[]>(initialUsers)
@@ -150,9 +176,10 @@ export default function IAMCenter() {
     const [inviteForm, setInviteForm] = useState({ name: '', email: '', role: 'data_contributor' as RoleId, modules: [] as string[] })
 
     const getRoleById = (id: RoleId) => roles.find(r => r.id === id)!
+    const roleName = (id: RoleId) => s.roles[id].name
 
     const filteredUsers = users.filter(u =>
-        (u.name + u.email + u.role).toLowerCase().includes(search.toLowerCase()) &&
+        (u.name + u.email + u.role + roleName(u.role)).toLowerCase().includes(search.toLowerCase()) &&
         (selectedRole ? u.role === selectedRole : true)
     )
 
@@ -176,392 +203,358 @@ export default function IAMCenter() {
         }))
     }
 
-    const riskBadge = (risk: 'low' | 'medium' | 'high') => ({
-        low: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20',
-        medium: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
-        high: 'bg-rose-500/10 text-rose-700 border-rose-500/20',
-    }[risk])
+    const sendInvite = () => {
+        if (!inviteForm.name || !inviteForm.email) return
+        setUsers(prev => [...prev, { id: `u${Date.now()}`, name: inviteForm.name, email: inviteForm.email, role: inviteForm.role, did: '—', vcHash: '—', vcIssued: '—', lastActive: null, status: 'pending', modules: inviteForm.modules }])
+        setInviteForm({ name: '', email: '', role: 'data_contributor', modules: [] })
+        setShowInviteModal(false)
+    }
 
-    const statusBadge = (status: User['status']) => ({
-        active: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20',
-        pending: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
-        suspended: 'bg-rose-500/10 text-rose-700 border-rose-500/20',
-    }[status])
-
-    const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
-        { id: 'users', label: 'Users', icon: Users },
-        { id: 'roles', label: 'Roles', icon: Shield },
-        { id: 'matrix', label: 'Permission Matrix', icon: Key },
-        { id: 'audit', label: 'Access Audit', icon: Activity },
-    ]
+    const activeCount = users.filter(u => u.status === 'active').length
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-            {/* Header */}
-            <div className="flex items-start justify-between bg-white/60 backdrop-blur-xl border border-black/5 p-8 rounded-[2rem] shadow-sm">
-                <div>
-                    <h1 className="text-3xl font-bold text-black tracking-tight mb-2 flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center shadow-inner">
-                            <Shield className="w-5 h-5 text-indigo-600" />
-                        </div>
-                        Identity & Access Management
-                    </h1>
-                    <p className="text-sm font-medium text-black/60 leading-relaxed">Enterprise RBAC with DID/VC-signed role assignments anchored on-chain</p>
-                </div>
-                <button onClick={() => setShowInviteModal(true)} className="flex items-center gap-2 px-6 py-3.5 bg-black text-white rounded-xl text-xs font-bold uppercase tracking-widest shadow-xl shadow-black/20 hover:scale-[1.02] transition-transform">
-                    <Plus className="w-4 h-4" /> Invite User
-                </button>
-            </div>
+        <div>
+            <PageHeader
+                title={s.title}
+                description={s.description}
+                actions={<Button variant="primary" icon={UserPlus} onClick={() => setShowInviteModal(true)}>{s.inviteUser}</Button>}
+            />
 
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[
-                    { label: 'Total Users', value: users.length, sub: `${users.filter(u => u.status === 'active').length} active`, color: 'text-indigo-600', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20' },
-                    { label: 'Roles Defined', value: roles.length, sub: `${roles.filter(r => !r.isSystem).length} custom`, color: 'text-violet-600', bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
-                    { label: 'VCs Issued', value: users.filter(u => u.vcHash !== '—').length, sub: 'on-chain anchored', color: 'text-emerald-600', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
-                    { label: 'Pending Onboarding', value: users.filter(u => u.status === 'pending').length, sub: 'awaiting DID+VC', color: 'text-amber-600', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
-                ].map(s => (
-                    <div key={s.label} className={`bg-white/60 backdrop-blur-xl rounded-[2rem] p-6 border ${s.border} shadow-sm relative overflow-hidden group hover:shadow-md transition-all`}>
-                        <div className={`absolute top-0 right-0 w-32 h-32 ${s.bg} rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:scale-110 transition-transform`} />
-                        <div className="relative">
-                            <div className={`inline-flex p-2.5 rounded-xl ${s.bg} mb-4 shadow-inner`}>
-                                <Shield className={`w-5 h-5 ${s.color}`} />
+            <div className="space-y-6">
+                {/* Stats */}
+                <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+                    <StatCard label={s.stats.totalUsers} icon={Users} value={f.number(users.length)} deltaLabel={fmt(s.stats.activeSub, { count: activeCount })} />
+                    <StatCard label={s.stats.roles} icon={Shield} value={f.number(roles.length)} deltaLabel={fmt(s.stats.customSub, { count: roles.filter(r => !r.isSystem).length })} />
+                    <StatCard label={s.stats.vcs} icon={BadgeCheck} value={f.number(users.filter(u => u.vcHash !== '—').length)} deltaLabel={s.stats.vcsSub} />
+                    <StatCard label={s.stats.pending} icon={Clock} value={f.number(users.filter(u => u.status === 'pending').length)} deltaLabel={s.stats.pendingSub} />
+                </div>
+
+                {/* Callout */}
+                <Card className="flex items-start gap-4">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                        <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                        <h3 className="text-[15px] font-semibold text-zinc-900">{s.calloutTitle}</h3>
+                        <p className="text-[13px] text-zinc-600 leading-relaxed mt-1 max-w-4xl">{s.calloutBody}</p>
+                    </div>
+                </Card>
+
+                <Tabs
+                    value={tab}
+                    onChange={setTab}
+                    items={[
+                        { value: 'users', label: <><Users className="w-3.5 h-3.5" />{s.tabs.users}</>, count: users.length },
+                        { value: 'roles', label: <><Shield className="w-3.5 h-3.5" />{s.tabs.roles}</>, count: roles.length },
+                        { value: 'matrix', label: <><Key className="w-3.5 h-3.5" />{s.tabs.matrix}</> },
+                        { value: 'audit', label: <><Activity className="w-3.5 h-3.5" />{s.tabs.audit}</> },
+                    ]}
+                />
+
+                {/* ── Users ── */}
+                {tab === 'users' && (
+                    <Card>
+                        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                            <div className="relative flex-1 sm:max-w-md">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                                <input value={search} onChange={e => setSearch(e.target.value)} type="text" placeholder={s.searchPlaceholder} aria-label={s.searchLabel} className={inputClass + ' pl-9'} />
                             </div>
-                            <div className="text-3xl font-bold text-black mb-1">{s.value}</div>
-                            <div className="text-[10px] font-bold uppercase tracking-widest text-black/50">{s.sub}</div>
-                            <div className="text-xs font-bold text-black mt-2">{s.label}</div>
+                            <select value={selectedRole ?? ''} onChange={e => setSelectedRole((e.target.value as RoleId) || null)} aria-label={s.roleFilterLabel} className={inputClass + ' sm:w-48 cursor-pointer'}>
+                                <option value="">{s.allRoles}</option>
+                                {roles.map(r => <option key={r.id} value={r.id}>{roleName(r.id)}</option>)}
+                            </select>
                         </div>
-                    </div>
-                ))}
-            </div>
 
-            {/* Callout */}
-            <div className="bg-indigo-50 border border-indigo-100 rounded-[2rem] p-6 shadow-sm flex items-start gap-5 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-transparent pointer-events-none" />
-                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 shadow-inner z-10">
-                    <Sparkles className="w-5 h-5 text-indigo-500" />
-                </div>
-                <div className="z-10">
-                    <p className="text-sm font-bold text-black mb-1.5 uppercase tracking-widest">Why blockchain-native IAM matters for ESG</p>
-                    <p className="text-xs font-medium text-black/60 leading-relaxed">
-                        Traditional ESG platforms store approvals in a centralized DB — any admin can silently alter records.
-                        Nexus issues a <strong className="text-indigo-600">Verifiable Credential (VC)</strong> for every role assignment and approval action.
-                        Each VC is signed with the user's <strong className="text-indigo-600">DID</strong>, hashed, and anchored on <strong className="text-indigo-600">zkEVM</strong>.
-                        Regulators can independently verify who approved what, when — without trusting Nexus's servers.
-                    </p>
-                </div>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex gap-2 bg-white rounded-2xl p-1.5 border border-black/5 w-fit shadow-sm">
-                {tabs.map(t => {
-                    const Icon = t.icon
-                    return (
-                        <button key={t.id} onClick={() => setTab(t.id)} className={clsx('flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold tracking-widest uppercase transition-all', tab === t.id ? 'bg-indigo-500/10 text-indigo-600 shadow-sm border border-indigo-500/10' : 'text-black/50 hover:text-black hover:bg-black/5')}>
-                            <Icon className="w-4 h-4" />{t.label}
-                        </button>
-                    )
-                })}
-            </div>
-
-            {/* ── USERS TAB ── */}
-            {tab === 'users' && (
-                <div className="space-y-6">
-                    <div className="flex items-center gap-4 bg-white/60 p-2 border border-black/5 backdrop-blur-xl rounded-[1.5rem] shadow-sm">
-                        <div className="relative flex-1 max-w-md">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/30" />
-                            <input value={search} onChange={e => setSearch(e.target.value)} type="text" placeholder="Search users by name, email, or role..." className="w-full pl-11 pr-4 py-3 rounded-xl bg-white border border-black/5 text-sm font-medium text-black focus:outline-none focus:ring-2 focus:ring-indigo-500/30 shadow-inner" />
-                        </div>
-                        <select value={selectedRole ?? ''} onChange={e => setSelectedRole((e.target.value as RoleId) || null)} className="px-4 py-3 rounded-xl bg-white border border-black/5 text-xs font-bold uppercase tracking-widest text-black/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 cursor-pointer shadow-inner">
-                            <option value="">All Roles</option>
-                            {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                        </select>
-                    </div>
-                    <div className="bg-white/60 backdrop-blur-xl rounded-[2rem] border border-black/5 overflow-hidden shadow-sm">
-                        <table className="w-full">
-                            <thead>
-                                <tr className="border-b border-black/5 bg-black/[0.02]">
-                                    {['User', 'Role', 'Modules', 'DID / VC', 'Status', 'Last Active', 'Actions'].map(h => (
-                                        <th key={h} className="text-left px-6 py-4 text-[10px] font-bold text-black/40 uppercase tracking-widest">{h}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredUsers.map(user => {
-                                    const role = getRoleById(user.role)
-                                    return (
-                                        <tr key={user.id} className="border-b border-black/5 hover:bg-black/[0.02] transition-colors">
-                                            <td className="px-6 py-5">
-                                                <div className="flex items-center gap-4">
-                                                    <div className={`w-10 h-10 rounded-xl ${role.bgColor} ${role.borderColor} border flex items-center justify-center text-sm font-bold ${role.color} shadow-inner`}>
-                                                        {user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-sm font-bold text-black">{user.name}</div>
-                                                        <div className="text-[10px] font-bold tracking-widest text-black/40 uppercase mt-0.5">{user.email}</div>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-5">
-                                                <span className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border ${role.bgColor} ${role.borderColor} ${role.color}`}>{role.name}</span>
-                                            </td>
-                                            <td className="px-6 py-5">
-                                                <div className="flex flex-wrap gap-1.5">
-                                                    {user.modules.length === 0 ? <span className="text-[10px] font-bold uppercase tracking-widest text-black/30">None</span> : user.modules.map(m => (
-                                                        <span key={m} className="px-2 py-1 bg-white border border-black/10 rounded-lg text-[10px] font-bold uppercase tracking-widest text-black/60 shadow-sm">{m}</span>
-                                                    ))}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-5">
-                                                {user.vcHash === '—' ? (
-                                                    <button onClick={() => issueVC(user.id)} disabled={vcIssueing === user.id} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-500/20 transition-colors disabled:opacity-50 shadow-sm">
-                                                        {vcIssueing === user.id ? <><div className="w-3 h-3 border border-emerald-500 border-t-transparent rounded-full animate-spin" />Issuing...</> : <><Link2 className="w-3.5 h-3.5" />Issue VC</>}
-                                                    </button>
-                                                ) : (
-                                                    <div>
-                                                        <div className="font-mono text-[10px] text-black/50 font-medium">{user.did}</div>
-                                                        <div className="font-mono text-[10px] text-indigo-600 font-bold mt-1 bg-indigo-500/5 px-2 py-0.5 rounded inline-block">{user.vcHash}</div>
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-5">
-                                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${statusBadge(user.status)}`}>{user.status}</span>
-                                            </td>
-                                            <td className="px-6 py-5 text-[10px] font-bold uppercase tracking-widest text-black/40">
-                                                <div className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />{user.lastActive}</div>
-                                            </td>
-                                            <td className="px-6 py-5">
-                                                <div className="flex items-center gap-2">
-                                                    <button onClick={() => setShowGrantModal(user)} title="Edit Role" className="p-2 rounded-xl bg-white hover:bg-black/5 border border-black/5 text-black/40 hover:text-indigo-600 transition-all shadow-sm"><Edit2 className="w-4 h-4" /></button>
-                                                    <button title="View Activity" className="p-2 rounded-xl bg-white hover:bg-black/5 border border-black/5 text-black/40 hover:text-black transition-all shadow-sm"><Eye className="w-4 h-4" /></button>
-                                                    <button title="Suspend" className="p-2 rounded-xl bg-white hover:bg-rose-50 border border-black/5 text-black/40 hover:text-rose-600 transition-all shadow-sm"><Lock className="w-4 h-4" /></button>
-                                                </div>
-                                            </td>
+                        {filteredUsers.length === 0 ? (
+                            <EmptyState
+                                icon={Users}
+                                title={s.noUsersTitle}
+                                description={s.noUsersBody}
+                                action={<Button size="sm" onClick={() => { setSearch(''); setSelectedRole(null) }}>{s.clearFilters}</Button>}
+                            />
+                        ) : (
+                            <div className={tableClass.wrap}>
+                                <table className={tableClass.table}>
+                                    <thead>
+                                        <tr>
+                                            {[s.th.user, s.th.role, s.th.modules, s.th.didVc, s.th.status, s.th.lastActive].map(h => (
+                                                <th key={h} className={tableClass.th}>{h}</th>
+                                            ))}
+                                            <th className={tableClass.th + ' text-right'}>{s.th.actions}</th>
                                         </tr>
-                                    )
-                                })}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
+                                    </thead>
+                                    <tbody>
+                                        {filteredUsers.map(user => {
+                                            const role = getRoleById(user.role)
+                                            return (
+                                                <tr key={user.id} className={tableClass.tr}>
+                                                    <td className={tableClass.td}>
+                                                        <div className="flex items-center gap-3 min-w-[200px]">
+                                                            <div className="w-8 h-8 rounded-full bg-zinc-100 text-zinc-700 flex items-center justify-center text-xs font-semibold shrink-0">
+                                                                {user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <div className="text-sm font-medium text-zinc-900">{user.name}</div>
+                                                                <div className="text-xs text-zinc-500">{user.email}</div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className={tableClass.td}><RoleTag role={role} label={roleName(role.id)} /></td>
+                                                    <td className={tableClass.td}>
+                                                        <div className="flex flex-wrap gap-1 min-w-[140px]">
+                                                            {user.modules.length === 0
+                                                                ? <span className="text-xs text-zinc-400">{s.none}</span>
+                                                                : user.modules.map(m => <span key={m} className="px-1.5 h-5 inline-flex items-center rounded border border-line text-[11px] text-zinc-600 whitespace-nowrap">{m}</span>)}
+                                                        </div>
+                                                    </td>
+                                                    <td className={tableClass.td}>
+                                                        {user.vcHash === '—' ? (
+                                                            <Button size="sm" icon={vcIssueing === user.id ? Loader2 : Link2} disabled={vcIssueing === user.id} onClick={() => issueVC(user.id)} className={vcIssueing === user.id ? '[&_svg]:animate-spin' : ''}>
+                                                                {vcIssueing === user.id ? s.issuing : s.issueVc}
+                                                            </Button>
+                                                        ) : (
+                                                            <div className="whitespace-nowrap">
+                                                                <div className="font-mono text-xs text-zinc-500">{user.did}</div>
+                                                                <div className="font-mono text-xs text-zinc-900 mt-0.5">{user.vcHash}</div>
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td className={tableClass.td}><Badge tone={STATUS_TONE[user.status]} dot>{s.userStatus[user.status]}</Badge></td>
+                                                    <td className={tableClass.td + ' whitespace-nowrap text-[13px] text-zinc-500'}>{ago(user.lastActive)}</td>
+                                                    <td className={tableClass.td}>
+                                                        <div className="flex items-center justify-end gap-0.5">
+                                                            <Button variant="ghost" size="sm" className="w-8 px-0" aria-label={s.editRole} title={s.editRole} onClick={() => setShowGrantModal(user)}><Edit2 className="w-4 h-4" /></Button>
+                                                            <Button variant="ghost" size="sm" className="w-8 px-0" aria-label={s.viewActivity} title={s.viewActivity}><Eye className="w-4 h-4" /></Button>
+                                                            <Button variant="ghost" size="sm" className="w-8 px-0 hover:text-rose-600" aria-label={s.suspend} title={s.suspend}><Lock className="w-4 h-4" /></Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </Card>
+                )}
 
-            {/* ── ROLES TAB ── */}
-            {tab === 'roles' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {roles.map(role => (
-                        <div key={role.id} className={`bg-white rounded-[2rem] p-6 border ${role.borderColor} shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow`}>
-                            <div className={`absolute top-0 right-0 w-32 h-32 ${role.bgColor} rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:scale-125 transition-transform`} />
-                            <div className="relative">
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`px-3 py-1.5 rounded-xl ${role.bgColor} border ${role.borderColor} shadow-inner`}>
-                                            <span className={`text-[10px] uppercase tracking-widest font-bold ${role.color}`}>{role.name}</span>
-                                        </div>
-                                        {role.isSystem && <span className="px-2 py-1 rounded-full text-[9px] font-bold bg-black/5 border border-black/10 text-black/50 uppercase tracking-widest">System</span>}
+                {/* ── Roles ── */}
+                {tab === 'roles' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {roles.map(role => (
+                            <Card key={role.id} className="flex flex-col">
+                                <div className="flex items-start justify-between gap-3 mb-2">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <span className={clsx('w-2 h-2 rounded-full shrink-0', role.dot)} />
+                                        <h3 className="text-[15px] font-semibold text-zinc-900 truncate">{roleName(role.id)}</h3>
+                                        {role.isSystem && <Badge tone="neutral">{s.system}</Badge>}
                                     </div>
-                                    <div className="text-right">
-                                        <div className="text-xl font-bold text-black leading-none">{role.userCount}</div>
-                                        <div className="text-[9px] font-bold uppercase tracking-widest text-black/40 mt-1">users</div>
+                                    <div className="text-right shrink-0">
+                                        <div className="text-lg font-semibold text-zinc-900 leading-none tabular">{f.number(role.userCount)}</div>
+                                        <div className="text-xs text-zinc-500 mt-1">{s.users}</div>
                                     </div>
                                 </div>
-                                <p className="text-xs font-medium text-black/50 mb-6 leading-relaxed min-h-[40px]">{role.description}</p>
-                                <div className="flex items-end justify-between">
-                                    <div className="flex flex-wrap gap-1.5 max-w-[70%]">
-                                        {role.permissions.slice(0, 3).map(p => <span key={p} className="px-2 py-1 bg-black/[0.02] border border-black/5 rounded-lg text-[9px] uppercase tracking-widest text-black/40 font-bold shadow-inner">{p.split('.')[1]}</span>)}
-                                        {role.permissions.length > 3 && <span className="px-2 py-1 bg-black/[0.02] border border-black/5 rounded-lg text-[9px] uppercase tracking-widest text-black/60 font-bold shadow-inner">+{role.permissions.length - 3}</span>}
-                                    </div>
-                                    <button onClick={() => setTab('matrix')} className={`flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest ${role.color} hover:opacity-80 transition-opacity`}>
-                                        <Key className="w-3 h-3" /> Edit
-                                    </button>
+                                <p className="text-[13px] text-zinc-500 leading-relaxed mb-4">{s.roles[role.id].description}</p>
+                                <div className="flex flex-wrap gap-1 mb-4">
+                                    {role.permissions.slice(0, 3).map(p => <span key={p} className="px-1.5 h-5 inline-flex items-center rounded bg-zinc-100 text-[11px] text-zinc-600">{s.perms[p]}</span>)}
+                                    {role.permissions.length > 3 && <span className="px-1.5 h-5 inline-flex items-center rounded bg-zinc-100 text-[11px] text-zinc-500 tabular">+{role.permissions.length - 3}</span>}
                                 </div>
+                                <div className="mt-auto pt-4 border-t border-line flex items-center justify-between">
+                                    <span className="text-xs text-zinc-500 tabular">{fmt(s.permissionsCount, { count: role.permissions.length })}</span>
+                                    <Button variant="ghost" size="sm" icon={Key} onClick={() => setTab('matrix')} className="-mr-2">{s.editPermissions}</Button>
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+
+                {/* ── Matrix ── */}
+                {tab === 'matrix' && (
+                    <Card padded={false}>
+                        <div className="flex flex-col lg:flex-row lg:items-center gap-3 px-5 sm:px-6 py-4 border-b border-line">
+                            <div className="flex items-start gap-2 text-[13px] text-zinc-600 flex-1">
+                                <Info className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
+                                <span>{s.matrixHint}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                                {(['low', 'medium', 'high'] as const).map(r => <Badge key={r} tone={RISK_TONE[r]} dot>{s.risk[r]}</Badge>)}
                             </div>
                         </div>
-                    ))}
-                </div>
-            )}
-
-            {/* ── MATRIX TAB ── */}
-            {tab === 'matrix' && (
-                <div className="space-y-6">
-                    <div className="flex items-center gap-4 bg-white/60 p-4 border border-black/5 backdrop-blur-xl rounded-[1.5rem] shadow-sm">
-                        <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0">
-                            <Info className="w-4 h-4 text-indigo-600" />
-                        </div>
-                        <span className="text-xs font-medium text-black/60">Click any cell to toggle a permission. System roles (<span className="text-rose-600 font-bold">Platform Admin</span>) are immutable.</span>
-                        <div className="ml-auto flex gap-3 text-[10px] font-bold uppercase tracking-widest">
-                            {(['low', 'medium', 'high'] as const).map(r => <span key={r} className={`px-2.5 py-1 rounded-full border ${riskBadge(r)} capitalize shadow-sm`}>{r} risk</span>)}
-                        </div>
-                    </div>
-
-                    <div className="bg-white/60 backdrop-blur-xl rounded-[2rem] border border-black/5 overflow-hidden shadow-sm">
-                        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-black/10 scrollbar-track-transparent">
-                            <table className="w-full text-xs">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
                                 <thead>
-                                    <tr className="border-b border-black/5 bg-black/[0.02]">
-                                        <th className="sticky left-0 bg-white/95 backdrop-blur z-10 text-left px-6 py-5 text-[10px] uppercase tracking-widest text-black/40 font-bold min-w-[200px] border-r border-black/5">Permission Entity</th>
+                                    <tr>
+                                        <th className="sticky left-0 z-10 bg-zinc-50 text-left text-xs font-medium text-zinc-500 px-5 sm:px-6 py-3 border-b border-r border-line min-w-[220px]">{s.permissionEntity}</th>
                                         {roles.map(r => (
-                                            <th key={r.id} className={`px-4 py-5 text-center min-w-[120px] ${r.color} font-bold align-top border-r border-black/[0.02] last:border-0`}>
-                                                <div className="text-[11px] uppercase tracking-widest">{r.name.split(' ')[0]}</div>
-                                                <div className="text-black/40 font-medium text-[9px] uppercase tracking-widest mt-1">{r.name.split(' ').slice(1).join(' ')}</div>
+                                            <th key={r.id} className="px-3 py-3 text-center text-xs font-medium text-zinc-700 border-b border-line bg-zinc-50/60 min-w-[96px] align-bottom">
+                                                <span className={clsx('inline-block w-1.5 h-1.5 rounded-full mb-1', r.dot)} />
+                                                <div className="leading-tight">{roleName(r.id)}</div>
                                             </th>
                                         ))}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {permissionGroups.map(group => (
-                                        <>
-                                            <tr key={`g-${group.group}`} className="bg-black/[0.03]">
-                                                <td colSpan={roles.length + 1} className="px-6 py-3 text-[10px] font-bold text-black/60 uppercase tracking-widest">{group.icon} {group.group}</td>
+                                        <Fragment key={group.id}>
+                                            <tr>
+                                                <td colSpan={roles.length + 1} className="px-5 sm:px-6 py-2 text-xs font-semibold text-zinc-700 bg-zinc-50/80 border-b border-line">
+                                                    <span className="sticky left-5">{s.groups[group.id]}</span>
+                                                </td>
                                             </tr>
                                             {group.perms.map(perm => (
-                                                <tr key={perm.id} className="border-t border-black/5 hover:bg-black/[0.01] transition-colors">
-                                                    <td className="sticky left-0 bg-white z-10 px-6 py-4 border-r border-black/5 shadow-[4px_0_10px_rgba(0,0,0,0.01)]">
-                                                        <div className="flex items-center justify-between gap-3 mb-1.5">
-                                                            <span className="text-black font-mono font-bold text-[10px]">{perm.id}</span>
-                                                            <span className={`px-2 py-0.5 rounded-full border text-[8px] font-bold uppercase tracking-widest ${riskBadge(perm.risk)}`}>{perm.risk}</span>
+                                                <tr key={perm.id} className="hover:bg-zinc-50/50 transition-colors">
+                                                    <td className="sticky left-0 z-10 bg-white px-5 sm:px-6 py-3 border-b border-r border-line">
+                                                        <div className="flex items-center justify-between gap-3">
+                                                            <div className="min-w-0">
+                                                                <div className="text-[13px] font-medium text-zinc-900">{s.perms[perm.id]}</div>
+                                                                <div className="font-mono text-[11px] text-zinc-400">{perm.id}</div>
+                                                            </div>
+                                                            <Badge tone={RISK_TONE[perm.risk]}>{s.riskShort[perm.risk]}</Badge>
                                                         </div>
-                                                        <div className="text-[11px] font-medium text-black/50">{perm.label}</div>
                                                     </td>
                                                     {roles.map(role => {
                                                         const hasPerm = role.permissions.includes(perm.id)
                                                         const isLocked = role.id === 'platform_admin'
                                                         return (
-                                                            <td key={role.id} className="px-4 py-4 text-center border-r border-black/[0.02] last:border-0">
-                                                                <button onClick={() => !isLocked && togglePermission(role.id, perm.id)} disabled={isLocked}
-                                                                    className={clsx('w-8 h-8 rounded-xl flex items-center justify-center mx-auto transition-all shadow-sm',
+                                                            <td key={role.id} className="px-3 py-3 text-center border-b border-line">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => !isLocked && togglePermission(role.id, perm.id)}
+                                                                    disabled={isLocked}
+                                                                    aria-pressed={hasPerm}
+                                                                    aria-label={fmt(s.toggleLabel, { role: roleName(role.id), perm: s.perms[perm.id] })}
+                                                                    title={hasPerm ? s.granted : s.notGranted}
+                                                                    className={clsx(
+                                                                        'w-7 h-7 rounded-md flex items-center justify-center mx-auto transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40',
                                                                         hasPerm
-                                                                            ? isLocked ? 'bg-emerald-50 border border-emerald-200 cursor-not-allowed' : 'bg-emerald-100 border border-emerald-300 hover:bg-emerald-200 hover:scale-105'
-                                                                            : isLocked ? 'bg-black/5 border border-black/10 cursor-not-allowed opacity-50' : 'bg-white border border-black/10 hover:border-emerald-300 hover:bg-emerald-50'
-                                                                    )}>
-                                                                    {hasPerm ? <Check className="w-4 h-4 text-emerald-600" /> : <X className="w-3.5 h-3.5 text-black/20" />}
+                                                                            ? isLocked ? 'bg-zinc-100 text-zinc-500 cursor-not-allowed' : 'bg-zinc-900 text-white hover:bg-zinc-700'
+                                                                            : isLocked ? 'border border-line cursor-not-allowed opacity-50' : 'border border-line text-zinc-300 hover:border-zinc-400 hover:text-zinc-500',
+                                                                    )}
+                                                                >
+                                                                    {hasPerm ? (isLocked ? <Lock className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />) : <X className="w-3 h-3" />}
                                                                 </button>
                                                             </td>
                                                         )
                                                     })}
                                                 </tr>
                                             ))}
-                                        </>
+                                        </Fragment>
                                     ))}
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-                </div>
-            )}
+                    </Card>
+                )}
 
-            {/* ── AUDIT TAB ── */}
-            {tab === 'audit' && (
-                <div className="space-y-4">
-                    {[
-                        { actor: 'Layla Al-Rashid', action: 'Issued VC to Kevin Lam (External Auditor)', time: '2 min ago', type: 'issue', did: 'did:nexus:0xA1B2', txHash: '0x1a2b3c...', severity: 'info' },
-                        { actor: 'Layla Al-Rashid', action: 'Role changed: Priya Menon → Data Contributor', time: '1 hr ago', type: 'grant', did: 'did:nexus:0xA1B2', txHash: '0x4d5e6f...', severity: 'info' },
-                        { actor: 'System', action: 'Permission matrix updated: Reviewer role — removed evidence.upload', time: '3 hrs ago', type: 'revoke', did: 'system', txHash: '0x7g8h9i...', severity: 'warning' },
-                        { actor: "Ahmed Al-Balushi", action: "Invited James O'Brien as Reviewer", time: '1 day ago', type: 'invite', did: 'did:nexus:0xC3D4', txHash: '—', severity: 'info' },
-                        { actor: 'Layla Al-Rashid', action: 'VC Revoked: Former contractor DID:nexus:0xOLD1', time: '3 days ago', type: 'revoke', did: 'did:nexus:0xA1B2', txHash: '0xrev001...', severity: 'danger' },
-                        { actor: 'System', action: 'Periodic VC validity audit — all 7 VCs valid', time: '5 days ago', type: 'audit', did: 'system', txHash: '0xaudit...', severity: 'info' },
-                    ].map((entry, i) => (
-                        <div key={i} className="bg-white/60 backdrop-blur-xl border border-black/5 rounded-[1.5rem] p-5 flex items-start gap-5 hover:bg-white hover:shadow-md transition-all shadow-sm">
-                            <div className={clsx('w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-inner', entry.severity === 'danger' ? 'bg-rose-50' : entry.severity === 'warning' ? 'bg-amber-50' : 'bg-indigo-50')}>
-                                {entry.type === 'issue' ? <Link2 className={`w-5 h-5 ${entry.severity === 'danger' ? 'text-rose-500' : entry.severity === 'warning' ? 'text-amber-500' : 'text-indigo-500'}`} /> :
-                                    entry.type === 'revoke' ? <XCircle className="w-5 h-5 text-rose-500" /> :
-                                        entry.type === 'grant' ? <CheckCircle2 className="w-5 h-5 text-emerald-500" /> :
-                                            <Activity className="w-5 h-5 text-indigo-500" />}
-                            </div>
-                            <div className="flex-1">
-                                <p className="text-sm font-bold text-black">{entry.action}</p>
-                                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
-                                    <span className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Actor: <span className="text-black/60">{entry.actor}</span></span>
-                                    <span className="text-black/20 text-xs">•</span>
-                                    <span className="font-mono text-[10px] font-bold text-black/50 bg-black/5 px-2 py-0.5 rounded">{entry.did}</span>
-                                    {entry.txHash !== '—' && <><span className="text-black/20 text-xs">•</span><span className="font-mono text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">{entry.txHash}</span></>}
-                                </div>
-                            </div>
-                            <div className="text-[10px] font-bold uppercase tracking-widest text-black/40 flex-shrink-0 bg-black/[0.02] px-3 py-1.5 rounded-lg border border-black/5 flex items-center gap-1.5"><Clock className="w-3 h-3" />{entry.time}</div>
-                        </div>
-                    ))}
-                </div>
-            )}
+                {/* ── Audit ── */}
+                {tab === 'audit' && (
+                    <Card padded={false}>
+                        <ul className="divide-y divide-line">
+                            {auditLog.map((entry, i) => {
+                                const iconTone = entry.type === 'revoke' ? 'bg-rose-50 text-rose-600' : entry.type === 'grant' ? 'bg-emerald-50 text-emerald-600' : 'bg-zinc-100 text-zinc-600'
+                                const Icon = entry.type === 'issue' ? Link2 : entry.type === 'revoke' ? XCircle : entry.type === 'grant' ? CheckCircle2 : entry.type === 'invite' ? Plus : Activity
+                                return (
+                                    <li key={i} className="flex items-start gap-3 sm:gap-4 px-5 sm:px-6 py-4 hover:bg-zinc-50/60 transition-colors">
+                                        <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', iconTone)}>
+                                            <Icon className="w-4 h-4" />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-4">
+                                                <p className="text-sm font-medium text-zinc-900 break-words">{s.auditActions[i]}</p>
+                                                <span className="text-xs text-zinc-500 whitespace-nowrap inline-flex items-center gap-1 shrink-0"><Clock className="w-3 h-3" />{ago(entry.ago)}</span>
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-1.5 text-xs text-zinc-500">
+                                                <span>{s.actor}: <span className="text-zinc-700">{entry.actor ?? s.systemActor}</span></span>
+                                                <span className="font-mono text-[11px] bg-zinc-100 px-1.5 py-0.5 rounded">{entry.did === 'system' ? s.systemActor : entry.did}</span>
+                                                {entry.txHash !== '—' && <span className="font-mono text-[11px] text-zinc-700 border border-line px-1.5 py-0.5 rounded">{entry.txHash}</span>}
+                                                {entry.severity !== 'info' && <Badge tone={entry.severity === 'danger' ? 'danger' : 'warning'} icon={AlertTriangle}>{s.riskShort[entry.severity === 'danger' ? 'high' : 'medium']}</Badge>}
+                                            </div>
+                                        </div>
+                                    </li>
+                                )
+                            })}
+                        </ul>
+                    </Card>
+                )}
+            </div>
 
-            {/* ── INVITE MODAL ── */}
+            {/* ── Invite modal ── */}
             {showInviteModal && (
-                <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white border border-black/5 rounded-[2rem] w-full max-w-lg shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-8">
-                        <div className="flex items-center justify-between mb-8">
-                            <h2 className="text-xl font-bold text-black flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-                                    <Plus className="w-4 h-4 text-indigo-600" />
-                                </div>
-                                Invite New User
-                            </h2>
-                            <button onClick={() => setShowInviteModal(false)} className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center text-black/40 hover:text-black hover:bg-black/10 transition-colors"><X className="w-4 h-4" /></button>
-                        </div>
-                        <div className="space-y-6">
-                            <div><label className="block text-[10px] font-bold uppercase tracking-widest text-black/40 mb-2">Full Name</label><input value={inviteForm.name} onChange={e => setInviteForm(p => ({ ...p, name: e.target.value }))} type="text" className="w-full px-5 py-3.5 bg-white border border-black/10 rounded-xl text-black font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/30 shadow-inner" placeholder="e.g. Jane Smith" /></div>
-                            <div><label className="block text-[10px] font-bold uppercase tracking-widest text-black/40 mb-2">Work Email</label><input value={inviteForm.email} onChange={e => setInviteForm(p => ({ ...p, email: e.target.value }))} type="email" className="w-full px-5 py-3.5 bg-white border border-black/10 rounded-xl text-black font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/30 shadow-inner" placeholder="jane@company.com" /></div>
-                            <div>
-                                <label className="block text-[10px] font-bold uppercase tracking-widest text-black/40 mb-2">Assign Role</label>
-                                <select value={inviteForm.role} onChange={e => setInviteForm(p => ({ ...p, role: e.target.value as RoleId }))} className="w-full px-5 py-3.5 bg-white border border-black/10 rounded-xl text-black font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/30 shadow-inner cursor-pointer">
-                                    {roles.filter(r => r.id !== 'platform_admin').map(r => <option key={r.id} value={r.id}>{r.name} — {r.description.slice(0, 50)}...</option>)}
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-bold uppercase tracking-widest text-black/40 mb-3">Module Access</label>
-                                <div className="flex gap-3 flex-wrap">
-                                    {['GRI', 'MSX', 'IFRS S1', 'IFRS S2'].map(m => (
-                                        <button key={m} onClick={() => setInviteForm(p => ({ ...p, modules: p.modules.includes(m) ? p.modules.filter(x => x !== m) : [...p.modules, m] }))} className={clsx('px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all shadow-sm', inviteForm.modules.includes(m) ? 'bg-indigo-500 border-indigo-500 text-white' : 'bg-white border-black/10 text-black/50 hover:border-black/30 hover:text-black')}>{m}</button>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-start gap-3 shadow-inner mt-2">
-                                <Link2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
-                                <p className="text-xs font-medium text-emerald-800 leading-relaxed">A <strong className="text-emerald-900">DID</strong> will be auto-generated and a <strong className="text-emerald-900">Verifiable Credential</strong> issued on first login. The role assignment is anchored on-chain immediately.</p>
-                            </div>
-                        </div>
-                        <div className="flex gap-4 mt-8">
-                            <button onClick={() => setShowInviteModal(false)} className="flex-1 px-6 py-4 rounded-xl border border-black/10 text-black/60 hover:text-black hover:bg-black/5 text-[10px] font-bold uppercase tracking-widest transition-colors font-semibold">Cancel</button>
-                            <button onClick={() => { if (inviteForm.name && inviteForm.email) { setUsers(prev => [...prev, { id: `u${Date.now()}`, name: inviteForm.name, email: inviteForm.email, role: inviteForm.role, did: '—', vcHash: '—', vcIssued: '—', lastActive: 'Never', status: 'pending', modules: inviteForm.modules }]); setInviteForm({ name: '', email: '', role: 'data_contributor', modules: [] }); setShowInviteModal(false) } }} className="flex-1 px-6 py-4 rounded-xl bg-indigo-500 text-white focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-indigo-500/20 hover:scale-[1.02] transition-transform">
-                                Send Invite
-                            </button>
+                <Modal
+                    title={s.invite.title}
+                    onClose={() => setShowInviteModal(false)}
+                    closeLabel={s.close}
+                    footer={
+                        <>
+                            <Button onClick={() => setShowInviteModal(false)}>{s.invite.cancel}</Button>
+                            <Button variant="primary" onClick={sendInvite} disabled={!inviteForm.name || !inviteForm.email}>{s.invite.send}</Button>
+                        </>
+                    }
+                >
+                    <Field label={s.invite.fullName} htmlFor="inv-name">
+                        <input id="inv-name" value={inviteForm.name} onChange={e => setInviteForm(p => ({ ...p, name: e.target.value }))} type="text" className={inputClass} placeholder={s.invite.namePlaceholder} />
+                    </Field>
+                    <Field label={s.invite.email} htmlFor="inv-email">
+                        <input id="inv-email" value={inviteForm.email} onChange={e => setInviteForm(p => ({ ...p, email: e.target.value }))} type="email" className={inputClass} placeholder="jane@company.com" />
+                    </Field>
+                    <Field label={s.invite.role} htmlFor="inv-role" hint={s.roles[inviteForm.role].description}>
+                        <select id="inv-role" value={inviteForm.role} onChange={e => setInviteForm(p => ({ ...p, role: e.target.value as RoleId }))} className={inputClass + ' cursor-pointer'}>
+                            {roles.filter(r => r.id !== 'platform_admin').map(r => <option key={r.id} value={r.id}>{roleName(r.id)}</option>)}
+                        </select>
+                    </Field>
+                    <div className="space-y-1.5">
+                        <div className="text-[13px] font-medium text-zinc-700">{s.invite.modules}</div>
+                        <div className="flex gap-2 flex-wrap">
+                            {MODULES.map(m => {
+                                const on = inviteForm.modules.includes(m)
+                                return (
+                                    <button
+                                        key={m}
+                                        type="button"
+                                        aria-pressed={on}
+                                        onClick={() => setInviteForm(p => ({ ...p, modules: on ? p.modules.filter(x => x !== m) : [...p.modules, m] }))}
+                                        className={clsx('h-8 px-3 rounded-lg text-[13px] font-medium border transition-colors inline-flex items-center gap-1.5', on ? 'bg-zinc-900 border-zinc-900 text-white' : 'bg-white border-line text-zinc-700 hover:border-zinc-300')}
+                                    >
+                                        {on && <Check className="w-3.5 h-3.5" />}{m}
+                                    </button>
+                                )
+                            })}
                         </div>
                     </div>
-                </div>
+                    <Callout tone="success" icon={Link2}>{s.invite.note}</Callout>
+                </Modal>
             )}
 
-            {/* ── ROLE CHANGE MODAL ── */}
+            {/* ── Role change modal ── */}
             {showGrantModal && (
-                <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white border border-black/5 rounded-[2rem] w-full max-w-md shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-8">
-                        <div className="flex items-center justify-between mb-8">
-                            <h2 className="text-lg font-bold text-black">Edit Access<br /><span className="text-sm font-medium text-black/50 mt-1 block">{showGrantModal.name}</span></h2>
-                            <button onClick={() => setShowGrantModal(null)} className="w-8 h-8 rounded-full bg-black/5 flex items-center justify-center text-black/40 hover:text-black hover:bg-black/10 transition-colors"><X className="w-4 h-4" /></button>
-                        </div>
-                        <div className="space-y-6">
-                            <div>
-                                <label className="block text-[10px] font-bold uppercase tracking-widest text-black/40 mb-3">Current Role</label>
-                                <div className={`px-4 py-3 rounded-xl ${getRoleById(showGrantModal.role).bgColor} border ${getRoleById(showGrantModal.role).borderColor} shadow-inner inline-flex`}>
-                                    <span className={`text-xs font-bold uppercase tracking-widest ${getRoleById(showGrantModal.role).color}`}>{getRoleById(showGrantModal.role).name}</span>
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-bold uppercase tracking-widest text-black/40 mb-3">Reassign to Role</label>
-                                <select className="w-full px-5 py-3.5 bg-white border border-black/10 rounded-xl text-black font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/30 shadow-inner cursor-pointer" defaultValue={showGrantModal.role} onChange={e => setUsers(prev => prev.map(u => u.id === showGrantModal.id ? { ...u, role: e.target.value as RoleId } : u))}>
-                                    {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                                </select>
-                            </div>
-                            <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex items-start gap-3 shadow-inner">
-                                <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
-                                <p className="text-xs font-medium text-amber-800 leading-relaxed">Role change will revoke the existing VC and issue a new one. The old VC revocation is anchored on-chain with a timestamp.</p>
-                            </div>
-                        </div>
-                        <div className="flex gap-4 mt-8">
-                            <button onClick={() => setShowGrantModal(null)} className="flex-1 px-6 py-4 rounded-xl border border-black/10 text-black/60 hover:text-black hover:bg-black/5 text-[10px] font-bold uppercase tracking-widest transition-colors font-semibold">Cancel</button>
-                            <button onClick={() => { issueVC(showGrantModal.id); setShowGrantModal(null) }} className="flex-1 px-6 py-4 rounded-xl bg-amber-500 text-white text-[10px] font-bold uppercase tracking-widest shadow-xl shadow-amber-500/20 hover:scale-[1.02] transition-transform">
-                                Save & Re-issue
-                            </button>
-                        </div>
+                <Modal
+                    title={s.grant.title}
+                    subtitle={showGrantModal.name}
+                    onClose={() => setShowGrantModal(null)}
+                    closeLabel={s.close}
+                    footer={
+                        <>
+                            <Button onClick={() => setShowGrantModal(null)}>{s.grant.cancel}</Button>
+                            <Button variant="primary" onClick={() => { issueVC(showGrantModal.id); setShowGrantModal(null) }}>{s.grant.save}</Button>
+                        </>
+                    }
+                >
+                    <div className="space-y-1.5">
+                        <div className="text-[13px] font-medium text-zinc-700">{s.grant.current}</div>
+                        <RoleTag role={getRoleById(showGrantModal.role)} label={roleName(showGrantModal.role)} />
                     </div>
-                </div>
+                    <Field label={s.grant.reassign} htmlFor="grant-role">
+                        <select
+                            id="grant-role"
+                            className={inputClass + ' cursor-pointer'}
+                            defaultValue={showGrantModal.role}
+                            onChange={e => setUsers(prev => prev.map(u => u.id === showGrantModal.id ? { ...u, role: e.target.value as RoleId } : u))}
+                        >
+                            {roles.map(r => <option key={r.id} value={r.id}>{roleName(r.id)}</option>)}
+                        </select>
+                    </Field>
+                    <Callout tone="warning" icon={AlertTriangle}>{s.grant.warning}</Callout>
+                </Modal>
             )}
         </div>
     )

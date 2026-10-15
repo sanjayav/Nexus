@@ -1,14 +1,19 @@
 import { useState } from 'react'
 import clsx from 'clsx'
 import {
-  Circle, ArrowRight, Focus, Shield, FileCheck,
-  AlertTriangle, CheckCircle2, Link2, BarChart3, ChevronRight
+  ArrowRight, Shield, FileCheck,
+  AlertTriangle, CheckCircle2, BarChart3, ChevronRight, Send,
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { mockData } from '../data/mockData'
+import { Badge, Button, Card, CardHeader, PageHeader, Progress, StatCard, Tabs, tableClass, type Tone } from '../components/ui'
+import { fmt, useFormat, useStrings } from '../i18n'
+import { doubleMaterialityStrings } from '../i18n/pages/doubleMateriality'
+
+type Category = 'Environment' | 'Social' | 'Governance'
 
 // Material topics with full DMA data (CSRD / BRSR aligned)
-const materialTopics = [
+const materialTopics: { id: string; name: string; envImpact: number; finImpact: number; category: Category; disclosures: string[]; status: 'approved' | 'in_review'; stakeholders: number }[] = [
   { id: '1', name: 'GHG Emissions (Scope 1 & 2)', envImpact: 92, finImpact: 95, category: 'Environment', disclosures: ['GRI 305-1', 'IFRS S2', 'BRSR P5'], status: 'approved', stakeholders: 95 },
   { id: '2', name: 'Renewable Energy Generation', envImpact: 95, finImpact: 88, category: 'Environment', disclosures: ['GRI 302-1', 'BRSR P5-E1'], status: 'approved', stakeholders: 92 },
   { id: '3', name: 'Data Security & Privacy', envImpact: 25, finImpact: 90, category: 'Governance', disclosures: ['GRI 418-1', 'BRSR P1'], status: 'approved', stakeholders: 88 },
@@ -20,272 +25,257 @@ const materialTopics = [
   { id: '9', name: 'Community & CSR', envImpact: 65, finImpact: 52, category: 'Social', disclosures: ['GRI 413', 'BRSR P8'], status: 'in_review', stakeholders: 78 },
 ]
 
-const DMA_PROCESS_STEPS = [
-  { step: 1, label: 'Stakeholder engagement', done: true, desc: '47 interviews, 1,200+ survey respondents' },
-  { step: 2, label: 'Impact assessment', done: true, desc: 'Environmental & social impacts across value chain' },
-  { step: 3, label: 'Financial materiality', done: true, desc: 'Risks & opportunities affecting enterprise value' },
-  { step: 4, label: 'Validation & approval', done: true, desc: 'Sustainability Committee & Board sign-off' },
-  { step: 5, label: 'Integration', done: true, desc: 'Topics embedded into strategy & KPI framework' },
+const DMA_PROCESS_STEPS = [1, 2, 3, 4, 5].map(step => ({ step, done: true }))
+
+const STAKEHOLDERS = [
+  { key: 'board' as const, p: 100 },
+  { key: 'investors' as const, p: 92 },
+  { key: 'employees' as const, p: 88 },
+  { key: 'communities' as const, p: 78 },
 ]
 
+const categoryDot: Record<Category, string> = {
+  Environment: 'bg-emerald-500',
+  Social: 'bg-sky-500',
+  Governance: 'bg-amber-500',
+}
+const categoryTone: Record<Category, Tone> = { Environment: 'success', Social: 'info', Governance: 'warning' }
+
+type Tab = 'matrix' | 'process' | 'disclosures'
+
 export default function DoubleMateriality() {
+  const s = useStrings(doubleMaterialityStrings)
+  const f = useFormat()
   const [selectedTopic, setSelectedTopic] = useState(materialTopics[0])
-  const [activeTab, setActiveTab] = useState<'matrix' | 'process' | 'disclosures'>('matrix')
+  const [activeTab, setActiveTab] = useState<Tab>('matrix')
   const navigate = useNavigate()
   const { dma } = mockData
 
+  const topicName = (t: { id: string; name: string }) => s.topics[t.id] ?? t.name
+  const inReview = materialTopics.filter(t => t.status === 'in_review')
+
   return (
-    <div className="flex flex-col h-full space-y-8 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h1 className="text-3xl font-bold text-black tracking-tight">Double Materiality Assessment</h1>
-          <p className="text-sm text-black/60 mt-2 max-w-2xl font-medium tracking-wide">
-            CSRD & BRSR aligned. Identify material topics through impact and financial materiality, map to disclosures, and drive compliance.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link to="/analytics/benchmark" className="flex items-center gap-2 px-5 py-3 bg-white/60 border border-white hover:bg-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-sm">
-            <BarChart3 className="w-4 h-4" /> Benchmark
-          </Link>
-          <button onClick={() => navigate('/frameworks')} className="flex items-center gap-2 px-5 py-3 bg-black text-white rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-black/20 hover:scale-[1.02] transition-transform">
-            Map to Disclosures <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-black/5">
-        {[
-          { id: 'matrix' as const, label: 'Impact Matrix', icon: Focus },
-          { id: 'process' as const, label: 'DMA Process', icon: FileCheck },
-          { id: 'disclosures' as const, label: 'Disclosure Mapping', icon: Link2 },
-        ].map((t) => {
-          const Icon = t.icon
-          const isActive = activeTab === t.id
-          return (
-            <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id)}
-              className={clsx(
-                'flex items-center gap-2 px-5 py-3 rounded-t-xl text-[11px] font-bold uppercase tracking-widest transition-all whitespace-nowrap',
-                isActive ? 'bg-black text-white' : 'bg-transparent text-black/50 hover:bg-black/5'
-              )}
+    <div className="space-y-6">
+      <PageHeader
+        title={s.title}
+        description={s.description}
+        actions={
+          <>
+            <Link
+              to="/analytics/benchmark"
+              className="inline-flex items-center justify-center gap-2 h-9 px-3.5 text-sm font-medium rounded-[10px] bg-white text-zinc-800 border border-line hover:bg-zinc-50 hover:border-zinc-300 shadow-sm transition-colors"
             >
-              <Icon className="w-4 h-4" /> {t.label}
-            </button>
-          )
-        })}
+              <BarChart3 className="w-4 h-4" /> {s.benchmark}
+            </Link>
+            <Button variant="primary" iconRight={ArrowRight} onClick={() => navigate('/frameworks')}>{s.mapToDisclosures}</Button>
+          </>
+        }
+      />
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+        <StatCard label={s.kpi.completion} value={f.percent(dma.percentage)} delta={dma.change} deltaLabel={s.kpi.vsLast} />
+        <StatCard label={s.kpi.totalTopics} value={dma.totalMaterialTopics} deltaLabel={s.kpi.assessed} />
+        <StatCard label={s.kpi.materialTopics} value={dma.topicsWithCompleteDMA} deltaLabel={s.kpi.withComplete} />
+        <StatCard label={s.kpi.frameworks} value={s.kpi.aligned} icon={Shield} footer={<Badge tone="success" dot>{s.kpi.frameworkReady}</Badge>} />
+        <StatCard label={s.kpi.inReview} value={inReview.length} footer={<Badge tone="warning" dot>{s.kpi.pendingValidation}</Badge>} className="col-span-2 md:col-span-1" />
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <div className="bg-black text-white rounded-[2rem] p-6 shadow-xl shadow-black/20 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-[40px]" />
-          <div className="relative z-10">
-            <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-2">DMA Completion</p>
-            <p className="text-4xl font-bold tracking-tighter">{dma.percentage}%</p>
-            <p className="text-[10px] font-bold text-emerald-400 uppercase mt-1">+{dma.change}% vs last period</p>
-          </div>
-        </div>
-        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-6 shadow-lg">
-          <p className="text-[10px] font-bold text-black/50 uppercase tracking-widest mb-2">Total Topics</p>
-          <p className="text-4xl font-bold tracking-tighter text-black">{dma.totalMaterialTopics}</p>
-          <p className="text-[10px] font-bold text-black/40 uppercase mt-1">Assessed</p>
-        </div>
-        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-6 shadow-lg">
-          <p className="text-[10px] font-bold text-black/50 uppercase tracking-widest mb-2">Material Topics</p>
-          <p className="text-4xl font-bold tracking-tighter text-black">{dma.topicsWithCompleteDMA}</p>
-          <p className="text-[10px] font-bold text-emerald-600 uppercase mt-1">With complete DMA</p>
-        </div>
-        <div className="bg-[#12C87A]/10 border border-[#12C87A]/20 rounded-[2rem] p-6 shadow-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <Shield className="w-4 h-4 text-[#12C87A]" />
-            <p className="text-[10px] font-bold text-[#013328] uppercase tracking-widest">CSRD / BRSR</p>
-          </div>
-          <p className="text-4xl font-bold tracking-tighter text-[#013328]">Aligned</p>
-          <p className="text-[10px] font-bold text-[#12C87A] uppercase mt-1">Framework ready</p>
-        </div>
-        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-6 shadow-lg">
-          <p className="text-[10px] font-bold text-black/50 uppercase tracking-widest mb-2">In Review</p>
-          <p className="text-4xl font-bold tracking-tighter text-black">{materialTopics.filter(t => t.status === 'in_review').length}</p>
-          <p className="text-[10px] font-bold text-amber-600 uppercase mt-1">Pending validation</p>
-        </div>
-      </div>
+      <Tabs<Tab>
+        value={activeTab}
+        onChange={setActiveTab}
+        items={[
+          { value: 'matrix', label: s.tabs.matrix },
+          { value: 'process', label: s.tabs.process },
+          { value: 'disclosures', label: s.tabs.disclosures },
+        ]}
+      />
 
-      {/* Tab Content */}
       {activeTab === 'matrix' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-lg">
-            <div className="flex justify-between items-start mb-6">
-              <span className="text-sm font-bold text-black opacity-80">Impact vs Financial Materiality Matrix</span>
-              <div className="flex items-center gap-4 text-[10px] font-bold text-black/40 uppercase tracking-wider">
-                <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400" /> Env</div>
-                <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-indigo-400" /> Soc</div>
-                <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400" /> Gov</div>
-              </div>
-            </div>
-            <div className="relative border-l-2 border-b-2 border-black/10 ml-8 mb-8 h-80">
-              <div className="absolute -left-8 top-1/2 -translate-y-1/2 -rotate-90 text-[10px] font-bold text-black/50 tracking-widest uppercase">Financial Impact</div>
-              <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[10px] font-bold text-black/50 tracking-widest uppercase">Environmental / Social Impact</div>
-              <div className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-black/10" />
-              <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-black/10" />
-              <div className="absolute top-4 right-4 text-[10px] font-bold text-black/20">HIGH MAT (REPORT)</div>
-              {materialTopics.map((topic) => (
-                <div
-                  key={topic.id}
-                  onClick={() => setSelectedTopic(topic)}
-                  className={clsx(
-                    'absolute w-5 h-5 -ml-2.5 -mt-2.5 rounded-full cursor-pointer transition-transform hover:scale-125 shadow-md',
-                    topic.category === 'Environment' ? 'bg-emerald-400' : topic.category === 'Social' ? 'bg-indigo-400' : 'bg-amber-400',
-                    selectedTopic.id === topic.id ? 'ring-4 ring-black/20 scale-110' : ''
-                  )}
-                  style={{ left: `${topic.envImpact}%`, bottom: `${topic.finImpact}%` }}
-                  title={topic.name}
-                />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <Card className="lg:col-span-2">
+            <CardHeader
+              title={s.matrixTitle}
+              description={s.matrixDesc}
+              action={
+                <div className="hidden sm:flex items-center gap-3 text-xs text-zinc-500">
+                  {(Object.keys(categoryDot) as Category[]).map(c => (
+                    <span key={c} className="inline-flex items-center gap-1.5">
+                      <span className={clsx('w-2 h-2 rounded-full', categoryDot[c])} /> {s.categoryShort[c]}
+                    </span>
+                  ))}
+                </div>
+              }
+            />
+            <div className="flex sm:hidden items-center gap-3 text-xs text-zinc-500 mb-4">
+              {(Object.keys(categoryDot) as Category[]).map(c => (
+                <span key={c} className="inline-flex items-center gap-1.5">
+                  <span className={clsx('w-2 h-2 rounded-full', categoryDot[c])} /> {s.categoryShort[c]}
+                </span>
               ))}
             </div>
-          </div>
-          <div className="space-y-6">
-            <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-6 shadow-lg">
-              <span className="text-xs font-bold text-black/50 uppercase tracking-wider">{selectedTopic.category} Materiality</span>
-              <h3 className="text-xl font-bold text-black mt-2 mb-2">{selectedTopic.name}</h3>
-              <p className="text-sm text-black/60 font-medium mb-4">Topic in High/High zone. Mandatory reporting under CSRD & BRSR.</p>
-              <div className="space-y-3">
-                <div>
-                  <div className="flex justify-between text-[10px] font-bold text-black/50 uppercase tracking-widest mb-1">
-                    <span>Financial Impact</span><span>{selectedTopic.finImpact}/100</span>
-                  </div>
-                  <div className="w-full h-2 rounded-full bg-black/10 overflow-hidden">
-                    <div className="h-full bg-black rounded-full" style={{ width: `${selectedTopic.finImpact}%` }} />
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-[10px] font-bold text-black/50 uppercase tracking-widest mb-1">
-                    <span>Env/Soc Impact</span><span>{selectedTopic.envImpact}/100</span>
-                  </div>
-                  <div className="w-full h-2 rounded-full bg-black/10 overflow-hidden">
-                    <div className="h-full bg-black rounded-full" style={{ width: `${selectedTopic.envImpact}%` }} />
-                  </div>
-                </div>
+            <div className="relative pl-6 pb-6">
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 -rotate-90 origin-center text-xs text-zinc-500 whitespace-nowrap -translate-x-1/3">{s.axisFinancial}</div>
+              <div className="relative border-l border-b border-zinc-300 h-72 sm:h-80 ml-2">
+                <div className="absolute left-1/2 top-0 bottom-0 border-l border-dashed border-zinc-200" />
+                <div className="absolute top-1/2 left-0 right-0 border-t border-dashed border-zinc-200" />
+                <div className="absolute left-1/2 right-0 top-0 bottom-1/2 bg-emerald-50/50" />
+                <div className="absolute top-2 left-[calc(50%+8px)] text-[11px] font-medium text-emerald-700/70">{s.highZone}</div>
+                {materialTopics.map(topic => (
+                  <button
+                    key={topic.id}
+                    type="button"
+                    onClick={() => setSelectedTopic(topic)}
+                    aria-label={topicName(topic)}
+                    title={topicName(topic)}
+                    className={clsx(
+                      'absolute w-4 h-4 -translate-x-1/2 translate-y-1/2 rounded-full ring-2 ring-white shadow-sm transition-transform hover:scale-125 focus-visible:outline-none focus-visible:ring-zinc-900',
+                      categoryDot[topic.category],
+                      selectedTopic.id === topic.id && 'scale-125 outline outline-2 outline-offset-2 outline-zinc-900',
+                    )}
+                    style={{ left: `${topic.envImpact}%`, bottom: `${topic.finImpact}%` }}
+                  />
+                ))}
               </div>
-              <button onClick={() => navigate(`/frameworks`)} className="w-full mt-4 py-3 bg-black/5 border border-black/10 rounded-xl text-sm font-bold text-black hover:bg-black hover:text-white transition-colors flex items-center justify-center gap-2">
-                View Policies <ArrowRight className="w-4 h-4" />
-              </button>
+              <div className="absolute bottom-0 left-0 right-0 text-center text-xs text-zinc-500">{s.axisImpact}</div>
             </div>
-            <div className="bg-black text-white rounded-[2rem] p-6 shadow-xl shadow-black/20">
-              <span className="text-xs font-bold text-white/50 uppercase tracking-widest mb-4 block">Stakeholder Alignment</span>
+          </Card>
+
+          <div className="space-y-4 sm:space-y-6">
+            <Card>
+              <Badge tone={categoryTone[selectedTopic.category]}>{fmt(s.categoryMateriality, { category: s.categories[selectedTopic.category] })}</Badge>
+              <h3 className="text-lg font-semibold text-zinc-900 mt-3">{topicName(selectedTopic)}</h3>
+              <p className="text-[13px] text-zinc-500 mt-1 mb-5 leading-relaxed">{s.highHighNote}</p>
+              <div className="space-y-4">
+                <ScoreBar label={s.financialImpact} value={selectedTopic.finImpact} display={fmt(s.outOf100, { value: selectedTopic.finImpact })} />
+                <ScoreBar label={s.envSocImpact} value={selectedTopic.envImpact} display={fmt(s.outOf100, { value: selectedTopic.envImpact })} />
+              </div>
+              <Button variant="secondary" iconRight={ArrowRight} className="w-full mt-5" onClick={() => navigate('/frameworks')}>{s.viewPolicies}</Button>
+            </Card>
+
+            <Card>
+              <CardHeader title={s.alignmentTitle} className="mb-4" />
               <div className="space-y-3">
-                {[
-                  { name: 'Executive Board', p: '100%' },
-                  { name: 'Investors', p: '92%' },
-                  { name: 'Employees', p: '88%' },
-                  { name: 'Communities', p: '78%' },
-                ].map((st) => (
-                  <div key={st.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Circle className="w-2 h-2 fill-current text-white/50" />
-                      <span className="text-sm font-semibold">{st.name}</span>
+                {STAKEHOLDERS.map(st => (
+                  <div key={st.key} className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-zinc-700">{s.stakeholders[st.key]}</span>
+                    <div className="flex items-center gap-3">
+                      <Progress value={st.p} className="w-20" tone={st.p >= 85 ? 'success' : 'warning'} />
+                      <span className="text-sm font-medium text-zinc-900 tabular w-10 text-right">{f.percent(st.p)}</span>
                     </div>
-                    <span className="text-sm font-bold font-mono bg-white/10 px-2 py-0.5 rounded-lg">{st.p}</span>
                   </div>
                 ))}
               </div>
-              <button className="w-full py-3 bg-white text-black font-bold text-sm rounded-xl mt-6 hover:scale-[1.02] transition-transform">
-                Send Alignment Survey
-              </button>
-            </div>
+              <Button variant="secondary" icon={Send} className="w-full mt-5">{s.sendSurvey}</Button>
+            </Card>
           </div>
         </div>
       )}
 
       {activeTab === 'process' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-lg">
-            <h3 className="text-sm font-bold text-black uppercase tracking-widest mb-6 border-b border-black/5 pb-4">DMA Process (CSRD Art. 19)</h3>
-            <div className="space-y-4">
-              {DMA_PROCESS_STEPS.map((s) => (
-                <div key={s.step} className="flex items-start gap-4 p-4 rounded-2xl bg-white/40 border border-white">
-                  <div className={clsx('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', s.done ? 'bg-emerald-500/10 text-emerald-600' : 'bg-black/5 text-black/40')}>
-                    {s.done ? <CheckCircle2 className="w-5 h-5" /> : <span className="text-lg font-bold">{s.step}</span>}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
+          <Card>
+            <CardHeader title={s.processTitle} description={s.processDesc} icon={FileCheck} />
+            <ol className="relative space-y-1">
+              {DMA_PROCESS_STEPS.map((st, i) => (
+                <li key={st.step} className="relative flex items-start gap-4 py-3">
+                  {i < DMA_PROCESS_STEPS.length - 1 && <span className="absolute left-4 top-11 bottom-[-4px] w-px bg-line" aria-hidden />}
+                  <div className={clsx('relative w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm font-semibold', st.done ? 'bg-emerald-50 text-emerald-600 ring-1 ring-inset ring-emerald-200' : 'bg-zinc-100 text-zinc-500')}>
+                    {st.done ? <CheckCircle2 className="w-4 h-4" /> : st.step}
                   </div>
-                  <div>
-                    <p className="font-bold text-black">{s.label}</p>
-                    <p className="text-sm text-black/50 mt-0.5">{s.desc}</p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-zinc-900">{s.steps[i].label}</p>
+                      {st.done && <span className="sr-only">{s.stepDone}</span>}
+                    </div>
+                    <p className="text-[13px] text-zinc-500 mt-0.5">{s.steps[i].desc}</p>
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
-          </div>
-          <div className="space-y-6">
-            <div className="bg-[#12C87A]/5 border border-[#12C87A]/20 rounded-[2rem] p-6 shadow-lg">
-              <div className="flex items-center gap-2 mb-3">
-                <FileCheck className="w-5 h-5 text-[#12C87A]" />
-                <h3 className="text-sm font-bold text-[#013328]">Process Documentation</h3>
+            </ol>
+          </Card>
+          <div className="space-y-4 sm:space-y-6">
+            <Card>
+              <CardHeader title={s.docTitle} icon={FileCheck} className="mb-3" />
+              <p className="text-[13px] text-zinc-600 leading-relaxed">{s.docBody}</p>
+            </Card>
+            <Card>
+              <CardHeader title={s.quickLinks} className="mb-3" />
+              <div className="divide-y divide-line -mx-2">
+                {[
+                  { to: '/analytics', label: s.links.csrd },
+                  { to: '/carbon', label: s.links.ghg },
+                  { to: '/ghg', label: s.links.targets },
+                ].map(l => (
+                  <Link key={l.to} to={l.to} className="flex items-center justify-between gap-3 px-2 py-3 rounded-lg hover:bg-zinc-50 transition-colors text-sm text-zinc-700 hover:text-zinc-900">
+                    {l.label} <ChevronRight className="w-4 h-4 text-zinc-400 shrink-0" />
+                  </Link>
+                ))}
               </div>
-              <p className="text-sm text-black/70 leading-relaxed">
-                Comprehensive double materiality assessment conducted in Q2 FY2025: (1) Stakeholder engagement — 47 interviews, 1,200+ survey respondents; (2) Impact assessment — environmental & social impacts across value chain; (3) Financial materiality — risks & opportunities affecting enterprise value; (4) Validation — Sustainability Committee & Board approval; (5) Integration — topics embedded into strategy & KPI framework.
-              </p>
-            </div>
-            <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-6 shadow-lg">
-              <h3 className="text-sm font-bold text-black uppercase tracking-widest mb-4">Quick Links</h3>
-              <div className="space-y-2">
-                <Link to="/analytics" className="flex items-center justify-between p-3 rounded-xl bg-black/5 hover:bg-black/10 transition-colors text-sm font-medium text-black">
-                  How does Nexus support CSRD compliance? <ChevronRight className="w-4 h-4 text-black/40" />
-                </Link>
-                <Link to="/carbon" className="flex items-center justify-between p-3 rounded-xl bg-black/5 hover:bg-black/10 transition-colors text-sm font-medium text-black">
-                  How does Nexus help with GHG / EDCI submissions? <ChevronRight className="w-4 h-4 text-black/40" />
-                </Link>
-                <Link to="/ghg" className="flex items-center justify-between p-3 rounded-xl bg-black/5 hover:bg-black/10 transition-colors text-sm font-medium text-black">
-                  How can I set targets and action plans? <ChevronRight className="w-4 h-4 text-black/40" />
-                </Link>
-              </div>
-            </div>
+            </Card>
           </div>
         </div>
       )}
 
       {activeTab === 'disclosures' && (
-        <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-lg">
-          <h3 className="text-sm font-bold text-black uppercase tracking-widest mb-6 border-b border-black/5 pb-4">Material Topics → Disclosure Mapping</h3>
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-black/10 text-[10px] font-bold text-black/40 uppercase tracking-widest">
-                <th className="pb-4">Topic</th>
-                <th className="pb-4">Category</th>
-                <th className="pb-4">Disclosures</th>
-                <th className="pb-4">Status</th>
-                <th className="pb-4">Stakeholder %</th>
-                <th className="pb-4 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-black/5">
-              {materialTopics.map((t) => (
-                <tr key={t.id} className="hover:bg-white/40 transition-colors">
-                  <td className="py-4 font-bold text-black text-sm">{t.name}</td>
-                  <td className="py-4"><span className={clsx('px-2.5 py-1 rounded-full text-[10px] font-bold border', t.category === 'Environment' ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20' : t.category === 'Social' ? 'bg-indigo-500/10 text-indigo-700 border-indigo-500/20' : 'bg-amber-500/10 text-amber-700 border-amber-500/20')}>{t.category}</span></td>
-                  <td className="py-4"><span className="text-xs font-mono text-black/60">{t.disclosures.join(', ')}</span></td>
-                  <td className="py-4"><span className={clsx('px-2.5 py-1 rounded-full text-[10px] font-bold border', t.status === 'approved' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 'bg-amber-500/10 text-amber-600 border-amber-500/20')}>{t.status === 'approved' ? 'Approved' : 'In Review'}</span></td>
-                  <td className="py-4 font-bold text-black">{t.stakeholders}%</td>
-                  <td className="py-4 text-right">
-                    <button onClick={() => navigate('/frameworks')} className="px-4 py-2 bg-black text-white text-[10px] font-bold uppercase tracking-widest rounded-lg hover:scale-105 transition-transform shadow-md">Open</button>
-                  </td>
+        <Card>
+          <CardHeader title={s.mappingTitle} description={s.mappingDesc} />
+          <div className={tableClass.wrap}>
+            <table className={clsx(tableClass.table, 'min-w-[820px]')}>
+              <thead>
+                <tr>
+                  <th className={tableClass.th}>{s.cols.topic}</th>
+                  <th className={tableClass.th}>{s.cols.category}</th>
+                  <th className={tableClass.th}>{s.cols.disclosures}</th>
+                  <th className={tableClass.th}>{s.cols.status}</th>
+                  <th className={clsx(tableClass.th, 'text-right')}>{s.cols.stakeholders}</th>
+                  <th className={clsx(tableClass.th, 'text-right')}>{s.cols.action}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {materialTopics.map(t => (
+                  <tr key={t.id} className={tableClass.tr}>
+                    <td className={clsx(tableClass.td, 'font-medium text-zinc-900')}>{topicName(t)}</td>
+                    <td className={tableClass.td}><Badge tone={categoryTone[t.category]}>{s.categories[t.category]}</Badge></td>
+                    <td className={tableClass.td}><span className="text-xs font-mono text-zinc-500">{t.disclosures.join(', ')}</span></td>
+                    <td className={tableClass.td}><Badge tone={t.status === 'approved' ? 'success' : 'warning'} dot>{s.status[t.status]}</Badge></td>
+                    <td className={clsx(tableClass.td, 'text-right tabular font-medium text-zinc-900')}>{f.percent(t.stakeholders)}</td>
+                    <td className={clsx(tableClass.td, 'text-right')}>
+                      <Button size="sm" variant="secondary" onClick={() => navigate('/frameworks')}>{s.open}</Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
 
-      {/* Validation Alert (KEY ESG style) */}
-      <div className="bg-amber-500/10 border border-amber-500/20 rounded-[2rem] p-6 shadow-lg flex items-start gap-4">
-        <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
-        <div>
-          <h4 className="text-sm font-bold text-amber-800">Data validation</h4>
-          <p className="text-sm text-black/70 mt-1">2 topics in review. Complete stakeholder alignment for &quot;Supply Chain Human Rights&quot; and &quot;Community & CSR&quot; to finalise DMA.</p>
-          <button className="mt-3 px-4 py-2 bg-amber-500/20 text-amber-800 text-xs font-bold uppercase tracking-widest rounded-lg hover:bg-amber-500/30 transition-colors">Review Now</button>
+      {/* Validation alert */}
+      <div className="rounded-card bg-amber-50 ring-1 ring-inset ring-amber-200/70 p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex items-start gap-3 flex-1">
+          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <h4 className="text-sm font-semibold text-amber-900">{s.validationTitle}</h4>
+            <p className="text-[13px] text-amber-900/80 mt-0.5">
+              {fmt(s.validationBody, { count: inReview.length, a: topicName(inReview[0]), b: topicName(inReview[1]) })}
+            </p>
+          </div>
         </div>
+        <Button variant="secondary" size="sm" onClick={() => setActiveTab('disclosures')}>{s.reviewNow}</Button>
       </div>
+    </div>
+  )
+}
+
+function ScoreBar({ label, value, display }: { label: string; value: number; display: string }) {
+  return (
+    <div>
+      <div className="flex justify-between text-[13px] mb-1.5">
+        <span className="text-zinc-500">{label}</span>
+        <span className="font-medium text-zinc-900 tabular">{display}</span>
+      </div>
+      <Progress value={value} />
     </div>
   )
 }

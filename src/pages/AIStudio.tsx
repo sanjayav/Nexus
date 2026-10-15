@@ -1,63 +1,57 @@
 import { useState } from 'react'
 import { Sparkles, FileText, Database, Zap, MessageSquare } from 'lucide-react'
-import clsx from 'clsx'
+import { Badge, Button, Card, CardHeader, PageHeader } from '../components/ui'
+import { useStrings } from '../i18n'
+import { aiStudioStrings } from '../i18n/pages/aiStudio'
 
 const aiFeatures = [
-  { id: 'draft', name: 'AI Drafting', desc: 'Generate narrative disclosures from data. ESRS, GRI, BRSR aligned.', icon: FileText, status: 'beta' },
-  { id: 'extract', name: 'Data Extraction', desc: 'Extract metrics from PDFs, spreadsheets. Auto-map to disclosures.', icon: Database, status: 'coming' },
-  { id: 'map', name: 'Disclosure Mapping', desc: 'AI-suggested mapping across frameworks. Reduce duplicate entry.', icon: Zap, status: 'coming' },
-  { id: 'chat', name: 'ESG Assistant', desc: 'Ask questions about your data. "What is our Scope 3 trend?"', icon: MessageSquare, status: 'coming' },
-]
+  { id: 'draft', icon: FileText, status: 'beta' },
+  { id: 'extract', icon: Database, status: 'coming' },
+  { id: 'map', icon: Zap, status: 'coming' },
+  { id: 'chat', icon: MessageSquare, status: 'coming' },
+] as const
 
 export default function AIStudio() {
+  const s = useStrings(aiStudioStrings)
   const [prompt, setPrompt] = useState('')
 
   return (
-    <div className="flex flex-col h-full space-y-8 animate-in fade-in duration-500">
-      <div>
-        <h1 className="text-3xl font-bold text-black tracking-tight">AI Studio</h1>
-        <p className="text-sm text-black/60 mt-2 font-medium tracking-wide">
-          AI-powered drafting, data extraction, and disclosure mapping. Pioneer ESG intelligence.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader title={s.title} description={s.description} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-black text-white rounded-[2rem] p-8 shadow-xl shadow-black/20 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/20 rounded-full blur-[80px]" />
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="w-6 h-6 text-amber-400" />
-              <span className="text-sm font-bold text-white/80 uppercase tracking-widest">AI Drafting</span>
-            </div>
-            <p className="text-lg font-medium text-white/90 mb-4">Generate disclosure narratives from your data. Select a section and let AI draft the text.</p>
-            <textarea
-              placeholder="e.g. Describe our Scope 1+2 emissions reduction strategy and targets..."
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              className="w-full h-24 bg-white/10 border border-white/20 rounded-xl p-4 text-white placeholder-white/40 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-white/30"
-            />
-            <button className="mt-4 w-full py-3 bg-white text-black font-bold text-sm rounded-xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-2">
-              <Sparkles className="w-4 h-4" /> Generate Draft
-            </button>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
+        <Card>
+          <CardHeader title={s.draftTitle} description={s.draftDesc} icon={Sparkles} />
+          <label htmlFor="ai-prompt" className="block text-[13px] font-medium text-zinc-700 mb-1.5">{s.promptLabel}</label>
+          <textarea
+            id="ai-prompt"
+            placeholder={s.placeholder}
+            value={prompt}
+            onChange={e => setPrompt(e.target.value)}
+            className="w-full h-32 px-3 py-2.5 rounded-[10px] bg-white border border-line text-sm text-zinc-900 placeholder:text-zinc-400 shadow-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-500/25 focus:border-brand-500/60"
+          />
+          <Button variant="primary" icon={Sparkles} className="mt-4 w-full" disabled={!prompt.trim()}>
+            {s.generate}
+          </Button>
+        </Card>
 
-        <div className="space-y-4">
-          {aiFeatures.map((f) => (
-            <div key={f.id} className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-6 shadow-lg">
+        <div className="space-y-3">
+          <h2 className="text-[13px] font-medium text-zinc-500 px-1">{s.capabilities}</h2>
+          {aiFeatures.map(feat => (
+            <Card key={feat.id} className="hover:border-zinc-300 transition-colors">
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-black/5 flex items-center justify-center shrink-0">
-                  <f.icon className="w-6 h-6 text-black/60" />
+                <div className="w-9 h-9 rounded-lg bg-zinc-100 text-zinc-600 flex items-center justify-center shrink-0">
+                  <feat.icon className="w-4 h-4" />
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-black">{f.name}</h3>
-                    <span className={clsx("px-2 py-0.5 rounded-full text-[10px] font-bold", f.status === 'beta' ? "bg-amber-500/10 text-amber-600 border border-amber-500/20" : "bg-black/5 text-black/50 border border-black/10")}>{f.status}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-[15px] font-semibold text-zinc-900">{s.features[feat.id].name}</h3>
+                    <Badge tone={feat.status === 'beta' ? 'warning' : 'neutral'}>{s.statusLabel[feat.status]}</Badge>
                   </div>
-                  <p className="text-sm text-black/60 mt-1">{f.desc}</p>
+                  <p className="text-[13px] text-zinc-500 mt-1 leading-relaxed">{s.features[feat.id].desc}</p>
                 </div>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       </div>

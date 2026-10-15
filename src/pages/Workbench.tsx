@@ -1,14 +1,57 @@
-import { useMemo, useState } from 'react'
+import { ReactNode, useMemo, useState } from 'react'
 import { mockData } from '../data/mockData'
-import { AlertTriangle, CheckCircle, Clock3, Filter, Inbox, Search, Target, Users, MessageSquare, ThumbsUp, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle, Clock3, Filter, Inbox, Search, Target, Users, MessageSquare, ThumbsUp, XCircle, Info, ExternalLink } from 'lucide-react'
 import clsx from 'clsx'
+import { PageHeader, Card, CardHeader, Button, Badge, StatCard, Progress, Tabs, EmptyState, inputClass, tableClass, Tone } from '../components/ui'
+import { fmt, useFormat, useStrings } from '../i18n'
+import { workbenchStrings } from '../i18n/pages/workbench'
 
 type TaskFilter = 'all' | 'mine' | 'critical' | 'due_soon'
 type ViewMode = 'tasks' | 'dma' | 'reviews'
 
 const currentUserDid = 'did:ethr:0x1234...5678'
 
+const DMA_ROWS = [
+  { topic: 'climate', framework: 'GRI', disclosures: '305-1, 305-2, 305-3', owner: 'sustainability', status: 'Approved' },
+  { topic: 'energy', framework: 'GRI', disclosures: '302-1, 302-4', owner: 'operations', status: 'In Review' },
+  { topic: 'ohs', framework: 'GRI', disclosures: '403-9, 403-10', owner: 'hrSafety', status: 'Approved' },
+  { topic: 'dei', framework: 'GRI', disclosures: '405-1, 405-2', owner: 'hr', status: 'Pending Owner' },
+  { topic: 'ethics', framework: 'GRI', disclosures: '205-1, 205-3', owner: 'legal', status: 'Draft' },
+] as const
+
+// submitter: either a proper name (kept as-is) or an owner key prefixed with "@"
+const REVIEW_ROWS = [
+  { disclosure: 'GRI 305-1', module: 'scope1', submitter: 'Jane Doe', submitted: '2025-11-28', reviewer: '@you', status: 'Pending Review', comments: 2 },
+  { disclosure: 'GRI 305-2', module: 'scope2', submitter: 'John Smith', submitted: '2025-11-27', reviewer: '@you', status: 'Pending Review', comments: 0 },
+  { disclosure: 'GRI 403-9', module: 'injuries', submitter: '@safetyTeam', submitted: '2025-11-26', reviewer: 'Sarah Lee', status: 'In Rework', comments: 5 },
+  { disclosure: 'GRI 405-1', module: 'governance', submitter: '@hrTeam', submitted: '2025-11-25', reviewer: '@you', status: 'Approved', comments: 1 },
+] as const
+
+const STATUS_TONE: Record<string, Tone> = {
+  Approved: 'success',
+  'In Review': 'info',
+  'Pending Review': 'info',
+  'Pending Owner': 'warning',
+  'In Rework': 'warning',
+  Draft: 'neutral',
+}
+const PRIORITY_TONE: Record<string, Tone> = { high: 'danger', medium: 'warning', low: 'neutral' }
+
+function RuleNote({ title, body }: { title: ReactNode; body: ReactNode }) {
+  return (
+    <div className="flex items-start gap-3 rounded-card border border-line bg-zinc-50/80 p-4">
+      <Info className="w-4 h-4 mt-0.5 shrink-0 text-zinc-500" />
+      <div>
+        <p className="text-[13px] font-medium text-zinc-900">{title}</p>
+        <p className="text-[13px] text-zinc-500 mt-0.5 leading-relaxed">{body}</p>
+      </div>
+    </div>
+  )
+}
+
 export default function Workbench() {
+  const s = useStrings(workbenchStrings)
+  const f = useFormat()
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<TaskFilter>('all')
   const [viewMode, setViewMode] = useState<ViewMode>('tasks')
@@ -48,477 +91,280 @@ export default function Workbench() {
   const criticalCount = tasks.filter(t => t.priority === 'high').length
   const dueSoonCount = tasks.filter(t => {
     if (!t.dueDate) return false
-    const diffDays =
-      (new Date(t.dueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+    const diffDays = (new Date(t.dueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
     return diffDays >= 0 && diffDays <= 7
   }).length
   const myTasksCount = tasks.filter(t => t.assignee === currentUserDid).length
+  const readyCount = mockData.modules.filter(m => m.state === 'Approved').length
+
+  const statusLabel = (st: string) => s.status[st as keyof typeof s.status] ?? st
+  const person = (v: string) => (v.startsWith('@') ? s.owners[v.slice(1) as keyof typeof s.owners] : v)
+
+  const filterChips: { id: TaskFilter; label: string; count?: number; icon: typeof Inbox }[] = [
+    { id: 'all', label: s.filters.all, icon: Inbox },
+    { id: 'mine', label: s.filters.mine, count: myTasksCount, icon: Filter },
+    { id: 'critical', label: s.filters.critical, count: criticalCount, icon: AlertTriangle },
+    { id: 'due_soon', label: s.filters.dueSoon, count: dueSoonCount, icon: Clock3 },
+  ]
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Workbench</h1>
-          <p className="text-sm text-gray-400">
-            Central hub for tasks, DMA/materiality, reviews, and gap resolutions across all frameworks.
-          </p>
-        </div>
-        <div className="hidden md:flex items-center gap-3 text-xs">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/40 px-3 py-1 text-emerald-300">
-            <CheckCircle className="w-3.5 h-3.5" />
-            Ready to publish: {mockData.modules.filter(m => m.state === 'Approved').length} modules
-          </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 border border-amber-500/40 px-3 py-1 text-amber-300">
-            <AlertTriangle className="w-3.5 h-3.5" />
-            Critical gaps: {criticalCount}
-          </span>
-        </div>
-      </div>
+      <PageHeader
+        title={s.title}
+        description={s.description}
+        actions={
+          <>
+            <Badge tone="success" icon={CheckCircle}>{fmt(s.readyToPublish, { count: readyCount })}</Badge>
+            <Badge tone="warning" icon={AlertTriangle}>{fmt(s.criticalGaps, { count: criticalCount })}</Badge>
+          </>
+        }
+      />
 
-      {/* View Mode tabs */}
-      <div className="flex items-center gap-2 border-b border-dark-border">
-        <button
-          onClick={() => setViewMode('tasks')}
-          className={clsx(
-            'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors',
-            viewMode === 'tasks'
-              ? 'border-accent text-accent'
-              : 'border-transparent text-gray-400 hover:text-gray-300'
-          )}
-        >
-          <div className="flex items-center gap-2">
-            <Inbox className="w-4 h-4" />
-            Tasks & Gaps
-          </div>
-        </button>
-        <button
-          onClick={() => setViewMode('dma')}
-          className={clsx(
-            'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors',
-            viewMode === 'dma'
-              ? 'border-accent text-accent'
-              : 'border-transparent text-gray-400 hover:text-gray-300'
-          )}
-        >
-          <div className="flex items-center gap-2">
-            <Target className="w-4 h-4" />
-            DMA / Materiality
-          </div>
-        </button>
-        <button
-          onClick={() => setViewMode('reviews')}
-          className={clsx(
-            'px-4 py-2.5 text-sm font-medium border-b-2 transition-colors',
-            viewMode === 'reviews'
-              ? 'border-accent text-accent'
-              : 'border-transparent text-gray-400 hover:text-gray-300'
-          )}
-        >
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Review & Approvals
-          </div>
-        </button>
-      </div>
-
-      {/* Filters row */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div className="flex items-center gap-2 text-xs">
-          <button
-            className={clsx(
-              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5',
-              filter === 'all'
-                ? 'border-accent text-accent bg-accent/10'
-                : 'border-dark-border text-gray-400 hover:border-gray-500'
-            )}
-            onClick={() => setFilter('all')}
-          >
-            <Inbox className="w-3.5 h-3.5" />
-            All tasks
-          </button>
-          <button
-            className={clsx(
-              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5',
-              filter === 'mine'
-                ? 'border-accent text-accent bg-accent/10'
-                : 'border-dark-border text-gray-400 hover:border-gray-500'
-            )}
-            onClick={() => setFilter('mine')}
-          >
-            <Filter className="w-3.5 h-3.5" />
-            My tasks ({myTasksCount})
-          </button>
-          <button
-            className={clsx(
-              'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5',
-              filter === 'critical'
-                ? 'border-red-500 text-red-300 bg-red-500/10'
-                : 'border-dark-border text-gray-400 hover:border-gray-500'
-            )}
-            onClick={() => setFilter('critical')}
-          >
-            <AlertTriangle className="w-3.5 h-3.5" />
-            Critical ({criticalCount})
-          </button>
-          <button
-            className={clsx(
-              'hidden sm:inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5',
-              filter === 'due_soon'
-                ? 'border-amber-400 text-amber-300 bg-amber-500/10'
-                : 'border-dark-border text-gray-400 hover:border-gray-500'
-            )}
-            onClick={() => setFilter('due_soon')}
-          >
-            <Clock3 className="w-3.5 h-3.5" />
-            Due this week ({dueSoonCount})
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <div className="relative flex-1 md:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={event => setSearch(event.target.value)}
-              placeholder="Search by task, disclosure, module, or ID..."
-              className="w-full pl-9 pr-3 py-2 rounded-xl bg-dark-surface border border-dark-border text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent"
-            />
-          </div>
-        </div>
-      </div>
+      <Tabs<ViewMode>
+        value={viewMode}
+        onChange={setViewMode}
+        items={[
+          { value: 'tasks', label: <><Inbox className="w-4 h-4" />{s.views.tasks}</> },
+          { value: 'dma', label: <><Target className="w-4 h-4" />{s.views.dma}</> },
+          { value: 'reviews', label: <><Users className="w-4 h-4" />{s.views.reviews}</> },
+        ]}
+      />
 
       {/* DMA / Materiality View */}
       {viewMode === 'dma' && (
-        <div className="space-y-4">
-          <div className="bg-gradient-to-br from-accent/5 to-accent/10 border border-accent/20 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-bold text-white">DMA Gate 1 — Material Topics</h3>
-                <p className="text-sm text-gray-400 mt-1">
-                  Identify, map, and assign ownership for material topics per framework pack
-                </p>
-              </div>
-              <span className="px-4 py-2 bg-accent/10 text-accent border border-accent/40 rounded-xl text-sm font-medium">
-                Status: In Progress (78%)
-              </span>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader
+              icon={Target}
+              title={s.dmaTitle}
+              description={s.dmaDesc}
+            />
+            <div className="flex items-center gap-3">
+              <Progress value={78} className="flex-1" />
+              <Badge tone="info" dot>{fmt(s.dmaStatus, { pct: f.percent(78) })}</Badge>
             </div>
-            <div className="grid grid-cols-3 gap-4 mt-4">
-              <div className="bg-dark-surface border border-dark-border rounded-xl p-4">
-                <p className="text-xs text-gray-400 mb-1">Material Topics Identified</p>
-                <p className="text-2xl font-bold text-white">14 / 18</p>
-              </div>
-              <div className="bg-dark-surface border border-dark-border rounded-xl p-4">
-                <p className="text-xs text-gray-400 mb-1">Ownership Assigned</p>
-                <p className="text-2xl font-bold text-white">12 / 14</p>
-              </div>
-              <div className="bg-dark-surface border border-dark-border rounded-xl p-4">
-                <p className="text-xs text-gray-400 mb-1">DMA Approved</p>
-                <p className="text-2xl font-bold text-white">8 / 14</p>
-              </div>
-            </div>
+          </Card>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <StatCard label={s.topicsIdentified} value="14" unit="/ 18" />
+            <StatCard label={s.ownershipAssigned} value="12" unit="/ 14" />
+            <StatCard label={s.dmaApproved} value="8" unit="/ 14" />
           </div>
 
-          <div className="bg-dark-surface border border-dark-border rounded-2xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-dark-bg border-b border-dark-border text-xs uppercase tracking-wide text-gray-400">
-                <tr>
-                  <th className="px-4 py-3 text-left">Material Topic</th>
-                  <th className="px-4 py-3 text-left">Framework</th>
-                  <th className="px-4 py-3 text-left">Mapped Disclosures</th>
-                  <th className="px-4 py-3 text-left">Owner</th>
-                  <th className="px-4 py-3 text-left">DMA Status</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { topic: 'Climate Change & GHG Emissions', framework: 'GRI', disclosures: '305-1, 305-2, 305-3', owner: 'Sustainability Team', status: 'Approved' },
-                  { topic: 'Energy Management', framework: 'GRI', disclosures: '302-1, 302-4', owner: 'Operations', status: 'In Review' },
-                  { topic: 'Occupational Health & Safety', framework: 'GRI', disclosures: '403-9, 403-10', owner: 'HR / Safety', status: 'Approved' },
-                  { topic: 'Diversity & Inclusion', framework: 'GRI', disclosures: '405-1, 405-2', owner: 'HR', status: 'Pending Owner' },
-                  { topic: 'Business Ethics & Anti-Corruption', framework: 'GRI', disclosures: '205-1, 205-3', owner: 'Legal / Compliance', status: 'Draft' },
-                ].map((row, idx) => (
-                  <tr
-                    key={idx}
-                    className="border-b border-dark-border/60 hover:bg-dark-bg/40 transition-colors"
-                  >
-                    <td className="px-4 py-3 font-medium text-white">{row.topic}</td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-blue-500/40 bg-blue-500/10 text-[11px] text-blue-300">
-                        {row.framework}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-gray-300 font-mono">{row.disclosures}</td>
-                    <td className="px-4 py-3 text-gray-300">{row.owner}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={clsx(
-                          'inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium',
-                          row.status === 'Approved'
-                            ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/40'
-                            : row.status === 'In Review'
-                            ? 'bg-blue-500/10 text-blue-300 border border-blue-500/40'
-                            : row.status === 'Pending Owner'
-                            ? 'bg-amber-500/10 text-amber-300 border border-amber-500/40'
-                            : 'bg-gray-500/10 text-gray-300 border border-gray-500/40'
-                        )}
-                      >
-                        {row.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button className="px-3 py-1.5 rounded-full border border-dark-border text-xs text-gray-300 hover:border-accent hover:text-accent transition-colors">
-                        Edit mapping
-                      </button>
-                    </td>
+          <Card>
+            <CardHeader title={s.topicsTable} className="mb-4" />
+            <div className={tableClass.wrap}>
+              <table className={tableClass.table}>
+                <thead>
+                  <tr>
+                    <th className={tableClass.th}>{s.colTopic}</th>
+                    <th className={tableClass.th}>{s.colFramework}</th>
+                    <th className={tableClass.th}>{s.colDisclosures}</th>
+                    <th className={tableClass.th}>{s.colOwner}</th>
+                    <th className={tableClass.th}>{s.colDmaStatus}</th>
+                    <th className={clsx(tableClass.th, 'text-right')}>{s.colActions}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 text-sm text-amber-300">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium">Gate 1 Rule:</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Period cannot move to "Collection" until all material topics are identified, mapped to disclosures, ownership assigned, and DMA approved.
-                </p>
-              </div>
+                </thead>
+                <tbody>
+                  {DMA_ROWS.map(row => (
+                    <tr key={row.topic} className={tableClass.tr}>
+                      <td className={clsx(tableClass.td, 'font-medium text-zinc-900 min-w-[200px]')}>{s.topics[row.topic]}</td>
+                      <td className={tableClass.td}><Badge>{row.framework}</Badge></td>
+                      <td className={clsx(tableClass.td, 'font-mono text-xs whitespace-nowrap')}>{row.disclosures}</td>
+                      <td className={clsx(tableClass.td, 'whitespace-nowrap')}>{s.owners[row.owner]}</td>
+                      <td className={tableClass.td}><Badge tone={STATUS_TONE[row.status]} dot>{statusLabel(row.status)}</Badge></td>
+                      <td className={clsx(tableClass.td, 'text-right')}>
+                        <Button size="sm" variant="ghost">{s.editMapping}</Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+          </Card>
+          <RuleNote title={s.gate1Title} body={s.gate1Body} />
         </div>
       )}
 
       {/* Reviews & Approvals View */}
       {viewMode === 'reviews' && (
-        <div className="space-y-4">
-          <div className="bg-gradient-to-br from-blue-500/5 to-blue-500/10 border border-blue-500/20 rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-bold text-white">Gate 2 — Review & Approvals</h3>
-                <p className="text-sm text-gray-400 mt-1">
-                  Approve submissions, resolve comments, and track approval chain
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-4 gap-4">
-              <div className="bg-dark-surface border border-dark-border rounded-xl p-4">
-                <p className="text-xs text-gray-400 mb-1">Pending Review</p>
-                <p className="text-2xl font-bold text-white">7</p>
-              </div>
-              <div className="bg-dark-surface border border-dark-border rounded-xl p-4">
-                <p className="text-xs text-gray-400 mb-1">In Rework</p>
-                <p className="text-2xl font-bold text-white">3</p>
-              </div>
-              <div className="bg-dark-surface border border-dark-border rounded-xl p-4">
-                <p className="text-xs text-gray-400 mb-1">Approved</p>
-                <p className="text-2xl font-bold text-white">24</p>
-              </div>
-              <div className="bg-dark-surface border border-dark-border rounded-xl p-4">
-                <p className="text-xs text-gray-400 mb-1">Avg. Cycle Time</p>
-                <p className="text-2xl font-bold text-white">3.2d</p>
-              </div>
-            </div>
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+            <StatCard label={s.pendingReview} value="7" />
+            <StatCard label={s.inRework} value="3" />
+            <StatCard label={s.approved} value="24" />
+            <StatCard label={s.avgCycle} value={f.number(3.2)} unit={s.daysUnit} />
           </div>
 
-          <div className="bg-dark-surface border border-dark-border rounded-2xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-dark-bg border-b border-dark-border text-xs uppercase tracking-wide text-gray-400">
-                <tr>
-                  <th className="px-4 py-3 text-left">Disclosure</th>
-                  <th className="px-4 py-3 text-left">Submitter</th>
-                  <th className="px-4 py-3 text-left">Submitted</th>
-                  <th className="px-4 py-3 text-left">Reviewer</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { disclosure: 'GRI 305-1', module: 'Scope 1 Emissions', submitter: 'Jane Doe', submitted: '2025-11-28', reviewer: 'You', status: 'Pending Review', comments: 2 },
-                  { disclosure: 'GRI 305-2', module: 'Scope 2 Emissions', submitter: 'John Smith', submitted: '2025-11-27', reviewer: 'You', status: 'Pending Review', comments: 0 },
-                  { disclosure: 'GRI 403-9', module: 'Work-related injuries', submitter: 'Safety Team', submitted: '2025-11-26', reviewer: 'Sarah Lee', status: 'In Rework', comments: 5 },
-                  { disclosure: 'GRI 405-1', module: 'Diversity of governance bodies', submitter: 'HR Team', submitted: '2025-11-25', reviewer: 'You', status: 'Approved', comments: 1 },
-                ].map((row, idx) => (
-                  <tr
-                    key={idx}
-                    className="border-b border-dark-border/60 hover:bg-dark-bg/40 transition-colors"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-white">{row.disclosure}</div>
-                      <div className="text-xs text-gray-400 mt-1">{row.module}</div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-300">{row.submitter}</td>
-                    <td className="px-4 py-3 text-gray-300 text-xs">{row.submitted}</td>
-                    <td className="px-4 py-3 text-gray-300">{row.reviewer}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={clsx(
-                          'inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium',
-                          row.status === 'Approved'
-                            ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/40'
-                            : row.status === 'Pending Review'
-                            ? 'bg-blue-500/10 text-blue-300 border border-blue-500/40'
-                            : 'bg-amber-500/10 text-amber-300 border border-amber-500/40'
-                        )}
-                      >
-                        {row.status}
-                      </span>
-                      {row.comments > 0 && (
-                        <span className="ml-2 text-[11px] text-gray-400">
-                          ({row.comments} comments)
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="inline-flex items-center gap-2">
-                        {row.status === 'Pending Review' && (
-                          <>
-                            <button className="p-1.5 rounded-full border border-dark-border text-gray-300 hover:border-blue-400 hover:text-blue-300 transition-colors" title="Comment">
-                              <MessageSquare className="w-4 h-4" />
-                            </button>
-                            <button className="p-1.5 rounded-full border border-dark-border text-gray-300 hover:border-emerald-400 hover:text-emerald-300 transition-colors" title="Approve">
-                              <ThumbsUp className="w-4 h-4" />
-                            </button>
-                            <button className="p-1.5 rounded-full border border-dark-border text-gray-300 hover:border-red-400 hover:text-red-300 transition-colors" title="Request rework">
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
-                        {row.status !== 'Pending Review' && (
-                          <button className="px-3 py-1.5 rounded-full border border-dark-border text-xs text-gray-300 hover:border-accent hover:text-accent transition-colors">
-                            View
-                          </button>
-                        )}
-                      </div>
-                    </td>
+          <Card>
+            <CardHeader title={s.reviewsTitle} description={s.reviewsDesc} className="mb-4" />
+            <div className={tableClass.wrap}>
+              <table className={tableClass.table}>
+                <thead>
+                  <tr>
+                    <th className={tableClass.th}>{s.colDisclosure}</th>
+                    <th className={tableClass.th}>{s.colSubmitter}</th>
+                    <th className={tableClass.th}>{s.colSubmitted}</th>
+                    <th className={tableClass.th}>{s.colReviewer}</th>
+                    <th className={tableClass.th}>{s.colStatus}</th>
+                    <th className={clsx(tableClass.th, 'text-right')}>{s.colActions}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-4 text-sm text-blue-300">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium">Gate 2 Rule:</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Pack cannot be "Ready to Publish" if: missing required answers, missing required evidence, validation fails, or material topics incomplete.
-                </p>
-              </div>
+                </thead>
+                <tbody>
+                  {REVIEW_ROWS.map(row => (
+                    <tr key={row.disclosure} className={tableClass.tr}>
+                      <td className={clsx(tableClass.td, 'min-w-[180px]')}>
+                        <div className="font-medium text-zinc-900">{row.disclosure}</div>
+                        <div className="text-xs text-zinc-500 mt-0.5">{s.reviewModules[row.module]}</div>
+                      </td>
+                      <td className={clsx(tableClass.td, 'whitespace-nowrap')}>{person(row.submitter)}</td>
+                      <td className={clsx(tableClass.td, 'whitespace-nowrap tabular text-[13px]')}>{f.date(row.submitted)}</td>
+                      <td className={clsx(tableClass.td, 'whitespace-nowrap')}>{person(row.reviewer)}</td>
+                      <td className={clsx(tableClass.td, 'whitespace-nowrap')}>
+                        <Badge tone={STATUS_TONE[row.status]} dot>{statusLabel(row.status)}</Badge>
+                        {row.comments > 0 && (
+                          <span className="ml-2 text-xs text-zinc-500 inline-flex items-center gap-1">
+                            <MessageSquare className="w-3 h-3" />
+                            {fmt(s.comments, { count: row.comments })}
+                          </span>
+                        )}
+                      </td>
+                      <td className={clsx(tableClass.td, 'text-right whitespace-nowrap')}>
+                        {row.status === 'Pending Review' ? (
+                          <div className="inline-flex items-center gap-1">
+                            <IconAction label={s.comment} icon={MessageSquare} />
+                            <IconAction label={s.approve} icon={ThumbsUp} className="hover:text-emerald-600" />
+                            <IconAction label={s.requestRework} icon={XCircle} className="hover:text-rose-600" />
+                          </div>
+                        ) : (
+                          <Button size="sm" variant="ghost">{s.view}</Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
+          </Card>
+          <RuleNote title={s.gate2Title} body={s.gate2Body} />
         </div>
       )}
 
       {/* Task table (default view) */}
       {viewMode === 'tasks' && (
-        <>
-      <div className="bg-dark-surface border border-dark-border rounded-2xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-dark-bg border-b border-dark-border text-xs uppercase tracking-wide text-gray-400">
-            <tr>
-              <th className="px-4 py-3 text-left">Task</th>
-              <th className="px-4 py-3 text-left">Module</th>
-              <th className="px-4 py-3 text-left">Type</th>
-              <th className="px-4 py-3 text-left">Assignee</th>
-              <th className="px-4 py-3 text-left">Due</th>
-              <th className="px-4 py-3 text-left">Priority</th>
-              <th className="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredTasks.map(task => {
-              const module = mockData.modules.find(m => m.id === task.moduleId)
-              const dueLabel = task.dueDate
-                ? new Date(task.dueDate).toLocaleDateString()
-                : '—'
-
-              return (
-                <tr
-                  key={task.id}
-                  className="border-b border-dark-border/60 hover:bg-dark-bg/40 transition-colors"
-                >
-                  <td className="px-4 py-3 align-top">
-                    <div className="font-medium text-white">{task.title}</div>
-                    <div className="text-xs text-gray-400 mt-1">{task.description}</div>
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-blue-500/40 bg-blue-500/10 text-[11px] text-blue-300">
-                      {task.moduleId}
-                    </span>
-                    {module && (
-                      <div className="mt-1 text-xs text-gray-500">
-                        {module.title}
-                      </div>
+        <Card>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {filterChips.map(chip => {
+                const Icon = chip.icon
+                const active = filter === chip.id
+                return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    onClick={() => setFilter(chip.id)}
+                    aria-pressed={active}
+                    className={clsx(
+                      'inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[13px] font-medium border transition-colors',
+                      active ? 'bg-zinc-900 border-zinc-900 text-white' : 'bg-white border-line text-zinc-600 hover:text-zinc-900 hover:border-zinc-300',
                     )}
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full border border-dark-border bg-dark-bg text-[11px] text-gray-300">
-                      {task.type === 'validation' ? 'Validation' : 'Review'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <div className="font-mono text-xs text-gray-300">
-                      {task.assignee}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <div className="flex items-center gap-1 text-xs text-gray-300">
-                      <Clock3 className="w-3.5 h-3.5" />
-                      <span>{dueLabel}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <span
-                      className={clsx(
-                        'inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium',
-                        task.priority === 'high'
-                          ? 'bg-red-500/10 text-red-300 border border-red-500/40'
-                          : task.priority === 'medium'
-                          ? 'bg-amber-500/10 text-amber-300 border border-amber-500/40'
-                          : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/40'
-                      )}
-                    >
-                      {task.priority === 'high'
-                        ? 'High'
-                        : task.priority === 'medium'
-                        ? 'Medium'
-                        : 'Low'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 align-top text-right">
-                    <div className="inline-flex items-center gap-2">
-                      <button className="px-3 py-1.5 rounded-full border border-dark-border text-xs text-gray-300 hover:border-accent hover:text-accent transition-colors">
-                        Open disclosure
-                      </button>
-                      <button className="px-3 py-1.5 rounded-full border border-dark-border text-xs text-gray-300 hover:border-emerald-400 hover:text-emerald-300 transition-colors">
-                        Mark complete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              )
-            })}
-            {filteredTasks.length === 0 && (
-              <tr>
-                <td
-                  colSpan={7}
-                  className="px-4 py-8 text-center text-sm text-gray-500"
-                >
-                  No tasks match this view.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-        </>
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {chip.label}
+                    {chip.count !== undefined && <span className={clsx('tabular text-xs', active ? 'text-white/60' : 'text-zinc-400')}>{chip.count}</span>}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="relative w-full lg:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
+              <input
+                type="text"
+                value={search}
+                onChange={event => setSearch(event.target.value)}
+                placeholder={s.searchPlaceholder}
+                aria-label={s.searchLabel}
+                className={clsx(inputClass, 'pl-9')}
+              />
+            </div>
+          </div>
+
+          {filteredTasks.length === 0 ? (
+            <EmptyState
+              icon={Inbox}
+              title={s.emptyTitle}
+              description={s.emptyDesc}
+              action={<Button size="sm" onClick={() => { setFilter('all'); setSearch('') }}>{s.clearFilters}</Button>}
+            />
+          ) : (
+            <div className={tableClass.wrap}>
+              <table className={tableClass.table}>
+                <thead>
+                  <tr>
+                    <th className={tableClass.th}>{s.colTask}</th>
+                    <th className={tableClass.th}>{s.colModule}</th>
+                    <th className={tableClass.th}>{s.colType}</th>
+                    <th className={tableClass.th}>{s.colAssignee}</th>
+                    <th className={tableClass.th}>{s.colDue}</th>
+                    <th className={tableClass.th}>{s.colPriority}</th>
+                    <th className={clsx(tableClass.th, 'text-right')}>{s.colActions}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTasks.map(task => {
+                    const module = mockData.modules.find(m => m.id === task.moduleId)
+                    return (
+                      <tr key={task.id} className={clsx(tableClass.tr, 'align-top')}>
+                        <td className={clsx(tableClass.td, 'align-top min-w-[260px] max-w-[360px]')}>
+                          <div className="font-medium text-zinc-900">{task.title}</div>
+                          <div className="text-xs text-zinc-500 mt-0.5 leading-relaxed">{task.description}</div>
+                        </td>
+                        <td className={clsx(tableClass.td, 'align-top whitespace-nowrap')}>
+                          <Badge>{task.moduleId}</Badge>
+                          {module && <div className="mt-1 text-xs text-zinc-500">{module.title}</div>}
+                        </td>
+                        <td className={clsx(tableClass.td, 'align-top whitespace-nowrap')}>
+                          <span className="text-[13px] text-zinc-700">{s.type[task.type as keyof typeof s.type] ?? task.type}</span>
+                        </td>
+                        <td className={clsx(tableClass.td, 'align-top')}>
+                          <span className="font-mono text-xs text-zinc-600 whitespace-nowrap">{task.assignee}</span>
+                        </td>
+                        <td className={clsx(tableClass.td, 'align-top whitespace-nowrap')}>
+                          <span className="inline-flex items-center gap-1 text-[13px] tabular">
+                            <Clock3 className="w-3.5 h-3.5 text-zinc-400" />
+                            {task.dueDate ? f.date(task.dueDate) : '—'}
+                          </span>
+                        </td>
+                        <td className={clsx(tableClass.td, 'align-top whitespace-nowrap')}>
+                          <Badge tone={PRIORITY_TONE[task.priority] ?? 'neutral'}>{s.priority[task.priority as keyof typeof s.priority] ?? task.priority}</Badge>
+                        </td>
+                        <td className={clsx(tableClass.td, 'align-top text-right whitespace-nowrap')}>
+                          <div className="inline-flex items-center gap-0.5">
+                            <IconAction label={s.openDisclosure} icon={ExternalLink} />
+                            <IconAction label={s.markComplete} icon={CheckCircle} className="hover:text-emerald-600" />
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
       )}
     </div>
   )
 }
 
-
+function IconAction({ label, icon: Icon, className }: { label: string; icon: typeof Inbox; className?: string }) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      className={clsx('w-8 h-8 inline-flex items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 transition-colors', className)}
+    >
+      <Icon className="w-4 h-4" />
+    </button>
+  )
+}

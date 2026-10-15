@@ -1,48 +1,50 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Language } from '../i18n/translations';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { LOCALES, Locale } from '../i18n'
 
 interface LanguageContextType {
-  language: Language;
-  setLanguage: (lang: Language) => void;
-  direction: 'ltr' | 'rtl';
+  locale: Locale
+  setLocale: (locale: Locale) => void
 }
 
-const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+const STORAGE_KEY = 'aeiforo_language'
+
+const LanguageContext = createContext<LanguageContextType | undefined>(undefined)
+
+function readStoredLocale(): Locale {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    // Older builds stored display labels ('EN', '简体中文').
+    if (saved === 'zh' || saved === '简体中文') return 'zh'
+    if (saved === 'en' || saved === 'EN') return 'en'
+  } catch {
+    /* storage unavailable */
+  }
+  return navigator.language?.toLowerCase().startsWith('zh') ? 'zh' : 'en'
+}
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(() => {
-    const saved = localStorage.getItem('aeiforo_language');
-    return (saved as Language) || 'EN';
-  });
+  const [locale, setLocaleState] = useState<Locale>(readStoredLocale)
 
-  const direction = language === 'عربي' ? 'rtl' : 'ltr';
-
-  const langAttr = language === 'EN' ? 'en' : language === 'हिंदी' ? 'hi' : language === '简体中文' ? 'zh' : 'ar';
-
-  const setLanguage = (lang: Language) => {
-    setLanguageState(lang);
-    localStorage.setItem('aeiforo_language', lang);
-    document.documentElement.dir = lang === 'عربي' ? 'rtl' : 'ltr';
-    document.documentElement.lang = lang === 'EN' ? 'en' : lang === 'हिंदी' ? 'hi' : lang === '简体中文' ? 'zh' : 'ar';
-  };
+  const setLocale = (next: Locale) => {
+    setLocaleState(next)
+    try {
+      localStorage.setItem(STORAGE_KEY, next)
+    } catch {
+      /* storage unavailable */
+    }
+  }
 
   useEffect(() => {
-    document.documentElement.dir = direction;
-    document.documentElement.lang = langAttr;
-  }, [language, direction, langAttr]);
+    document.documentElement.lang = LOCALES.find(l => l.code === locale)!.htmlLang
+  }, [locale])
 
-  return (
-    <LanguageContext.Provider value={{ language, setLanguage, direction }}>
-      {children}
-    </LanguageContext.Provider>
-  );
+  return <LanguageContext.Provider value={{ locale, setLocale }}>{children}</LanguageContext.Provider>
 }
 
 export function useLanguage() {
-  const context = useContext(LanguageContext);
+  const context = useContext(LanguageContext)
   if (!context) {
-    throw new Error('useLanguage must be used within LanguageProvider');
+    throw new Error('useLanguage must be used within LanguageProvider')
   }
-  return context;
+  return context
 }
-

@@ -1,39 +1,60 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
-  CheckCircle, Link2,
-  ChevronLeft, User, Lock, MessageSquare,
-  ChevronDown, Building2, Upload, Plus, ArrowRight,
-  Mail, Sparkles, UserPlus
+  CheckCircle, Link2, ChevronLeft, ChevronRight, User, Lock, MessageSquare,
+  ChevronDown, Building2, Upload, Plus, Mail, Sparkles, UserPlus, FileText, ArrowLeft, Eye,
 } from 'lucide-react'
-import { mockData } from '../data/mockData'
 import clsx from 'clsx'
+import { mockData } from '../data/mockData'
 import { useRBAC, ROLE_DEFINITIONS, RoleId } from '../contexts/RBACContext'
+import { fmt, useFormat, useStrings } from '../i18n'
+import { questionnaireNewStrings } from '../i18n/pages/questionnaireNew'
+import { moduleCatalogStrings } from '../i18n/pages/moduleCatalog'
+import { useQuestionnaireText } from '../i18n/pages/questionnaireContent'
+import { Card, CardHeader, Button, Badge, Progress, EmptyState, inputClass, Tone } from '../components/ui'
 
-// Key ESG Aesthetic Theme Colors
-const theme = {
-  bgDark: 'bg-[#04332D]',
-  bgLight: 'bg-[#F4F7F6]',
-  primaryGreen: 'bg-[#12C87A]',
-  primaryGreenHover: 'hover:bg-[#0EA965]',
-  textPrimaryGreen: 'text-[#12C87A]',
-  textDark: 'text-[#011C16]',
-  borderGreen: 'border-[#12C87A]',
+const CONSOLIDATED = 'Asyad Group (Consolidated)'
+const ENTITIES = [CONSOLIDATED, 'Asyad Ports', 'Asyad Shipping', 'Oman Rail', 'Asyad Logistics']
+
+type Category = 'environment' | 'social' | 'csr' | 'financial' | 'governance'
+
+const CATEGORY_RULES: { cat: Category; keys: string[] }[] = [
+  { cat: 'environment', keys: ['energy', 'emissions', 'ghg', 'water', 'waste', 'biodiversity', 'carbon', 'env', 'p5'] },
+  { cat: 'social', keys: ['employee', 'safety', 'worker', 'training', 'posh', 'welfare', 'p3', 'p6', 'hr'] },
+  { cat: 'csr', keys: ['csr', 'community', 'p8', 'inclusive'] },
+  { cat: 'financial', keys: ['revenue', 'profit', 'capex', 'fines', 'green_revenue'] },
+]
+
+const CATEGORY_TONE: Record<Category, Tone> = {
+  environment: 'success',
+  social: 'info',
+  csr: 'neutral',
+  financial: 'warning',
+  governance: 'neutral',
 }
+
+function categorize(fieldId: string): Category {
+  return CATEGORY_RULES.find(r => r.keys.some(k => fieldId.includes(k)))?.cat ?? 'governance'
+}
+
+const selectClass =
+  'h-9 pl-9 pr-8 rounded-[10px] bg-white border border-line text-sm text-zinc-900 shadow-sm appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-brand-500/25 focus:border-brand-500/60 max-w-full truncate'
 
 export default function QuestionnaireNew() {
   const { moduleId } = useParams<{ moduleId: string }>()
   const navigate = useNavigate()
   const { currentRole, setRole } = useRBAC()
+  const s = useStrings(questionnaireNewStrings)
+  const c = useStrings(moduleCatalogStrings)
+  const f = useFormat()
+  const qt = useQuestionnaireText()
 
-  const [activeEntity, setActiveEntity] = useState('Asyad Group (Consolidated)')
-  const entities = ['Asyad Group (Consolidated)', 'Asyad Ports', 'Asyad Shipping', 'Oman Rail', 'Asyad Logistics']
-
+  const [activeEntity, setActiveEntity] = useState(CONSOLIDATED)
   const [formValues, setFormValues] = useState<Record<string, string>>({})
-  const [aiPrompts, setAiPrompts] = useState<Record<string, boolean>>({}) // Track which textareas have active AI suggestions
+  const [aiPrompts, setAiPrompts] = useState<Record<string, boolean>>({}) // fields with an in-flight AI suggestion
 
   const module = useMemo(() => mockData.modules.find(m => m.id === moduleId), [moduleId])
-  const sections = useMemo(() => mockData.questionnaireSections.filter(s => s.module === moduleId), [moduleId])
+  const sections = useMemo(() => mockData.questionnaireSections.filter(sec => sec.module === moduleId), [moduleId])
   const [activeSectionId, setActiveSectionId] = useState('')
 
   useEffect(() => {
@@ -42,264 +63,278 @@ export default function QuestionnaireNew() {
 
   const currentSection = useMemo(() => {
     if (sections.length === 0) return null
-    return sections.find(s => s.id === activeSectionId) || sections[0]
+    return sections.find(sec => sec.id === activeSectionId) || sections[0]
   }, [sections, activeSectionId])
 
-  if (!module) return <div className="p-12 text-center text-xl font-bold">Module Not Found</div>
+  if (!module) {
+    return (
+      <div className="px-4 sm:px-6 lg:px-8 py-8 max-w-[1440px] mx-auto">
+        <Card>
+          <EmptyState
+            icon={FileText}
+            title={c.notFound}
+            description={c.notFoundBody}
+            action={<Button icon={ArrowLeft} onClick={() => navigate('/modules')}>{c.backToModules}</Button>}
+          />
+        </Card>
+      </div>
+    )
+  }
 
   const handleGenerateText = (fieldId: string) => {
     setAiPrompts(prev => ({ ...prev, [fieldId]: true }))
     // Simulate AI generation delay
     setTimeout(() => {
-      setFormValues(prev => ({
-        ...prev,
-        [fieldId]: `Based on our corporate policy and localized operational data, we are committed to aligning with the Science Based Targets initiative (SBTi). We aim to reduce Scope 1 emissions by 24%, and Scope 2 by 15% by 2030, through extensive fleet modernization and localized green grid integration.`
-      }))
+      setFormValues(prev => ({ ...prev, [fieldId]: s.aiDraft }))
       setAiPrompts(prev => ({ ...prev, [fieldId]: false }))
     }, 1500)
   }
 
+  const entityLabel = (e: string) => (e === CONSOLIDATED ? fmt(s.consolidated, { name: 'Asyad Group' }) : e)
   const fields = (currentSection?.fields || []) as any[]
+  const progress = module.coverage
+  const activeIndex = currentSection ? sections.findIndex(sec => sec.id === currentSection.id) : -1
 
   return (
-    <div className={`flex flex-col min-h-[calc(100vh-6rem)] ${theme.bgLight} font-sans relative overflow-hidden rounded-br-[2.5rem]`}>
-
-      {/* ── Background Design ── */}
-      <div className={`absolute top-0 left-0 right-0 h-[450px] ${theme.bgDark} rounded-b-[4rem] z-0`} />
-
-      {/* Decorative circles */}
-      <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-white/[0.02] border border-white/[0.05] z-0 pointer-events-none" />
-      <div className="absolute top-[10%] right-[5%] w-[400px] h-[400px] rounded-full bg-white/[0.02] border border-white/[0.05] z-0 pointer-events-none" />
-      <div className="absolute top-[30%] left-[-10%] w-[300px] h-[300px] rounded-full bg-white/[0.02] border border-white/[0.05] z-0 pointer-events-none" />
-
-      {/* ── Top Nav ── */}
-      <div className={`w-full max-w-7xl mx-auto pt-6 pb-2 px-4 flex items-center justify-between z-10 relative`}>
-        <div className="flex items-center gap-6">
-          <button onClick={() => navigate(`/modules`)} className="p-2 rounded-full hover:bg-white/10 transition-colors text-white/70 hover:text-white">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <div className="flex items-center gap-3 bg-white/10 px-4 py-2 rounded-full border border-white/10">
-            <Building2 className="w-4 h-4 text-white/70" />
-            <select value={activeEntity} onChange={(e) => setActiveEntity(e.target.value)} className="bg-transparent text-sm font-semibold text-white focus:outline-none cursor-pointer appearance-none">
-              {entities.map(e => <option key={e} value={e} className="text-black">{e}</option>)}
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 text-white/50 ml-1" />
+    <div className="min-h-full bg-canvas">
+      {/* Toolbar */}
+      <div className="sticky top-0 z-20 bg-white/95 border-b border-line">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              type="button"
+              onClick={() => navigate('/modules')}
+              aria-label={s.back}
+              title={s.back}
+              className="w-9 h-9 shrink-0 rounded-[10px] flex items-center justify-center text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <div className="relative min-w-0">
+              <Building2 className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <select
+                aria-label={s.entity}
+                value={activeEntity}
+                onChange={e => setActiveEntity(e.target.value)}
+                className={clsx(selectClass, 'font-medium')}
+              >
+                {ENTITIES.map(e => <option key={e} value={e}>{entityLabel(e)}</option>)}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-4">
-          {/* Demo Role Switcher overlayed for testing */}
-          <select
-            className="bg-white/10 border border-white/20 text-white text-xs font-semibold px-4 py-2 rounded-full focus:outline-none appearance-none cursor-pointer"
-            value={currentRole}
-            onChange={(e) => setRole(e.target.value as RoleId)}
-          >
-            {Object.values(ROLE_DEFINITIONS).map(r => <option key={r.id} value={r.id} className="text-black">{r.name}</option>)}
-          </select>
+          <div className="relative">
+            <Eye className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <select
+              aria-label={s.role}
+              title={s.role}
+              className={clsx(selectClass, 'text-[13px] text-zinc-700')}
+              value={currentRole}
+              onChange={e => setRole(e.target.value as RoleId)}
+            >
+              {Object.values(ROLE_DEFINITIONS).map(r => <option key={r.id} value={r.id}>{s.roles[r.id] ?? r.name}</option>)}
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
         </div>
       </div>
 
-      {/* ── Main Layout ── */}
-      <div className="flex-1 flex w-full max-w-7xl mx-auto z-10 relative px-4 overflow-hidden mb-8 gap-8 mt-2">
-
-        {/* Left Sidebar Menu (Framework Navigation) */}
-        <div className="w-72 flex flex-col shrink-0 overflow-y-auto hidden lg:flex pb-12 scrollbar-none">
-          <div className="mb-8">
-            <h1 className="text-3xl font-extrabold text-white tracking-tight leading-tight">{module.title}</h1>
-            <p className="text-white/60 text-sm mt-3 font-medium">Automate and streamline your data collection process.</p>
-          </div>
-
-          <div className="bg-white rounded-[24px] shadow-xl p-3 flex flex-col gap-1 border border-black/5">
-            <div className="p-4 pb-2">
-              <p className="text-xs font-bold text-black/40 uppercase tracking-widest mb-1">Framework Sections</p>
-            </div>
-            {sections.map((section, idx) => {
-              const active = activeSectionId === section.id
-              return (
-                <button
-                  key={section.id}
-                  onClick={() => setActiveSectionId(section.id)}
-                  className={clsx(
-                    'w-full text-left px-4 py-3.5 rounded-[16px] transition-all flex items-center justify-between group',
-                    active ? 'bg-[#F2FDF7] text-[#013328]' : 'hover:bg-black/5 text-black/60'
-                  )}
-                >
-                  <span className={clsx("text-sm font-bold", active && "text-[#12C87A]")}>
-                    {idx + 1}. {section.title.replace(/^(Section [A-E]|BRSR Section [A-E]) – /, '').split(':')[0].trim()}
-                  </span>
-                  {active && <ArrowRight className="w-4 h-4 text-[#12C87A]" />}
-                </button>
-              )
-            })}
-
-            <div className="mt-4 p-4 border-t border-black/5">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-black/60">Module Progress</span>
-                <span className="text-xs font-bold text-[#12C87A]">63%</span>
-              </div>
-              <div className="h-2 w-full bg-black/5 rounded-full overflow-hidden">
-                <div className="h-full bg-[#12C87A] rounded-full w-[63%]" />
-              </div>
-            </div>
-          </div>
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        {/* Title */}
+        <div className="pb-6">
+          <h1 className="text-2xl sm:text-[28px] font-semibold tracking-[-0.02em] text-zinc-900 leading-tight">
+            {c.titles[module.id] ?? module.title}
+          </h1>
+          <p className="mt-1.5 text-sm text-zinc-500 max-w-2xl">{s.subtitle}</p>
         </div>
 
-        {/* Right Content Area (Cards) */}
-        <div className="flex-1 overflow-y-auto pb-24 scrollbar-none mt-2 lg:mt-0">
-
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-white tracking-tight">{currentSection?.title}</h2>
-
-            <div className="flex items-center gap-3">
-              <button onClick={() => console.log('Submitted')} className={`flex items-center gap-2 px-6 py-3 rounded-full shadow-lg ${theme.primaryGreen} ${theme.primaryGreenHover} text-white font-bold text-sm transition-all shadow-[#12C87A]/20`}>
-                <CheckCircle className="w-4 h-4" /> Submit Section
-              </button>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-6">
-
-            {/* Quick Action Cards (User Management / Connections) */}
-            <div className="grid grid-cols-2 gap-6 mb-2">
-              <div className="bg-white rounded-[24px] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-black/5 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-bold text-[#011C16]">User management</h3>
-                    <UserPlus className="w-5 h-5 text-black/20" />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-black/80 flex items-center gap-2"><User className="w-3.5 h-3.5" /> Data Gatherer (Site A)</span>
-                      <span className="text-[#12C87A] font-bold bg-[#12C87A]/10 px-2 py-0.5 rounded">Invite pending</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-black/80 flex items-center gap-2"><Lock className="w-3.5 h-3.5" /> Auditor (Internal)</span>
-                      <span className="text-[#12C87A] font-bold bg-[#12C87A]/10 px-2 py-0.5 rounded">Joined 19 Sep</span>
-                    </div>
-                  </div>
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+          {/* Section navigation (desktop) */}
+          <aside className="hidden lg:block w-72 shrink-0 sticky top-20">
+            <Card padded={false} className="p-2">
+              <div className="px-3 pt-2 pb-2 text-[13px] font-medium text-zinc-500">{s.sections}</div>
+              <nav className="flex flex-col gap-0.5">
+                {sections.map((section, idx) => {
+                  const active = currentSection?.id === section.id
+                  return (
+                    <button
+                      key={section.id}
+                      type="button"
+                      onClick={() => setActiveSectionId(section.id)}
+                      aria-current={active ? 'step' : undefined}
+                      className={clsx(
+                        'w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2.5 text-sm',
+                        active ? 'bg-zinc-100 text-zinc-900 font-medium' : 'text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900',
+                      )}
+                    >
+                      <span className={clsx('w-5 text-xs tabular shrink-0', active ? 'text-zinc-900' : 'text-zinc-400')}>{idx + 1}</span>
+                      <span className="truncate flex-1">{qt.shortTitle(section)}</span>
+                      {section.completed && <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />}
+                    </button>
+                  )
+                })}
+              </nav>
+              <div className="mt-2 px-3 pt-4 pb-3 border-t border-line">
+                <div className="flex items-center justify-between mb-2 text-[13px]">
+                  <span className="font-medium text-zinc-500">{s.moduleProgress}</span>
+                  <span className="font-medium text-zinc-900 tabular">{f.percent(progress)}</span>
                 </div>
-                <button className={`mt-5 w-full py-2.5 rounded-xl border-2 ${theme.borderGreen} ${theme.textPrimaryGreen} font-bold text-xs hover:bg-[#12C87A]/5 transition-colors`}>
-                  Manage Access
-                </button>
+                <Progress value={progress} tone="success" />
               </div>
+            </Card>
+          </aside>
 
-              <div className="bg-white rounded-[24px] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-black/5 flex flex-col justify-between items-center text-center">
-                <div className="w-12 h-12 bg-[#F2FDF7] rounded-full flex items-center justify-center mb-3">
-                  <Upload className={`w-5 h-5 ${theme.textPrimaryGreen}`} />
+          {/* Main content */}
+          <div className="flex-1 min-w-0 w-full space-y-6">
+            {/* Mobile section picker */}
+            {sections.length > 0 && (
+              <div className="lg:hidden space-y-3">
+                <div className="relative">
+                  <FileText className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <select
+                    aria-label={s.sections}
+                    value={currentSection?.id}
+                    onChange={e => setActiveSectionId(e.target.value)}
+                    className={clsx(selectClass, 'w-full')}
+                  >
+                    {sections.map((section, idx) => (
+                      <option key={section.id} value={section.id}>{idx + 1}. {qt.shortTitle(section)}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-3.5 h-3.5 text-zinc-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
-                <h3 className="text-sm font-bold text-[#011C16] mb-1">Entity Documentation</h3>
-                <p className="text-xs text-black/50 font-medium px-4 mb-4">Upload policies or raw invoices for AI to calculate metrics below.</p>
-                <button className={`w-full py-2.5 rounded-xl border border-black/10 font-bold text-xs hover:bg-black/5 transition-colors`}>
-                  Upload File
-                </button>
+                <div className="flex items-center gap-3 text-[13px]">
+                  <span className="text-zinc-500 shrink-0">{s.moduleProgress}</span>
+                  <Progress value={progress} tone="success" className="flex-1" />
+                  <span className="font-medium text-zinc-900 tabular">{f.percent(progress)}</span>
+                </div>
               </div>
+            )}
+
+            {currentSection ? (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[13px] text-zinc-500 tabular">{s.section} {activeIndex + 1} / {sections.length}</div>
+                  <h2 className="text-lg font-semibold text-zinc-900 tracking-tight mt-0.5">{qt.sectionTitle(currentSection)}</h2>
+                </div>
+                <Button variant="primary" icon={CheckCircle} onClick={() => console.log('Submitted')} className="self-start sm:self-auto">
+                  {s.submitSection}
+                </Button>
+              </div>
+            ) : (
+              <Card>
+                <EmptyState icon={FileText} title={s.noSections} description={s.noSectionsBody} />
+              </Card>
+            )}
+
+            {/* Quick action cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card className="flex flex-col">
+                <CardHeader title={s.userManagement} icon={UserPlus} className="mb-4" />
+                <ul className="space-y-3 text-[13px]">
+                  <li className="flex items-center justify-between gap-3">
+                    <span className="text-zinc-700 flex items-center gap-2 min-w-0"><User className="w-3.5 h-3.5 text-zinc-400 shrink-0" /><span className="truncate">{s.userGatherer}</span></span>
+                    <Badge tone="warning">{s.invitePending}</Badge>
+                  </li>
+                  <li className="flex items-center justify-between gap-3">
+                    <span className="text-zinc-700 flex items-center gap-2 min-w-0"><Lock className="w-3.5 h-3.5 text-zinc-400 shrink-0" /><span className="truncate">{s.userAuditor}</span></span>
+                    <Badge tone="success">{fmt(s.joined, { date: f.date('2025-09-19', { day: 'numeric', month: 'short' }) })}</Badge>
+                  </li>
+                </ul>
+                <Button variant="secondary" className="mt-5 w-full">{s.manageAccess}</Button>
+              </Card>
+
+              <Card className="flex flex-col">
+                <CardHeader title={s.entityDocs} description={s.entityDocsBody} icon={Upload} className="mb-4" />
+                <button
+                  type="button"
+                  className="mt-auto w-full rounded-xl border border-dashed border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50 transition-colors py-5 flex flex-col items-center gap-1.5 text-[13px] font-medium text-zinc-700"
+                >
+                  <Upload className="w-4 h-4 text-zinc-400" />
+                  {s.uploadFile}
+                </button>
+              </Card>
             </div>
 
-            {/* Metric Collection Cards */}
-            {fields.map((field) => (
-              <div key={field.id} className="bg-white rounded-[24px] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-black/5 transition-all hover:shadow-[0_15px_40px_rgba(0,0,0,0.08)] group relative">
+            {/* Metric collection cards */}
+            {fields.map(field => {
+              const cat = categorize(field.id)
+              const value = formValues[field.id] ?? field.value ?? ''
+              return (
+                <Card key={field.id} className="transition-[box-shadow,border-color] hover:border-zinc-300">
+                  <div className="flex flex-col lg:flex-row gap-6 items-start">
+                    <div className="flex-1 w-full min-w-0">
+                      <Badge tone={CATEGORY_TONE[cat]} dot className="mb-3">{s.category[cat]}</Badge>
+                      <label htmlFor={`f-${field.id}`} className="block text-[15px] font-semibold text-zinc-900 leading-snug">
+                        {qt.fieldLabel(currentSection, field)}
+                      </label>
+                      {field.hint && <p className="text-[13px] text-zinc-500 mt-1">{qt.fieldHint(currentSection, field)}</p>}
 
-                {/* Categorization Tag */}
-                <div className={clsx(
-                  "absolute -top-3 left-8 text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full shadow-sm",
-                  (field.id.includes('energy') || field.id.includes('emissions') || field.id.includes('ghg') || field.id.includes('water') || field.id.includes('waste') || field.id.includes('biodiversity') || field.id.includes('carbon') || field.id.includes('env') || field.id.includes('p5'))
-                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-700'
-                    : (field.id.includes('employee') || field.id.includes('safety') || field.id.includes('worker') || field.id.includes('training') || field.id.includes('posh') || field.id.includes('welfare') || field.id.includes('p3') || field.id.includes('p6') || field.id.includes('hr'))
-                    ? 'bg-blue-50 border border-blue-200 text-blue-700'
-                    : (field.id.includes('csr') || field.id.includes('community') || field.id.includes('p8') || field.id.includes('inclusive'))
-                    ? 'bg-purple-50 border border-purple-200 text-purple-700'
-                    : (field.id.includes('revenue') || field.id.includes('profit') || field.id.includes('capex') || field.id.includes('fines') || field.id.includes('green_revenue'))
-                    ? 'bg-amber-50 border border-amber-200 text-amber-700'
-                    : 'bg-[#FFF9E6] border border-[#FFE898] text-[#9D7103]'
-                )}>
-                  {(field.id.includes('energy') || field.id.includes('emissions') || field.id.includes('ghg') || field.id.includes('water') || field.id.includes('waste') || field.id.includes('biodiversity') || field.id.includes('carbon') || field.id.includes('env') || field.id.includes('p5'))
-                    ? 'Environment'
-                    : (field.id.includes('employee') || field.id.includes('safety') || field.id.includes('worker') || field.id.includes('training') || field.id.includes('posh') || field.id.includes('welfare') || field.id.includes('p3') || field.id.includes('p6') || field.id.includes('hr'))
-                    ? 'Social'
-                    : (field.id.includes('csr') || field.id.includes('community') || field.id.includes('p8') || field.id.includes('inclusive'))
-                    ? 'CSR / Inclusive Growth'
-                    : (field.id.includes('revenue') || field.id.includes('profit') || field.id.includes('capex') || field.id.includes('fines') || field.id.includes('green_revenue'))
-                    ? 'Financial'
-                    : 'Governance'}
-                </div>
-
-                <div className="flex flex-col lg:flex-row gap-8 items-start pt-2">
-                  <div className="flex-1 w-full relative">
-                    <label className="block text-lg font-bold text-[#011C16] mb-2 leading-snug pr-8">
-                      {field.label}
-                    </label>
-                    {field.hint && <p className="text-sm font-medium text-black/50 mb-4">{field.hint}</p>}
-
-                    {field.type === 'textarea' ? (
-                      <div className="relative">
-                        <textarea
-                          value={formValues[field.id] ?? field.value ?? ''}
-                          onChange={e => setFormValues({ ...formValues, [field.id]: e.target.value })}
-                          rows={4}
-                          className="w-full px-5 py-4 bg-[#F8FAFA] border border-black/10 rounded-[16px] text-[#011C16] focus:outline-none focus:ring-2 focus:ring-[#12C87A] focus:border-transparent resize-none text-sm transition-all"
-                          placeholder="Provide the qualitative response for this disclosure..."
-                        />
-                        {/* AI Generate Text Button (Floating inside textarea) */}
-                        <div className="absolute bottom-4 right-4 flex gap-2">
-                          <button
-                            onClick={() => handleGenerateText(field.id)}
-                            disabled={aiPrompts[field.id]}
-                            className={clsx(
-                              `flex items-center gap-2 px-4 py-2 rounded-xl text-white font-bold text-xs shadow-md transition-all`,
-                              aiPrompts[field.id] ? "bg-black/20 cursor-wait" : `${theme.primaryGreen} ${theme.primaryGreenHover}`
+                      <div className="mt-4">
+                        {field.type === 'textarea' ? (
+                          <div className="relative">
+                            <textarea
+                              id={`f-${field.id}`}
+                              value={value}
+                              onChange={e => setFormValues({ ...formValues, [field.id]: e.target.value })}
+                              rows={5}
+                              className={clsx(inputClass, 'h-auto py-2.5 pb-14 resize-none leading-relaxed')}
+                              placeholder={s.textareaPlaceholder}
+                            />
+                            <div className="absolute bottom-3 right-3">
+                              <Button
+                                size="sm"
+                                variant={aiPrompts[field.id] ? 'secondary' : 'brand'}
+                                icon={Sparkles}
+                                onClick={() => handleGenerateText(field.id)}
+                                disabled={aiPrompts[field.id]}
+                                className={clsx(aiPrompts[field.id] && 'cursor-wait')}
+                              >
+                                {aiPrompts[field.id] ? s.generating : s.generate}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="relative max-w-sm">
+                            <input
+                              id={`f-${field.id}`}
+                              type={field.type === 'number' ? 'number' : 'text'}
+                              value={value}
+                              onChange={e => setFormValues({ ...formValues, [field.id]: e.target.value })}
+                              className={clsx(inputClass, 'h-10 pr-10 font-medium tabular', formValues[field.id] && 'border-emerald-400')}
+                              placeholder={field.type === 'number' ? '0.00' : s.valuePlaceholder}
+                            />
+                            {formValues[field.id] && (
+                              <CheckCircle aria-label={s.filled} className="w-4 h-4 text-emerald-500 absolute right-3 top-1/2 -translate-y-1/2" />
                             )}
-                          >
-                            <Sparkles className="w-3.5 h-3.5" />
-                            {aiPrompts[field.id] ? 'Generating...' : 'Generate Text'}
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="relative max-w-sm">
-                        <input
-                          type={field.type === 'number' ? 'number' : 'text'}
-                          value={formValues[field.id] ?? field.value ?? ''}
-                          onChange={e => setFormValues({ ...formValues, [field.id]: e.target.value })}
-                          className={`w-full px-5 py-4 bg-[#F8FAFA] border ${formValues[field.id] ? 'border-[#12C87A]' : 'border-black/10'} rounded-[16px] text-lg font-bold text-[#011C16] focus:outline-none focus:ring-2 focus:ring-[#12C87A] focus:border-transparent transition-all`}
-                          placeholder={field.type === 'number' ? '0.00' : 'Enter value...'}
-                        />
-                        {formValues[field.id] && (
-                          <div className={`absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full ${theme.primaryGreen} flex items-center justify-center text-white`}>
-                            <CheckCircle className="w-4 h-4" />
                           </div>
                         )}
                       </div>
-                    )}
+                    </div>
+
+                    {/* Field actions */}
+                    <div className="w-full lg:w-60 shrink-0 lg:border-l lg:border-line lg:pl-6">
+                      <p className="text-xs font-medium text-zinc-500 mb-2">{s.actions}</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-1.5">
+                        <FieldAction icon={Mail} label={s.requestData} trailing={<ChevronRight className="w-3.5 h-3.5 text-zinc-300" />} />
+                        <FieldAction icon={Link2} label={s.linkedApi} trailing={<span className="w-1.5 h-1.5 rounded-full bg-zinc-300" />} />
+                        <FieldAction icon={MessageSquare} label={s.addComment} />
+                      </div>
+                    </div>
                   </div>
+                </Card>
+              )
+            })}
 
-                  {/* Right Side Actions for the Field */}
-                  <div className="w-full lg:w-64 flex flex-shrink-0 flex-col gap-3">
-                    <p className="text-[10px] font-bold text-black/40 uppercase tracking-widest pl-1">Actions & Delegation</p>
-
-                    <button className="flex items-center justify-between w-full px-4 py-3 bg-[#F8FAFA] hover:bg-[#F2FDF7] border border-black/5 hover:border-[#12C87A]/30 rounded-xl transition-all text-sm font-semibold text-black/70 group">
-                      <span className="flex items-center gap-2"><Mail className="w-4 h-4 text-black/40 group-hover:text-[#12C87A]" /> Request Data</span>
-                      <ChevronRightIcon className="w-4 h-4 text-black/20" />
-                    </button>
-
-                    <button className="flex items-center justify-between w-full px-4 py-3 bg-[#F8FAFA] hover:bg-black/5 border border-black/5 rounded-xl transition-all text-sm font-semibold text-black/70 group">
-                      <span className="flex items-center gap-2"><Link2 className="w-4 h-4 text-black/40" /> Linked API Source</span>
-                      <span className="w-2 h-2 rounded-full bg-black/20" />
-                    </button>
-
-                    <button className="flex items-center justify-between w-full px-4 py-3 bg-[#F8FAFA] hover:bg-black/5 border border-black/5 rounded-xl transition-all text-sm font-semibold text-black/70 group">
-                      <span className="flex items-center gap-2"><MessageSquare className="w-4 h-4 text-black/40" /> Add Comment</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {/* Create your own metric button */}
-            <button className={`w-full py-5 rounded-[24px] border-2 border-dashed ${theme.borderGreen} bg-white hover:bg-[#F2FDF7] flex items-center justify-center gap-2 ${theme.textPrimaryGreen} font-bold transition-all shadow-sm`}>
-              <Plus className="w-5 h-5" />
-              Create your own metric
+            {/* Create metric */}
+            <button
+              type="button"
+              className="w-full h-14 rounded-card border border-dashed border-zinc-300 bg-white/60 hover:bg-white hover:border-zinc-400 flex items-center justify-center gap-2 text-sm font-medium text-zinc-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              {s.createMetric}
             </button>
-
           </div>
         </div>
       </div>
@@ -307,10 +342,17 @@ export default function QuestionnaireNew() {
   )
 }
 
-function ChevronRightIcon(props: any) {
+function FieldAction({ icon: Icon, label, trailing }: { icon: typeof Mail; label: string; trailing?: React.ReactNode }) {
   return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m9 18 6-6-6-6" />
-    </svg>
+    <button
+      type="button"
+      className="flex items-center justify-between gap-2 w-full h-9 px-3 rounded-lg text-[13px] font-medium text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
+    >
+      <span className="flex items-center gap-2 min-w-0">
+        <Icon className="w-4 h-4 text-zinc-400 shrink-0" />
+        <span className="truncate">{label}</span>
+      </span>
+      {trailing}
+    </button>
   )
 }

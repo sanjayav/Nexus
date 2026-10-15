@@ -1,90 +1,103 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import clsx from 'clsx'
+import { createPortal } from 'react-dom'
 import {
     Plug, CheckCircle2, AlertCircle, Clock, RefreshCw,
     Plus, Database, X,
     AlertTriangle, Activity, Shield, Link2, DownloadCloud,
-    Settings2, Fingerprint, ArrowRight
+    Settings2, Fingerprint, ArrowRight,
 } from 'lucide-react'
+import { fmt, useFormat, useStrings } from '../i18n'
+import { dataConnectorsStrings } from '../i18n/pages/dataConnectors'
+import { PageHeader, Card, Button, Badge, StatCard, Tabs, EmptyState, Tone } from '../components/ui'
 
 type ConnectorStatus = 'connected' | 'pending' | 'error' | 'configuring'
 type ConnectorCategory = 'erp' | 'hris' | 'cloud' | 'iot' | 'file' | 'analytics'
+type ConnectorId = 'sap-s4' | 'oracle-cloud' | 'workday' | 'snowflake' | 'azure-iot'
 
-interface FieldMapping { source: string; target: string; transformation?: string }
 interface Connector {
-    id: string; name: string; vendor: string; description: string
+    id: ConnectorId; name: string; vendor: string
     category: ConnectorCategory; status: ConnectorStatus
-    logo: string; logoColor: string; logoBg: string; logoGlow: string
-    recordsImported?: number; lastSync?: string; nextSync?: string
+    logo: string; logoColor: string
+    recordsImported?: number
     fieldMappings: number; certifications: string[]; regions: string[]
-    dataTypes: string[]; setupMinutes: number; sampleMappings: FieldMapping[]
-    syncLog?: { time: string; status: string; records: number; message: string }[]
+    setupMinutes: number; sampleMappings: { source: string; target: string }[]
+    syncLog?: { status: 'success' | 'warning' | 'error'; records: number }[]
 }
 
+// Display text (descriptions, data types, relative times, log messages) lives in the dictionary, keyed by id.
 const connectors: Connector[] = [
     {
-        id: 'sap-s4', name: 'SAP S/4HANA', vendor: 'SAP SE',
-        description: 'Pull energy consumption, emissions, waste data, and production output from EHS modules',
-        category: 'erp', status: 'connected', logo: 'SAP',
-        logoColor: 'text-indigo-600', logoBg: 'bg-indigo-500/10 border-indigo-500/20', logoGlow: '',
-        recordsImported: 4847, lastSync: '14 min ago', nextSync: 'in 46 min', fieldMappings: 38,
-        certifications: ['GRI 302', 'IFRS S2'], regions: ['GCC', 'Europe'],
-        dataTypes: ['Energy', 'Emissions', 'Waste'], setupMinutes: 45,
-        sampleMappings: [
-            { source: 'EHS_ENERGY.QTY', target: 'GRI-302-1.energy', transformation: '× 3.6 → GJ' },
-        ],
-        syncLog: [{ time: '14 min ago', status: 'success', records: 312, message: 'Energy Q1 2026 synced' }],
+        id: 'sap-s4', name: 'SAP S/4HANA', vendor: 'SAP SE', category: 'erp', status: 'connected', logo: 'SAP',
+        logoColor: 'text-sky-700', recordsImported: 4847, fieldMappings: 38,
+        certifications: ['GRI 302', 'IFRS S2'], regions: ['GCC', 'Europe'], setupMinutes: 45,
+        sampleMappings: [{ source: 'EHS_ENERGY.QTY', target: 'GRI-302-1.energy' }],
+        syncLog: [{ status: 'success', records: 312 }],
     },
     {
-        id: 'oracle-cloud', name: 'Oracle Cloud ERP', vendor: 'Oracle',
-        description: 'Procurement spend, supply chain tracking, and supplier sustainability metrics',
-        category: 'erp', status: 'connected', logo: 'ORC',
-        logoColor: 'text-rose-600', logoBg: 'bg-rose-500/10 border-rose-500/20', logoGlow: '',
-        recordsImported: 1203, lastSync: '2 hrs ago', nextSync: 'in 22 hrs', fieldMappings: 24,
-        certifications: ['GRI 204'], regions: ['Global'],
-        dataTypes: ['Procurement Spend', 'Supply Chain'], setupMinutes: 40,
-        sampleMappings: [
-            { source: 'SCM.SUPPLIER_SPEND', target: 'GRI-204-1.localSpend', transformation: '% conversion' },
-        ],
-        syncLog: [{ time: '2 hrs ago', status: 'success', records: 1203, message: 'Supplier spend updated' }],
+        id: 'oracle-cloud', name: 'Oracle Cloud ERP', vendor: 'Oracle', category: 'erp', status: 'connected', logo: 'ORC',
+        logoColor: 'text-rose-600', recordsImported: 1203, fieldMappings: 24,
+        certifications: ['GRI 204'], regions: ['Global'], setupMinutes: 40,
+        sampleMappings: [{ source: 'SCM.SUPPLIER_SPEND', target: 'GRI-204-1.localSpend' }],
+        syncLog: [{ status: 'success', records: 1203 }],
     },
     {
-        id: 'workday', name: 'Workday HCM', vendor: 'Workday',
-        description: 'HR data: headcount, gender diversity, training hours, parental leave metrics',
-        category: 'hris', status: 'connected', logo: 'WD',
-        logoColor: 'text-amber-600', logoBg: 'bg-amber-500/10 border-amber-500/20', logoGlow: '',
-        recordsImported: 8921, lastSync: '6 hrs ago', nextSync: 'in 18 hrs', fieldMappings: 31,
-        certifications: ['GRI 401', 'GRI 405'], regions: ['Global'],
-        dataTypes: ['Headcount', 'Diversity', 'Training'], setupMinutes: 30,
-        sampleMappings: [
-            { source: 'Worker.Gender', target: 'GRI-405-1.diversity', transformation: 'Direct map' },
-        ],
-        syncLog: [{ time: '6 hrs ago', status: 'success', records: 8921, message: 'Q1 headcount sync' }],
+        id: 'workday', name: 'Workday HCM', vendor: 'Workday', category: 'hris', status: 'connected', logo: 'WD',
+        logoColor: 'text-amber-600', recordsImported: 8921, fieldMappings: 31,
+        certifications: ['GRI 401', 'GRI 405'], regions: ['Global'], setupMinutes: 30,
+        sampleMappings: [{ source: 'Worker.Gender', target: 'GRI-405-1.diversity' }],
+        syncLog: [{ status: 'success', records: 8921 }],
     },
     {
-        id: 'snowflake', name: 'Snowflake Pipeline', vendor: 'Snowflake Inc.',
-        description: 'Custom SQL queries mapping directly into framework data models',
-        category: 'analytics', status: 'error', logo: 'SNF',
-        logoColor: 'text-cyan-600', logoBg: 'bg-cyan-500/10 border-cyan-500/20', logoGlow: '',
-        recordsImported: 0, lastSync: 'Failed', fieldMappings: 19,
-        certifications: ['Custom'], regions: ['Global'],
-        dataTypes: ['Pre-calculated GHG'], setupMinutes: 60,
+        id: 'snowflake', name: 'Snowflake Pipeline', vendor: 'Snowflake Inc.', category: 'analytics', status: 'error', logo: 'SNF',
+        logoColor: 'text-cyan-600', recordsImported: 0, fieldMappings: 19,
+        certifications: ['Custom'], regions: ['Global'], setupMinutes: 60,
         sampleMappings: [],
-        syncLog: [{ time: '5 mins ago', status: 'error', records: 0, message: 'Authentication token expired' }],
+        syncLog: [{ status: 'error', records: 0 }],
     },
     {
-        id: 'azure-iot', name: 'Azure IoT Hub', vendor: 'Microsoft',
-        description: 'Direct smart meter streaming for real-time facility energy monitoring',
-        category: 'iot', status: 'pending', logo: 'IoT',
-        logoColor: 'text-emerald-600', logoBg: 'bg-emerald-500/10 border-emerald-500/20', logoGlow: '',
-        fieldMappings: 0, certifications: ['GRI 302'], regions: ['Europe Facilities'],
-        dataTypes: ['Smart Meter (kWh)', 'HVAC runtime'], setupMinutes: 120, sampleMappings: [],
-    }
+        id: 'azure-iot', name: 'Azure IoT Hub', vendor: 'Microsoft', category: 'iot', status: 'pending', logo: 'IoT',
+        logoColor: 'text-emerald-600', fieldMappings: 0,
+        certifications: ['GRI 302'], regions: ['Europe Facilities'], setupMinutes: 120, sampleMappings: [],
+    },
 ]
 
+const STATUS_TONE: Record<ConnectorStatus, Tone> = { connected: 'success', pending: 'neutral', error: 'danger', configuring: 'info' }
+
+type Strings = typeof dataConnectorsStrings.en
+
+function StatusBadge({ status, s }: { status: ConnectorStatus; s: Strings }) {
+    return (
+        <Badge tone={STATUS_TONE[status]} dot={status !== 'error'} icon={status === 'error' ? AlertCircle : undefined}>
+            {s.status[status]}
+        </Badge>
+    )
+}
+
+function Logo({ c, size = 'md' }: { c: Connector; size?: 'md' | 'lg' }) {
+    return (
+        <div className={clsx(
+            'rounded-xl flex items-center justify-center font-semibold bg-zinc-50 border border-line shrink-0',
+            c.logoColor,
+            size === 'lg' ? 'w-12 h-12 text-sm' : 'w-10 h-10 text-xs',
+        )}>
+            {c.logo}
+        </div>
+    )
+}
+
 export default function PremiumDataConnectors() {
+    const s = useStrings(dataConnectorsStrings)
+    const f = useFormat()
     const [activeTab, setActiveTab] = useState<'all' | 'connected' | 'errors'>('all')
     const [selectedConnector, setSelectedConnector] = useState<Connector | null>(null)
+
+    useEffect(() => {
+        if (!selectedConnector) return
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelectedConnector(null) }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+    }, [selectedConnector])
 
     const filtered = connectors.filter(c => {
         if (activeTab === 'connected') return c.status === 'connected'
@@ -92,282 +105,226 @@ export default function PremiumDataConnectors() {
         return true
     })
 
-    // Global Pipeline Stats
     const totalVolume = connectors.reduce((acc, c) => acc + (c.recordsImported || 0), 0)
     const connectedCount = connectors.filter(c => c.status === 'connected').length
+    const errorCount = connectors.filter(c => c.status === 'error').length
+    const listSep = s.listSep
+    const regionLabel = (r: string) => s.regionNames[r as keyof typeof s.regionNames] ?? r
+
+    const sel = selectedConnector
+    const selText = sel ? s.connectors[sel.id] : null
 
     return (
-        <div className="flex flex-col h-full space-y-8 animate-in fade-in duration-500">
-            {/* ── HEADER ── */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 shrink-0">
-                <div>
-                    <h1 className="text-3xl font-bold text-black tracking-tight flex items-center gap-3">
-                        Data Pipelines
-                    </h1>
-                    <p className="text-sm text-black/60 mt-2 max-w-2xl font-medium tracking-wide">
-                        Automate data ingestion from ERP, HRIS, and IoT sources. Nexus normalizes unit conversions, applies mapped logic, and anchors data providence hashes to the zkEVM.
-                    </p>
-                </div>
-                <div className="flex gap-3">
-                    <button className="flex items-center gap-2 px-5 py-3 bg-white/60 border border-white hover:bg-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-sm">
-                        <RefreshCw className="w-4 h-4" /> Sync All Active
-                    </button>
-                    <button className="flex items-center gap-2 px-5 py-3 bg-black text-white rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-black/20 hover:scale-[1.02] transition-transform">
-                        <Plus className="w-4 h-4" /> Add Integration
-                    </button>
-                </div>
-            </div>
+        <div>
+            <PageHeader
+                title={s.title}
+                description={s.description}
+                actions={
+                    <>
+                        <Button icon={RefreshCw}>{s.syncAll}</Button>
+                        <Button variant="primary" icon={Plus}>{s.addIntegration}</Button>
+                    </>
+                }
+            />
 
-            {/* ── LIVE TELEMETRY STRIP ── */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 shrink-0">
-                <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-6 shadow-lg relative overflow-hidden">
-                    <p className="text-[10px] font-bold text-black/50 uppercase tracking-widest mb-3 flex items-center gap-1.5"><Plug className="w-3.5 h-3.5" /> Active Pipelines</p>
-                    <div className="flex items-baseline gap-2">
-                        <p className="text-4xl font-bold tracking-tighter text-black">{connectedCount} <span className="text-xl text-black/30">/ {connectors.length}</span></p>
-                    </div>
+            <div className="space-y-6">
+                {/* KPIs */}
+                <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
+                    <StatCard label={s.activePipelines} icon={Plug} value={f.number(connectedCount)} deltaLabel={fmt(s.ofTotal, { total: connectors.length })} />
+                    <StatCard label={s.totalVolume} icon={Database} value={f.compact(totalVolume)} unit={s.records} />
+                    <StatCard label={s.activeMappings} icon={Link2} value={f.number(112)} deltaLabel={s.fieldMappings} />
+                    <StatCard label={s.anchoredHashes} icon={Shield} value={f.percent(98.4, 1)} deltaLabel={s.anchoredSub} />
                 </div>
 
-                <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-6 shadow-lg">
-                    <p className="text-[10px] font-bold text-black/50 uppercase tracking-widest mb-3 flex items-center gap-1.5"><Database className="w-3.5 h-3.5" /> Total Volume</p>
-                    <div className="flex items-baseline gap-2">
-                        <p className="text-4xl font-bold tracking-tighter text-black">{(totalVolume / 1000).toFixed(1)}k <span className="text-sm text-black/50 font-bold uppercase tracking-widest">Rec</span></p>
-                    </div>
-                </div>
+                {/* Connector list */}
+                <div className="space-y-4">
+                    <Tabs
+                        value={activeTab}
+                        onChange={setActiveTab}
+                        items={[
+                            { value: 'all', label: s.tabs.all, count: connectors.length },
+                            { value: 'connected', label: s.tabs.connected, count: connectedCount },
+                            { value: 'errors', label: s.tabs.errors, count: errorCount },
+                        ]}
+                    />
 
-                <div className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-6 shadow-lg border-l-4 border-l-indigo-500">
-                    <p className="text-[10px] font-bold text-black/50 uppercase tracking-widest mb-3 flex items-center gap-1.5"><Link2 className="w-3.5 h-3.5" /> Active Mappings</p>
-                    <div className="flex items-baseline gap-2">
-                        <p className="text-4xl font-bold tracking-tighter text-black">112</p>
-                    </div>
-                </div>
-
-                <div className="bg-black text-white rounded-[2rem] p-6 shadow-xl shadow-black/20 relative overflow-hidden border-l-4 border-l-emerald-500">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/20 rounded-full blur-[40px] pointer-events-none" />
-                    <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-3 flex items-center gap-1.5 relative z-10"><Shield className="w-3.5 h-3.5 text-emerald-400" /> Anchored Hashes</p>
-                    <div className="flex items-baseline gap-2 relative z-10">
-                        <p className="text-4xl font-bold tracking-tighter text-white">98.4%</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* ── CONNECTOR LIST (Flex-1 to scroll) ── */}
-            <div className="flex flex-col flex-1 min-h-[500px] bg-white/60 backdrop-blur-xl border border-white/60 rounded-[2rem] p-8 shadow-lg">
-                <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2 scrollbar-none border-b border-black/5">
-                    <button onClick={() => setActiveTab('all')} className={clsx("flex items-center gap-2 px-5 py-3 rounded-t-xl text-[11px] font-bold uppercase tracking-widest transition-all whitespace-nowrap", activeTab === 'all' ? 'bg-black text-white' : 'bg-transparent text-black/50 hover:bg-black/5')}>All Applications</button>
-                    <button onClick={() => setActiveTab('connected')} className={clsx("flex items-center gap-2 px-5 py-3 rounded-t-xl text-[11px] font-bold uppercase tracking-widest transition-all whitespace-nowrap", activeTab === 'connected' ? 'bg-emerald-500 text-white' : 'bg-transparent text-black/50 hover:bg-black/5')}>
-                        Connected <span className="bg-black/10 text-current text-[10px] px-1.5 rounded">{connectedCount}</span>
-                    </button>
-                    <button onClick={() => setActiveTab('errors')} className={clsx("flex items-center gap-2 px-5 py-3 rounded-t-xl text-[11px] font-bold uppercase tracking-widest transition-all whitespace-nowrap", activeTab === 'errors' ? 'bg-rose-500 text-white' : 'bg-transparent text-black/50 hover:bg-black/5')}>
-                        Needs Attention <span className="bg-black/10 text-current text-[10px] px-1.5 rounded">{connectors.filter(c => c.status === 'error').length}</span>
-                    </button>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 lg:auto-rows-max gap-6 overflow-y-auto pb-8 scrollbar-none">
-                    {filtered.map(connector => (
-                        <div
-                            key={connector.id}
-                            onClick={() => setSelectedConnector(connector)}
-                            className="group bg-white/50 border border-white hover:border-black/10 rounded-[2rem] p-8 transition-all duration-300 cursor-pointer relative overflow-hidden flex flex-col justify-between shadow-sm hover:shadow-xl min-h-[260px]"
-                        >
-                            {/* Abstract Glow Hover */}
-                            <div className="absolute -top-10 -right-10 w-40 h-40 bg-white rounded-full blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-
-                            <div>
-                                <div className="flex items-start justify-between mb-6 relative z-10">
-                                    <div className="flex items-center gap-4">
-                                        <div className={clsx(`w-12 h-12 rounded-xl flex items-center justify-center text-sm font-bold shadow-sm bg-white border border-black/5 ${connector.logoColor} ${connector.logoGlow}`)}>
-                                            {connector.logo}
-                                        </div>
-                                        <div>
-                                            <h3 className="text-xl font-bold text-black">{connector.name}</h3>
-                                            <p className="text-[10px] text-black/40 uppercase tracking-widest font-bold mt-1">{connector.vendor} · {connector.category}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Status Badge */}
-                                    {connector.status === 'connected' && (
-                                        <span className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-sm">
-                                            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> Live
-                                        </span>
-                                    )}
-                                    {connector.status === 'pending' && (
-                                        <span className="flex items-center gap-1.5 px-3 py-1 bg-black/5 border border-black/10 text-black/60 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-sm">
-                                            Setup
-                                        </span>
-                                    )}
-                                    {connector.status === 'error' && (
-                                        <span className="flex items-center gap-1.5 px-3 py-1 bg-rose-500/10 border border-rose-500/20 text-rose-700 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-sm">
-                                            <AlertCircle className="w-3 h-3" /> Failed
-                                        </span>
-                                    )}
-                                </div>
-
-                                <p className="text-xs text-black/60 font-medium leading-relaxed max-w-[90%] mb-6 relative z-10">
-                                    {connector.description}
-                                </p>
-                            </div>
-
-                            {/* Data Type Pills */}
-                            <div className="flex flex-wrap gap-1.5 mb-6 mt-auto relative z-10">
-                                {connector.dataTypes.map(type => (
-                                    <span key={type} className="px-2.5 py-1 bg-white border border-black/5 text-black/60 font-bold uppercase tracking-widest text-[9px] rounded-md shadow-sm">
-                                        {type}
-                                    </span>
-                                ))}
-                            </div>
-
-                            {/* Footer Metrics */}
-                            <div className="pt-4 border-t border-black/5 flex items-center justify-between text-[10px] font-bold text-black/40 uppercase tracking-widest relative z-10">
-                                <div className="flex items-center gap-4">
-                                    {connector.status === 'connected' ? (
-                                        <>
-                                            <div className="flex items-center gap-1.5 text-black/60">
-                                                <DownloadCloud className="w-3.5 h-3.5 text-indigo-500" /> {connector.recordsImported?.toLocaleString()} synced
+                    {filtered.length === 0 ? (
+                        <Card><EmptyState icon={Plug} title={s.emptyTitle} description={s.emptyBody} /></Card>
+                    ) : (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            {filtered.map(connector => {
+                                const t = s.connectors[connector.id]
+                                return (
+                                    <Card
+                                        key={connector.id}
+                                        interactive
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-label={fmt(s.openDetails, { name: connector.name })}
+                                        onClick={() => setSelectedConnector(connector)}
+                                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedConnector(connector) } }}
+                                        className="flex flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40"
+                                    >
+                                        <div className="flex items-start justify-between gap-3 mb-4">
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <Logo c={connector} />
+                                                <div className="min-w-0">
+                                                    <h3 className="text-[15px] font-semibold text-zinc-900 truncate">{connector.name}</h3>
+                                                    <p className="text-[13px] text-zinc-500 truncate">{connector.vendor} · {s.categories[connector.category]}</p>
+                                                </div>
                                             </div>
-                                            <div className="flex items-center gap-1.5">
-                                                <Clock className="w-3.5 h-3.5" /> {connector.lastSync}
-                                            </div>
-                                        </>
-                                    ) : connector.status === 'error' ? (
-                                        <div className="flex items-center gap-1.5 text-rose-600">
-                                            <Activity className="w-3.5 h-3.5" /> Auth expired
+                                            <StatusBadge status={connector.status} s={s} />
                                         </div>
-                                    ) : (
-                                        <div className="flex items-center gap-1.5">
-                                            <Settings2 className="w-3.5 h-3.5" /> Est. {connector.setupMinutes}m
-                                        </div>
-                                    )}
-                                </div>
 
-                                {connector.status === 'connected' && (
-                                    <div className="flex items-center gap-1 border border-black/10 px-2 py-1 rounded bg-white shadow-sm text-black/60">
-                                        <Fingerprint className="w-3 h-3 opacity-50" /> 0xHash
-                                    </div>
-                                )}
-                            </div>
+                                        <p className="text-[13px] text-zinc-600 leading-relaxed mb-4">{t.description}</p>
+
+                                        <div className="flex flex-wrap gap-1.5 mb-4 mt-auto">
+                                            {t.dataTypes.map(type => (
+                                                <span key={type} className="px-2 h-6 inline-flex items-center rounded-md bg-zinc-100 text-zinc-600 text-xs">{type}</span>
+                                            ))}
+                                        </div>
+
+                                        <div className="pt-4 border-t border-line flex flex-wrap items-center justify-between gap-2 text-[13px] text-zinc-500">
+                                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                                                {connector.status === 'connected' ? (
+                                                    <>
+                                                        <span className="inline-flex items-center gap-1.5 text-zinc-700 tabular">
+                                                            <DownloadCloud className="w-3.5 h-3.5 text-zinc-400" />
+                                                            {fmt(s.synced, { count: f.number(connector.recordsImported ?? 0) })}
+                                                        </span>
+                                                        <span className="inline-flex items-center gap-1.5">
+                                                            <Clock className="w-3.5 h-3.5 text-zinc-400" /> {t.lastSync}
+                                                        </span>
+                                                    </>
+                                                ) : connector.status === 'error' ? (
+                                                    <span className="inline-flex items-center gap-1.5 text-rose-600">
+                                                        <Activity className="w-3.5 h-3.5" /> {s.authExpired}
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1.5">
+                                                        <Settings2 className="w-3.5 h-3.5 text-zinc-400" /> {fmt(s.estSetup, { minutes: connector.setupMinutes })}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {connector.status === 'connected' && (
+                                                <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
+                                                    <Fingerprint className="w-3.5 h-3.5 text-emerald-500" /> {s.hash}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </Card>
+                                )
+                            })}
                         </div>
-                    ))}
+                    )}
                 </div>
             </div>
 
-            {/* ── Slide-over Modal for Connector Details (Glassmorphic Light) ── */}
-            {selectedConnector && (
-                <div className="fixed inset-0 z-50 flex justify-end">
-                    <div className="absolute inset-0 bg-white/60 backdrop-blur-sm transition-opacity" onClick={() => setSelectedConnector(null)} />
+            {/* Slide-over */}
+            {sel && selText && createPortal(
+                <div className="fixed inset-0 z-[100] flex justify-end" role="dialog" aria-modal="true" aria-label={sel.name}>
+                    <div className="absolute inset-0 bg-zinc-900/20" onClick={() => setSelectedConnector(null)} />
 
-                    <div className="relative w-full max-w-xl bg-[#f8fafc] border-l border-white shadow-[0_0_50px_rgba(0,0,0,0.1)] flex flex-col h-full animate-in slide-in-from-right duration-300">
-                        {/* Header */}
-                        <div className="p-8 border-b border-black/5 shrink-0 sticky top-0 bg-[#f8fafc]/90 backdrop-blur-md z-10 flex justify-between items-start">
-                            <div className="flex gap-4">
-                                <div className={clsx(`w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold shadow-md bg-white border border-black/5 ${selectedConnector.logoColor}`)}>
-                                    {selectedConnector.logo}
-                                </div>
-                                <div className="pt-1">
-                                    <h2 className="text-2xl font-bold text-black mb-2">{selectedConnector.name}</h2>
-                                    <div className="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-black/40">
-                                        <span>{selectedConnector.vendor}</span>
-                                        <span className={clsx("px-2 py-0.5 rounded border",
-                                            selectedConnector.status === 'connected' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700' :
-                                                selectedConnector.status === 'pending' ? 'bg-black/5 border-black/10 text-black/60' :
-                                                    'bg-rose-500/10 border-rose-500/20 text-rose-700'
-                                        )}>
-                                            {selectedConnector.status}
-                                        </span>
+                    <div className="relative w-full max-w-xl bg-surface border-l border-line shadow-pop flex flex-col h-full animate-in slide-in-from-right duration-300">
+                        <div className="px-5 sm:px-6 py-5 border-b border-line shrink-0 flex justify-between items-start gap-4">
+                            <div className="flex gap-3 min-w-0">
+                                <Logo c={sel} size="lg" />
+                                <div className="min-w-0">
+                                    <h2 className="text-lg font-semibold text-zinc-900 truncate">{sel.name}</h2>
+                                    <div className="flex items-center gap-2 mt-1 text-[13px] text-zinc-500">
+                                        <span className="truncate">{sel.vendor}</span>
+                                        <StatusBadge status={sel.status} s={s} />
                                     </div>
                                 </div>
                             </div>
-                            <button onClick={() => setSelectedConnector(null)} className="p-2 text-black/40 hover:text-black hover:bg-black/5 rounded-full transition-colors mt-2">
-                                <X className="w-5 h-5" />
-                            </button>
+                            <Button variant="ghost" size="sm" aria-label={s.close} onClick={() => setSelectedConnector(null)} className="w-8 px-0">
+                                <X className="w-4 h-4" />
+                            </Button>
                         </div>
 
-                        {/* Content area */}
-                        <div className="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-thin scrollbar-thumb-black/10">
-
-                            {/* Setup Info Area */}
-                            <div>
-                                <h3 className="text-[10px] font-bold uppercase tracking-widest text-black/50 mb-3 flex items-center gap-2"><Settings2 className="w-4 h-4 text-black" /> Pipeline Configuration</h3>
-                                <p className="text-sm font-medium text-black/70 mb-6 leading-relaxed bg-white p-4 rounded-xl shadow-sm border border-black/5">{selectedConnector.description}</p>
-
-                                <div className="flex gap-6 p-6 rounded-2xl bg-white shadow-sm border border-black/5">
-                                    <div className="flex-1">
-                                        <p className="text-[10px] text-black/40 uppercase font-bold tracking-widest mb-2">Regions</p>
-                                        <p className="text-sm font-bold text-black">{selectedConnector.regions.join(', ')}</p>
-                                    </div>
-                                    <div className="w-px bg-black/5" />
-                                    <div className="flex-1">
-                                        <p className="text-[10px] text-black/40 uppercase font-bold tracking-widest mb-2">Frameworks</p>
-                                        <p className="text-sm font-bold text-black">{selectedConnector.certifications.join(', ')}</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Data Mapping Rules */}
-                            {selectedConnector.sampleMappings.length > 0 && (
-                                <div>
-                                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-black/50 mb-3 flex items-center gap-2"><Link2 className="w-4 h-4 text-indigo-500" /> Transformation Rules</h3>
-                                    <div className="border border-black/5 rounded-2xl overflow-hidden bg-white shadow-sm">
-                                        <div className="grid grid-cols-12 gap-2 p-4 border-b border-black/5 bg-black/5 text-[10px] font-bold tracking-widest uppercase text-black/50">
-                                            <div className="col-span-5">Source Field</div>
-                                            <div className="col-span-4">Target (Nexus)</div>
-                                            <div className="col-span-3 text-right">Transform</div>
+                        <div className="flex-1 overflow-y-auto px-5 sm:px-6 py-6 space-y-8">
+                            <section>
+                                <h3 className="text-sm font-semibold text-zinc-900 mb-3 flex items-center gap-2">
+                                    <Settings2 className="w-4 h-4 text-zinc-400" /> {s.pipelineConfig}
+                                </h3>
+                                <p className="text-sm text-zinc-600 leading-relaxed mb-4">{selText.description}</p>
+                                <dl className="grid grid-cols-2 gap-px rounded-xl border border-line bg-line overflow-hidden">
+                                    {[
+                                        { k: s.regions, v: sel.regions.map(regionLabel).join(listSep) },
+                                        { k: s.frameworks, v: sel.certifications.join(listSep) },
+                                        { k: s.lastSync, v: selText.lastSync },
+                                        { k: s.nextSync, v: selText.nextSync },
+                                        { k: s.mappingsCount, v: f.number(sel.fieldMappings) },
+                                        { k: s.totalVolume, v: f.number(sel.recordsImported ?? 0) },
+                                    ].map(row => (
+                                        <div key={row.k} className="bg-white p-3.5">
+                                            <dt className="text-xs text-zinc-500">{row.k}</dt>
+                                            <dd className="text-sm font-medium text-zinc-900 mt-0.5 tabular">{row.v}</dd>
                                         </div>
-                                        {selectedConnector.sampleMappings.map((map, i) => (
-                                            <div key={i} className="grid grid-cols-12 gap-2 p-4 border-b border-black/5 last:border-0 text-xs items-center hover:bg-black/[0.02]">
-                                                <div className="col-span-5 font-mono font-bold text-[10px] text-black/60 truncate" title={map.source}>{map.source}</div>
-                                                <div className="col-span-4 text-indigo-600 font-bold font-mono text-[10px] truncate" title={map.target}>{map.target}</div>
-                                                <div className="col-span-3 text-right text-[10px] font-bold uppercase tracking-wider text-black/40">{map.transformation}</div>
+                                    ))}
+                                </dl>
+                            </section>
+
+                            {sel.sampleMappings.length > 0 && (
+                                <section>
+                                    <h3 className="text-sm font-semibold text-zinc-900 mb-3 flex items-center gap-2">
+                                        <Link2 className="w-4 h-4 text-zinc-400" /> {s.transformRules}
+                                    </h3>
+                                    <div className="rounded-xl border border-line overflow-hidden">
+                                        <div className="grid grid-cols-12 gap-2 px-4 py-2.5 border-b border-line bg-zinc-50/60 text-xs font-medium text-zinc-500">
+                                            <div className="col-span-5">{s.sourceField}</div>
+                                            <div className="col-span-4">{s.target}</div>
+                                            <div className="col-span-3 text-right">{s.transform}</div>
+                                        </div>
+                                        {sel.sampleMappings.map((map, i) => (
+                                            <div key={i} className="grid grid-cols-12 gap-2 px-4 py-3 border-b border-line last:border-0 items-center hover:bg-zinc-50/70">
+                                                <div className="col-span-5 font-mono text-xs text-zinc-600 truncate" title={map.source}>{map.source}</div>
+                                                <div className="col-span-4 font-mono text-xs text-zinc-900 truncate" title={map.target}>{map.target}</div>
+                                                <div className="col-span-3 text-right text-xs text-zinc-500">{selText.transforms[i]}</div>
                                             </div>
                                         ))}
                                     </div>
-                                </div>
+                                </section>
                             )}
 
-                            {/* Sync Log */}
-                            {selectedConnector.syncLog && (
-                                <div>
-                                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-black/50 mb-3 flex items-center gap-2"><Activity className="w-4 h-4 text-emerald-500" /> Recent Synchronization</h3>
-                                    <div className="space-y-3">
-                                        {selectedConnector.syncLog.map((log, i) => (
-                                            <div key={i} className="flex gap-4 p-4 rounded-2xl border border-black/5 bg-white shadow-sm relative overflow-hidden text-sm items-center">
-                                                <div className={clsx("w-2 h-full absolute left-0 top-0", log.status === 'success' ? 'bg-emerald-500' : log.status === 'warning' ? 'bg-amber-500' : 'bg-rose-500')} />
-                                                <div className="pl-2 w-20 shrink-0 text-[10px] font-bold uppercase tracking-widest text-black/40">{log.time}</div>
-                                                <div className="flex-1 min-w-0 font-medium text-black/70">{log.message}</div>
-                                                <div className="text-[10px] font-bold uppercase tracking-widest text-black/50">{log.records} rec</div>
+                            {sel.syncLog && (
+                                <section>
+                                    <h3 className="text-sm font-semibold text-zinc-900 mb-3 flex items-center gap-2">
+                                        <Activity className="w-4 h-4 text-zinc-400" /> {s.recentSync}
+                                    </h3>
+                                    <div className="rounded-xl border border-line divide-y divide-line overflow-hidden">
+                                        {sel.syncLog.map((log, i) => (
+                                            <div key={i} className="flex items-center gap-3 px-4 py-3 text-sm">
                                                 {log.status === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
                                                 {log.status === 'warning' && <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />}
                                                 {log.status === 'error' && <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-zinc-800 truncate">{selText.log[i]?.message}</div>
+                                                    <div className="text-xs text-zinc-500">{selText.log[i]?.time}</div>
+                                                </div>
+                                                <div className="text-xs text-zinc-500 tabular shrink-0">{fmt(s.recordsShort, { count: f.number(log.records) })}</div>
                                             </div>
                                         ))}
                                     </div>
-                                </div>
+                                </section>
                             )}
-
                         </div>
 
-                        {/* Footer Actions */}
-                        <div className="p-8 border-t border-black/5 bg-white flex gap-4 shrink-0 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-                            {selectedConnector.status === 'connected' ? (
+                        <div className="px-5 sm:px-6 py-4 border-t border-line bg-white flex gap-3 shrink-0">
+                            {sel.status === 'connected' ? (
                                 <>
-                                    <button className="flex-1 py-3 bg-black text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-black/20 hover:scale-[1.02] transition-transform flex justify-center items-center gap-2">
-                                        <RefreshCw className="w-4 h-4" /> Force Sync
-                                    </button>
-                                    <button className="px-6 py-3 bg-white border border-black/10 text-black rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-black/5 transition-colors shadow-sm">
-                                        Settings
-                                    </button>
+                                    <Button variant="primary" icon={RefreshCw} className="flex-1">{s.forceSync}</Button>
+                                    <Button>{s.settings}</Button>
                                 </>
-                            ) : selectedConnector.status === 'error' ? (
-                                <button className="flex-1 py-3 bg-rose-500 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-rose-500/20 hover:scale-[1.02] transition-transform flex justify-center items-center gap-2">
-                                    Re-Authenticate
-                                </button>
+                            ) : sel.status === 'error' ? (
+                                <Button variant="primary" className="flex-1">{s.reauth}</Button>
                             ) : (
-                                <button className="flex-1 py-3 bg-indigo-500 text-white rounded-xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-indigo-500/20 hover:scale-[1.02] transition-transform flex justify-center items-center gap-2">
-                                    Begin Setup <ArrowRight className="w-4 h-4" />
-                                </button>
+                                <Button variant="primary" iconRight={ArrowRight} className="flex-1">{s.beginSetup}</Button>
                             )}
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body,
             )}
         </div>
     )
