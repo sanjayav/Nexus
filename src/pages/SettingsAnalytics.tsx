@@ -123,7 +123,7 @@ const alertTone: Record<'warning' | 'info' | 'success', Tone> = { warning: 'warn
 const alertIconClass = {
   warning: 'bg-amber-50 text-amber-600',
   info: 'bg-sky-50 text-sky-600',
-  success: 'bg-emerald-50 text-emerald-600',
+  success: 'bg-emerald-50 text-emerald-700',
 }
 
 const axisTick = { fontSize: 12, fill: chartTheme.axis }

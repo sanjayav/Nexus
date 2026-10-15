@@ -181,7 +181,7 @@ function RoleTag({ role, label }: { role: Role; label: string }) {
 function Callout({ tone, icon: Icon, children }: { tone: 'info' | 'success' | 'warning'; icon: React.ElementType; children: ReactNode }) {
     const styles = {
         info: 'bg-zinc-50 border-line text-zinc-600 [&_svg]:text-zinc-500',
-        success: 'bg-emerald-50/60 border-emerald-200/70 text-emerald-900 [&_svg]:text-emerald-600',
+        success: 'bg-emerald-50/60 border-emerald-200/70 text-emerald-900 [&_svg]:text-emerald-700',
         warning: 'bg-amber-50/70 border-amber-200/70 text-amber-900 [&_svg]:text-amber-600',
     }[tone]
     return (
@@ -309,7 +309,7 @@ function IAMCenterView() {
 
                 {/* Callout */}
                 <Card className="flex items-start gap-4">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
                         <Sparkles className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
@@ -406,7 +406,7 @@ function IAMCenterView() {
                                                             <Button variant="ghost" size="sm" className="w-8 px-0" aria-label={s.editRole} title={s.editRole} onClick={() => openGrant(user)}><Edit2 className="w-4 h-4" /></Button>
                                                             <Button variant="ghost" size="sm" className="w-8 px-0" aria-label={s.viewActivity} title={s.viewActivity} onClick={() => openActivity(user)}><Eye className="w-4 h-4" /></Button>
                                                             {user.status === 'suspended' ? (
-                                                                <Button variant="ghost" size="sm" className="w-8 px-0 hover:text-emerald-600" aria-label={s.reactivate} title={s.reactivate} onClick={() => toggleSuspend(user)}><Unlock className="w-4 h-4" /></Button>
+                                                                <Button variant="ghost" size="sm" className="w-8 px-0 hover:text-emerald-700" aria-label={s.reactivate} title={s.reactivate} onClick={() => toggleSuspend(user)}><Unlock className="w-4 h-4" /></Button>
                                                             ) : (
                                                                 <Button variant="ghost" size="sm" className="w-8 px-0 hover:text-rose-600" aria-label={s.suspend} title={s.suspend} disabled={user.role === 'platform_admin'} onClick={() => toggleSuspend(user)}><Lock className="w-4 h-4" /></Button>
                                                             )}
@@ -621,7 +621,7 @@ function IAMCenterView() {
                         ) : (
                         <ul className="divide-y divide-line">
                             {visibleAudit.map(({ entry, text }, i) => {
-                                const iconTone = entry.type === 'revoke' ? 'bg-rose-50 text-rose-600' : entry.type === 'grant' ? 'bg-emerald-50 text-emerald-600' : 'bg-zinc-100 text-zinc-600'
+                                const iconTone = entry.type === 'revoke' ? 'bg-rose-50 text-rose-600' : entry.type === 'grant' ? 'bg-emerald-50 text-emerald-700' : 'bg-zinc-100 text-zinc-600'
                                 const Icon = entry.type === 'issue' ? Link2 : entry.type === 'revoke' ? XCircle : entry.type === 'grant' ? CheckCircle2 : entry.type === 'invite' ? Plus : Activity
                                 return (
                                     <li key={i} className="flex items-start gap-3 sm:gap-4 px-5 sm:px-6 py-4 hover:bg-zinc-50/60 transition-colors">

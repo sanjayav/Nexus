@@ -214,7 +214,7 @@ export default function AnchorsEvents() {
             <span className="text-sm text-zinc-500">{s.days}</span>
           </div>
           <div className="mt-2 flex items-center gap-1.5 text-xs">
-            <span className="inline-flex items-center gap-0.5 font-medium text-emerald-600 tabular">
+            <span className="inline-flex items-center gap-0.5 font-medium text-emerald-700 tabular">
               <ArrowDownRight className="w-3.5 h-3.5" />
               {f.percent(15)}
             </span>
@@ -263,7 +263,7 @@ export default function AnchorsEvents() {
                 href={explorer}
                 target="_blank"
                 rel="noreferrer"
-                className="hidden sm:inline-flex items-center gap-1 text-[13px] font-medium text-emerald-700 hover:text-emerald-600 whitespace-nowrap"
+                className="hidden sm:inline-flex items-center gap-1 text-[13px] font-medium text-emerald-700 hover:text-emerald-700 whitespace-nowrap"
               >
                 {s.openExplorer}
                 <ExternalLink className="w-3.5 h-3.5" />

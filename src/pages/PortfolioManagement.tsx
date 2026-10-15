@@ -181,7 +181,7 @@ export default function PortfolioManagement() {
                       <div className="text-[11px] text-zinc-400">{s.intensityUnit[region.id]}</div>
                     </td>
                     <td className={tableClass.td}>
-                      <span className={clsx('inline-flex items-center gap-0.5 text-xs font-medium tabular', entity.emissionsChange > 0 ? 'text-rose-600' : 'text-emerald-600')}>
+                      <span className={clsx('inline-flex items-center gap-0.5 text-xs font-medium tabular', entity.emissionsChange > 0 ? 'text-rose-600' : 'text-emerald-700')}>
                         {entity.emissionsChange > 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
                         {f.number(Math.abs(entity.emissionsChange), { maximumFractionDigits: 1 })}%
                       </span>

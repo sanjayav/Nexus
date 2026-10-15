@@ -74,7 +74,7 @@ const connectors: Connector[] = [
     },
     {
         id: 'azure-iot', name: 'Azure IoT Hub', vendor: 'Microsoft', category: 'iot', status: 'pending', logo: 'IoT',
-        logoColor: 'text-emerald-600', fieldMappings: 0,
+        logoColor: 'text-emerald-700', fieldMappings: 0,
         certifications: ['GRI 302'], regions: ['Europe Facilities'], setupMinutes: 120, sampleMappings: [],
     },
 ]

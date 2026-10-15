@@ -232,7 +232,7 @@ function BenchmarkPanelView({ variant }: { variant: 'full' | 'compact' }) {
               {[
                 { label: s.stats.you, val: d.you, cls: 'text-zinc-900 font-semibold' },
                 { label: s.stats.median, val: d.median, cls: 'text-zinc-700' },
-                { label: s.stats.best, val: d.best, cls: 'text-emerald-600 font-semibold' },
+                { label: s.stats.best, val: d.best, cls: 'text-emerald-700 font-semibold' },
                 { label: s.stats.q1, val: d.q1, cls: 'text-zinc-700' },
                 { label: s.stats.q3, val: d.q3, cls: 'text-zinc-700' },
               ].map(row => (
@@ -244,7 +244,7 @@ function BenchmarkPanelView({ variant }: { variant: 'full' | 'compact' }) {
             </dl>
             <div className="mt-3 pt-3 border-t border-line flex items-center justify-between text-sm">
               <span className="text-zinc-600">{s.vsMedian}</span>
-              <span className={clsx('font-medium tabular', youBetter ? 'text-emerald-600' : 'text-amber-600')}>
+              <span className={clsx('font-medium tabular', youBetter ? 'text-emerald-700' : 'text-amber-600')}>
                 {fmt(youBetter ? s.better : s.behind, { pct })}
               </span>
             </div>

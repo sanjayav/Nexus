@@ -100,7 +100,7 @@ export default function RolesCredentials() {
               href={explorer}
               target="_blank"
               rel="noreferrer"
-              className="sm:ml-auto inline-flex items-center gap-1 text-[13px] font-medium text-emerald-700 hover:text-emerald-600 whitespace-nowrap"
+              className="sm:ml-auto inline-flex items-center gap-1 text-[13px] font-medium text-emerald-700 hover:text-emerald-700 whitespace-nowrap"
             >
               {fmt(s.openExplorer, { network })}
               <ExternalLink className="w-3.5 h-3.5" />

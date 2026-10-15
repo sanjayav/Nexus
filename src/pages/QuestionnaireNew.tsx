@@ -478,7 +478,7 @@ function FieldAction({
       )}
     >
       <span className="flex items-center gap-2 min-w-0">
-        <Icon className={clsx('w-4 h-4 shrink-0', active ? 'text-emerald-600' : 'text-zinc-400')} />
+        <Icon className={clsx('w-4 h-4 shrink-0', active ? 'text-emerald-700' : 'text-zinc-400')} />
         <span className="truncate">{label}</span>
       </span>
       {trailing}

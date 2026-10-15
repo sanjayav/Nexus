@@ -106,7 +106,7 @@ export default function EvidenceLibrary() {
           <div className="mt-6 grid grid-cols-3 divide-x divide-line border-t border-line pt-4">
             <div className="pr-3">
               <div className="text-xl font-semibold text-zinc-900 tabular inline-flex items-center gap-1">
-                {f.percent(67)} <ArrowUpRight className="w-4 h-4 text-emerald-600" />
+                {f.percent(67)} <ArrowUpRight className="w-4 h-4 text-emerald-700" />
               </div>
               <div className="text-xs text-zinc-500 mt-0.5">{s.reuseRate}</div>
             </div>

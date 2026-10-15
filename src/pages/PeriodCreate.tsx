@@ -101,7 +101,7 @@ function PeriodWizard({ onRestart }: { onRestart: () => void }) {
         <PageHeader title={s.title} description={s.description} />
         <Card className="text-center">
           <div className="py-6 sm:py-10 flex flex-col items-center animate-fade-up">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 ring-1 ring-inset ring-emerald-200/70 flex items-center justify-center mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200/70 flex items-center justify-center mb-4">
               <CheckCircle className="w-6 h-6" />
             </div>
             <h2 className="text-lg font-semibold text-zinc-900">{fmt(s.done.title, { name: period.name })}</h2>
@@ -302,7 +302,7 @@ function PeriodWizard({ onRestart }: { onRestart: () => void }) {
               </div>
             ) : (
               <div className="mt-5 flex items-start gap-2.5 rounded-xl bg-emerald-50 ring-1 ring-inset ring-emerald-200/70 px-4 py-3">
-                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <CheckCircle className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
                 <p className="text-[13px] text-emerald-900">{s.packs.autoNote}</p>
               </div>
             )}

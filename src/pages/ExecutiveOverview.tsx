@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useMemo } from 'react'
 import { BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import clsx from 'clsx'
-import { PageHeader, Card, CardHeader, Button, Badge, StatCard, Progress, EmptyState, chartTheme } from '../components/ui'
+import { PageHeader, Card, CardHeader, Button, Badge, Stat, StatStrip, Progress, EmptyState, chartTheme } from '../components/ui'
 import { fmt, useFormat, useStrings } from '../i18n'
 import { executiveOverviewStrings } from '../i18n/pages/executiveOverview'
 import { useFrameworkLabels } from '../i18n/pages/moduleCatalog'
@@ -90,12 +90,12 @@ export default function ExecutiveOverview() {
 
       <div className="space-y-6">
       {/* KPI row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard label={s.kpi.dma} value={f.percent(dma.percentage)} icon={Gauge} delta={dma.change} deltaLabel={s.kpi.dmaDelta} />
-        <StatCard label={s.kpi.coverage} value={f.percent(avgCoverage)} icon={Layers} deltaLabel={fmt(s.kpi.coverageFoot, { count: fwEntries.length })} />
-        <StatCard label={s.kpi.integrity} value={integrity.score} unit={s.trust.outOf} icon={Shield} deltaLabel={s.kpi.integrityFoot} />
-        <StatCard label={s.kpi.emissions} value={f.number(scope12)} unit={ghg.scope1.unit} icon={Leaf} deltaLabel={s.kpi.emissionsFoot} />
-      </div>
+      <StatStrip>
+        <Stat label={s.kpi.dma} value={f.percent(dma.percentage)} icon={Gauge} delta={dma.change} deltaLabel={s.kpi.dmaDelta} />
+        <Stat label={s.kpi.coverage} value={f.percent(avgCoverage)} icon={Layers} deltaLabel={fmt(s.kpi.coverageFoot, { count: fwEntries.length })} />
+        <Stat label={s.kpi.integrity} value={integrity.score} unit={s.trust.outOf} icon={Shield} deltaLabel={s.kpi.integrityFoot} />
+        <Stat label={s.kpi.emissions} value={f.number(scope12)} unit={ghg.scope1.unit} icon={Leaf} deltaLabel={s.kpi.emissionsFoot} />
+      </StatStrip>
 
       {/* Pipeline + risks */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

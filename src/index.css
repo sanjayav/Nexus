@@ -10,11 +10,15 @@
   body {
     margin: 0;
     @apply font-sans bg-canvas text-zinc-900 antialiased;
-    font-feature-settings: 'cv11', 'ss01';
+    font-feature-settings: 'cv11', 'ss01', 'cv02', 'cv03';
   }
 
   * {
     box-sizing: border-box;
+  }
+
+  h1, h2, h3 {
+    text-wrap: balance;
   }
 
   *:focus-visible {
@@ -24,6 +28,10 @@
 
   ::selection {
     background: theme('colors.brand.100');
+  }
+
+  ::placeholder {
+    color: theme('colors.zinc.500');
   }
 
   /* CJK: wide tracking and forced uppercase read poorly in Chinese. */
@@ -44,6 +52,18 @@
   }
   .tabular {
     font-variant-numeric: tabular-nums;
+  }
+  /* Large figures: tabular, tightly tracked, lining numerals. */
+  .display {
+    font-variant-numeric: tabular-nums lining-nums;
+    letter-spacing: -0.03em;
+  }
+  /* Content canvas: a faint light source above the page so cards sit on
+     something rather than float on flat grey. */
+  .canvas-depth {
+    background-image:
+      radial-gradient(900px 320px at 50% -140px, rgba(16, 185, 129, 0.06), transparent 70%),
+      linear-gradient(180deg, #F7F7F4 0%, #F5F5F1 100%);
   }
 }
 

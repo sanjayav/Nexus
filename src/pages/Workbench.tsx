@@ -294,7 +294,7 @@ export default function Workbench() {
                         {row.status === 'Pending Review' ? (
                           <div className="inline-flex items-center gap-1">
                             <IconAction label={s.comment} icon={MessageSquare} onClick={() => navigate(`/modules/${encodeURIComponent(primaryFw)}/review`)} />
-                            <IconAction label={s.approve} icon={ThumbsUp} className="hover:text-emerald-600" onClick={() => decide(row.id, 'Approved')} />
+                            <IconAction label={s.approve} icon={ThumbsUp} className="hover:text-emerald-700" onClick={() => decide(row.id, 'Approved')} />
                             <IconAction label={s.requestRework} icon={XCircle} className="hover:text-rose-600" onClick={() => decide(row.id, 'In Rework')} />
                           </div>
                         ) : (
@@ -416,7 +416,7 @@ export default function Workbench() {
                             <IconAction
                               label={done ? s.reopen : s.markComplete}
                               icon={done ? RotateCcw : CheckCircle}
-                              className={done ? 'text-emerald-600' : 'hover:text-emerald-600'}
+                              className={done ? 'text-emerald-700' : 'hover:text-emerald-700'}
                               pressed={done}
                               onClick={() => toggleComplete(task.id)}
                             />

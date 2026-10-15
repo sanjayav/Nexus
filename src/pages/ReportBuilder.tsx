@@ -326,7 +326,7 @@ function ReportBuilderView() {
               <ul className="space-y-1">
                 {formats.map(fo => (
                   <li key={fo} className="flex items-center gap-2 text-[13px] text-zinc-700">
-                    <Check className="w-3.5 h-3.5 text-emerald-600" /> {s.formats[fo]}
+                    <Check className="w-3.5 h-3.5 text-emerald-700" /> {s.formats[fo]}
                   </li>
                 ))}
               </ul>
@@ -401,7 +401,7 @@ function ReportBuilderView() {
                     onChange={e => setSearchQuery(e.target.value)}
                     placeholder={s.searchPlaceholder}
                     aria-label={s.searchPlaceholder}
-                    className="w-full h-8 bg-white border border-line rounded-lg pl-8 pr-3 text-[13px] placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-brand-500/25 focus:border-brand-500/60"
+                    className="w-full h-8 bg-white border border-line rounded-lg pl-8 pr-3 text-[13px] placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 focus:border-brand-500/60"
                   />
                 </div>
                 <p className="text-xs font-medium text-zinc-500 px-1 pt-1">{fmt(s.linkedData, { fw: fw.short(primary, moduleTitle.get(primary)) })}</p>
@@ -747,7 +747,7 @@ function ReportBuilderView() {
                         onChange={e => setReplyText(e.target.value)}
                         placeholder={s.replyPlaceholder}
                         aria-label={s.reply}
-                        className="w-full px-3 py-2 rounded-[10px] bg-white border border-line text-[13px] text-zinc-900 placeholder:text-zinc-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500/25 focus:border-brand-500/60 resize-none"
+                        className="w-full px-3 py-2 rounded-[10px] bg-white border border-line text-[13px] text-zinc-900 placeholder:text-zinc-500 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500/25 focus:border-brand-500/60 resize-none"
                       />
                       <div className="flex justify-end gap-1.5">
                         <Button size="sm" variant="ghost" onClick={() => setReplyOpen(false)}>{s.cancel}</Button>

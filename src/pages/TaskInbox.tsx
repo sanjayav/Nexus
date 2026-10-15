@@ -52,7 +52,7 @@ const PRIORITIES: Priority[] = ['high', 'medium', 'low']
 const TYPE_ICON: Record<string, { icon: typeof AlertCircle; cls: string }> = {
   review: { icon: AlertCircle, cls: 'text-rose-500' },
   upload: { icon: CornerDownRight, cls: 'text-sky-600' },
-  approval: { icon: CheckSquare, cls: 'text-emerald-600' },
+  approval: { icon: CheckSquare, cls: 'text-emerald-700' },
   system: { icon: Tag, cls: 'text-zinc-500' },
   validation: { icon: ShieldCheck, cls: 'text-amber-600' },
 }
@@ -383,7 +383,7 @@ function TaskInboxView() {
           </Card>
 
           <Card className="text-center">
-            <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl mx-auto mb-3 flex items-center justify-center">
+            <div className="w-10 h-10 bg-emerald-50 text-emerald-700 rounded-xl mx-auto mb-3 flex items-center justify-center">
               <CheckSquare className="w-5 h-5" />
             </div>
             <h4 className="text-sm font-semibold text-zinc-900">{s.inboxZero}</h4>

@@ -340,7 +340,7 @@ export default function IntegrityTimeline() {
                         href={explorerUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs font-medium text-emerald-700 hover:text-emerald-600 mt-2 inline-flex items-center gap-1"
+                        className="text-xs font-medium text-emerald-700 hover:text-emerald-700 mt-2 inline-flex items-center gap-1"
                       >
                         {fmt(s.viewExplorer, { network })}
                         <ExternalLink className="w-3 h-3" />

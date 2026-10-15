@@ -142,7 +142,7 @@ export default function AnalyticsDashboard() {
           >
             {a.type === 'warning'
               ? <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
-              : <Target className="w-4 h-4 mt-0.5 shrink-0 text-emerald-600" />}
+              : <Target className="w-4 h-4 mt-0.5 shrink-0 text-emerald-700" />}
             <span className="flex-1 min-w-0 leading-relaxed">{a.message}</span>
             {a.type === 'warning' ? (
               <button type="button" onClick={() => setActiveTab('kris')} className="shrink-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/30">

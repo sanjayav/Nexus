@@ -255,7 +255,7 @@ function GapAnalyticsView() {
                       <td className={tableClass.td}><Badge tone={STATUS_TONE[gap.status]} dot>{tr(s.status, gap.status)}</Badge></td>
                       <td className={clsx(tableClass.td, 'text-right')}>
                         {gap.status === 'Resolved' ? (
-                          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600"><CheckCircle2 className="w-3.5 h-3.5" />{s.all.resolved}</span>
+                          <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700"><CheckCircle2 className="w-3.5 h-3.5" />{s.all.resolved}</span>
                         ) : (
                           <Button size="sm" variant="secondary" onClick={() => resolve(gap)}>{s.all.resolve}</Button>
                         )}

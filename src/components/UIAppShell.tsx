@@ -146,7 +146,7 @@ export default function UIAppShell({ children }: { children: React.ReactNode }) 
             type="button"
             onClick={() => setPaletteOpen(true)}
             className={clsx(
-              'w-full h-9 flex items-center gap-2 rounded-[10px] border border-line bg-white text-zinc-400 hover:text-zinc-600 hover:border-zinc-300 transition-colors shadow-sm',
+              'w-full h-9 flex items-center gap-2 rounded-[10px] border border-line bg-white text-zinc-500 hover:text-zinc-700 hover:border-zinc-300 transition-colors shadow-card',
               isCollapsed ? 'justify-center' : 'px-2.5',
             )}
             aria-label={s.search}
@@ -155,7 +155,7 @@ export default function UIAppShell({ children }: { children: React.ReactNode }) 
             {!isCollapsed && (
               <>
                 <span className="text-[13px] flex-1 text-left">{s.search}</span>
-                <kbd className="hidden lg:inline text-[10px] font-mono font-medium text-zinc-400 border border-line rounded px-1 py-px">⌘K</kbd>
+                <kbd className="hidden lg:inline text-[10px] font-mono font-medium text-zinc-500 border border-line rounded px-1 py-px">⌘K</kbd>
               </>
             )}
           </button>
@@ -168,7 +168,7 @@ export default function UIAppShell({ children }: { children: React.ReactNode }) 
               {isCollapsed ? (
                 <div className="mx-auto mb-2 w-4 h-px bg-line" />
               ) : (
-                <div className="px-2.5 mb-1 text-[11px] font-medium text-zinc-400">{s.groups[group.key]}</div>
+                <div className="px-2.5 mb-1 text-[11px] font-medium text-zinc-500">{s.groups[group.key]}</div>
               )}
               <ul className="space-y-px">
                 {group.items.map(item => {
@@ -184,10 +184,10 @@ export default function UIAppShell({ children }: { children: React.ReactNode }) 
                         className={clsx(
                           'group relative flex items-center h-9 rounded-lg text-[13.5px] transition-colors',
                           isCollapsed ? 'justify-center' : 'gap-2.5 px-2.5',
-                          active ? 'bg-white text-zinc-900 font-medium shadow-sm ring-1 ring-line' : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-900/[0.04]',
+                          active ? 'bg-white text-zinc-900 font-medium shadow-card ring-1 ring-zinc-900/[0.06]' : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-900/[0.04]',
                         )}
                       >
-                        <Icon className={clsx('w-[18px] h-[18px] shrink-0', active ? 'text-zinc-900' : 'text-zinc-400 group-hover:text-zinc-600')} strokeWidth={active ? 2.2 : 1.9} />
+                        <Icon className={clsx('w-[18px] h-[18px] shrink-0', active ? 'text-zinc-900' : 'text-zinc-400 group-hover:text-zinc-600')} strokeWidth={active ? 2.1 : 1.8} />
                         {!isCollapsed && <span className="truncate">{label}</span>}
                         {item.badge !== undefined &&
                           (isCollapsed ? (
@@ -248,7 +248,7 @@ export default function UIAppShell({ children }: { children: React.ReactNode }) 
         </div>
       )}
 
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex-1 flex flex-col min-w-0 canvas-depth">
         {/* Topbar */}
         <header className="h-14 shrink-0 flex items-center gap-2 px-3 sm:px-6 border-b border-line bg-canvas/80 backdrop-blur supports-[backdrop-filter]:bg-canvas/70 z-30">
           <button type="button" onClick={() => setDrawerOpen(true)} className="lg:hidden w-9 h-9 -ml-1 rounded-lg flex items-center justify-center text-zinc-600 hover:bg-zinc-100" aria-label={s.openMenu}>
@@ -276,7 +276,7 @@ export default function UIAppShell({ children }: { children: React.ReactNode }) 
             <button
               type="button"
               onClick={() => navigate('/period/create')}
-              className="ml-1 h-9 inline-flex items-center gap-1.5 pl-2.5 pr-3 rounded-[10px] bg-zinc-900 text-white text-[13px] font-medium hover:bg-zinc-800 shadow-sm active:scale-[0.98] transition"
+              className="ml-1 h-9 inline-flex items-center gap-1.5 pl-2.5 pr-3 rounded-[10px] bg-zinc-900 text-white text-[13px] font-medium hover:bg-zinc-800 shadow-fill active:scale-[0.98] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">{s.create}</span>
@@ -286,7 +286,7 @@ export default function UIAppShell({ children }: { children: React.ReactNode }) 
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
-          <div key={`${workspace.id}:${location.pathname}`} className={clsx('min-h-full animate-fade-in', !FULL_BLEED.test(location.pathname) && 'px-4 sm:px-6 lg:px-8 py-6 lg:py-8 max-w-[1440px] mx-auto')}>
+          <div key={`${workspace.id}:${location.pathname}`} className={clsx('min-h-full animate-page', !FULL_BLEED.test(location.pathname) && 'px-4 sm:px-6 lg:px-8 py-6 lg:py-8 max-w-[1440px] mx-auto')}>
             {children}
           </div>
         </div>
@@ -475,8 +475,8 @@ function CommandPalette({
       <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-pop border border-line overflow-hidden animate-scale-in">
         <div className="flex items-center gap-2.5 px-4 h-12 border-b border-line">
           <Search className="w-4 h-4 text-zinc-400" />
-          <input autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder={placeholder} className="flex-1 bg-transparent text-[15px] text-zinc-900 placeholder:text-zinc-400 outline-none" />
-          <kbd className="text-[10px] font-mono text-zinc-400 border border-line rounded px-1 py-px">esc</kbd>
+          <input autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder={placeholder} className="flex-1 bg-transparent text-[15px] text-zinc-900 placeholder:text-zinc-500 outline-none" />
+          <kbd className="text-[10px] font-mono text-zinc-500 border border-line rounded px-1 py-px">esc</kbd>
         </div>
         <ul className="max-h-[50vh] overflow-y-auto p-1.5">
           {results.length === 0 && <li className="px-3 py-8 text-center text-sm text-zinc-500">{empty}</li>}
@@ -492,7 +492,7 @@ function CommandPalette({
                 >
                   <Icon className="w-4 h-4 text-zinc-400" />
                   <span className="flex-1 truncate">{r.label}</span>
-                  <span className="text-xs text-zinc-400">{r.group}</span>
+                  <span className="text-xs text-zinc-500">{r.group}</span>
                   {i === idx && <CornerDownLeft className="w-3.5 h-3.5 text-zinc-400" />}
                 </button>
               </li>

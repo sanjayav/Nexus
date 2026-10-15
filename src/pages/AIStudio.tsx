@@ -80,7 +80,7 @@ function AIStudioView() {
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) generate() }}
-              className="w-full h-32 px-3 py-2.5 rounded-[10px] bg-white border border-line text-sm text-zinc-900 placeholder:text-zinc-400 shadow-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-500/25 focus:border-brand-500/60"
+              className="w-full h-32 px-3 py-2.5 rounded-[10px] bg-white border border-line text-sm text-zinc-900 placeholder:text-zinc-500 shadow-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-500/25 focus:border-brand-500/60"
             />
             <div className="mt-3">
               <div className="text-xs font-medium text-zinc-500 mb-2">{s.examples}</div>

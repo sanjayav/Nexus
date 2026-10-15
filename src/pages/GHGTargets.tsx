@@ -233,7 +233,7 @@ function Metric({ label, value, unit, accent }: { label: string; value: string; 
   return (
     <div className="min-w-0">
       <p className="text-[13px] text-zinc-500 mb-1">{label}</p>
-      <p className={accent ? 'text-xl font-semibold text-emerald-600 tabular' : 'text-xl font-semibold text-zinc-900 tabular'}>
+      <p className={accent ? 'text-xl font-semibold text-emerald-700 tabular' : 'text-xl font-semibold text-zinc-900 tabular'}>
         {value}
         {unit && <span className="ml-1 text-sm font-normal text-zinc-500">{unit}</span>}
       </p>

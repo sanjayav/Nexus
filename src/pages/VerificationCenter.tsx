@@ -171,7 +171,7 @@ function VerificationView() {
                           <span className="font-mono">{item.id}</span> · {text.type}
                         </p>
                       </div>
-                      <Shield className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <Shield className="w-4 h-4 text-emerald-700 shrink-0" />
                     </label>
                   )
                 })}
@@ -230,7 +230,7 @@ function VerificationView() {
               title={result ? s.resultTitle : s.resultPendingTitle}
               description={result ? s.resultDesc : s.resultPendingDesc}
               action={
-                <div className={clsx('w-9 h-9 rounded-lg flex items-center justify-center', result ? 'bg-emerald-50 text-emerald-600' : 'bg-zinc-100 text-zinc-400')}>
+                <div className={clsx('w-9 h-9 rounded-lg flex items-center justify-center', result ? 'bg-emerald-50 text-emerald-700' : 'bg-zinc-100 text-zinc-400')}>
                   {result ? <CheckCircle2 className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
                 </div>
               }

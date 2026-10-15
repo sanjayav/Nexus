@@ -11,7 +11,7 @@ import { useWorkspace, useL10n } from '../workspace/WorkspaceContext'
 import { WORKSPACES, type SsoProvider } from '../workspace/regions'
 
 const inputClass =
-  'w-full h-11 pl-10 pr-3.5 rounded-xl bg-white border border-line text-[15px] text-zinc-900 placeholder:text-zinc-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500/25 focus:border-brand-500/60 transition-shadow'
+  'w-full h-11 pl-10 pr-3.5 rounded-xl bg-white border border-line text-[15px] text-zinc-900 placeholder:text-zinc-500 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500/25 focus:border-brand-500/60 transition-shadow'
 
 export default function Login() {
   const s = useStrings(loginStrings)
@@ -255,7 +255,7 @@ export default function Login() {
                     maxLength={13}
                     value={phone}
                     onChange={e => setPhone(e.target.value.replace(/[^\d ]/g, ''))}
-                    className="flex-1 min-w-0 px-3.5 bg-transparent text-[15px] text-zinc-900 placeholder:text-zinc-400 tabular focus:outline-none rounded-r-xl"
+                    className="flex-1 min-w-0 px-3.5 bg-transparent text-[15px] text-zinc-900 placeholder:text-zinc-500 tabular focus:outline-none rounded-r-xl"
                     placeholder={s.phonePlaceholder}
                   />
                 </div>

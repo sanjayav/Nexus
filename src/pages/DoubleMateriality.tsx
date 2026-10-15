@@ -261,7 +261,7 @@ export default function DoubleMateriality() {
               {DMA_PROCESS_STEPS.map((st, i) => (
                 <li key={st.step} className="relative flex items-start gap-4 py-3">
                   {i < DMA_PROCESS_STEPS.length - 1 && <span className="absolute left-4 top-11 bottom-[-4px] w-px bg-line" aria-hidden />}
-                  <div className={clsx('relative w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm font-semibold', st.done ? 'bg-emerald-50 text-emerald-600 ring-1 ring-inset ring-emerald-200' : 'bg-zinc-100 text-zinc-500')}>
+                  <div className={clsx('relative w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-sm font-semibold', st.done ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200' : 'bg-zinc-100 text-zinc-500')}>
                     {st.done ? <CheckCircle2 className="w-4 h-4" /> : st.step}
                   </div>
                   <div className="min-w-0 flex-1">
