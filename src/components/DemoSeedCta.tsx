@@ -46,7 +46,7 @@ export default function DemoSeedCta({ show, onCompleted }: Props) {
         <div
           aria-hidden
           className="absolute -top-20 -right-20 w-[280px] h-[280px] rounded-full pointer-events-none opacity-50"
-          style={{ background: 'radial-gradient(circle, rgba(27,107,123,0.10), transparent 70%)' }}
+          style={{ background: 'radial-gradient(circle, rgba(4, 120, 87,0.10), transparent 70%)' }}
         />
 
         <button
@@ -60,7 +60,7 @@ export default function DemoSeedCta({ show, onCompleted }: Props) {
         <div className="relative flex items-start gap-4">
           <div
             className="w-11 h-11 rounded-[12px] flex items-center justify-center text-white flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg, #1B6B7B, #2E7D32)' }}
+            style={{ background: 'linear-gradient(135deg, #047857, #2E7D32)' }}
           >
             <Database className="w-5 h-5" />
           </div>
@@ -77,7 +77,7 @@ export default function DemoSeedCta({ show, onCompleted }: Props) {
 
           <button
             onClick={() => setOpen(true)}
-            className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-[var(--color-brand)] text-white text-[13px] font-semibold hover:bg-[var(--color-brand-strong)] active:scale-[0.98] transition-all cursor-pointer flex-shrink-0"
+            className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[13px] font-semibold hover:bg-[var(--btn-primary-bg-hover)] active:scale-[0.98] transition-all cursor-pointer flex-shrink-0"
           >
             <Database className="w-3.5 h-3.5" />
             {t('components.demoCta.cta')}

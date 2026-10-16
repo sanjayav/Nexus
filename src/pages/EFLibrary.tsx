@@ -285,8 +285,8 @@ export default function EFLibrary() {
               <div className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: `linear-gradient(90deg, ${kpi.accent}, transparent)` }} />
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-semibold">{kpi.label}</p>
-                  <p className="text-[var(--text-2xl)] font-bold text-[var(--text-primary)] mt-1 tabular-nums">{kpi.value}</p>
+                  <p className="text-micro text-[var(--text-tertiary)] uppercase tracking-[0.06em] font-semibold">{kpi.label}</p>
+                  <p className="text-[length:var(--text-2xl)] font-bold text-[var(--text-primary)] mt-1 tabular-nums">{kpi.value}</p>
                 </div>
                 <div className="w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg" style={{
                   backgroundColor: `color-mix(in srgb, ${kpi.accent} 10%, transparent)`,
@@ -322,7 +322,7 @@ export default function EFLibrary() {
               onChange={e => setSearch(e.target.value)}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
-              className="w-full h-10 pl-11 pr-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-sm)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-teal)] focus:bg-[var(--bg-primary)] transition-all duration-300"
+              className="w-full h-10 pl-11 pr-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[length:var(--text-sm)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-teal)] focus:bg-[var(--bg-primary)] transition-all duration-300"
             />
             {search && (
               <button
@@ -337,7 +337,7 @@ export default function EFLibrary() {
             <FilterSelect allLabel={t('efLibrary.filters.allSources')} value={sourceFilter} onChange={setSourceFilter} options={SOURCES} />
             <FilterSelect allLabel={t('efLibrary.filters.allCategories')} value={categoryFilter} onChange={setCategoryFilter} options={CATEGORIES} />
             <FilterSelect allLabel={t('efLibrary.filters.allRegions')} value={regionFilter} onChange={setRegionFilter} options={REGIONS} />
-            <label className="flex items-center gap-2 text-[var(--text-xs)] text-[var(--text-tertiary)] cursor-pointer whitespace-nowrap ml-auto select-none group/check">
+            <label className="flex items-center gap-2 text-[length:var(--text-xs)] text-[var(--text-tertiary)] cursor-pointer whitespace-nowrap ml-auto select-none group/check">
               <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all duration-200 ${showDeprecated ? 'bg-[var(--accent-teal)] border-[var(--accent-teal)]' : 'border-[var(--border-strong)] group-hover/check:border-[var(--accent-teal)]'}`}>
                 {showDeprecated && <Check className="w-2.5 h-2.5 text-white animate-check" />}
               </div>
@@ -345,7 +345,7 @@ export default function EFLibrary() {
               {t('efLibrary.filters.showDeprecated')}
             </label>
             <div className="h-5 w-px bg-[var(--border-default)]" />
-            <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] tabular-nums">
+            <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] tabular-nums">
               <span className="font-bold text-[var(--text-primary)]">{filtered.length}</span> {t('efLibrary.filters.results')}
             </span>
           </div>
@@ -356,7 +356,7 @@ export default function EFLibrary() {
       {loading ? (
         <SkeletonTable rows={8} cols={6} />
       ) : loadError ? (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-[var(--text-sm)] text-red-300">
+        <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-[length:var(--text-sm)] text-red-300">
           {t('efLibrary.loadError.message', { error: loadError })} {t('efLibrary.loadError.hintBefore')} <code>/api/setup</code> {t('efLibrary.loadError.hintAfter')}
         </div>
       ) : filtered.length === 0 ? (
@@ -364,8 +364,8 @@ export default function EFLibrary() {
           <div className="w-16 h-16 rounded-2xl bg-[var(--bg-tertiary)] flex items-center justify-center mx-auto mb-4 animate-float">
             <Search className="w-7 h-7 text-[var(--text-tertiary)]" />
           </div>
-          <p className="text-[var(--text-base)] font-semibold text-[var(--text-secondary)]">{t('efLibrary.empty.title')}</p>
-          <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-1.5 max-w-sm mx-auto">{t('efLibrary.empty.body')}</p>
+          <p className="text-[length:var(--text-base)] font-semibold text-[var(--text-secondary)]">{t('efLibrary.empty.title')}</p>
+          <p className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] mt-1.5 max-w-sm mx-auto">{t('efLibrary.empty.body')}</p>
         </div>
       ) : (
         <Stagger>
@@ -403,10 +403,10 @@ export default function EFLibrary() {
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110" style={{ backgroundColor: `color-mix(in srgb, ${ref.color} 10%, transparent)` }}>
                   <Icon className="w-4 h-4" style={{ color: ref.color }} />
                 </div>
-                <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{ref.name}</h3>
+                <h3 className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)]">{ref.name}</h3>
                 <ArrowUpRight className="w-3.5 h-3.5 text-[var(--text-tertiary)] ml-auto opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300" />
               </div>
-              <p className="text-[var(--text-xs)] text-[var(--text-secondary)] leading-relaxed">{ref.desc}</p>
+              <p className="text-[length:var(--text-xs)] text-[var(--text-secondary)] leading-relaxed">{ref.desc}</p>
             </div>
           )
         })}
@@ -493,7 +493,7 @@ function AddFactorModal({
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'color-mix(in srgb, var(--accent-teal) 10%, transparent)' }}>
               <Plus className="w-4 h-4 text-[var(--accent-teal)]" />
             </div>
-            <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">{t('efLibrary.modal.title')}</h2>
+            <h2 className="font-display text-[length:var(--text-lg)] font-semibold text-[var(--text-primary)]">{t('efLibrary.modal.title')}</h2>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--bg-tertiary)] transition-all duration-200 cursor-pointer hover:rotate-90">
             <X className="w-4 h-4 text-[var(--text-tertiary)]" />
@@ -514,11 +514,11 @@ function AddFactorModal({
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, category: e.target.value })}
             />
             <div>
-              <label className="block text-[var(--text-sm)] font-medium text-[var(--text-primary)] mb-1.5">{t('efLibrary.modal.scope')}</label>
+              <label className="block text-[length:var(--text-sm)] font-medium text-[var(--text-primary)] mb-1.5">{t('efLibrary.modal.scope')}</label>
               <select
                 value={form.scope}
                 onChange={e => setForm({ ...form, scope: Number(e.target.value) as 1 | 2 | 3 })}
-                className="w-full h-10 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 text-[var(--text-base)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)] cursor-pointer"
+                className="w-full h-10 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 text-[length:var(--text-base)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)] cursor-pointer"
               >
                 <option value={1}>{t('efLibrary.scope.1')}</option>
                 <option value={2}>{t('efLibrary.scope.2')}</option>
@@ -623,8 +623,8 @@ function FactorRow({
             </div>
 
             <div className="flex-1 min-w-0">
-              <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] truncate group-hover/row:text-[var(--accent-teal)] transition-colors duration-200">{ef.name}</p>
-              <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5 flex items-center gap-1.5">
+              <p className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)] truncate group-hover/row:text-[var(--accent-teal)] transition-colors duration-200">{ef.name}</p>
+              <p className="text-caption text-[var(--text-tertiary)] mt-0.5 flex items-center gap-1.5">
                 <span>{ef.category}</span>
                 <span className="w-1 h-1 rounded-full bg-[var(--border-default)]" />
                 <span>{ef.subcategory}</span>
@@ -635,17 +635,17 @@ function FactorRow({
               backgroundColor: `color-mix(in srgb, ${scopeColor} 8%, transparent)`,
             }}>
               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: scopeColor }} />
-              <span className="text-[11px] font-semibold" style={{ color: scopeColor }}>{t(`efLibrary.scope.${scopeKey(ef.scope)}`)}</span>
+              <span className="text-caption font-semibold" style={{ color: scopeColor }}>{t(`efLibrary.scope.${scopeKey(ef.scope)}`)}</span>
             </div>
 
             <div className="text-right w-32 flex-shrink-0">
-              <p className="text-[var(--text-base)] font-bold text-[var(--text-primary)] font-mono tabular-nums">{ef.value}</p>
-              <p className="text-[10px] text-[var(--text-tertiary)] font-mono mt-0.5">{ef.unit}</p>
+              <p className="text-[length:var(--text-base)] font-bold text-[var(--text-primary)] font-mono tabular-nums">{ef.value}</p>
+              <p className="text-caption text-[var(--text-tertiary)] font-mono mt-0.5">{ef.unit}</p>
             </div>
 
             <div className="w-28 flex-shrink-0 text-right hidden xl:block">
-              <p className="text-[var(--text-xs)] text-[var(--text-secondary)] font-medium">{ef.source}</p>
-              <p className="text-[10px] text-[var(--text-tertiary)]">{ef.region}</p>
+              <p className="text-[length:var(--text-xs)] text-[var(--text-secondary)] font-medium">{ef.source}</p>
+              <p className="text-caption text-[var(--text-tertiary)]">{ef.region}</p>
             </div>
 
             <div className="w-20 flex-shrink-0 flex justify-center">
@@ -699,7 +699,7 @@ function FactorRow({
                     borderColor: 'color-mix(in srgb, var(--accent-amber) 15%, transparent)',
                   }}>
                     <Info className="w-4 h-4 text-[var(--accent-amber)] mt-0.5 flex-shrink-0" />
-                    <p className="text-[var(--text-xs)] text-[var(--text-secondary)] leading-relaxed">{ef.notes}</p>
+                    <p className="text-[length:var(--text-xs)] text-[var(--text-secondary)] leading-relaxed">{ef.notes}</p>
                   </div>
                 )}
               </div>
@@ -717,8 +717,8 @@ function FactorRow({
 function DetailCell({ label, value, highlight, accent }: { label: string; value: string; highlight?: boolean; accent?: string }) {
   return (
     <div>
-      <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-semibold mb-1">{label}</p>
-      <p className={`text-[var(--text-xs)] ${highlight ? 'font-bold font-mono tabular-nums' : 'font-medium'}`} style={highlight && accent ? { color: accent } : { color: 'var(--text-primary)' }}>
+      <p className="text-micro text-[var(--text-tertiary)] uppercase tracking-[0.06em] font-semibold mb-1">{label}</p>
+      <p className={`text-[length:var(--text-xs)] ${highlight ? 'font-bold font-mono tabular-nums' : 'font-medium'}`} style={highlight && accent ? { color: accent } : { color: 'var(--text-primary)' }}>
         {value}
       </p>
     </div>
@@ -730,7 +730,7 @@ function FilterSelect({ allLabel, value, onChange, options }: { allLabel: string
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
-      className="h-8 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2.5 text-[var(--text-xs)] text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent-teal)] focus:ring-2 focus:ring-[var(--accent-teal)]/10 cursor-pointer transition-all duration-200 hover:border-[var(--border-strong)]"
+      className="h-8 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2.5 text-[length:var(--text-xs)] text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent-teal)] focus:ring-2 focus:ring-[var(--accent-teal)]/10 cursor-pointer transition-all duration-200 hover:border-[var(--border-strong)]"
     >
       <option value="all">{allLabel}</option>
       {options.map(o => <option key={o} value={o}>{o}</option>)}
@@ -776,8 +776,8 @@ function VendorAiSearch() {
     <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] p-4">
       <div className="flex items-center gap-2 mb-3">
         <Sparkles className="w-4 h-4 text-[var(--accent-purple)]" />
-        <span className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)]">{t('efLibrary.vendor.title')}</span>
-        <span className="text-[10px] text-[var(--text-tertiary)] ml-2">{t('efLibrary.vendor.hint')}</span>
+        <span className="text-[length:var(--text-xs)] font-semibold text-[var(--text-primary)]">{t('efLibrary.vendor.title')}</span>
+        <span className="text-caption text-[var(--text-tertiary)] ml-2">{t('efLibrary.vendor.hint')}</span>
       </div>
       <div className="flex items-end gap-2">
         <div className="flex-1">
@@ -787,13 +787,13 @@ function VendorAiSearch() {
             onChange={e => setVendor(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') run() }}
             placeholder={t('efLibrary.vendor.placeholder')}
-            className="w-full h-10 px-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-sm)] focus:outline-none focus:border-[var(--accent-purple)]"
+            className="w-full h-10 px-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[length:var(--text-sm)] focus:outline-none focus:border-[var(--accent-purple)]"
           />
         </div>
         <select
           value={region}
           onChange={e => setRegion(e.target.value)}
-          className="h-10 px-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-xs)]"
+          className="h-10 px-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[length:var(--text-xs)]"
         >
           {['GLOBAL','UK','US','EU','IN','CN','JP','AU','CA','DE','FR'].map(r => <option key={r} value={r}>{r}</option>)}
         </select>
@@ -803,12 +803,12 @@ function VendorAiSearch() {
       </div>
 
       {unconfigured && (
-        <div className="mt-3 text-[var(--text-xs)] text-[var(--text-tertiary)]">
+        <div className="mt-3 text-[length:var(--text-xs)] text-[var(--text-tertiary)]">
           {t('efLibrary.vendor.unconfiguredBefore')} <code className="font-mono">ANTHROPIC_API_KEY</code> {t('efLibrary.vendor.unconfiguredAfter')}
         </div>
       )}
       {error && !unconfigured && (
-        <div className="mt-3 p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-[var(--text-xs)]">{error}</div>
+        <div className="mt-3 p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-[length:var(--text-xs)]">{error}</div>
       )}
 
       {match && (
@@ -832,16 +832,16 @@ function VendorMatchRow({
     <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">{badge}</span>
-          <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{ef.fuel_or_activity}</span>
+          <span className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">{badge}</span>
+          <span className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{ef.fuel_or_activity}</span>
         </div>
-        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${tone}`}>{pct}%</span>
+        <span className={`text-caption font-semibold px-1.5 py-0.5 rounded ${tone}`}>{pct}%</span>
       </div>
-      <div className="mt-1 text-[10px] text-[var(--text-tertiary)] tabular-nums">
+      <div className="mt-1 text-caption text-[var(--text-tertiary)] tabular-nums">
         {Number(ef.co2e_per_unit)} {ef.unit} · {ef.source}{ef.region ? ` · ${ef.region}` : ''}
         {ef.category ? ` · ${ef.category}` : ''}
       </div>
-      <div className="mt-1.5 text-[11px] text-[var(--text-secondary)]">{reasoning}</div>
+      <div className="mt-1.5 text-caption text-[var(--text-secondary)]">{reasoning}</div>
     </div>
   )
 }

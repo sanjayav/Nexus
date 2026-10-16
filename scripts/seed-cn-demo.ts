@@ -8,7 +8,9 @@
  *   - entity tree: group → 5 subsidiaries → 1 production base each
  *   - 11 users with Chinese names on the lvyuan.example domain + org_members
  *   - frameworks cn-sse, cn-csds, hkex-esg, cass-esg, gri enabled
- *   - an active FY2026 reporting period per framework
+ *   - an active FY2026 reporting period per framework, plus the org's own
+ *     FY2026 reporting_year (the year data entry writes into), linked to
+ *     those periods — same create-or-link as /api/org create-period
  *   - ~22 question_assignments across roles/statuses so My Tasks and the
  *     reviewer queue have data
  *
@@ -32,6 +34,7 @@ import { config as loadEnv } from 'dotenv'
 import * as bcrypt from 'bcryptjs'
 import { dirname, resolve, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { syncPeriodReportingYear } from '../api/_periodYear.js'
 
 const DRY_RUN = process.argv.includes('--dry-run')
 
@@ -226,6 +229,7 @@ function printPlan() {
   console.log(`Users    ${USERS.length}`)
   for (const x of USERS) console.log(`  · ${x.email.padEnd(28)} ${x.name}  ${x.role.padEnd(9)} ${x.member}`)
   console.log(`Frameworks ${CN_FRAMEWORKS.join(', ')} · period ${PERIOD.label} (${PERIOD.start} → ${PERIOD.end}, deadline ${PERIOD.deadline})`)
+  console.log(`Reporting year FY${FY} for ${CN_ORG} — create-or-link, status mirrors the periods (active)`)
   console.log(`Assignments planned ${PLANS.length}`)
   for (const p of PLANS) console.log(`  · ${p.framework.padEnd(9)} ${p.status.padEnd(12)} ${p.email}`)
 }
@@ -348,6 +352,20 @@ async function main() {
     const c = await sql`SELECT COUNT(*)::int AS n FROM questionnaire_item WHERE framework_id = ${fw}` as Array<{ n: number }>
     itemCounts.set(fw, c[0]?.n ?? 0)
     console.log(`  ✓ framework ${fw.padEnd(9)} enabled · ${PERIOD.label} active · ${itemCounts.get(fw)} items`)
+  }
+
+  // ── FY2026 reporting_year (create-or-link; idempotent) ──────────────
+  // Every framework period of FY2026 shares the org's one FY2026 year, so a
+  // single sync links them all. Scoped to CN_ORG — never the demo org's year.
+  const anyPeriod = periodByFw.values().next().value as string | undefined
+  if (anyPeriod) {
+    const ry = await syncPeriodReportingYear(sql, CN_ORG, anyPeriod, { create: true })
+    if (ry) {
+      console.log(`  ✓ reporting_year FY${ry.year} ${ry.created ? 'created' : 'exists'} · ${ry.status}` +
+        (ry.linked ? ` · linked to ${periodByFw.size} periods` : ' · ⚠ link column missing — run /api/setup'))
+    }
+  } else {
+    console.log('  ⚠ no FY2026 period found — reporting_year not created')
   }
 
   // ── Assignments ─────────────────────────────────────────────────────

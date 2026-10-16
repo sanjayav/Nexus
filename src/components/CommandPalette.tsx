@@ -312,7 +312,7 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
               ) : (
                 grouped.map(([group, items]) => (
                   <div key={group} className="px-1.5 py-1">
-                    <div className="px-3 pt-2 pb-1 text-[10.5px] uppercase tracking-[0.08em] font-semibold text-[var(--text-tertiary)]">
+                    <div className="px-3 pt-2 pb-1 text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">
                       {t(GROUP_KEYS[group])}
                     </div>
                     <div>
@@ -335,7 +335,7 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
                               style={{ color: isHot ? 'var(--color-brand)' : 'var(--text-tertiary)' }}
                             />
                             <span className="flex-1 truncate font-medium">{labelOf(c)}</span>
-                            {c.hint && <span className="text-[11px] text-[var(--text-tertiary)] truncate">{hintOf(c)}</span>}
+                            {c.hint && <span className="text-caption text-[var(--text-tertiary)] truncate">{hintOf(c)}</span>}
                             {c.kbd && <span className="kbd">{c.kbd}</span>}
                             {isHot && (
                               <ArrowRight className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
@@ -350,7 +350,7 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between gap-4 px-4 h-9 border-t border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-[11px] text-[var(--text-tertiary)]">
+            <div className="flex items-center justify-between gap-4 px-4 h-9 border-t border-[var(--border-subtle)] bg-[var(--bg-subtle)] text-caption text-[var(--text-tertiary)]">
               <div className="flex items-center gap-3">
                 <span className="inline-flex items-center gap-1"><span className="kbd">↑↓</span> {t('shell.palette.navigate')}</span>
                 <span className="inline-flex items-center gap-1"><span className="kbd">↵</span> {t('shell.palette.select')}</span>

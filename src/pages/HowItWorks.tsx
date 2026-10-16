@@ -295,7 +295,7 @@ export default function HowItWorks() {
                     }}
                   >
                     <p
-                      className="text-[10px] font-semibold uppercase tracking-[0.1em] mb-1.5"
+                      className="text-micro font-semibold uppercase tracking-[0.06em] mb-1.5"
                       style={{ color: 'var(--text-tertiary)' }}
                     >
                       {t('howItWorks.compare.legacy')}
@@ -310,7 +310,7 @@ export default function HowItWorks() {
                     }}
                   >
                     <p
-                      className="text-[10px] font-semibold uppercase tracking-[0.1em] mb-1.5"
+                      className="text-micro font-semibold uppercase tracking-[0.06em] mb-1.5"
                       style={{ color: 'var(--accent-600)' }}
                     >
                       {t('howItWorks.compare.nexus')}

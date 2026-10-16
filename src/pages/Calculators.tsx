@@ -90,8 +90,8 @@ export default function Calculators() {
           <AlertCircle className="w-5 h-5 text-[var(--status-reject)] flex-shrink-0 mt-0.5" />
           <div>
             <h3 className="font-semibold text-[var(--text-primary)]">{t('calculators.page.errorTitle')}</h3>
-            <p className="text-[var(--text-sm)] text-[var(--text-secondary)] font-mono mt-1">{state.error}</p>
-            <button onClick={load} className="mt-3 text-[var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">{t('calculators.page.retry')}</button>
+            <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] font-mono mt-1">{state.error}</p>
+            <button onClick={load} className="mt-3 text-[length:var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">{t('calculators.page.retry')}</button>
           </div>
         </div>
       </div>
@@ -118,10 +118,10 @@ export default function Calculators() {
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder={t('calculators.page.searchPlaceholder')}
-            className="w-full pl-10 pr-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none"
+            className="w-full pl-10 pr-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none"
           />
         </div>
-        <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] whitespace-nowrap">
+        <div className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] whitespace-nowrap">
           <span className="font-semibold text-[var(--text-primary)]">{groups.length}</span> {t('calculators.page.summaryCalculators')}
           <span className="font-semibold text-[var(--text-primary)] mx-1">{totalCovered}</span> {t('calculators.page.summaryLineItems')}
         </div>
@@ -130,7 +130,7 @@ export default function Calculators() {
       <Stagger>
         <div className="space-y-3">
         {groups.length === 0 && (
-          <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] p-10 text-center text-[var(--text-sm)] text-[var(--text-tertiary)]">
+          <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] p-10 text-center text-[length:var(--text-sm)] text-[var(--text-tertiary)]">
             {t('calculators.page.noMatch', { query })}
           </div>
         )}
@@ -144,17 +144,17 @@ export default function Calculators() {
                   <CalcIcon className="w-5 h-5 text-[var(--color-brand)]" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="font-display text-[var(--text-base)] font-semibold text-[var(--text-primary)]">{descriptor.title}</h3>
-                  <p className="text-[var(--text-xs)] text-[var(--text-secondary)] mt-0.5">{descriptor.description}</p>
+                  <h3 className="font-display text-[length:var(--text-base)] font-semibold text-[var(--text-primary)]">{descriptor.title}</h3>
+                  <p className="text-[length:var(--text-xs)] text-[var(--text-secondary)] mt-0.5">{descriptor.description}</p>
                 </div>
               </div>
-              <span className="px-2 py-0.5 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)] text-[var(--text-tertiary)] text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">
+              <span className="px-2 py-0.5 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)] text-[var(--text-tertiary)] text-micro font-semibold uppercase tracking-[0.06em] whitespace-nowrap">
                 {t('calculators.page.lineItemCount', { count: items.length })}
               </span>
             </div>
 
             {/* Inputs preview */}
-            <div className="px-5 pb-3 flex items-center gap-1.5 flex-wrap text-[10px]">
+            <div className="px-5 pb-3 flex items-center gap-1.5 flex-wrap text-caption">
               {descriptor.inputs.map(inp => (
                 <span key={inp.key} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-xs)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
                   {inp.label}
@@ -173,10 +173,10 @@ export default function Calculators() {
                   className="w-full text-left px-5 py-2.5 flex items-center gap-3 hover:bg-[var(--color-brand-soft)] transition-colors group"
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="text-[var(--text-xs)] font-medium text-[var(--text-primary)] group-hover:text-[var(--color-brand-strong)] truncate">
+                    <div className="text-[length:var(--text-xs)] font-medium text-[var(--text-primary)] group-hover:text-[var(--color-brand-strong)] truncate">
                       {itemLabel(it, i18n.language)}
                     </div>
-                    <div className="text-[10px] text-[var(--text-tertiary)]">
+                    <div className="text-caption text-[var(--text-tertiary)]">
                       {it.section} · {it.gri_code}
                       {it.scope_split ? ` · ${it.scope_split}` : ''}
                       {it.unit ? ` · ${it.unit}` : ''}
@@ -189,7 +189,7 @@ export default function Calculators() {
             </div>
 
             {descriptor.footnotes && descriptor.footnotes.length > 0 && (
-              <div className="px-5 py-2 bg-[var(--bg-secondary)] text-[10px] text-[var(--text-tertiary)] italic border-t border-[var(--border-subtle)]">
+              <div className="px-5 py-2 bg-[var(--bg-secondary)] text-caption text-[var(--text-tertiary)] italic border-t border-[var(--border-subtle)]">
                 {t('calculators.page.methodology', { notes: descriptor.footnotes.join(t('calculators.page.listSeparator')) })}
               </div>
             )}
@@ -202,18 +202,18 @@ export default function Calculators() {
       {/* Coverage gap — items flagged as Calculator mode but no descriptor registered yet */}
       {uncovered.length > 0 && !query && (
         <section className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-secondary)]/40 p-4">
-          <div className="flex items-center gap-2 text-[var(--text-xs)] text-[var(--text-tertiary)] mb-2">
+          <div className="flex items-center gap-2 text-[length:var(--text-xs)] text-[var(--text-tertiary)] mb-2">
             <Info className="w-3.5 h-3.5" />
             <span className="font-semibold uppercase tracking-wider">{t('calculators.page.coverageGap', { count: uncovered.length })}</span>
             <span>{t('calculators.page.coverageGapNote')}</span>
           </div>
           <div className="grid grid-cols-2 gap-1.5">
             {uncovered.slice(0, 10).map(it => (
-              <div key={it.id} className="text-[10px] text-[var(--text-secondary)] px-2 py-1 rounded-[var(--radius-sm)] bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
+              <div key={it.id} className="text-caption text-[var(--text-secondary)] px-2 py-1 rounded-[var(--radius-sm)] bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
                 <span className="font-mono text-[var(--text-tertiary)]">{it.gri_code}</span> — {itemLabel(it, i18n.language)}
               </div>
             ))}
-            {uncovered.length > 10 && <div className="text-[10px] text-[var(--text-tertiary)] italic px-2 py-1">{t('calculators.page.andMore', { count: uncovered.length - 10 })}</div>}
+            {uncovered.length > 10 && <div className="text-caption text-[var(--text-tertiary)] italic px-2 py-1">{t('calculators.page.andMore', { count: uncovered.length - 10 })}</div>}
           </div>
         </section>
       )}

@@ -30,9 +30,9 @@ export default function ViewToggle({ view, onChange }: ViewToggleProps) {
             aria-selected={active}
             aria-keyshortcuts={o.sk}
             onClick={() => onChange(o.key)}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] text-[var(--text-xs)] font-semibold transition-all ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] text-[length:var(--text-xs)] font-semibold transition-all ${
               active
-                ? 'bg-[var(--color-brand)] text-white shadow-sm'
+                ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] shadow-sm'
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
             }`}
           >

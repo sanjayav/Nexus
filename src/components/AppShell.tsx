@@ -5,8 +5,10 @@ import { useTranslation } from 'react-i18next'
 import Sidebar from '../design-system/components/Sidebar'
 import TopBar from '../design-system/components/TopBar'
 import PageTransition from './PageTransition'
+import ErrorBoundary from './ErrorBoundary'
 import CommandPalette, { useCommandPalette, useThemeBoot, useTrackRecentNav } from './CommandPalette'
 import { useIsBelowLg } from '../lib/breakpoints'
+import { dur, ease, spring } from '../motion/tokens'
 
 // Expose the command palette opener to any descendant (the TopBar search button uses it).
 const PaletteCtx = createContext<() => void>(() => {})
@@ -65,7 +67,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {/* WCAG 2.4.1 — bypass blocks. Visible only when focused via keyboard. */}
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-3 focus:py-2 focus:rounded-md focus:bg-[var(--color-brand)] focus:text-white focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-white"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-3 focus:py-2 focus:rounded-md focus:bg-[var(--btn-primary-bg)] focus:text-[var(--btn-primary-fg)] focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-white"
         >
           {t('shell.skipToContent')}
         </a>
@@ -86,7 +88,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               className="flex-1 overflow-y-auto relative focus:outline-none"
             >
               <div className="px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7 max-w-[1440px] mx-auto">
-                <PageTransition>{children}</PageTransition>
+                {/* Route-level boundary: a page crash keeps the sidebar and top
+                    bar; navigating elsewhere (resetKey) recovers automatically. */}
+                <ErrorBoundary variant="route" resetKey={location.pathname}>
+                  <PageTransition>{children}</PageTransition>
+                </ErrorBoundary>
               </div>
             </main>
           </div>
@@ -157,10 +163,10 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: dur.fast, ease: ease.out }}
             onClick={onClose}
             className="fixed inset-0 z-40 lg:hidden"
-            style={{ background: 'rgba(0,0,0,0.5)' }}
+            style={{ background: 'rgba(4, 12, 10, 0.5)' }}
             aria-hidden="true"
           />
           <motion.div
@@ -173,9 +179,9 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            transition={spring.gentle}
             onKeyDown={onKeyDown}
-            className="fixed top-0 left-0 bottom-0 z-50 w-[280px] max-w-[85vw] lg:hidden shadow-2xl"
+            className="fixed top-0 left-0 bottom-0 z-50 w-[280px] max-w-[85vw] lg:hidden shadow-[var(--shadow-overlay)]"
           >
             {/* Reuse the existing Sidebar component — same nav, same RBAC, same
                 badges. Force the expanded variant since the drawer always has

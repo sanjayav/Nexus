@@ -60,7 +60,7 @@ export default function DateGroupedList({
             >
               {t(g.label)}
             </h3>
-            <span className="text-[10px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">
+            <span className="text-caption font-semibold tabular-nums px-1.5 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">
               {g.items.length}
             </span>
           </header>

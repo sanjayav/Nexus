@@ -1,3 +1,4 @@
+import i18next from 'i18next'
 import { captureError } from './sentry'
 
 const API_BASE = '/api'
@@ -78,10 +79,29 @@ async function fetchWithRetry(
   }
 }
 
+/**
+ * BCP-47 tag for the current UI language, sent as `Accept-Language` on every
+ * API request so server-rendered text (AI answers, anomaly headlines, emails,
+ * notifications, regulatory calendar) follows the user's language. The
+ * server resolves: users.locale → this header → org market default → en.
+ */
+export function currentLanguageTag(): string {
+  let lng = ''
+  try {
+    lng = i18next.language || localStorage.getItem('aeiforo_lng') || ''
+  } catch {
+    lng = i18next.language || ''
+  }
+  if (lng.startsWith('zh')) return 'zh-CN'
+  if (lng.startsWith('th')) return 'th-TH'
+  return 'en'
+}
+
 async function request<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const token = getToken()
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'Accept-Language': currentLanguageTag(),
     ...(opts.headers as Record<string, string> || {}),
   }
   if (token) headers['Authorization'] = `Bearer ${token}`
@@ -858,7 +878,28 @@ export interface AiDraftUsage {
   cached?: number
 }
 
-export interface AiDraftResponse {
+/**
+ * Mandatory AI-content labelling fields present on every AI response
+ * (CAC 《人工智能生成合成内容标识办法》). Render `ai_label` next to the text.
+ */
+export interface AiGeneratedLabel {
+  ai_generated?: true
+  ai_label?: string
+  ai_provider?: 'anthropic' | 'openai_compatible' | null
+  ai_model?: string | null
+  locale?: 'en' | 'zh' | 'th'
+}
+
+/** Error codes returned by AI endpoints: 403 `ai_disabled`, 503 `ai_not_configured`. */
+export function isAiDisabledError(err: unknown): err is ApiError {
+  return err instanceof ApiError && err.status === 403 &&
+    typeof err.body === 'object' && err.body !== null && (err.body as { code?: string }).code === 'ai_disabled'
+}
+
+/** Framework ids accepted by POST /api/ai/draft. */
+export type AiDraftFramework = 'gri' | 'csrd' | 'tcfd' | 'cdp' | 'issb' | 'cn-sse' | 'cn-csds' | 'hkex-esg' | 'cass-esg'
+
+export interface AiDraftResponse extends AiGeneratedLabel {
   text: string
   usage: AiDraftUsage
 }
@@ -877,7 +918,7 @@ export interface AiExtractionResult {
   additionalNotes: string | null
 }
 
-export interface AiExtractionResponse {
+export interface AiExtractionResponse extends AiGeneratedLabel {
   extraction: AiExtractionResult
   usage: AiDraftUsage
 }
@@ -916,7 +957,7 @@ export interface AiEfAlternate {
   reasoning: string
 }
 
-export interface AiEfMatchResponse {
+export interface AiEfMatchResponse extends AiGeneratedLabel {
   match: {
     id: string | null
     ef: AiEfRow
@@ -939,7 +980,7 @@ export interface AiEfMatchRequest {
 }
 
 export const ai = {
-  draft: (data: { framework: string; section: string; tone?: string }) =>
+  draft: (data: { framework: AiDraftFramework | string; section: string; tone?: string }) =>
     request<AiDraftResponse>('/ai/draft', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -1008,7 +1049,7 @@ export interface AiGapAnalysis {
   recommendedNextSteps: string[]
 }
 
-export interface AiAnalyzeGapsResponse {
+export interface AiAnalyzeGapsResponse extends AiGeneratedLabel {
   id?: string | null
   analysis: AiGapAnalysis
   cached: boolean
@@ -1039,7 +1080,7 @@ export const footnotes = {
     request<{ ok: true; id: string }>(`/footnotes?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
 }
 
-export interface AiNarrateAnomalyResponse {
+export interface AiNarrateAnomalyResponse extends AiGeneratedLabel {
   narrative: string
   generatedAt: string | null
   cached: boolean
@@ -1496,4 +1537,280 @@ export const pcaf = {
       total_financed_emissions: number
       weighted_data_quality: number
     }>('/pcaf/sync-scope3', { method: 'POST', body: JSON.stringify(body) }),
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// China platform features (Phase 4) — org market settings, IM webhooks,
+// user language, regulatory calendar, green power & carbon-credit ledger.
+// ══════════════════════════════════════════════════════════════════════════
+
+export type AppLocale = 'en' | 'zh' | 'th'
+export type OrgMarket = 'global' | 'cn'
+export type AiProviderId = 'anthropic' | 'openai_compatible'
+export type CrossBorderStatus =
+  | 'not_assessed' | 'no_transfer' | 'exempt' | 'standard_contract' | 'certification' | 'security_assessment'
+export type ListingVenue = 'SSE' | 'SZSE' | 'BSE' | 'HKEX' | 'OTHER'
+
+export interface OrgSettings {
+  org_id: string
+  market: OrgMarket
+  data_residency_region: 'us' | 'eu' | 'apac' | 'cn' | null
+  /** ICP 备案号, e.g. 京ICP备12345678号-1 */
+  icp_number: string | null
+  /** 等保 (MLPS 2.0) level 1–5 */
+  mlps_level: number | null
+  cross_border_status: CrossBorderStatus | null
+  ai_enabled: boolean
+  /** null = automatic (cn → openai_compatible, else anthropic) */
+  ai_provider: AiProviderId | null
+  timezone: string | null
+  currency: string | null
+  /** 'MM-DD', null = 12-31 */
+  fiscal_year_end: string | null
+  listing_venues: ListingVenue[] | null
+  updated_at: string | null
+  updated_by: string | null
+}
+
+export type OrgSettingsPatch = Partial<Omit<OrgSettings, 'org_id' | 'updated_at' | 'updated_by'>>
+
+export interface OrgAiAvailability {
+  enabled: boolean
+  disabled_reason: 'deployment' | 'organisation' | null
+  provider: AiProviderId
+  provider_label: string
+  model: string | null
+  configured: boolean
+  supports: { pdf: boolean; images: boolean }
+}
+
+export interface OrgSettingsResponse {
+  settings: OrgSettings
+  /** false when the org has never saved settings (defaults shown). */
+  stored: boolean
+  effective: {
+    default_locale: AppLocale
+    timezone: string
+    currency: string | null
+    fiscal_year_end: string
+    ai_provider: AiProviderId
+  }
+  ai: OrgAiAvailability
+  changes?: Record<string, { from: unknown; to: unknown }>
+}
+
+export const orgSettings = {
+  /** Any signed-in member. */
+  get: () => request<OrgSettingsResponse>('/org-settings'),
+  /** Requires admin.org. Unknown keys → 400. */
+  update: (patch: OrgSettingsPatch) =>
+    request<OrgSettingsResponse>('/org-settings', { method: 'PUT', body: JSON.stringify(patch) }),
+}
+
+export type ImChannelId = 'dingtalk' | 'feishu' | 'wecom'
+
+export interface OrgWebhook {
+  id: string
+  channel: ImChannelId
+  label: string | null
+  /** Masked URL, e.g. "oapi.dingtalk.com/…a1b2" — the real URL is write-only. */
+  webhook_hint: string | null
+  has_secret: boolean
+  enabled: boolean
+  /** Notification kinds forwarded; null = all kinds. */
+  kinds: string[] | null
+  last_test_at: string | null
+  last_test_ok: boolean | null
+  last_test_error: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface OrgWebhookInput {
+  channel: ImChannelId
+  webhook_url: string
+  /** DingTalk 加签 / Feishu 签名校验 secret. Not supported for WeCom. */
+  secret?: string | null
+  label?: string | null
+  enabled?: boolean
+  kinds?: string[] | null
+}
+
+export const orgWebhooks = {
+  /** Requires admin.org. `env_fallback_active` = org has no rows and the env-var bots apply. */
+  list: () => request<{ channels: OrgWebhook[]; env_fallback_active: boolean }>('/org-webhooks'),
+  /** Upsert by channel (one webhook per channel per org). */
+  save: (input: OrgWebhookInput) =>
+    request<{ channel: OrgWebhook }>('/org-webhooks', { method: 'POST', body: JSON.stringify(input) }),
+  update: (id: string, patch: Partial<Omit<OrgWebhookInput, 'channel'>>) =>
+    request<{ channel: OrgWebhook }>(`/org-webhooks?id=${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(patch) }),
+  remove: (id: string) =>
+    request<{ ok: true }>(`/org-webhooks?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  test: (id: string) =>
+    request<{ ok: boolean; error?: string }>(`/org-webhooks?action=test&id=${encodeURIComponent(id)}`, { method: 'POST' }),
+}
+
+export interface UserLocaleResponse {
+  /** Stored preference (null = follow browser / org market). */
+  locale: AppLocale | null
+  /** What the server uses for this user right now. */
+  resolved: AppLocale
+  supported: AppLocale[]
+}
+
+export const userLocale = {
+  get: () => request<UserLocaleResponse>('/user-locale'),
+  /** Call when the user switches language so emails/notifications follow. */
+  set: (locale: AppLocale | null) =>
+    request<UserLocaleResponse>('/user-locale', { method: 'PUT', body: JSON.stringify({ locale }) }),
+}
+
+/** Map an i18next language ('zh-CN', 'th', 'en-GB') to the server locale. */
+export function toAppLocale(lng: string | null | undefined): AppLocale {
+  if (!lng) return 'en'
+  if (lng.startsWith('zh')) return 'zh'
+  if (lng.startsWith('th')) return 'th'
+  return 'en'
+}
+
+export type CalendarRegion = 'CN' | 'HK' | 'EU' | 'GLOBAL'
+
+export interface RegulatoryCalendarItem {
+  id: string
+  region: CalendarRegion
+  /** src/lib/frameworks.ts id (link target), or null for obligations without a module. */
+  framework_id: string | null
+  kind: 'mandatory' | 'voluntary'
+  fiscal_year: number
+  title: string
+  detail: string
+  /** YYYY-MM-DD, or null when set by annual notice (see due_note). */
+  due_date: string | null
+  due_note: string | null
+  days_until: number | null
+  status: 'upcoming' | 'due_soon' | 'overdue' | 'no_fixed_date'
+  /** Matches an enabled framework or the org's listing venue. */
+  highlighted: boolean
+  source_url: string | null
+}
+
+export interface RegulatoryCalendarResponse {
+  items: RegulatoryCalendarItem[]
+  today: string
+  timezone: string
+  market: OrgMarket
+  fiscal_year_end: string
+  enabled_frameworks: string[]
+  locale: AppLocale
+}
+
+export const regulatoryCalendar = {
+  get: (params: { regions?: CalendarRegion[]; fy?: number } = {}) => {
+    const q = new URLSearchParams()
+    if (params.regions?.length) q.set('region', params.regions.join(','))
+    if (params.fy) q.set('fy', String(params.fy))
+    const qs = q.toString()
+    return request<RegulatoryCalendarResponse>(`/regulatory-calendar${qs ? `?${qs}` : ''}`)
+  },
+}
+
+export type GreenInstrumentType = 'gec' | 'green_power_trade' | 'irec' | 'ppa' | 'other'
+export type CarbonCreditStandard = 'CCER' | 'CEA' | 'VCS' | 'GS' | 'CDM' | 'other'
+
+export interface GreenCertificate {
+  id: string
+  /** gec = 绿证, green_power_trade = 绿电交易 */
+  instrument_type: GreenInstrumentType
+  mwh: number
+  period_start: string
+  period_end: string
+  certificate_id: string | null
+  facility_id: string | null
+  entity_id: string | null
+  supplier: string | null
+  energy_source: string | null
+  province: string | null
+  evidence_id: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type GreenCertificateInput = Omit<GreenCertificate, 'id' | 'created_at' | 'updated_at' | 'certificate_id' | 'facility_id' | 'entity_id' | 'supplier' | 'energy_source' | 'province' | 'evidence_id' | 'notes'> &
+  Partial<Pick<GreenCertificate, 'certificate_id' | 'facility_id' | 'entity_id' | 'supplier' | 'energy_source' | 'province' | 'evidence_id' | 'notes'>>
+
+export interface CarbonCredit {
+  id: string
+  standard: CarbonCreditStandard
+  tco2e: number
+  vintage: number | null
+  registry_id: string | null
+  project_name: string | null
+  project_type: string | null
+  retired: boolean
+  retired_on: string | null
+  reporting_year: number | null
+  purpose: string | null
+  evidence_id: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type CarbonCreditInput = Pick<CarbonCredit, 'standard' | 'tco2e'> &
+  Partial<Omit<CarbonCredit, 'id' | 'created_at' | 'updated_at' | 'standard' | 'tco2e'>>
+
+export interface GreenLedgerTotals {
+  year: number
+  certificates: { total_mwh: number; by_type: Partial<Record<GreenInstrumentType, number>> }
+  credits: {
+    retired_tco2e: number
+    ccer_retired_tco2e: number
+    by_standard: Partial<Record<CarbonCreditStandard, number>>
+    by_vintage: Record<string, number>
+  }
+  market_based_scope2: {
+    purchased_mwh: number | null
+    certified_mwh: number
+    applied_certified_mwh: number
+    residual_mwh: number | null
+    residual_factor_kg_per_kwh: number | null
+    market_based_tco2e: number | null
+    note: string
+  }
+  cn_sse_climate: {
+    carbon_credits_retired_tco2e: number
+    ccer_retired_tco2e: number
+    green_certificate_mwh: number
+    green_power_trade_mwh: number
+    renewable_share_pct: number | null
+  }
+}
+
+export const greenLedger = {
+  /** Requires data.view. */
+  list: (year: number, kind?: 'eac' | 'credit') =>
+    request<{ year: number; certificates: GreenCertificate[]; credits: CarbonCredit[]; totals: GreenLedgerTotals }>(
+      `/green-certificates?year=${year}${kind ? `&kind=${kind}` : ''}`,
+    ),
+  /** Requires data.view. Overrides default to activity_data electricity and the CN residual factor (cn orgs). */
+  totals: (year: number, opts: { purchasedMwh?: number; residualFactor?: number } = {}) => {
+    const q = new URLSearchParams({ view: 'totals', year: String(year) })
+    if (opts.purchasedMwh != null) q.set('purchased_mwh', String(opts.purchasedMwh))
+    if (opts.residualFactor != null) q.set('residual_factor', String(opts.residualFactor))
+    return request<GreenLedgerTotals>(`/green-certificates?${q.toString()}`)
+  },
+  /** Requires data.upload. */
+  addCertificate: (input: GreenCertificateInput) =>
+    request<{ certificate: GreenCertificate }>('/green-certificates', { method: 'POST', body: JSON.stringify({ kind: 'eac', ...input }) }),
+  updateCertificate: (id: string, patch: Partial<GreenCertificateInput>) =>
+    request<{ certificate: GreenCertificate }>(`/green-certificates?kind=eac&id=${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(patch) }),
+  removeCertificate: (id: string) =>
+    request<{ ok: true }>(`/green-certificates?kind=eac&id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  addCredit: (input: CarbonCreditInput) =>
+    request<{ credit: CarbonCredit }>('/green-certificates', { method: 'POST', body: JSON.stringify({ kind: 'credit', ...input }) }),
+  updateCredit: (id: string, patch: Partial<CarbonCreditInput>) =>
+    request<{ credit: CarbonCredit }>(`/green-certificates?kind=credit&id=${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(patch) }),
+  removeCredit: (id: string) =>
+    request<{ ok: true }>(`/green-certificates?kind=credit&id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
 }

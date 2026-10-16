@@ -100,7 +100,7 @@ export default function ForgotPassword() {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label htmlFor="email" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">
+                  <label htmlFor="email" className="text-micro font-medium text-white/50 uppercase tracking-wider block mb-1">
                     {t('login.email')}
                   </label>
                   <div className="relative">
@@ -121,7 +121,7 @@ export default function ForgotPassword() {
                     />
                   </div>
                   {showFieldError && (
-                    <p id="email-err" className="mt-1 text-[11px] text-red-300">{fieldError}</p>
+                    <p id="email-err" className="mt-1 text-caption text-red-300">{fieldError}</p>
                   )}
                 </div>
 

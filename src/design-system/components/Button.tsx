@@ -25,12 +25,13 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  * Transitions are 120ms color/bg, 160ms transform, no bounce.
  */
 const variantStyles: Record<Variant, string> = {
+  // Per-mode tokens: emerald-700 + white on light, mint + dark ink on dark.
   primary:
-    'text-white bg-[var(--color-brand-strong)] hover:bg-[var(--color-brand)] active:translate-y-[0.5px] ' +
-    'shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_1px_2px_rgba(11,18,32,0.06)]',
+    'text-[var(--btn-primary-fg)] bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-bg-hover)] active:translate-y-[0.5px] ' +
+    'shadow-[var(--btn-primary-shadow)]',
   brand:
-    'text-white bg-[var(--color-brand-strong)] hover:bg-[var(--color-brand)] active:translate-y-[0.5px] ' +
-    'shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_1px_2px_rgba(11,18,32,0.06)]',
+    'text-[var(--btn-primary-fg)] bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-bg-hover)] active:translate-y-[0.5px] ' +
+    'shadow-[var(--btn-primary-shadow)]',
   secondary:
     'bg-[var(--bg-primary)] text-[var(--text-primary)] border border-[var(--border-default)] ' +
     'hover:bg-[var(--bg-secondary)] hover:border-[var(--border-strong)] active:translate-y-[0.5px]',
@@ -40,14 +41,14 @@ const variantStyles: Record<Variant, string> = {
   ghost:
     'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] active:translate-y-[0.5px]',
   danger:
-    'bg-[var(--accent-red-light)] text-[var(--accent-red)] hover:bg-[var(--accent-red)] hover:text-white active:translate-y-[0.5px]',
+    'bg-[var(--status-danger-soft)] text-[var(--status-danger)] hover:bg-[var(--btn-danger-bg)] hover:text-[var(--btn-danger-fg)] active:translate-y-[0.5px]',
 }
 
 const sizeStyles: Record<Size, string> = {
-  xs: 'h-7 px-2.5 text-[12px] gap-1 rounded-[6px]',
-  sm: 'h-8 px-3 text-[12.5px] gap-1.5 rounded-[6px]',
-  md: 'h-9 px-3.5 text-[13px] gap-1.5 rounded-[8px]',
-  lg: 'h-10 px-4 text-[13.5px] gap-2 rounded-[8px]',
+  xs: 'h-7 px-2.5 text-caption gap-1 rounded-[var(--radius-sm)]',
+  sm: 'h-8 px-3 text-small gap-1.5 rounded-[var(--radius-sm)]',
+  md: 'h-9 px-3.5 text-small gap-1.5 rounded-[var(--radius-md)]',
+  lg: 'h-10 px-4 text-body gap-2 rounded-[var(--radius-md)]',
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -73,7 +74,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={isDisabled}
         className={[
           'relative inline-flex items-center justify-center font-semibold whitespace-nowrap',
-          'transition-[background-color,color,border-color,transform] duration-[120ms] ease-[var(--ease-out-expo)]',
+          'transition-[background-color,color,border-color,transform] duration-micro ease-out',
           'disabled:opacity-50 disabled:pointer-events-none cursor-pointer',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--border-focus)]/40',
           fullWidth ? 'w-full' : '',

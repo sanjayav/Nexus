@@ -91,7 +91,7 @@ export default function TopBar() {
         {route?.section && (
           <>
             <span className="hidden sm:inline text-[12.5px] text-[var(--text-tertiary)] font-medium">{t(route.section)}</span>
-            <span className="hidden sm:inline text-[var(--text-quaternary)] text-[10px]">/</span>
+            <span className="hidden sm:inline text-[var(--text-quaternary)] text-caption">/</span>
           </>
         )}
         <span className="text-[14px] font-semibold text-[var(--text-primary)] tracking-[-0.01em] truncate">
@@ -144,10 +144,10 @@ export default function TopBar() {
         {/* User menu */}
         <button className="flex items-center gap-2 h-10 sm:h-8 pl-0.5 pr-2 rounded-[8px] hover:bg-[var(--bg-hover)] transition-all cursor-pointer">
           <div
-            className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-caption font-semibold text-white"
             style={{
-              background: 'linear-gradient(135deg, #2fa98e, #1B6B7B)',
-              boxShadow: '0 2px 6px rgba(27,107,123,0.3), inset 0 1px 0 rgba(255,255,255,0.2)',
+              background: 'linear-gradient(135deg, var(--accent-600), var(--accent-800))',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), 0 0 0 1px var(--status-success-line)',
             }}
           >
             {firstName[0]}
@@ -241,7 +241,7 @@ function NewMenu() {
           <NewMenuItem icon={FileText} label={t('shell.newMenu.report')} hint={t('shell.newMenu.reportHint')} onClick={() => go('/reports?action=new-report')} />
           <NewMenuItem icon={Sparkles} label={t('shell.newMenu.aiNarrative')} hint={t('shell.newMenu.aiNarrativeHint')} onClick={() => go('/reports/ai')} />
           <div className="border-t border-[var(--border-subtle)] my-1" />
-          <div className="px-2 py-1.5 text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] flex items-center justify-between">
+          <div className="px-2 py-1.5 text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] flex items-center justify-between">
             <span>{t('shell.newMenu.shortcut')}</span>
             <span className="kbd">n</span>
           </div>
@@ -271,7 +271,7 @@ function NewMenuItem({
       </span>
       <div className="min-w-0 flex-1">
         <div className="text-[12.5px] font-semibold text-[var(--text-primary)] leading-tight">{label}</div>
-        <div className="text-[11px] text-[var(--text-tertiary)] truncate mt-0.5">{hint}</div>
+        <div className="text-caption text-[var(--text-tertiary)] truncate mt-0.5">{hint}</div>
       </div>
     </button>
   )

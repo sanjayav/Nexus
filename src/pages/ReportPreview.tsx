@@ -110,8 +110,8 @@ export default function ReportPreview() {
           <AlertCircle className="w-5 h-5 text-[var(--status-reject)] flex-shrink-0 mt-0.5" />
           <div>
             <h3 className="font-semibold text-[var(--text-primary)] mb-1">{t('reportPreview.unableToLoad')}</h3>
-            <p className="text-[var(--text-sm)] text-[var(--text-secondary)] font-mono">{state.error}</p>
-            <button onClick={load} className="mt-3 text-[var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">{t('reportPreview.retry')}</button>
+            <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] font-mono">{state.error}</p>
+            <button onClick={load} className="mt-3 text-[length:var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">{t('reportPreview.retry')}</button>
           </div>
         </div>
       </div>
@@ -124,7 +124,7 @@ export default function ReportPreview() {
       <div className="print:hidden flex items-center justify-between mb-6 sticky top-0 z-10 bg-[var(--bg-secondary)] -mx-8 px-8 py-3 border-b border-[var(--border-subtle)]">
         <button
           onClick={() => navigate('/reports')}
-          className="inline-flex items-center gap-2 text-[var(--text-sm)] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          className="inline-flex items-center gap-2 text-[length:var(--text-sm)] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
         >
           <ArrowLeft className="w-4 h-4" /> {t('reportPreview.backToPublish')}
         </button>
@@ -142,28 +142,28 @@ export default function ReportPreview() {
       <article className="max-w-[860px] mx-auto bg-white text-[var(--text-primary)] rounded-[var(--radius-md)] border border-[var(--border-subtle)] print:border-0 print:shadow-none">
         {/* Cover */}
         <section className="px-12 pt-16 pb-20 border-b border-[var(--border-subtle)]">
-          <div className="text-[var(--text-xs)] uppercase tracking-[0.2em] text-[var(--color-brand)] font-semibold mb-3">
+          <div className="text-[length:var(--text-xs)] uppercase tracking-[0.2em] text-[var(--color-brand)] font-semibold mb-3">
             {t('reportPreview.cover.eyebrow')}
           </div>
           <h1 className="font-display text-[40px] font-bold leading-tight text-[var(--text-primary)] mb-2">
             {t('reportPreview.cover.companyLine1')}<br />{t('reportPreview.cover.companyLine2')}
           </h1>
-          <p className="text-[var(--text-lg)] text-[var(--text-secondary)] mb-10">
+          <p className="text-[length:var(--text-lg)] text-[var(--text-secondary)] mb-10">
             {t('reportPreview.cover.reportingPeriod', { year: ACTIVE_YEAR })}
           </p>
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)] text-[var(--text-xs)] font-semibold">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)] text-[length:var(--text-xs)] font-semibold">
             {t('reportPreview.cover.badge', { year: ACTIVE_YEAR })}
           </div>
-          <p className="mt-12 text-[var(--text-xs)] text-[var(--text-tertiary)] leading-relaxed">
+          <p className="mt-12 text-[length:var(--text-xs)] text-[var(--text-tertiary)] leading-relaxed">
             {t('reportPreview.cover.note')}
           </p>
         </section>
 
         {/* Reporting Guidelines (GRI 2-1..2-5) */}
         <section className="px-12 py-10 border-b border-[var(--border-subtle)]">
-          <h2 className="font-display text-[var(--text-xl)] font-bold text-[var(--color-brand)] mb-2">{t('reportPreview.guidelines.title')}</h2>
-          <p className="text-[var(--text-xs)] uppercase tracking-wider text-[var(--text-tertiary)] mb-4">GRI 2-1, 2-2, 2-3, 2-4, 2-5</p>
-          <div className="space-y-3 text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
+          <h2 className="font-display text-[length:var(--text-xl)] font-bold text-[var(--color-brand)] mb-2">{t('reportPreview.guidelines.title')}</h2>
+          <p className="text-[length:var(--text-xs)] uppercase tracking-wider text-[var(--text-tertiary)] mb-4">GRI 2-1, 2-2, 2-3, 2-4, 2-5</p>
+          <div className="space-y-3 text-[length:var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
             <p><strong className="text-[var(--text-primary)]">{t('reportPreview.guidelines.orgLabel')}</strong> {t('reportPreview.guidelines.orgBody')}</p>
             <p><strong className="text-[var(--text-primary)]">{t('reportPreview.guidelines.scopeLabel')}</strong> {t('reportPreview.guidelines.scopeBody')}</p>
             <p><strong className="text-[var(--text-primary)]">{t('reportPreview.guidelines.periodLabel')}</strong> {t('reportPreview.guidelines.periodBody', { year: ACTIVE_YEAR })}</p>
@@ -182,18 +182,18 @@ export default function ReportPreview() {
 
         {/* LRQA placeholder */}
         <section className="px-12 py-10 border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)] print:bg-transparent">
-          <h2 className="font-display text-[var(--text-xl)] font-bold text-[var(--color-brand)] mb-2">
+          <h2 className="font-display text-[length:var(--text-xl)] font-bold text-[var(--color-brand)] mb-2">
             {t('reportPreview.assurance.title')}
           </h2>
-          <p className="text-[var(--text-xs)] uppercase tracking-wider text-[var(--text-tertiary)] mb-4">{t('reportPreview.assurance.subtitle')}</p>
-          <div className="space-y-3 text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
+          <p className="text-[length:var(--text-xs)] uppercase tracking-wider text-[var(--text-tertiary)] mb-4">{t('reportPreview.assurance.subtitle')}</p>
+          <div className="space-y-3 text-[length:var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
             <p>
               {t('reportPreview.assurance.p1')}
             </p>
             <p>
               {t('reportPreview.assurance.p2')}
             </p>
-            <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] pt-4 border-t border-[var(--border-subtle)]">
+            <p className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] pt-4 border-t border-[var(--border-subtle)]">
               <strong>{t('reportPreview.assurance.placeholder')}</strong> {t('reportPreview.assurance.placeholderBody')}
             </p>
           </div>
@@ -207,29 +207,29 @@ function TemplateRenderBlock({ heading, sections, currentYear }: { heading: stri
   const { t, i18n } = useTranslation()
   return (
     <section>
-      <h2 className="font-display text-[var(--text-2xl)] font-bold text-[var(--color-brand)] px-12 pt-10 pb-2 break-before-page print:break-before-page">
+      <h2 className="font-display text-[length:var(--text-2xl)] font-bold text-[var(--color-brand)] px-12 pt-10 pb-2 break-before-page print:break-before-page">
         {heading}
       </h2>
       {sections.map(sec => (
         <div key={sec.capital} className="px-12 py-6">
-          <h3 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)] mb-4 pb-2 border-b-2 border-[var(--color-brand)]">
+          <h3 className="font-display text-[length:var(--text-lg)] font-semibold text-[var(--text-primary)] mb-4 pb-2 border-b-2 border-[var(--color-brand)]">
             {t(`reportPreview.capitals.${slug(sec.capital)}`, { defaultValue: sec.capital })}
           </h3>
           {sec.subsections.map(sub => (
             <div key={sub.name} className="mb-6">
-              <h4 className="text-[var(--text-sm)] font-semibold text-[var(--color-brand)] mb-2 uppercase tracking-wider">
+              <h4 className="text-[length:var(--text-sm)] font-semibold text-[var(--color-brand)] mb-2 uppercase tracking-wider">
                 {t(`reportPreview.subsections.${slug(sub.name)}`, { defaultValue: sub.name })}
               </h4>
-              <table className="w-full text-[var(--text-xs)] border-collapse">
+              <table className="w-full text-[length:var(--text-xs)] border-collapse">
                 <thead>
                   <tr className="border-b border-[var(--border-default)] text-[var(--text-tertiary)]">
-                    <th className="text-left py-2 pr-2 w-[42%] font-semibold uppercase tracking-wider text-[10px]">{t('reportPreview.table.lineItem')}</th>
-                    <th className="text-left py-2 pr-2 w-[12%] font-semibold uppercase tracking-wider text-[10px]">{t('reportPreview.table.unit')}</th>
-                    <th className="text-right py-2 px-1 font-semibold uppercase tracking-wider text-[10px] tabular-nums">2022</th>
-                    <th className="text-right py-2 px-1 font-semibold uppercase tracking-wider text-[10px] tabular-nums">2023</th>
-                    <th className="text-right py-2 px-1 font-semibold uppercase tracking-wider text-[10px] tabular-nums">2024</th>
-                    <th className="text-right py-2 px-1 font-semibold uppercase tracking-wider text-[10px] tabular-nums">2025</th>
-                    <th className="text-right py-2 pl-1 font-semibold uppercase tracking-wider text-[10px] tabular-nums bg-[var(--color-brand-soft)]">{currentYear}</th>
+                    <th className="text-left py-2 pr-2 w-[42%] font-semibold uppercase tracking-wider text-micro">{t('reportPreview.table.lineItem')}</th>
+                    <th className="text-left py-2 pr-2 w-[12%] font-semibold uppercase tracking-wider text-micro">{t('reportPreview.table.unit')}</th>
+                    <th className="text-right py-2 px-1 font-semibold uppercase tracking-[0.06em] text-micro tabular-nums">2022</th>
+                    <th className="text-right py-2 px-1 font-semibold uppercase tracking-[0.06em] text-micro tabular-nums">2023</th>
+                    <th className="text-right py-2 px-1 font-semibold uppercase tracking-[0.06em] text-micro tabular-nums">2024</th>
+                    <th className="text-right py-2 px-1 font-semibold uppercase tracking-[0.06em] text-micro tabular-nums">2025</th>
+                    <th className="text-right py-2 pl-1 font-semibold uppercase tracking-[0.06em] text-micro tabular-nums bg-[var(--color-brand-soft)]">{currentYear}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -239,7 +239,7 @@ function TemplateRenderBlock({ heading, sections, currentYear }: { heading: stri
                       <tr key={row.item.id} className="border-b border-[var(--border-subtle)] align-top">
                         <td className="py-2 pr-2 text-[var(--text-primary)]">
                           <div className="font-medium">{itemLabel(row.item, i18n.language)}</div>
-                          <div className="text-[10px] text-[var(--text-tertiary)] mt-0.5">
+                          <div className="text-caption text-[var(--text-tertiary)] mt-0.5">
                             {row.item.gri_code}
                             {row.item.scope_split ? ` · ${row.item.scope_split}` : ''}
                             {row.item.target_fy2026 != null ? ` · ${t('reportPreview.table.target', { value: row.item.target_fy2026 })}` : ''}
@@ -259,7 +259,7 @@ function TemplateRenderBlock({ heading, sections, currentYear }: { heading: stri
                 </tbody>
               </table>
               {sub.rows.some(r => r.item.footnote_refs.length > 0) && (
-                <p className="text-[10px] text-[var(--text-tertiary)] mt-2 italic">
+                <p className="text-caption text-[var(--text-tertiary)] mt-2 italic">
                   {t('reportPreview.table.footnotes')} {Array.from(new Set(sub.rows.flatMap(r => r.item.footnote_refs))).join('; ')}
                 </p>
               )}

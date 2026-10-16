@@ -12,7 +12,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className={className}>
         {label && (
-          <label className="block text-[var(--text-sm)] font-medium text-[var(--text-primary)] mb-1.5">
+          <label className="block text-[length:var(--text-sm)] font-medium text-[var(--text-primary)] mb-1.5">
             {label}
           </label>
         )}
@@ -25,10 +25,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             className={`
-              w-full h-10 px-3 text-[var(--text-base)] text-[var(--text-primary)]
+              w-full h-10 px-3 text-[length:var(--text-base)] text-[var(--text-primary)]
               bg-[var(--bg-primary)] border rounded-[var(--radius-md)]
               placeholder:text-[var(--text-tertiary)]
-              transition-colors duration-[var(--transition-fast)]
+              transition-colors duration-micro
               focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)] focus:ring-offset-1
               ${icon ? 'pl-10' : ''}
               ${error
@@ -40,10 +40,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           />
         </div>
         {error && (
-          <p className="mt-1 text-[var(--text-xs)] text-[var(--accent-red)]">{error}</p>
+          <p className="mt-1 text-[length:var(--text-xs)] text-[var(--accent-red)]">{error}</p>
         )}
         {hint && !error && (
-          <p className="mt-1 text-[var(--text-xs)] text-[var(--text-tertiary)]">{hint}</p>
+          <p className="mt-1 text-[length:var(--text-xs)] text-[var(--text-tertiary)]">{hint}</p>
         )}
       </div>
     )

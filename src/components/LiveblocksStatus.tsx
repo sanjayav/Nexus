@@ -32,7 +32,7 @@ export function LiveblocksStatus() {
   if (!integrations.loading && !integrations.realtime) {
     return (
       <div
-        className="flex items-center gap-1.5 text-[10px] text-[var(--text-tertiary)] px-2 py-1 rounded-[var(--radius-xs)] bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]"
+        className="flex items-center gap-1.5 text-caption text-[var(--text-tertiary)] px-2 py-1 rounded-[var(--radius-xs)] bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]"
         title={t('components.live.soloTitle')}
       >
         <WifiOff className="w-3 h-3" />
@@ -59,7 +59,7 @@ function RoomStatusBadge() {
   if (status === 'connecting' || status === 'reconnecting' || status === 'initial') {
     return (
       <div
-        className="flex items-center gap-1.5 text-[10px] text-[var(--status-draft)] px-2 py-1 rounded-[var(--radius-xs)] bg-[var(--accent-amber-light)] border border-[var(--status-draft)]/20"
+        className="flex items-center gap-1.5 text-caption text-[var(--status-draft)] px-2 py-1 rounded-[var(--radius-xs)] bg-[var(--accent-amber-light)] border border-[var(--status-draft)]/20"
         title={status === 'reconnecting' ? t('components.live.reconnectingTitle') : t('components.live.connectingTitle')}
       >
         <Loader2 className="w-3 h-3 animate-spin" />
@@ -71,7 +71,7 @@ function RoomStatusBadge() {
   if (status === 'disconnected') {
     return (
       <div
-        className="flex items-center gap-1.5 text-[10px] text-[var(--status-reject)] px-2 py-1 rounded-[var(--radius-xs)] bg-[var(--accent-red-light)] border border-[var(--status-reject)]/20"
+        className="flex items-center gap-1.5 text-caption text-[var(--status-reject)] px-2 py-1 rounded-[var(--radius-xs)] bg-[var(--accent-red-light)] border border-[var(--status-reject)]/20"
         title={t('components.live.offlineTitle')}
       >
         <WifiOff className="w-3 h-3" />
@@ -95,7 +95,7 @@ export function LiveblocksConnectedPill() {
   const { t } = useTranslation()
   return (
     <div
-      className="flex items-center gap-1.5 text-[10px] text-[var(--status-ok)] px-2 py-1 rounded-[var(--radius-xs)] bg-[var(--accent-green-light)] border border-[var(--status-ok)]/20"
+      className="flex items-center gap-1.5 text-caption text-[var(--status-ok)] px-2 py-1 rounded-[var(--radius-xs)] bg-[var(--accent-green-light)] border border-[var(--status-ok)]/20"
       title={t('components.live.liveTitle')}
     >
       <Wifi className="w-3 h-3" />

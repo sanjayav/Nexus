@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import Papa from 'papaparse'
 import { Plug, FileUp, AlertTriangle, Check, ArrowLeft, Database, Cloud, Layers, X, Briefcase, Server, Zap } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
 import { SkeletonCard } from '../components/Skeleton'
@@ -14,6 +13,7 @@ import {
   type ConnectorAdapterInfo, type ConnectorConnectionRow, type ConnectorProvider,
 } from '../lib/api'
 import { showWarning, showError } from '../lib/toast'
+import { readCsvFile } from '../lib/csv'
 
 /** How long to wait before nagging the user that the import is slow.
  *  Five minutes lines up with the backend's processing budget for large
@@ -161,20 +161,17 @@ export default function Connectors() {
   const handleFile = (file: File) => {
     setParseError(null)
     setImportResult(null)
-    Papa.parse<Record<string, string>>(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: result => {
-        if (result.errors.length > 0) {
-          setParseError(result.errors[0].message)
+    // Detects the encoding first (UTF-8 ± BOM, or GB18030/GBK as saved by
+    // Chinese Excel) so Chinese headers and values aren't garbled.
+    readCsvFile(file)
+      .then(result => {
+        if (result.error) {
+          setParseError(result.error)
           return
         }
-        const rows = result.data.slice(0, 5000)
-        const headers = result.meta.fields ?? Object.keys(rows[0] ?? {})
-        setCsv({ fileName: file.name, headers, rows })
-      },
-      error: err => setParseError(err.message),
-    })
+        setCsv({ fileName: file.name, headers: result.headers, rows: result.rows.slice(0, 5000) })
+      })
+      .catch(err => setParseError(err instanceof Error ? err.message : String(err)))
   }
 
   const handleImport = async () => {

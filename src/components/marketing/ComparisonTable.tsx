@@ -178,7 +178,7 @@ export default function ComparisonTable({ competitorName, rows }: ComparisonTabl
                   }}
                 >
                   <p
-                    className="text-[10px] font-semibold uppercase tracking-[0.12em] mb-1.5"
+                    className="text-micro font-semibold uppercase tracking-[0.12em] mb-1.5"
                     style={{ color: 'var(--accent-600)' }}
                   >
                     Nexus
@@ -195,7 +195,7 @@ export default function ComparisonTable({ competitorName, rows }: ComparisonTabl
                   }}
                 >
                   <p
-                    className="text-[10px] font-semibold uppercase tracking-[0.12em] mb-1.5"
+                    className="text-micro font-semibold uppercase tracking-[0.12em] mb-1.5"
                     style={{ color: 'var(--text-tertiary)' }}
                   >
                     {competitorName}

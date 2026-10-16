@@ -13,7 +13,8 @@ const PostBody = z.discriminatedUnion('action', [
 
 // GET    /api/notifications?limit=20&offset=0&kind=approval
 //        → paginated notifications for the caller. RBAC: each user only sees
-//          their own notifications (recipient_email = token.email).
+//          their own notifications (recipient_email = token.email, or
+//          recipient_user_id = token.sub for users without email).
 // POST   /api/notifications
 //        { action: 'mark-read', id: <uuid|'all'> }
 //        { action: 'mark-all-read' }
@@ -32,7 +33,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!token) return res.status(401).json({ error: 'Unauthorized' })
 
   const sql = getDb()
-  const email = token.email.toLowerCase()
+  // Match by recipient email (legacy rows) OR recipient user id, so users
+  // without an email address (WeCom / DingTalk provisioned) still see their
+  // notifications. An empty email never matches.
+  const email = (token.email ?? '').toLowerCase().trim()
+  const userId = token.sub
 
   try {
     if (req.method === 'GET') {
@@ -43,20 +48,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const rows = kind
         ? await sql`
             SELECT id, kind, subject, body, route, related_assignment_id,
-                   read_at, email_sent_at, email_error, created_at
+                   read_at, email_sent_at, email_error, created_at,
+                   to_jsonb(notifications) ->> 'message_key' AS message_key,
+                   to_jsonb(notifications) -> 'params' AS params,
+                   to_jsonb(notifications) ->> 'locale' AS locale
             FROM notifications
             WHERE org_id = ${token.org}
-              AND lower(recipient_email) = ${email}
+              AND (recipient_user_id::text = ${userId} OR (${email} <> '' AND lower(recipient_email) = ${email}))
               AND kind = ${kind}
             ORDER BY created_at DESC
             LIMIT ${limit} OFFSET ${offset}
           `
         : await sql`
             SELECT id, kind, subject, body, route, related_assignment_id,
-                   read_at, email_sent_at, email_error, created_at
+                   read_at, email_sent_at, email_error, created_at,
+                   to_jsonb(notifications) ->> 'message_key' AS message_key,
+                   to_jsonb(notifications) -> 'params' AS params,
+                   to_jsonb(notifications) ->> 'locale' AS locale
             FROM notifications
             WHERE org_id = ${token.org}
-              AND lower(recipient_email) = ${email}
+              AND (recipient_user_id::text = ${userId} OR (${email} <> '' AND lower(recipient_email) = ${email}))
             ORDER BY created_at DESC
             LIMIT ${limit} OFFSET ${offset}
           `
@@ -64,14 +75,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const unreadRows = await sql`
         SELECT COUNT(*)::int AS n FROM notifications
         WHERE org_id = ${token.org}
-          AND lower(recipient_email) = ${email}
+          AND (recipient_user_id::text = ${userId} OR (${email} <> '' AND lower(recipient_email) = ${email}))
           AND read_at IS NULL
       ` as Array<{ n: number }>
 
       const totalRows = await sql`
         SELECT COUNT(*)::int AS n FROM notifications
         WHERE org_id = ${token.org}
-          AND lower(recipient_email) = ${email}
+          AND (recipient_user_id::text = ${userId} OR (${email} <> '' AND lower(recipient_email) = ${email}))
       ` as Array<{ n: number }>
 
       return res.status(200).json({
@@ -93,7 +104,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await sql`
           UPDATE notifications SET read_at = now()
           WHERE org_id = ${token.org}
-            AND lower(recipient_email) = ${email}
+            AND (recipient_user_id::text = ${userId} OR (${email} <> '' AND lower(recipient_email) = ${email}))
             AND read_at IS NULL
         `
         return res.status(200).json({ ok: true })
@@ -103,13 +114,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           await sql`
             UPDATE notifications SET read_at = now()
             WHERE org_id = ${token.org}
-              AND lower(recipient_email) = ${email}
+              AND (recipient_user_id::text = ${userId} OR (${email} <> '' AND lower(recipient_email) = ${email}))
               AND read_at IS NULL
           `
         } else {
           await sql`
             UPDATE notifications SET read_at = now()
-            WHERE id = ${body.id} AND lower(recipient_email) = ${email}
+            WHERE id = ${body.id}
+              AND (recipient_user_id::text = ${userId} OR (${email} <> '' AND lower(recipient_email) = ${email}))
           `
         }
         return res.status(200).json({ ok: true })

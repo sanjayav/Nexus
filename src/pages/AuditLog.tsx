@@ -180,34 +180,34 @@ export default function AuditLog() {
       />
 
       <Card>
-        <div className="p-4 border-b border-[var(--border-subtle)] flex items-center gap-2 text-[var(--text-sm)] font-medium text-[var(--text-primary)]">
+        <div className="p-4 border-b border-[var(--border-subtle)] flex items-center gap-2 text-[length:var(--text-sm)] font-medium text-[var(--text-primary)]">
           <Filter className="w-4 h-4" /> {t('auditLogPage.filters.title')}
         </div>
         <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <label className="block text-[var(--text-xs)] text-[var(--text-tertiary)]">
+          <label className="block text-[length:var(--text-xs)] text-[var(--text-tertiary)]">
             {t('auditLogPage.filters.from')}
             <input
               type="datetime-local"
               value={from}
               onChange={e => { setOffset(0); setFrom(e.target.value) }}
-              className="mt-1 w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-sm)] text-[var(--text-primary)]"
+              className="mt-1 w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[length:var(--text-sm)] text-[var(--text-primary)]"
             />
           </label>
-          <label className="block text-[var(--text-xs)] text-[var(--text-tertiary)]">
+          <label className="block text-[length:var(--text-xs)] text-[var(--text-tertiary)]">
             {t('auditLogPage.filters.to')}
             <input
               type="datetime-local"
               value={to}
               onChange={e => { setOffset(0); setTo(e.target.value) }}
-              className="mt-1 w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-sm)] text-[var(--text-primary)]"
+              className="mt-1 w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[length:var(--text-sm)] text-[var(--text-primary)]"
             />
           </label>
-          <label className="block text-[var(--text-xs)] text-[var(--text-tertiary)]">
+          <label className="block text-[length:var(--text-xs)] text-[var(--text-tertiary)]">
             {t('auditLogPage.filters.actor')}
             <select
               value={actorId}
               onChange={e => { setOffset(0); setActorId(e.target.value) }}
-              className="mt-1 w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-sm)] text-[var(--text-primary)]"
+              className="mt-1 w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[length:var(--text-sm)] text-[var(--text-primary)]"
             >
               <option value="">{t('auditLogPage.filters.anyone')}</option>
               {users.map(u => (
@@ -215,24 +215,24 @@ export default function AuditLog() {
               ))}
             </select>
           </label>
-          <div className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
+          <div className="text-[length:var(--text-xs)] text-[var(--text-tertiary)]">
             <div>{t('auditLogPage.filters.results')}</div>
-            <div className="mt-1 px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-sm)] text-[var(--text-primary)]">
+            <div className="mt-1 px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[length:var(--text-sm)] text-[var(--text-primary)]">
               {loading ? t('auditLogPage.filters.loading') : t('auditLogPage.filters.events', { count: total, formattedCount: total.toLocaleString(locale) })}
             </div>
           </div>
         </div>
         <div className="px-4 pb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] mb-1.5">{t('auditLogPage.filters.actionType')}</div>
+            <div className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] mb-1.5">{t('auditLogPage.filters.actionType')}</div>
             <div className="flex flex-wrap gap-1.5">
               {KNOWN_ACTIONS.map(a => (
                 <button
                   key={a}
                   type="button"
                   onClick={() => toggleAction(a)}
-                  className={`text-[var(--text-xs)] px-2 py-1 rounded-full border transition ${actions.includes(a)
-                    ? 'bg-[var(--color-brand)] text-white border-[var(--color-brand)]'
+                  className={`text-[length:var(--text-xs)] px-2 py-1 rounded-full border transition ${actions.includes(a)
+                    ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] border-[var(--color-brand)]'
                     : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:bg-[var(--bg-tertiary)]'}`}
                 >
                   {a}
@@ -241,15 +241,15 @@ export default function AuditLog() {
             </div>
           </div>
           <div>
-            <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] mb-1.5">{t('auditLogPage.filters.resourceType')}</div>
+            <div className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] mb-1.5">{t('auditLogPage.filters.resourceType')}</div>
             <div className="flex flex-wrap gap-1.5">
               {KNOWN_RESOURCE_TYPES.map(a => (
                 <button
                   key={a}
                   type="button"
                   onClick={() => toggleResourceType(a)}
-                  className={`text-[var(--text-xs)] px-2 py-1 rounded-full border transition ${resourceTypes.includes(a)
-                    ? 'bg-[var(--color-brand)] text-white border-[var(--color-brand)]'
+                  className={`text-[length:var(--text-xs)] px-2 py-1 rounded-full border transition ${resourceTypes.includes(a)
+                    ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] border-[var(--color-brand)]'
                     : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:bg-[var(--bg-tertiary)]'}`}
                 >
                   {a}
@@ -262,7 +262,7 @@ export default function AuditLog() {
           <button
             type="button"
             onClick={clearFilters}
-            className="text-[var(--text-xs)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+            className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
           >
             {t('auditLogPage.filters.clearAll')}
           </button>
@@ -270,7 +270,7 @@ export default function AuditLog() {
       </Card>
 
       {error && (
-        <div className="flex items-start gap-2 p-3 rounded-[var(--radius-md)] bg-red-50 text-red-700 text-[var(--text-sm)]">
+        <div className="flex items-start gap-2 p-3 rounded-[var(--radius-md)] bg-red-50 text-red-700 text-[length:var(--text-sm)]">
           <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <span>{error}</span>
         </div>
@@ -278,8 +278,8 @@ export default function AuditLog() {
 
       <Card>
         <div className="overflow-x-auto">
-          <table className="w-full text-[var(--text-sm)]">
-            <thead className="bg-[var(--bg-secondary)] text-[var(--text-xs)] uppercase tracking-wide text-[var(--text-tertiary)]">
+          <table className="w-full text-[length:var(--text-sm)]">
+            <thead className="bg-[var(--bg-secondary)] text-[length:var(--text-xs)] uppercase tracking-wide text-[var(--text-tertiary)]">
               <tr>
                 <th className="px-4 py-3 text-left">{t('auditLogPage.table.timestamp')}</th>
                 <th className="px-4 py-3 text-left">{t('auditLogPage.table.actor')}</th>
@@ -313,15 +313,15 @@ export default function AuditLog() {
                     className="border-t border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">
                     <td className="px-4 py-3 text-[var(--text-secondary)] whitespace-nowrap">{formatTimestamp(r.created_at, locale)}</td>
                     <td className="px-4 py-3 text-[var(--text-primary)]">{r.user_name ?? r.user_email ?? <span className="text-[var(--text-tertiary)]">{t('auditLogPage.table.system')}</span>}</td>
-                    <td className="px-4 py-3"><code className="text-[var(--text-xs)] px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-primary)]">{r.action}</code></td>
+                    <td className="px-4 py-3"><code className="text-[length:var(--text-xs)] px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-primary)]">{r.action}</code></td>
                     <td className="px-4 py-3 text-[var(--text-secondary)]">{r.resource_type}</td>
                     <td className="px-4 py-3 text-[var(--text-secondary)] max-w-[260px] truncate" title={targetFor(r)}>{targetFor(r)}</td>
-                    <td className="px-4 py-3 text-[var(--text-tertiary)] whitespace-nowrap"><code className="text-[var(--text-xs)]">{r.ip_address ?? '—'}</code></td>
+                    <td className="px-4 py-3 text-[var(--text-tertiary)] whitespace-nowrap"><code className="text-[length:var(--text-xs)]">{r.ip_address ?? '—'}</code></td>
                     <td className="px-4 py-3 text-right">
                       <button
                         type="button"
                         onClick={() => toggleExpanded(r.id)}
-                        className="inline-flex items-center gap-1 text-[var(--text-xs)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+                        className="inline-flex items-center gap-1 text-[length:var(--text-xs)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                       >
                         <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expanded.has(r.id) ? 'rotate-180' : ''}`} />
                         {expanded.has(r.id) ? t('auditLogPage.table.hide') : t('auditLogPage.table.show')}
@@ -331,7 +331,7 @@ export default function AuditLog() {
                   {expanded.has(r.id) && (
                     <tr className="border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
                       <td colSpan={7} className="px-4 py-3">
-                        <pre className="text-[var(--text-xs)] text-[var(--text-secondary)] overflow-x-auto whitespace-pre-wrap">{JSON.stringify(r.details ?? {}, null, 2)}</pre>
+                        <pre className="text-[length:var(--text-xs)] text-[var(--text-secondary)] overflow-x-auto whitespace-pre-wrap">{JSON.stringify(r.details ?? {}, null, 2)}</pre>
                       </td>
                     </tr>
                   )}
@@ -340,7 +340,7 @@ export default function AuditLog() {
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border-subtle)] text-[var(--text-xs)] text-[var(--text-tertiary)]">
+        <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border-subtle)] text-[length:var(--text-xs)] text-[var(--text-tertiary)]">
           <span>{t('auditLogPage.pagination.pageOf', { page, total: totalPages })}</span>
           <div className="flex items-center gap-2">
             <button

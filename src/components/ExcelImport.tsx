@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next'
 import { Card, Badge } from '../design-system'
 import { COLUMN_ALIASES, PTTEP_DEMO_DATA } from '../data/pttepDemoData'
 import type { ExcelRow } from '../data/pttepDemoData'
+import { isCsvFile, readCsvFile } from '../lib/csv'
 
 /* ═══════════════════════════════════════════
    Types
@@ -54,6 +55,15 @@ function autoMapColumns(headers: string[]): ColumnMapping {
   return mapping
 }
 
+/** CSV cells arrive as text; turn plain numbers (incl. "1,234.5") into numbers
+ *  so they behave like the numeric cells ExcelJS returns for .xlsx. */
+function csvValue(raw: string | undefined): string | number {
+  const v = (raw ?? '').trim()
+  if (/^-?\d{1,3}(,\d{3})+(\.\d+)?$/.test(v)) return Number(v.replace(/,/g, ''))
+  if (/^-?\d+(\.\d+)?$/.test(v)) return Number(v)
+  return v
+}
+
 /* ═══════════════════════════════════════════
    Component
    ═══════════════════════════════════════════ */
@@ -80,6 +90,34 @@ export default function ExcelImport({ onImport, onClose }: Props) {
     setError('')
     setParsing(true)
     setFileName(file.name)
+
+    // CSV goes through Papa with encoding detection (UTF-8 ± BOM, or
+    // GB18030/GBK as saved by Chinese Excel). ExcelJS cannot read CSV bytes.
+    if (isCsvFile(file)) {
+      readCsvFile(file)
+        .then(({ headers: hdrs, rows, error: parseErr }) => {
+          if (parseErr && rows.length === 0) {
+            setError(t('components.excel.parseError'))
+            return
+          }
+          if (hdrs.length === 0 || rows.length === 0) {
+            setError(t('components.excel.empty'))
+            return
+          }
+          const json = rows.map(r => {
+            const obj: Record<string, string | number> = {}
+            for (const h of hdrs) obj[h] = csvValue(r[h])
+            return obj
+          })
+          setHeaders(hdrs)
+          setRawRows(json)
+          setMapping(autoMapColumns(hdrs))
+          setStep('mapping')
+        })
+        .catch(() => setError(t('components.excel.parseError')))
+        .finally(() => setParsing(false))
+      return
+    }
 
     const reader = new FileReader()
     reader.onload = async (e) => {

@@ -60,7 +60,7 @@ export default function PipelineJourney({
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex items-center gap-2">
             <span className="w-[5px] h-[5px] rounded-full" style={{ background: BRAND }} />
-            <span className="text-[10.5px] uppercase tracking-[0.18em] font-semibold text-[var(--text-tertiary)]">{t('components.journey.pipelineShort')}</span>
+            <span className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">{t('components.journey.pipelineShort')}</span>
           </div>
           <span className="h-3 w-px bg-[var(--border-default)]" />
           <h3 className="text-[13px] font-semibold text-[var(--text-primary)] tracking-[-0.005em] truncate">
@@ -68,7 +68,7 @@ export default function PipelineJourney({
           </h3>
         </div>
         {myStageIdx >= 0 && (
-          <div className="inline-flex items-center gap-2 text-[11.5px] text-[var(--text-tertiary)]">
+          <div className="inline-flex items-center gap-2 text-caption text-[var(--text-tertiary)]">
             <span>{t('components.journey.youWorkAt')}</span>
             <span className="font-semibold text-[var(--text-primary)]">
               {String(myStageIdx + 1).padStart(2, '0')} · {stages[myStageIdx].stage.label}
@@ -135,17 +135,17 @@ export default function PipelineJourney({
                 {/* index + label */}
                 <div className="mt-3 w-full max-w-[140px] px-0.5" style={{ textAlign: isLeft ? 'left' : isRight ? 'right' : 'center' }}>
                   <div className="flex items-center gap-1.5" style={{ justifyContent: isLeft ? 'flex-start' : isRight ? 'flex-end' : 'center' }}>
-                    <span className="font-mono text-[9.5px] text-[var(--text-quaternary)] tabular-nums tracking-[0.05em]">
+                    <span className="font-mono text-caption text-[var(--text-quaternary)] tabular-nums tracking-[0.05em]">
                       {String(i + 1).padStart(2, '0')}
                     </span>
                     <span className={`text-[12px] font-semibold tracking-[-0.005em] ${isActive ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
                       {s.stage.label}
                     </span>
                   </div>
-                  <div className="text-[10.5px] text-[var(--text-tertiary)] mt-0.5 truncate">
+                  <div className="text-caption text-[var(--text-tertiary)] mt-0.5 truncate">
                     {shortOwnerLabel(s.stage.owners)}
                   </div>
-                  <div className="text-[10.5px] text-[var(--text-secondary)] mt-1 leading-snug line-clamp-2 min-h-[26px]">
+                  <div className="text-caption text-[var(--text-secondary)] mt-1 leading-snug line-clamp-2 min-h-[26px]">
                     {s.headline}
                   </div>
 
@@ -165,13 +165,13 @@ export default function PipelineJourney({
       </div>
 
       {/* role note */}
-      <div className="mt-5 pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between gap-4 text-[11px] text-[var(--text-tertiary)]">
+      <div className="mt-5 pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between gap-4 text-caption text-[var(--text-tertiary)]">
         <div className="flex items-center gap-4">
           <LegendDot state="done"    label={t('components.journey.legend.complete')} />
           <LegendDot state="active"  label={t('components.journey.legend.active')} />
           <LegendDot state="waiting" label={t('components.journey.legend.upcoming')} />
         </div>
-        <div className="text-[11px] text-[var(--text-tertiary)] truncate">
+        <div className="text-caption text-[var(--text-tertiary)] truncate">
           {t(`shell.roles.${myRole}.name`, { defaultValue: ROLE_CATALOG[myRole].name })} · {t(`shell.roles.${myRole}.description`, { defaultValue: ROLE_CATALOG[myRole].description })}
         </div>
       </div>
@@ -246,7 +246,7 @@ export function NextAction({
               <Icon className="w-[18px] h-[18px]" strokeWidth={1.8} />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 text-[10.5px] uppercase tracking-[0.16em] font-semibold text-[var(--text-tertiary)]">
+              <div className="flex items-center gap-2 text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">
                 <span>{t('components.journey.doNext')}</span>
                 {stage && <span className="text-[var(--text-quaternary)]">·</span>}
                 {stage && <span>{stage.stage.label}</span>}

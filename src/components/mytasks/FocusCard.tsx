@@ -32,7 +32,7 @@ export default function FocusCard({ focus, totalApproved, onSkip, onSeeApproved 
           </span>
           <div>
             <div className="h-section text-[var(--text-primary)]">{t('tasks.focus.caughtUp')}</div>
-            <p className="body text-[var(--text-secondary)] text-[var(--text-sm)] mt-0.5">
+            <p className="body text-[var(--text-secondary)] text-[length:var(--text-sm)] mt-0.5">
               {t('tasks.focus.noOpen')} {totalApproved > 0 && (
                 <Trans
                   i18nKey="tasks.focus.approvedThisPeriod"
@@ -44,7 +44,7 @@ export default function FocusCard({ focus, totalApproved, onSkip, onSeeApproved 
           </div>
         </div>
         {totalApproved > 0 && (
-          <button onClick={onSeeApproved} className="btn-secondary inline-flex items-center gap-1.5 text-[var(--text-sm)]">
+          <button onClick={onSeeApproved} className="btn-secondary inline-flex items-center gap-1.5 text-[length:var(--text-sm)]">
             {t('tasks.focus.seeApproved')} <ArrowRight className="w-3.5 h-3.5" />
           </button>
         )}
@@ -75,20 +75,20 @@ export default function FocusCard({ focus, totalApproved, onSkip, onSeeApproved 
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
+            <span className="inline-flex items-center gap-1 text-micro uppercase tracking-[0.06em] font-semibold text-[var(--color-brand)]">
               <Sparkles className="w-3 h-3" /> {t('tasks.focus.upNext')}
             </span>
             {fw && (
               <span
-                className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                className="text-micro font-bold uppercase tracking-[0.06em] px-1.5 py-0.5 rounded"
                 style={{ background: `${fw.color}22`, color: fw.color }}
               >
                 {fw.code}
               </span>
             )}
-            <span className="text-[10px] font-bold text-[var(--color-brand)] tabular-nums">{focus.gri_code}</span>
+            <span className="text-caption font-bold text-[var(--color-brand)] tabular-nums">{focus.gri_code}</span>
             <span
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold tabular-nums ${deadlineTone}`}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-caption font-semibold tabular-nums ${deadlineTone}`}
             >
               <Calendar className="w-3 h-3" /> {deadlineLabel(focus.due_date, focus.status, t, i18n.language)}
             </span>
@@ -98,7 +98,7 @@ export default function FocusCard({ focus, totalApproved, onSkip, onSeeApproved 
             {label}
           </h2>
           {preview && preview !== label && (
-            <p className="body text-[var(--text-secondary)] text-[var(--text-sm)] mt-1.5 line-clamp-2 max-w-2xl">
+            <p className="body text-[var(--text-secondary)] text-[length:var(--text-sm)] mt-1.5 line-clamp-2 max-w-2xl">
               {preview}
             </p>
           )}
@@ -107,14 +107,14 @@ export default function FocusCard({ focus, totalApproved, onSkip, onSeeApproved 
         <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={onSkip}
-            className="btn-secondary inline-flex items-center gap-1.5 text-[var(--text-sm)]"
+            className="btn-secondary inline-flex items-center gap-1.5 text-[length:var(--text-sm)]"
             aria-label={t('tasks.focus.skipAria')}
           >
             <SkipForward className="w-3.5 h-3.5" /> {t('tasks.focus.skip')}
           </button>
           <button
             onClick={() => navigate(`/data/entry/${focus.questionId}`)}
-            className="btn-primary inline-flex items-center gap-1.5 text-[var(--text-sm)]"
+            className="btn-primary inline-flex items-center gap-1.5 text-[length:var(--text-sm)]"
           >
             {t('tasks.focus.open')} <ArrowRight className="w-3.5 h-3.5" />
           </button>

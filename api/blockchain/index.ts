@@ -4,6 +4,7 @@ import { getDb } from '../_db.js'
 import { verifyToken, cors, requirePermission } from '../_auth.js'
 import { emitAuditEvent, getPlatformRole } from '../_workflow.js'
 import { verifyChain } from '../_hashChain.js'
+import { loadOwnedDataValue } from '../_tenancy.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   cors(res, req)
@@ -24,11 +25,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (view === 'trail') {
       if (!data_value_id) return res.status(400).json({ error: 'data_value_id required' })
       try {
+        // Tenant-scoped (api/_tenancy.ts): another org's value yields [].
         const events = await sql`
           SELECT ae.*, u.name AS actor_name, u.email AS actor_email
           FROM audit_event ae
+          JOIN data_value dv ON dv.id = ae.data_value_id
+          LEFT JOIN users eu ON eu.id = dv.entered_by
+          LEFT JOIN reporting_year ry ON ry.id = dv.reporting_year_id
           LEFT JOIN users u ON u.id = ae.actor_user_id
           WHERE ae.data_value_id = ${data_value_id}
+            AND COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${token.org}
           ORDER BY ae.timestamp ASC
         `
         return res.status(200).json(events)
@@ -41,8 +47,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (view === 'hash') {
       if (!data_value_id) return res.status(400).json({ error: 'data_value_id required' })
       try {
+        // Tenant-scoped: a foreign id is a 404, same as a missing one.
         const rows = await sql`
-          SELECT value_hash, status FROM data_value WHERE id = ${data_value_id}
+          SELECT dv.value_hash, dv.status
+          FROM data_value dv
+          LEFT JOIN users eu ON eu.id = dv.entered_by
+          LEFT JOIN reporting_year ry ON ry.id = dv.reporting_year_id
+          WHERE dv.id = ${data_value_id}
+            AND COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${token.org}
         `
         if (rows.length === 0) return res.status(404).json({ error: 'Not found' })
         return res.status(200).json(rows[0])
@@ -188,6 +200,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { data_value_id, event_type, comment } = req.body ?? {}
       if (!data_value_id || !event_type) return res.status(400).json({ error: 'data_value_id and event_type required' })
       try {
+        // Only the owning org may extend a value's audit chain.
+        const owned = await loadOwnedDataValue(sql, token.org, data_value_id)
+        if (!owned) return res.status(404).json({ error: 'Not found' })
         const platformRole = await getPlatformRole(sql, token.sub)
         const result = await emitAuditEvent(sql, {
           dataValueId: data_value_id,

@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/org.ts": {
+      "includeFiles": "api/_fonts/**"
+    }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }

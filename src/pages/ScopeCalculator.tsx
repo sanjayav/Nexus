@@ -398,7 +398,7 @@ export default function ScopeCalculator() {
               <div className="mt-2 h-1 bg-dark-700 rounded-full overflow-hidden">
                 <div className="h-full rounded-full transition-all duration-500" style={{ width: `${(s.total / annualTotal) * 100}%`, backgroundColor: s.color }} />
               </div>
-              <p className="text-[10px] text-dark-400 mt-1">{t('scopeCalc.pctOfTotal', { pct: ((s.total / annualTotal) * 100).toFixed(1) })}</p>
+              <p className="text-caption text-dark-400 mt-1">{t('scopeCalc.pctOfTotal', { pct: ((s.total / annualTotal) * 100).toFixed(1) })}</p>
             </button>
           )
         })}
@@ -414,16 +414,16 @@ export default function ScopeCalculator() {
           </div>
           <div className="mt-3 grid grid-cols-3 gap-1">
             <div className="text-center">
-              <p className="text-[10px] text-teal-400 font-bold">{verifiedCount}</p>
-              <p className="text-[9px] text-dark-400">{t('scopeCalc.status.verified')}</p>
+              <p className="text-caption text-teal-400 font-bold">{verifiedCount}</p>
+              <p className="text-caption text-dark-400">{t('scopeCalc.status.verified')}</p>
             </div>
             <div className="text-center">
-              <p className="text-[10px] text-blue-400 font-bold">{submittedCount}</p>
-              <p className="text-[9px] text-dark-400">{t('scopeCalc.status.submitted')}</p>
+              <p className="text-caption text-blue-400 font-bold">{submittedCount}</p>
+              <p className="text-caption text-dark-400">{t('scopeCalc.status.submitted')}</p>
             </div>
             <div className="text-center">
-              <p className="text-[10px] text-amber-400 font-bold">{draftCount}</p>
-              <p className="text-[9px] text-dark-400">{t('scopeCalc.status.draft')}</p>
+              <p className="text-caption text-amber-400 font-bold">{draftCount}</p>
+              <p className="text-caption text-dark-400">{t('scopeCalc.status.draft')}</p>
             </div>
           </div>
         </div>
@@ -689,7 +689,7 @@ export default function ScopeCalculator() {
       {/* Emission Intensity Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-dark-800 rounded-2xl border border-dark-600 shadow-card p-5">
-          <p className="text-[10px] text-dark-400 uppercase tracking-wider font-semibold">{t('scopeCalc.kpi.intensity')}</p>
+          <p className="text-micro text-dark-400 uppercase tracking-[0.06em] font-semibold">{t('scopeCalc.kpi.intensity')}</p>
           <p className="text-2xl font-heading font-bold text-white mt-2">
             {(annualTotal / adjustedMonthly.reduce((s, m) => s + m.productionVolume, 0)).toFixed(2)}
           </p>
@@ -700,7 +700,7 @@ export default function ScopeCalculator() {
           </div>
         </div>
         <div className="bg-dark-800 rounded-2xl border border-dark-600 shadow-card p-5">
-          <p className="text-[10px] text-dark-400 uppercase tracking-wider font-semibold">{t('scopeCalc.kpi.production')}</p>
+          <p className="text-micro text-dark-400 uppercase tracking-[0.06em] font-semibold">{t('scopeCalc.kpi.production')}</p>
           <p className="text-2xl font-heading font-bold text-white mt-2">
             {formatEmissions(adjustedMonthly.reduce((s, m) => s + m.productionVolume, 0))}
           </p>
@@ -711,7 +711,7 @@ export default function ScopeCalculator() {
           </div>
         </div>
         <div className="bg-dark-800 rounded-2xl border border-dark-600 shadow-card p-5">
-          <p className="text-[10px] text-dark-400 uppercase tracking-wider font-semibold">{t('scopeCalc.kpi.completeness')}</p>
+          <p className="text-micro text-dark-400 uppercase tracking-[0.06em] font-semibold">{t('scopeCalc.kpi.completeness')}</p>
           <p className="text-2xl font-heading font-bold text-white mt-2">
             {Math.round(((verifiedCount + submittedCount) / 12) * 100)}%
           </p>
@@ -1001,7 +1001,7 @@ function ExpandedMonthDetail({
                 <p className="text-xs font-semibold text-dark-300">{t(`scopeCalc.sources.${src.id}.label`, { defaultValue: src.label })}</p>
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: scopeColor, opacity: 0.6 }} />
               </div>
-              <p className="text-[10px] text-dark-400 mb-3 leading-relaxed">{t(`scopeCalc.sources.${src.id}.description`, { defaultValue: src.description })}</p>
+              <p className="text-caption text-dark-400 mb-3 leading-relaxed">{t(`scopeCalc.sources.${src.id}.description`, { defaultValue: src.description })}</p>
 
               {isEditing ? (
                 <div className="flex gap-2">

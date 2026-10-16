@@ -109,7 +109,7 @@ export default function AssuranceReview() {
           { key: 'ready-to-publish' as const, label: t('assurance.status.readyToPublish'), color: 'accent', borderColor: 'border-accent-500/20', textColor: 'text-accent-400' },
         ]).map(stage => (
           <div key={stage.key} className={`bg-dark-800 rounded-2xl border ${stage.borderColor} p-4`}>
-            <p className={`text-[10px] ${stage.key === 'not-started' ? 'text-dark-400' : stage.textColor} uppercase tracking-wider font-semibold`}>
+            <p className={`text-micro ${stage.key === 'not-started' ? 'text-dark-400' : stage.textColor} uppercase tracking-[0.06em] font-semibold`}>
               {stage.label}
             </p>
             <p className={`text-3xl font-heading font-bold ${stage.textColor} mt-1`}>
@@ -256,7 +256,7 @@ function ItemRow({
         <td className="py-3 px-4 text-dark-400 text-xs font-mono">{item.period}</td>
         <td className="py-3 px-4 text-dark-300 text-xs">{item.reviewer}</td>
         <td className="py-3 px-4 text-center">
-          <span className={`inline-flex text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${statusCfg.bg} ${statusCfg.text} border ${statusCfg.border}`}>
+          <span className={`inline-flex text-micro font-bold uppercase px-2 py-0.5 rounded-full ${statusCfg.bg} ${statusCfg.text} border ${statusCfg.border}`}>
             {t(statusCfg.label)}
           </span>
         </td>
@@ -319,10 +319,10 @@ function ItemRow({
                             <p className="text-xs text-dark-300 leading-relaxed">{finding.description}</p>
                             {finding.resolution && (
                               <div className="mt-2 bg-teal-500/10 border border-teal-500/20 rounded-lg p-2.5">
-                                <p className="text-[10px] font-semibold text-teal-400 mb-0.5">{t('assurance.resolution')}</p>
+                                <p className="text-caption font-semibold text-teal-400 mb-0.5">{t('assurance.resolution')}</p>
                                 <p className="text-xs text-teal-300/80">{finding.resolution}</p>
                                 {finding.resolvedDate && (
-                                  <p className="text-[10px] text-dark-400 mt-1">{t('assurance.resolved', { date: finding.resolvedDate })}</p>
+                                  <p className="text-caption text-dark-400 mt-1">{t('assurance.resolved', { date: finding.resolvedDate })}</p>
                                 )}
                               </div>
                             )}

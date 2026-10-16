@@ -66,7 +66,7 @@ export default function AnomalyFeed({
           <div>
             <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">{title ?? t('components.anomalyFeed.title')}</h3>
             {data && (
-              <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5 flex items-center gap-2">
+              <div className="text-caption text-[var(--text-tertiary)] mt-0.5 flex items-center gap-2">
                 {data.summary.critical > 0 && <span className="text-[var(--accent-red)] font-semibold">{t('components.anomalyFeed.critical', { count: data.summary.critical })}</span>}
                 {data.summary.critical > 0 && data.summary.warn > 0 && <span>·</span>}
                 {data.summary.warn > 0 && <span className="text-[var(--accent-amber)] font-semibold">{t('components.anomalyFeed.warn', { count: data.summary.warn })}</span>}
@@ -155,7 +155,7 @@ function SeverityTab({ active, count, children, onClick, tone }: { active: boole
   return (
     <button
       onClick={onClick}
-      className="h-7 px-2.5 rounded-[6px] text-[11.5px] font-semibold inline-flex items-center gap-1.5 transition-all"
+      className="h-7 px-2.5 rounded-[6px] text-caption font-semibold inline-flex items-center gap-1.5 transition-all"
       style={{
         background: active ? 'var(--bg-secondary)' : 'transparent',
         color: active ? baseColor : 'var(--text-tertiary)',
@@ -183,30 +183,30 @@ function AnomalyRow({ a, i, onOpen, onSuppress, onRestore }: { a: Anomaly; i: nu
       </span>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] uppercase tracking-[0.1em] font-bold" style={{ color: color.fg }}>
+          <span className="text-micro uppercase tracking-[0.06em] font-bold" style={{ color: color.fg }}>
             {labelForType(a.anomaly_type)}
           </span>
-          <span className="font-mono text-[10.5px] font-semibold text-[var(--color-brand)]">{a.gri_code}</span>
-          <span className="text-[11.5px] text-[var(--text-tertiary)] truncate">{a.entity_name}</span>
+          <span className="font-mono text-caption font-semibold text-[var(--color-brand)]">{a.gri_code}</span>
+          <span className="text-caption text-[var(--text-tertiary)] truncate">{a.entity_name}</span>
         </div>
         <div className="text-[13px] font-semibold text-[var(--text-primary)] mt-1 tracking-[-0.005em] truncate">{a.headline}</div>
-        <div className="text-[11.5px] text-[var(--text-secondary)] mt-0.5 leading-relaxed line-clamp-2">{a.detail}</div>
+        <div className="text-caption text-[var(--text-secondary)] mt-0.5 leading-relaxed line-clamp-2">{a.detail}</div>
         {a.suppressed && (
-          <div className="mt-2 text-[10.5px] text-[var(--text-tertiary)] italic">
+          <div className="mt-2 text-caption text-[var(--text-tertiary)] italic">
             {t('components.anomalyFeed.suppressedBy', { by: a.suppressed.by, reason: a.suppressed.reason })}
           </div>
         )}
       </div>
       <div className="flex flex-col items-end gap-1 flex-shrink-0">
-        <button onClick={onOpen} className="text-[11px] text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] inline-flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" title={t('components.anomalyFeed.openDisclosure')}>
+        <button onClick={onOpen} className="text-caption text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] inline-flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" title={t('components.anomalyFeed.openDisclosure')}>
           {t('components.anomalyFeed.open')} <Search className="w-3 h-3" />
         </button>
         {a.suppressed ? (
-          <button onClick={onRestore} className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] inline-flex items-center gap-0.5" title={t('components.anomalyFeed.restoreTitle')}>
+          <button onClick={onRestore} className="text-caption text-[var(--text-tertiary)] hover:text-[var(--text-primary)] inline-flex items-center gap-0.5" title={t('components.anomalyFeed.restoreTitle')}>
             <RotateCw className="w-3 h-3" /> {t('components.anomalyFeed.restore')}
           </button>
         ) : (
-          <button onClick={onSuppress} className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] inline-flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" title={t('components.anomalyFeed.suppressTitle')}>
+          <button onClick={onSuppress} className="text-caption text-[var(--text-tertiary)] hover:text-[var(--text-primary)] inline-flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" title={t('components.anomalyFeed.suppressTitle')}>
             <X className="w-3 h-3" /> {t('components.anomalyFeed.suppress')}
           </button>
         )}
@@ -252,7 +252,7 @@ function SuppressModal({ anomaly, onClose, onDone }: { anomaly: Anomaly; onClose
         </p>
 
         <label className="block mt-4">
-          <span className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{t('components.anomalyFeed.reason')}</span>
+          <span className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{t('components.anomalyFeed.reason')}</span>
           <textarea
             value={reason}
             onChange={e => setReason(e.target.value)}
@@ -260,10 +260,10 @@ function SuppressModal({ anomaly, onClose, onDone }: { anomaly: Anomaly; onClose
             rows={3}
             className="w-full px-3 py-2.5 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13px] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/15 outline-none resize-none transition-all"
           />
-          <div className="text-[10.5px] text-[var(--text-tertiary)] mt-1">{t('components.anomalyFeed.charCount', { n: reason.trim().length })}</div>
+          <div className="text-caption text-[var(--text-tertiary)] mt-1">{t('components.anomalyFeed.charCount', { n: reason.trim().length })}</div>
         </label>
 
-        {error && <div className="mt-3 p-2.5 rounded-[8px] bg-[var(--accent-red-light)] text-[var(--accent-red)] text-[11.5px]">{error}</div>}
+        {error && <div className="mt-3 p-2.5 rounded-[8px] bg-[var(--accent-red-light)] text-[var(--accent-red)] text-caption">{error}</div>}
 
         <div className="mt-5 flex items-center justify-end gap-2">
           <button onClick={onClose} className="h-9 px-4 rounded-[8px] text-[13px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">{t('common.cancel')}</button>

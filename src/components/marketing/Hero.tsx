@@ -117,7 +117,7 @@ export default function Hero() {
                   <NexusBrand size="xl" layout="stacked" animated showAttribution showTagline />
                 </div>
                 <div
-                  className="mt-8 grid grid-cols-3 gap-3 text-[11px] font-medium"
+                  className="mt-8 grid grid-cols-3 gap-3 text-caption font-medium"
                   style={{ color: 'var(--text-tertiary)' }}
                 >
                   {['CSRD', 'ISSB', 'GRI', 'TCFD', 'CDP', 'SEC'].map((f) => (

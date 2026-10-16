@@ -19,7 +19,7 @@ const FALLBACK: OrgBrand = {
   legal_name: null,
   thai_name: null,
   country: null,
-  primary_color: '#1B6B7B',
+  primary_color: '#047857',
   secondary_color: '#134E5A',
   logo_mark: null,
   industry: null,

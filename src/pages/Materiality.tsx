@@ -165,7 +165,7 @@ export default function Materiality() {
             key={k}
             onClick={() => setTab(k)}
             className={[
-              'px-4 py-2 text-[var(--text-sm)] font-semibold border-b-2 -mb-px',
+              'px-4 py-2 text-[length:var(--text-sm)] font-semibold border-b-2 -mb-px',
               tab === k
                 ? 'border-[var(--color-brand)] text-[var(--text-primary)]'
                 : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-primary)]',
@@ -180,7 +180,7 @@ export default function Materiality() {
       </nav>
 
       {toast && (
-        <div className="mb-3 p-3 rounded-[var(--radius-md)] bg-[var(--bg-secondary)] text-[var(--text-sm)] text-[var(--text-secondary)]">
+        <div className="mb-3 p-3 rounded-[var(--radius-md)] bg-[var(--bg-secondary)] text-[length:var(--text-sm)] text-[var(--text-secondary)]">
           {toast}
         </div>
       )}
@@ -251,14 +251,14 @@ function TopicsTab({ topics, reload, framework }: { topics: Topic[]; reload: () 
     <div className="space-y-4">
       {presets.length > 0 && (
         <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-4">
-          <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mb-2">{tr('materiality.universe')}</h3>
+          <h3 className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)] mb-2">{tr('materiality.universe')}</h3>
           <div className="flex flex-wrap gap-2">
             {presets.map(p => (
               <button
                 key={p.name}
                 disabled={busy}
                 onClick={() => create({ name: p.name, category: p.category })}
-                className="text-[11px] px-2.5 py-1 rounded border border-[var(--border-default)] hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]"
+                className="text-caption px-2.5 py-1 rounded border border-[var(--border-default)] hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]"
               >
                 + {topicLabel(p.name, tr)}
               </button>
@@ -269,27 +269,27 @@ function TopicsTab({ topics, reload, framework }: { topics: Topic[]; reload: () 
 
       <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] overflow-hidden">
         <header className="px-5 py-3 border-b border-[var(--border-subtle)] flex items-center justify-between">
-          <h3 className="font-display text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{tr('materiality.topicsCount', { count: topics.length })}</h3>
-          <button onClick={() => setAdding(s => !s)} className="text-[11px] px-2 py-1 rounded bg-[var(--color-brand)] text-white inline-flex items-center gap-1">
+          <h3 className="font-display text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)]">{tr('materiality.topicsCount', { count: topics.length })}</h3>
+          <button onClick={() => setAdding(s => !s)} className="text-caption px-2 py-1 rounded bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] inline-flex items-center gap-1">
             <Plus className="w-3 h-3" /> {tr('materiality.customTopic')}
           </button>
         </header>
         {adding && (
           <div className="px-5 py-3 border-b border-[var(--border-subtle)] flex gap-2">
             <input id="material-topic-name" aria-label={tr('materiality.topicName')} value={name} onChange={e => setName(e.target.value)} placeholder={tr('materiality.topicName')}
-              className="flex-1 px-3 py-1.5 text-[var(--text-sm)] rounded border border-[var(--border-default)] bg-[var(--bg-primary)]" />
+              className="flex-1 px-3 py-1.5 text-[length:var(--text-sm)] rounded border border-[var(--border-default)] bg-[var(--bg-primary)]" />
             <select id="material-topic-category" aria-label={tr('materiality.topicCategory')} value={category} onChange={e => setCategory(e.target.value)}
-              className="px-3 py-1.5 text-[var(--text-sm)] rounded border border-[var(--border-default)] bg-[var(--bg-primary)]">
+              className="px-3 py-1.5 text-[length:var(--text-sm)] rounded border border-[var(--border-default)] bg-[var(--bg-primary)]">
               {['Environmental','Social','Governance','Economic'].map(c => <option key={c} value={c}>{tr(`materiality.category.${c}`)}</option>)}
             </select>
-            <button onClick={() => create()} disabled={busy || !name} className="px-3 py-1.5 rounded bg-[var(--color-brand)] text-white text-[var(--text-sm)] disabled:opacity-50">
+            <button onClick={() => create()} disabled={busy || !name} className="px-3 py-1.5 rounded bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] disabled:opacity-50">
               {tr('common.save')}
             </button>
           </div>
         )}
-        <table className="w-full text-[var(--text-sm)]">
+        <table className="w-full text-[length:var(--text-sm)]">
           <thead>
-            <tr className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] bg-[var(--bg-secondary)]">
+            <tr className="text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] bg-[var(--bg-secondary)]">
               <th className="text-left px-5 py-2 font-semibold">{tr('materiality.col.topic')}</th>
               <th className="text-left px-3 py-2 font-semibold">{tr('materiality.col.category')}</th>
               <th className="text-center px-3 py-2 font-semibold">{tr('materiality.col.impact')}</th>
@@ -304,7 +304,7 @@ function TopicsTab({ topics, reload, framework }: { topics: Topic[]; reload: () 
             {topics.map(t => (
               <tr key={t.id} className="hover:bg-[var(--bg-secondary)]">
                 <td className="px-5 py-2.5 text-[var(--text-primary)] font-medium">{topicLabel(t.topic_name, tr)}</td>
-                <td className="px-3 py-2.5 text-[var(--text-xs)] text-[var(--text-secondary)]">{t.topic_category ? tr(`materiality.category.${t.topic_category}`, { defaultValue: t.topic_category }) : '—'}</td>
+                <td className="px-3 py-2.5 text-[length:var(--text-xs)] text-[var(--text-secondary)]">{t.topic_category ? tr(`materiality.category.${t.topic_category}`, { defaultValue: t.topic_category }) : '—'}</td>
                 <td className="px-3 py-2.5 text-center">
                   <ScoreInput value={t.impact_score} onChange={v => updateScore(t, { impact_score: v })} label={tr('materiality.aria.impact', { topic: topicLabel(t.topic_name, tr) })} />
                 </td>
@@ -319,7 +319,7 @@ function TopicsTab({ topics, reload, framework }: { topics: Topic[]; reload: () 
                 </td>
                 <td className="px-3 py-2.5 text-center">
                   <select aria-label={tr('materiality.aria.horizon', { topic: topicLabel(t.topic_name, tr) })} value={t.time_horizon ?? ''} onChange={e => updateScore(t, { time_horizon: (e.target.value || null) as Topic['time_horizon'] })}
-                    className="text-[11px] px-1.5 py-0.5 rounded border border-[var(--border-default)] bg-[var(--bg-primary)]">
+                    className="text-caption px-1.5 py-0.5 rounded border border-[var(--border-default)] bg-[var(--bg-primary)]">
                     <option value="">—</option>
                     <option value="short">{tr('materiality.horizon.short')}</option>
                     <option value="medium">{tr('materiality.horizon.medium')}</option>
@@ -357,7 +357,7 @@ function ScoreInput({ value, onChange, label }: { value: number | null; onChange
       min={1} max={5}
       value={value ?? ''}
       onChange={e => onChange(e.target.value === '' ? null : Math.max(1, Math.min(5, Number(e.target.value))))}
-      className="w-14 px-1.5 py-0.5 text-[var(--text-sm)] tabular-nums text-center rounded border border-[var(--border-default)] bg-[var(--bg-primary)]"
+      className="w-14 px-1.5 py-0.5 text-[length:var(--text-sm)] tabular-nums text-center rounded border border-[var(--border-default)] bg-[var(--bg-primary)]"
     />
   )
 }
@@ -380,19 +380,19 @@ function IrosTab({ topics, iros, reload }: { topics: Topic[]; iros: IRO[]; reloa
           <div key={t.id} className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] overflow-hidden">
             <button onClick={() => setOpenTopic(open ? null : t.id)} className="w-full px-5 py-3 flex items-center justify-between hover:bg-[var(--bg-secondary)]">
               <span className="font-medium text-[var(--text-primary)]">{topicLabel(t.topic_name, tr)}</span>
-              <span className="text-[11px] text-[var(--text-tertiary)]">{tr('materiality.iros.count', { count: myIros.length })}</span>
+              <span className="text-caption text-[var(--text-tertiary)]">{tr('materiality.iros.count', { count: myIros.length })}</span>
             </button>
             {open && (
               <div className="px-5 py-3 border-t border-[var(--border-subtle)] space-y-3">
                 {myIros.map(i => (
                   <div key={i.id} className="p-3 rounded border border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] uppercase font-semibold tracking-wider text-[var(--color-brand)]">{tr(`materiality.iroType.${i.type}`, { defaultValue: i.type })}</span>
-                      <span className="text-[10px] text-[var(--text-tertiary)]">
+                      <span className="text-micro uppercase font-semibold tracking-[0.06em] text-[var(--color-brand)]">{tr(`materiality.iroType.${i.type}`, { defaultValue: i.type })}</span>
+                      <span className="text-caption text-[var(--text-tertiary)]">
                         {tr('materiality.iros.meta', { sev: i.severity ?? '—', lik: i.likelihood ?? '—', horizon: i.time_horizon ? tr(`materiality.horizon.${i.time_horizon}`, { defaultValue: i.time_horizon }) : '—' })}
                       </span>
                     </div>
-                    <div className="text-[var(--text-sm)] text-[var(--text-primary)]">{i.description}</div>
+                    <div className="text-[length:var(--text-sm)] text-[var(--text-primary)]">{i.description}</div>
                   </div>
                 ))}
                 <IroForm topicId={t.id} onSaved={reload} />
@@ -432,24 +432,24 @@ function IroForm({ topicId, onSaved }: { topicId: string; onSaved: () => Promise
   return (
     <div className="grid grid-cols-12 gap-2 items-end">
       <select aria-label={t('materiality.iros.typeAria')} value={type} onChange={e => setType(e.target.value as 'impact'|'risk'|'opportunity')}
-        className="col-span-2 px-2 py-1.5 text-[var(--text-sm)] rounded border border-[var(--border-default)] bg-[var(--bg-primary)]">
+        className="col-span-2 px-2 py-1.5 text-[length:var(--text-sm)] rounded border border-[var(--border-default)] bg-[var(--bg-primary)]">
         <option value="impact">{t('materiality.iroType.impact')}</option>
         <option value="risk">{t('materiality.iroType.risk')}</option>
         <option value="opportunity">{t('materiality.iroType.opportunity')}</option>
       </select>
       <input aria-label={t('materiality.iros.descAria')} value={description} onChange={e => setDescription(e.target.value)} placeholder={t('materiality.iros.description')}
-        className="col-span-5 px-2 py-1.5 text-[var(--text-sm)] rounded border border-[var(--border-default)] bg-[var(--bg-primary)]" />
+        className="col-span-5 px-2 py-1.5 text-[length:var(--text-sm)] rounded border border-[var(--border-default)] bg-[var(--bg-primary)]" />
       <input aria-label={t('materiality.col.severity')} type="number" min={1} max={5} value={severity} onChange={e => setSeverity(Number(e.target.value))} placeholder={t('materiality.iros.sev')}
-        className="col-span-1 px-2 py-1.5 text-[var(--text-sm)] tabular-nums text-center rounded border border-[var(--border-default)] bg-[var(--bg-primary)]" />
+        className="col-span-1 px-2 py-1.5 text-[length:var(--text-sm)] tabular-nums text-center rounded border border-[var(--border-default)] bg-[var(--bg-primary)]" />
       <input aria-label={t('materiality.col.likelihood')} type="number" min={1} max={5} value={likelihood} onChange={e => setLikelihood(Number(e.target.value))} placeholder={t('materiality.iros.lik')}
-        className="col-span-1 px-2 py-1.5 text-[var(--text-sm)] tabular-nums text-center rounded border border-[var(--border-default)] bg-[var(--bg-primary)]" />
+        className="col-span-1 px-2 py-1.5 text-[length:var(--text-sm)] tabular-nums text-center rounded border border-[var(--border-default)] bg-[var(--bg-primary)]" />
       <select aria-label={t('materiality.iros.horizonAria')} value={horizon} onChange={e => setHorizon(e.target.value as 'short'|'medium'|'long')}
-        className="col-span-2 px-2 py-1.5 text-[var(--text-sm)] rounded border border-[var(--border-default)] bg-[var(--bg-primary)]">
+        className="col-span-2 px-2 py-1.5 text-[length:var(--text-sm)] rounded border border-[var(--border-default)] bg-[var(--bg-primary)]">
         <option value="short">{t('materiality.horizon.short')}</option>
         <option value="medium">{t('materiality.horizon.medium')}</option>
         <option value="long">{t('materiality.horizon.long')}</option>
       </select>
-      <button onClick={submit} disabled={busy || !description.trim()} className="col-span-1 px-2 py-1.5 rounded bg-[var(--color-brand)] text-white text-[var(--text-sm)] disabled:opacity-50">
+      <button onClick={submit} disabled={busy || !description.trim()} className="col-span-1 px-2 py-1.5 rounded bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] disabled:opacity-50">
         {t('materiality.iros.add')}
       </button>
     </div>
@@ -482,9 +482,9 @@ function StakeholdersTab({ topics, stakeholders, reload }: { topics: Topic[]; st
 
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] overflow-x-auto">
-      <table className="w-full text-[var(--text-sm)]">
+      <table className="w-full text-[length:var(--text-sm)]">
         <thead>
-          <tr className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] bg-[var(--bg-secondary)]">
+          <tr className="text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] bg-[var(--bg-secondary)]">
             <th className="text-left px-5 py-2 font-semibold">{tr('materiality.col.topic')}</th>
             {STAKEHOLDERS.map(s => (
               <th key={s} className="text-center px-3 py-2 font-semibold">{tr(`materiality.stakeholders.${s}`)}</th>
@@ -507,7 +507,7 @@ function StakeholdersTab({ topics, stakeholders, reload }: { topics: Topic[]; st
                         if (v === '') return
                         void setRating(t.id, g, Number(v))
                       }}
-                      className="w-14 px-1 py-0.5 text-[var(--text-sm)] tabular-nums text-center rounded border border-[var(--border-default)] bg-[var(--bg-primary)]"
+                      className="w-14 px-1 py-0.5 text-[length:var(--text-sm)] tabular-nums text-center rounded border border-[var(--border-default)] bg-[var(--bg-primary)]"
                     >
                       <option value="">—</option>
                       {[1, 2, 3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}
@@ -544,10 +544,10 @@ function MatrixTab({ topics, onFinalize, busy }: { topics: Topic[]; onFinalize: 
       <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-5">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="font-display text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{tr('materiality.matrix.title')}</h3>
-            <p className="text-[var(--text-xs)] text-[var(--text-secondary)]">{tr('materiality.matrix.thresholdPrefix')}<strong>{Number(threshold).toFixed(1)}</strong>{tr('materiality.matrix.thresholdSuffix')}</p>
+            <h3 className="font-display text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)]">{tr('materiality.matrix.title')}</h3>
+            <p className="text-[length:var(--text-xs)] text-[var(--text-secondary)]">{tr('materiality.matrix.thresholdPrefix')}<strong>{Number(threshold).toFixed(1)}</strong>{tr('materiality.matrix.thresholdSuffix')}</p>
           </div>
-          <button onClick={onFinalize} disabled={busy} className="px-3 py-1.5 rounded bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold disabled:opacity-50 inline-flex items-center gap-1.5">
+          <button onClick={onFinalize} disabled={busy} className="px-3 py-1.5 rounded bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold disabled:opacity-50 inline-flex items-center gap-1.5">
             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
             {tr('materiality.matrix.finalize')}
           </button>
@@ -572,11 +572,11 @@ function MatrixTab({ topics, onFinalize, busy }: { topics: Topic[]; onFinalize: 
 
       <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] overflow-hidden">
         <header className="px-5 py-3 border-b border-[var(--border-subtle)]">
-          <h3 className="font-display text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{tr('materiality.matrix.verdict')}</h3>
+          <h3 className="font-display text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)]">{tr('materiality.matrix.verdict')}</h3>
         </header>
-        <table className="w-full text-[var(--text-sm)]">
+        <table className="w-full text-[length:var(--text-sm)]">
           <thead>
-            <tr className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] bg-[var(--bg-secondary)]">
+            <tr className="text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] bg-[var(--bg-secondary)]">
               <th className="text-left px-5 py-2 font-semibold">{tr('materiality.col.topic')}</th>
               <th className="text-center px-3 py-2 font-semibold">{tr('materiality.col.impact')}</th>
               <th className="text-center px-3 py-2 font-semibold">{tr('materiality.col.financial')}</th>
@@ -591,11 +591,11 @@ function MatrixTab({ topics, onFinalize, busy }: { topics: Topic[]; onFinalize: 
                 <td className="px-3 py-2 text-center tabular-nums">{t.financial_score ?? '—'}</td>
                 <td className="px-3 py-2 text-center">
                   {t.is_material ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] text-green-500"><Check className="w-3 h-3" /> {tr('materiality.matrix.material')}</span>
+                    <span className="inline-flex items-center gap-1 text-caption text-green-500"><Check className="w-3 h-3" /> {tr('materiality.matrix.material')}</span>
                   ) : t.dma_status === 'not_material' ? (
-                    <span className="text-[11px] text-[var(--text-tertiary)]">{tr('materiality.matrix.notMaterial')}</span>
+                    <span className="text-caption text-[var(--text-tertiary)]">{tr('materiality.matrix.notMaterial')}</span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-[11px] text-amber-500"><AlertTriangle className="w-3 h-3" /> {tr('materiality.matrix.pending')}</span>
+                    <span className="inline-flex items-center gap-1 text-caption text-amber-500"><AlertTriangle className="w-3 h-3" /> {tr('materiality.matrix.pending')}</span>
                   )}
                 </td>
               </tr>

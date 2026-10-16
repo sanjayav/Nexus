@@ -116,7 +116,7 @@ export default function DisclosureDocument({
     <main className="flex-1 min-w-0 overflow-y-auto disclosure-document" data-reading-mode={readingMode}>
       <div className={`mx-auto ${readingMode ? 'max-w-page-prose py-16 px-8' : 'max-w-[800px] py-10 px-6 md:px-12'}`}>
         {grouped.length === 0 && (
-          <div className="text-center py-20 text-[var(--text-sm)] text-[var(--text-tertiary)]">
+          <div className="text-center py-20 text-[length:var(--text-sm)] text-[var(--text-tertiary)]">
             {t('disclosureEditor.document.empty')}
           </div>
         )}
@@ -129,10 +129,10 @@ export default function DisclosureDocument({
             className="mb-12"
           >
             <header className="mb-6 pb-2 border-b border-[var(--border-subtle)]">
-              <div className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[var(--color-brand)] mb-1">
+              <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--color-brand)] mb-1">
                 {t(capitalLabelKey(group.section), { defaultValue: group.section })}
               </div>
-              <h2 className={`font-display font-semibold text-[var(--text-primary)] ${readingMode ? 'text-[28px] leading-snug' : 'text-[var(--text-xl)]'}`}>
+              <h2 className={`font-display font-semibold text-[var(--text-primary)] ${readingMode ? 'text-[28px] leading-snug' : 'text-[length:var(--text-xl)]'}`}>
                 {t(subsectionLabelKey(group.subsection), { defaultValue: group.subsection })}
               </h2>
             </header>
@@ -234,10 +234,10 @@ function DisclosureLine({ item, state, isActive, readingMode, canEdit, onFocus, 
       )}
 
       <div className="mb-1.5">
-        <div className={`font-medium text-[var(--text-primary)] ${readingMode ? 'text-[17px] leading-relaxed' : 'text-[var(--text-base)]'}`}>
+        <div className={`font-medium text-[var(--text-primary)] ${readingMode ? 'text-[17px] leading-relaxed' : 'text-[length:var(--text-base)]'}`}>
           {label}
         </div>
-        <div className="text-[10px] font-mono text-[var(--text-tertiary)] mt-0.5">
+        <div className="text-caption font-mono text-[var(--text-tertiary)] mt-0.5">
           {item.gri_code}
           {item.scope_split ? ` · ${t(`disclosureEditor.scope.${item.scope_split}`, { defaultValue: item.scope_split })}` : ''}
           {item.unit ? ` · ${item.unit}` : ''}
@@ -277,11 +277,11 @@ function DisclosureLine({ item, state, isActive, readingMode, canEdit, onFocus, 
               } bg-[var(--bg-primary)]`}
               aria-label={t('disclosureEditor.document.valueFor', { item: label })}
             >
-              <span className="tabular-nums font-semibold text-[var(--text-primary)] text-[var(--text-lg)]">
+              <span className="tabular-nums font-semibold text-[var(--text-primary)] text-[length:var(--text-lg)]">
                 {value != null ? formatValue(value) : '—'}
               </span>
               {item.unit && (
-                <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">{item.unit}</span>
+                <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)]">{item.unit}</span>
               )}
               <LinkedBadge peers={linkedPeers} />
             </button>
@@ -300,29 +300,29 @@ function DisclosureLine({ item, state, isActive, readingMode, canEdit, onFocus, 
               else if (e.key === 'Escape') { e.preventDefault(); setEditing(false); setDraft(value != null ? String(value) : '') }
               else if (e.key === 'Tab') { e.preventDefault(); void commit(); onAdvance(e.shiftKey ? -1 : 1) }
             }}
-            className="px-3 py-2 rounded-[var(--radius-md)] border border-[var(--color-brand)] bg-[var(--bg-primary)] text-[var(--text-lg)] font-semibold tabular-nums text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none w-[180px]"
+            className="px-3 py-2 rounded-[var(--radius-md)] border border-[var(--color-brand)] bg-[var(--bg-primary)] text-[length:var(--text-lg)] font-semibold tabular-nums text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none w-[180px]"
           />
         )}
 
         <StatusChip status={status} readingMode={readingMode} />
 
         {assignment?.last_updated && (
-          <span className="text-[10px] text-[var(--text-tertiary)]">
+          <span className="text-caption text-[var(--text-tertiary)]">
             {t('disclosureEditor.document.updated', { time: relativeTime(assignment.last_updated, t) })}
           </span>
         )}
         {assignment?.assigneeName && (
-          <span className="text-[10px] text-[var(--text-tertiary)]">· {assignment.assigneeName}</span>
+          <span className="text-caption text-[var(--text-tertiary)]">· {assignment.assigneeName}</span>
         )}
 
         {state?.saveState === 'saving' && (
-          <span className="inline-flex items-center gap-1 text-[10px] text-[var(--text-tertiary)]"><Loader2 className="w-3 h-3 animate-spin" /> {t('disclosureEditor.document.saving')}</span>
+          <span className="inline-flex items-center gap-1 text-caption text-[var(--text-tertiary)]"><Loader2 className="w-3 h-3 animate-spin" /> {t('disclosureEditor.document.saving')}</span>
         )}
         {state?.saveState === 'saved' && (
-          <span className="inline-flex items-center gap-1 text-[10px] text-[var(--status-ok)]"><Check className="w-3 h-3" /> {t('disclosureEditor.document.saved')}</span>
+          <span className="inline-flex items-center gap-1 text-caption text-[var(--status-ok)]"><Check className="w-3 h-3" /> {t('disclosureEditor.document.saved')}</span>
         )}
         {state?.saveState === 'error' && (
-          <span className="inline-flex items-center gap-1 text-[10px] text-[var(--status-reject)]" title={state.errorMessage ?? undefined}>
+          <span className="inline-flex items-center gap-1 text-caption text-[var(--status-reject)]" title={state.errorMessage ?? undefined}>
             <AlertCircle className="w-3 h-3" /> {t('disclosureEditor.page.saveFailed')}
           </span>
         )}
@@ -343,7 +343,7 @@ function LinkedBadge({ peers }: { peers: ConceptPeer[] }) {
   const tooltip = t('disclosureEditor.document.alsoAppears', { list: peers.map(p => `${frameworkLabel(p.framework_id)} ${p.gri_code ?? ''}`.trim()).join(t('disclosureEditor.document.listSep')) })
   return (
     <span
-      className="ml-1 inline-flex items-center gap-0.5 px-1.5 h-4 rounded-full bg-[var(--color-brand-soft)] text-[var(--color-brand)] text-[10px] font-semibold tabular-nums cursor-help"
+      className="ml-1 inline-flex items-center gap-0.5 px-1.5 h-4 rounded-full bg-[var(--color-brand-soft)] text-[var(--color-brand)] text-micro font-semibold tabular-nums cursor-help"
       title={tooltip}
       aria-label={tooltip}
     >
@@ -371,13 +371,13 @@ function StatusChip({ status, readingMode = false }: { status: QuestionAssignmen
   // Reading mode — quieter, grayer, smaller.
   if (readingMode) {
     return (
-      <span className="inline-flex items-center px-1.5 h-4 rounded-[var(--radius-xs)] text-[9px] font-normal text-[var(--text-tertiary)] bg-transparent border border-[var(--border-subtle)] no-print-status">
+      <span className="inline-flex items-center px-1.5 h-4 rounded-[var(--radius-xs)] text-micro font-normal text-[var(--text-tertiary)] bg-transparent border border-[var(--border-subtle)] no-print-status">
         {t(m.label)}
       </span>
     )
   }
   return (
-    <span className={`inline-flex items-center px-1.5 h-4 rounded-[var(--radius-xs)] text-[9px] font-semibold uppercase tracking-wider ${m.cls}`}>
+    <span className={`inline-flex items-center px-1.5 h-4 rounded-[var(--radius-xs)] text-micro font-semibold uppercase tracking-[0.06em] ${m.cls}`}>
       {t(m.label)}
     </span>
   )
@@ -465,7 +465,7 @@ function CellRemoteEditorsInner({ cellId }: { cellId: string }) {
         return (
           <div
             key={connectionId}
-            className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white border-2 border-[var(--bg-primary)] shadow-sm"
+            className="w-5 h-5 rounded-full flex items-center justify-center text-caption font-bold text-white border-2 border-[var(--bg-primary)] shadow-sm"
             style={{ background: color }}
             title={t('disclosureEditor.document.isHere', { name }) + (info?.email ? ` (${info.email})` : '')}
           >
@@ -475,7 +475,7 @@ function CellRemoteEditorsInner({ cellId }: { cellId: string }) {
       })}
       {overflow > 0 && (
         <div
-          className="w-5 h-5 rounded-full bg-[var(--bg-tertiary)] text-[9px] font-semibold text-[var(--text-secondary)] flex items-center justify-center border-2 border-[var(--bg-primary)] tabular-nums"
+          className="w-5 h-5 rounded-full bg-[var(--bg-tertiary)] text-caption font-semibold text-[var(--text-secondary)] flex items-center justify-center border-2 border-[var(--bg-primary)] tabular-nums"
           title={t('disclosureEditor.document.moreHere', { count: overflow })}
         >
           +{overflow}

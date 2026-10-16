@@ -274,7 +274,7 @@ function HeroCard({
     <article
       className={`card-premium ${accent} flex flex-col min-h-[280px] transition-all duration-250 hover:border-emerald-400/30 hover:shadow-[0_4px_20px_rgba(16,185,129,0.06)]`}
     >
-      <div className="text-[10.5px] uppercase tracking-[0.14em] font-semibold text-[var(--text-tertiary)] mb-2.5">
+      <div className="text-micro uppercase tracking-[0.14em] font-semibold text-[var(--text-tertiary)] mb-2.5">
         {eyebrow}
       </div>
       {children}
@@ -292,7 +292,7 @@ function WarningChip({ text }: { text: string }) {
   return (
     <div
       role="status"
-      className="mb-3 flex items-start gap-1.5 px-2 py-1.5 rounded-[8px] bg-amber-500/10 border border-amber-500/30 text-[11.5px] text-amber-400"
+      className="mb-3 flex items-start gap-1.5 px-2 py-1.5 rounded-[8px] bg-amber-500/10 border border-amber-500/30 text-caption text-amber-400"
     >
       <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
       <span className="break-words">{text}</span>
@@ -303,7 +303,7 @@ function WarningChip({ text }: { text: string }) {
 function HeroCardSkeleton({ eyebrow }: { eyebrow: string }) {
   return (
     <article className="card-premium border-[var(--border-subtle)] flex flex-col min-h-[280px]">
-      <div className="text-[10.5px] uppercase tracking-[0.14em] font-semibold text-[var(--text-tertiary)] mb-2.5">
+      <div className="text-micro uppercase tracking-[0.14em] font-semibold text-[var(--text-tertiary)] mb-2.5">
         {eyebrow}
       </div>
       <Skeleton className="h-6 w-3/4 mb-5" />
@@ -356,10 +356,10 @@ function DueTodayCard({
             <li key={a.id} className="flex items-start justify-between gap-3 text-[13px]">
               <div className="min-w-0 flex-1">
                 <div className="text-[var(--text-primary)] font-medium truncate">
-                  <span className="font-mono text-[11.5px] text-[var(--text-tertiary)] mr-1.5">{a.gri_code}</span>
+                  <span className="font-mono text-caption text-[var(--text-tertiary)] mr-1.5">{a.gri_code}</span>
                   {itemLabel(a, i18n.language)}
                 </div>
-                <div className="text-[11.5px] text-[var(--text-tertiary)] mt-0.5">
+                <div className="text-caption text-[var(--text-tertiary)] mt-0.5">
                   {overdue ? (
                     <span className="text-[var(--status-reject)]">{t('myDay.dueToday.overdue')} · {a.due_date && relativeDays(a.due_date, t)}</span>
                   ) : (
@@ -425,10 +425,10 @@ function ReviewQueueCard({
             <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 text-[var(--text-tertiary)] flex-shrink-0" />
             <div className="min-w-0 flex-1">
               <div className="text-[var(--text-primary)] font-medium truncate">
-                <span className="font-mono text-[11.5px] text-[var(--text-tertiary)] mr-1.5">{a.gri_code}</span>
+                <span className="font-mono text-caption text-[var(--text-tertiary)] mr-1.5">{a.gri_code}</span>
                 {itemLabel(a, i18n.language)}
               </div>
-              <div className="text-[11.5px] text-[var(--text-tertiary)] mt-0.5 truncate">
+              <div className="text-caption text-[var(--text-tertiary)] mt-0.5 truncate">
                 {a.assigneeName ?? t('myDay.review.unassigned')}
               </div>
             </div>
@@ -481,14 +481,14 @@ function SuggestedNextCard({
       <h2 className="font-display text-[18px] font-semibold tracking-[-0.012em] text-[var(--text-primary)] leading-snug mb-1.5 line-clamp-2">
         {itemLabel(item, i18n.language)}
       </h2>
-      <div className="font-mono text-[11.5px] text-[var(--text-tertiary)] mb-4">{item.gri_code}</div>
+      <div className="font-mono text-caption text-[var(--text-tertiary)] mb-4">{item.gri_code}</div>
       <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed flex-1">
         {reasoning}
       </p>
       <div className="pt-5 mt-5 border-t border-[var(--border-subtle)]">
         <button
           onClick={onOpen}
-          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-[8px] bg-[var(--color-brand)] text-white text-[13px] font-semibold hover:bg-[var(--color-brand-strong)] transition-colors"
+          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-[8px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[13px] font-semibold hover:bg-[var(--btn-primary-bg-hover)] transition-colors"
         >
           {t('myDay.suggested.openInEditor')} <ArrowRight className="w-3.5 h-3.5" />
         </button>
@@ -518,7 +518,7 @@ function Kpi({
       : 'text-[var(--text-primary)]'
   return (
     <div className="card-premium !p-4 !rounded-[10px]">
-      <div className="text-[10px] uppercase tracking-[0.14em] font-semibold text-[var(--text-tertiary)] mb-1.5">
+      <div className="text-micro uppercase tracking-[0.14em] font-semibold text-[var(--text-tertiary)] mb-1.5">
         {label}
       </div>
       <div className={`text-[22px] font-semibold tabular-nums tracking-[-0.01em] inline-flex items-center gap-1.5 ${color}`}>
@@ -559,7 +559,7 @@ function ActivityFeed({
       {entries.map(e => (
         <StaggerItem key={e.id}>
           <div className="px-5 py-3.5 flex items-baseline gap-4 text-[13px]">
-              <span className="text-[11.5px] text-[var(--text-tertiary)] tabular-nums flex-shrink-0 w-[88px]">
+              <span className="text-caption text-[var(--text-tertiary)] tabular-nums flex-shrink-0 w-[88px]">
                 {relativeShort(e.created_at, t, i18n.language)}
               </span>
               <ActorBadge name={e.user_name ?? e.user_email ?? null} />
@@ -584,9 +584,9 @@ function ActorBadge({ name }: { name: string | null }) {
   return (
     <span
       aria-hidden
-      className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+      className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-caption font-bold text-white"
       style={{
-        background: 'linear-gradient(135deg, #2fa98e, #1B6B7B)',
+        background: 'linear-gradient(135deg, #10B981, #047857)',
       }}
     >
       {initial}

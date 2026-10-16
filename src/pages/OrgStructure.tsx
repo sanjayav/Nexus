@@ -248,8 +248,8 @@ export default function OrgStructure() {
                   <Icon className="w-5 h-5" style={{ color: m.color }} />
                 </div>
                 <div>
-                  <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-medium leading-none">{m.label}</p>
-                  <p className="font-display text-[var(--text-xl)] font-bold tabular-nums leading-tight mt-1" style={{ color: m.color }}>{m.value}</p>
+                  <p className="text-micro text-[var(--text-tertiary)] uppercase tracking-[0.06em] font-medium leading-none">{m.label}</p>
+                  <p className="font-display text-[length:var(--text-xl)] font-bold tabular-nums leading-tight mt-1" style={{ color: m.color }}>{m.value}</p>
                 </div>
               </div>
             </Card>
@@ -265,12 +265,12 @@ export default function OrgStructure() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className="text-[var(--text-base)] font-bold text-[var(--text-primary)]">{COMPANY.name}</h2>
+              <h2 className="text-[length:var(--text-base)] font-bold text-[var(--text-primary)]">{COMPANY.name}</h2>
               <Badge variant="teal">{COMPANY.tradingName}</Badge>
             </div>
-            <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-0.5">{t('orgStructure.company.sector')}</p>
+            <p className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] mt-0.5">{t('orgStructure.company.sector')}</p>
           </div>
-          <div className="flex items-center gap-6 text-[var(--text-xs)] text-[var(--text-secondary)] flex-shrink-0">
+          <div className="flex items-center gap-6 text-[length:var(--text-xs)] text-[var(--text-secondary)] flex-shrink-0">
             <span className="flex items-center gap-1.5"><Globe2 className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />{t('orgStructure.company.boundary')}</span>
             <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />{t('orgStructure.company.baseYear', { year: COMPANY.baseYear })}</span>
             <Badge variant="blue">{t('orgStructure.company.reportingPeriod')}</Badge>
@@ -305,8 +305,8 @@ export default function OrgStructure() {
                     <Network className="w-5 h-5" style={{ color: group.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)] leading-tight">{groupName(group.name)}</h3>
-                    <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-0.5">
+                    <h3 className="text-[length:var(--text-base)] font-semibold text-[var(--text-primary)] leading-tight">{groupName(group.name)}</h3>
+                    <p className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] mt-0.5">
                       {t('orgStructure.counts.subsidiary', { count: group.subsidiaries.length })} · {t('orgStructure.counts.facility', { count: gFacs.length })} · {t('orgStructure.counts.sources', { n: gFacs.flatMap(f => f.sources).length })}
                     </p>
                   </div>
@@ -325,9 +325,9 @@ export default function OrgStructure() {
                           <button onClick={() => toggle(setExpandedSubs, sub.id)} className="w-full flex items-center gap-3 px-5 py-3 text-left cursor-pointer hover:bg-[var(--bg-hover)] transition-colors border-b border-[var(--border-subtle)]" style={{ paddingLeft: 52 }}>
                             <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: group.color, opacity: 0.5 }} />
                             <GitBranch className="w-4 h-4 text-[var(--text-tertiary)] flex-shrink-0" />
-                            <span className="text-[var(--text-sm)] font-medium text-[var(--text-primary)] flex-1 truncate">{sub.name}</span>
+                            <span className="text-[length:var(--text-sm)] font-medium text-[var(--text-primary)] flex-1 truncate">{sub.name}</span>
                             <Badge variant="gray">{t('orgStructure.counts.equity', { value: sub.equity })}</Badge>
-                            <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] w-16 text-right">{t('orgStructure.counts.site', { count: sub.facilities.length })}</span>
+                            <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] w-16 text-right">{t('orgStructure.counts.site', { count: sub.facilities.length })}</span>
                             {subOpen ? <ChevronDown className="w-3.5 h-3.5 text-[var(--text-tertiary)]" /> : <ChevronRight className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />}
                           </button>
 
@@ -338,10 +338,10 @@ export default function OrgStructure() {
                             return (
                               <button key={fac.id} onClick={() => setSelected(fac)} className="w-full flex items-center gap-3 px-5 py-2.5 text-left cursor-pointer hover:bg-[var(--bg-hover)] transition-colors border-b border-[var(--border-subtle)] last:border-b-0" style={{ paddingLeft: 76 }}>
                                 <Icon className="w-4 h-4 text-[var(--text-tertiary)] flex-shrink-0" />
-                                <span className="text-[var(--text-sm)] text-[var(--text-primary)] flex-1 truncate">{fac.name}</span>
+                                <span className="text-[length:var(--text-sm)] text-[var(--text-primary)] flex-1 truncate">{fac.name}</span>
                                 <Badge variant={FAC_CLR[fac.type] || 'gray'}>{facType(fac.type)}</Badge>
-                                <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] font-mono w-6 text-center">{fac.countryCode}</span>
-                                <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] w-20 text-right">{t('orgStructure.counts.sources', { n: fac.sources.length })}</span>
+                                <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] font-mono w-6 text-center">{fac.countryCode}</span>
+                                <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] w-20 text-right">{t('orgStructure.counts.sources', { n: fac.sources.length })}</span>
                                 <Badge variant={st.v} dot>{t(st.labelKey)}</Badge>
                               </button>
                             )
@@ -355,7 +355,7 @@ export default function OrgStructure() {
             )
           })}
 
-          <div className="flex items-center gap-5 px-1 text-[var(--text-xs)] text-[var(--text-tertiary)]">
+          <div className="flex items-center gap-5 px-1 text-[length:var(--text-xs)] text-[var(--text-tertiary)]">
             <span className="flex items-center gap-1.5"><Network className="w-3.5 h-3.5" /> {t('orgStructure.legend.businessGroup')}</span>
             <span className="flex items-center gap-1.5"><GitBranch className="w-3.5 h-3.5" /> {t('orgStructure.legend.subsidiary')}</span>
             <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> {t('orgStructure.legend.facility')}</span>
@@ -375,7 +375,7 @@ export default function OrgStructure() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder={t('orgStructure.search.placeholder')}
-              className="w-full h-9 pl-9 pr-8 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)] focus:border-transparent transition-all"
+              className="w-full h-9 pl-9 pr-8 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)] focus:border-transparent transition-all"
             />
             {search && (
               <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] cursor-pointer">
@@ -399,19 +399,19 @@ export default function OrgStructure() {
                         <Icon className="w-5 h-5 text-[var(--text-tertiary)] group-hover:text-[var(--accent-teal)] transition-colors" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] leading-tight truncate">{fac.name}</h3>
-                        <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-0.5">{countryName(fac.countryCode, fac.country)} · {t('orgStructure.counts.staff', { value: fac.headcount.toLocaleString() })}</p>
+                        <h3 className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)] leading-tight truncate">{fac.name}</h3>
+                        <p className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] mt-0.5">{countryName(fac.countryCode, fac.country)} · {t('orgStructure.counts.staff', { value: fac.headcount.toLocaleString() })}</p>
                       </div>
                       <Badge variant={st.v} dot>{t(st.labelKey)}</Badge>
                     </div>
 
                     <div className="flex items-center gap-3 mt-4 pt-3 border-t border-[var(--border-subtle)]">
                       <Badge variant={FAC_CLR[fac.type] || 'gray'}>{facType(fac.type)}</Badge>
-                      <span className="text-[10px] text-[var(--text-tertiary)] font-mono">{fac.grid}</span>
+                      <span className="text-caption text-[var(--text-tertiary)] font-mono">{fac.grid}</span>
                       <div className="flex-1" />
                       <div className="flex items-center gap-2">
-                        {s1f > 0 && <span className="flex items-center gap-1 text-[10px] text-[var(--text-secondary)]"><span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-teal)]" />S1:{s1f}</span>}
-                        {s2f > 0 && <span className="flex items-center gap-1 text-[10px] text-[var(--text-secondary)]"><span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-amber)]" />S2:{s2f}</span>}
+                        {s1f > 0 && <span className="flex items-center gap-1 text-caption text-[var(--text-secondary)]"><span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-teal)]" />S1:{s1f}</span>}
+                        {s2f > 0 && <span className="flex items-center gap-1 text-caption text-[var(--text-secondary)]"><span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-amber)]" />S2:{s2f}</span>}
                       </div>
                     </div>
                   </Card>
@@ -421,7 +421,7 @@ export default function OrgStructure() {
           </div>
 
           {filtered.length === 0 && (
-            <div className="py-12 text-center text-[var(--text-sm)] text-[var(--text-tertiary)]">{t('orgStructure.search.noMatch')}</div>
+            <div className="py-12 text-center text-[length:var(--text-sm)] text-[var(--text-tertiary)]">{t('orgStructure.search.noMatch')}</div>
           )}
         </div>
       )}
@@ -444,11 +444,11 @@ export default function OrgStructure() {
                     <Flame className="w-5 h-5" style={{ color: SCOPE_CLR[s.key] }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-medium leading-none">{s.scope}</p>
-                    <p className="font-display text-[var(--text-xl)] font-bold tabular-nums leading-tight mt-1" style={{ color: SCOPE_CLR[s.key] }}>{s.count}</p>
+                    <p className="text-micro text-[var(--text-tertiary)] uppercase tracking-[0.06em] font-medium leading-none">{s.scope}</p>
+                    <p className="font-display text-[length:var(--text-xl)] font-bold tabular-nums leading-tight mt-1" style={{ color: SCOPE_CLR[s.key] }}>{s.count}</p>
                   </div>
                 </div>
-                <p className="text-[10px] text-[var(--text-tertiary)] mt-2">{s.types}</p>
+                <p className="text-caption text-[var(--text-tertiary)] mt-2">{s.types}</p>
               </Card>
             ))}
           </div>
@@ -456,8 +456,8 @@ export default function OrgStructure() {
           {/* Calculator routing */}
           <Card padding="none">
             <div className="px-5 py-3 border-b border-[var(--border-default)] bg-[var(--bg-secondary)] rounded-t-xl">
-              <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('orgStructure.routing.title')}</h3>
-              <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5">{t('orgStructure.routing.desc')}</p>
+              <h3 className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('orgStructure.routing.title')}</h3>
+              <p className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('orgStructure.routing.desc')}</p>
             </div>
             {(() => {
               const byCalc: Record<string, { scope: string; names: string[]; count: number }> = {}
@@ -471,10 +471,10 @@ export default function OrgStructure() {
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: SCOPE_BG[d.scope] }}>
                     <BarChart3 className="w-4 h-4" style={{ color: SCOPE_CLR[d.scope] }} />
                   </div>
-                  <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] font-mono w-36">{calc}</span>
+                  <span className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)] font-mono w-36">{calc}</span>
                   <Badge variant={SCOPE_BADGE[d.scope]}>{d.scope}</Badge>
-                  <p className="flex-1 text-[var(--text-xs)] text-[var(--text-tertiary)] truncate">{d.names.map(sourceName).join(t('orgStructure.listSeparator'))}</p>
-                  <span className="text-[var(--text-sm)] font-bold tabular-nums text-[var(--text-primary)] w-10 text-right">{d.count}</span>
+                  <p className="flex-1 text-[length:var(--text-xs)] text-[var(--text-tertiary)] truncate">{d.names.map(sourceName).join(t('orgStructure.listSeparator'))}</p>
+                  <span className="text-[length:var(--text-sm)] font-bold tabular-nums text-[var(--text-primary)] w-10 text-right">{d.count}</span>
                 </div>
               ))
             })()}
@@ -483,7 +483,7 @@ export default function OrgStructure() {
           {/* Sources per facility */}
           <Card padding="none">
             <div className="px-5 py-3 border-b border-[var(--border-default)] bg-[var(--bg-secondary)] rounded-t-xl">
-              <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('orgStructure.sourcesByFacility')}</h3>
+              <h3 className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('orgStructure.sourcesByFacility')}</h3>
             </div>
             {facs.map((fac, i) => {
               const Icon = FAC_ICON[fac.type] || MapPin
@@ -492,13 +492,13 @@ export default function OrgStructure() {
               return (
                 <button key={fac.id} onClick={() => setSelected(fac)} className={`w-full flex items-center gap-4 px-5 py-3 text-left hover:bg-[var(--bg-hover)] transition-colors cursor-pointer ${i < facs.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''}`}>
                   <Icon className="w-4 h-4 text-[var(--text-tertiary)] flex-shrink-0" />
-                  <span className="text-[var(--text-sm)] font-medium text-[var(--text-primary)] flex-1 truncate">{fac.name}</span>
-                  <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] font-mono w-6">{fac.countryCode}</span>
+                  <span className="text-[length:var(--text-sm)] font-medium text-[var(--text-primary)] flex-1 truncate">{fac.name}</span>
+                  <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] font-mono w-6">{fac.countryCode}</span>
                   <div className="flex items-center gap-3 w-32 justify-end">
-                    {fs1 > 0 && <span className="flex items-center gap-1 text-[10px] text-[var(--text-secondary)]"><span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-teal)]" />S1:{fs1}</span>}
-                    {fs2 > 0 && <span className="flex items-center gap-1 text-[10px] text-[var(--text-secondary)]"><span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-amber)]" />S2:{fs2}</span>}
+                    {fs1 > 0 && <span className="flex items-center gap-1 text-caption text-[var(--text-secondary)]"><span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-teal)]" />S1:{fs1}</span>}
+                    {fs2 > 0 && <span className="flex items-center gap-1 text-caption text-[var(--text-secondary)]"><span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-amber)]" />S2:{fs2}</span>}
                   </div>
-                  <span className="text-[var(--text-sm)] font-bold tabular-nums text-[var(--text-primary)] w-8 text-right">{fac.sources.length}</span>
+                  <span className="text-[length:var(--text-sm)] font-bold tabular-nums text-[var(--text-primary)] w-8 text-right">{fac.sources.length}</span>
                 </button>
               )
             })}
@@ -561,7 +561,7 @@ function Modal({ title, onClose, width = 'max-w-md', children }: { title: string
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
       <div className={`relative bg-[var(--bg-primary)] rounded-2xl shadow-2xl w-full ${width} border border-[var(--border-default)] animate-fade-in`}>
         <div className="px-6 py-4 border-b border-[var(--border-default)] flex items-center justify-between">
-          <h2 className="font-display text-[var(--text-lg)] font-bold text-[var(--text-primary)]">{title}</h2>
+          <h2 className="font-display text-[length:var(--text-lg)] font-bold text-[var(--text-primary)]">{title}</h2>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer">
             <X className="w-4 h-4" />
           </button>
@@ -576,8 +576,8 @@ function ModalFooter({ onClose, label }: { onClose: () => void; label: string })
   const { t } = useTranslation()
   return (
     <div className="flex items-center justify-end gap-3 pt-5 mt-5 border-t border-[var(--border-subtle)]">
-      <button onClick={onClose} className="px-4 py-2 rounded-lg text-[var(--text-sm)] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer">{t('common.cancel')}</button>
-      <button onClick={onClose} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--bg-inverse)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--bg-inverse-soft)] active:scale-[0.97] transition-all cursor-pointer shadow-sm">
+      <button onClick={onClose} className="px-4 py-2 rounded-lg text-[length:var(--text-sm)] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer">{t('common.cancel')}</button>
+      <button onClick={onClose} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--bg-inverse)] text-white text-[length:var(--text-sm)] font-semibold hover:bg-[var(--bg-inverse-soft)] active:scale-[0.97] transition-all cursor-pointer shadow-sm">
         <Check className="w-3.5 h-3.5" /> {label}
       </button>
     </div>
@@ -603,7 +603,7 @@ function FacilityModal({ fac, onClose }: { fac: Facility; onClose: () => void })
               <Icon className="w-5 h-5 text-[var(--accent-teal)]" />
             </div>
             <div>
-              <h2 className="text-[var(--text-base)] font-bold text-[var(--text-primary)] leading-tight">{fac.name}</h2>
+              <h2 className="text-[length:var(--text-base)] font-bold text-[var(--text-primary)] leading-tight">{fac.name}</h2>
               <div className="flex items-center gap-2 mt-1">
                 <Badge variant={FAC_CLR[fac.type] || 'gray'}>{facType(fac.type)}</Badge>
                 <Badge variant={st.v} dot>{t(st.labelKey)}</Badge>
@@ -627,24 +627,24 @@ function FacilityModal({ fac, onClose }: { fac: Facility; onClose: () => void })
               { l: t('orgStructure.facilityModal.facilityType'), v: facType(fac.type) },
             ].map(m => (
               <div key={m.l} className="px-3 py-2.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-                <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-medium">{m.l}</p>
-                <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mt-0.5">{m.v}</p>
+                <p className="text-micro text-[var(--text-tertiary)] uppercase tracking-[0.06em] font-medium">{m.l}</p>
+                <p className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)] mt-0.5">{m.v}</p>
               </div>
             ))}
           </div>
 
           {/* Sources list */}
           <div>
-            <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mb-2">{t('orgStructure.facilityModal.registeredSources')}</h3>
+            <h3 className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)] mb-2">{t('orgStructure.facilityModal.registeredSources')}</h3>
             <div className="space-y-1.5">
               {fac.sources.map(src => (
                 <div key={src.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-[var(--border-default)] hover:border-[var(--border-strong)] transition-colors">
                   <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0" style={{ backgroundColor: SCOPE_BG[src.scope] }}>
                     <Flame className="w-3.5 h-3.5" style={{ color: SCOPE_CLR[src.scope] }} />
                   </div>
-                  <span className="text-[var(--text-sm)] font-medium text-[var(--text-primary)] flex-1">{sourceName(src.name)}</span>
+                  <span className="text-[length:var(--text-sm)] font-medium text-[var(--text-primary)] flex-1">{sourceName(src.name)}</span>
                   <Badge variant={SCOPE_BADGE[src.scope]}>{src.scope}</Badge>
-                  <span className="text-[10px] font-mono text-[var(--text-tertiary)]">{src.calculator}</span>
+                  <span className="text-caption font-mono text-[var(--text-tertiary)]">{src.calculator}</span>
                 </div>
               ))}
             </div>
@@ -653,21 +653,21 @@ function FacilityModal({ fac, onClose }: { fac: Facility; onClose: () => void })
           {/* Info callout */}
           <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-[var(--accent-blue-light)] border border-blue-100">
             <Info className="w-4 h-4 text-[var(--accent-blue)] flex-shrink-0 mt-0.5" />
-            <p className="text-[var(--text-xs)] text-[var(--accent-blue)] leading-relaxed">
+            <p className="text-[length:var(--text-xs)] text-[var(--accent-blue)] leading-relaxed">
               <strong>{fac.grid}</strong>{t('orgStructure.facilityModal.callout', { ef: fac.ef, period: t('orgStructure.company.reportingPeriod') })}
             </p>
           </div>
 
           {/* Actions */}
           <div className="flex items-center gap-3 pt-3 border-t border-[var(--border-subtle)]">
-            <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[var(--border-default)] text-[var(--text-sm)] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-teal)] hover:text-[var(--accent-teal)] hover:bg-[var(--accent-teal-light)] transition-all cursor-pointer">
+            <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[var(--border-default)] text-[length:var(--text-sm)] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-teal)] hover:text-[var(--accent-teal)] hover:bg-[var(--accent-teal-light)] transition-all cursor-pointer">
               <Pencil className="w-3.5 h-3.5" /> {t('common.edit')}
             </button>
-            <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[var(--border-default)] text-[var(--text-sm)] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-teal)] hover:text-[var(--accent-teal)] hover:bg-[var(--accent-teal-light)] transition-all cursor-pointer">
+            <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[var(--border-default)] text-[length:var(--text-sm)] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-teal)] hover:text-[var(--accent-teal)] hover:bg-[var(--accent-teal-light)] transition-all cursor-pointer">
               <Plus className="w-3.5 h-3.5" /> {t('orgStructure.facilityModal.addSource')}
             </button>
             <div className="flex-1" />
-            <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[var(--text-sm)] font-medium text-[var(--accent-red)] hover:bg-[var(--accent-red-light)] transition-all cursor-pointer">
+            <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[length:var(--text-sm)] font-medium text-[var(--accent-red)] hover:bg-[var(--accent-red-light)] transition-all cursor-pointer">
               <Trash2 className="w-3.5 h-3.5" /> {t('orgStructure.facilityModal.decommission')}
             </button>
           </div>

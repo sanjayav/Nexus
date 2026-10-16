@@ -127,7 +127,7 @@ export default function SetupGuide({ collapsed }: { collapsed: boolean }) {
         }}
       >
         <ProgressRing pct={pct} size={28} stroke={3} />
-        <span className="absolute bottom-0.5 right-0.5 text-[8.5px] font-bold text-white/90 bg-[#1B6B7B] px-1 rounded-[3px] leading-none tabular-nums">
+        <span className="absolute bottom-0.5 right-0.5 text-caption font-bold text-white/90 bg-[#047857] px-1 rounded-[3px] leading-none tabular-nums">
           {completed}/{total}
         </span>
       </button>
@@ -143,7 +143,7 @@ export default function SetupGuide({ collapsed }: { collapsed: boolean }) {
         className="rounded-[12px] relative overflow-hidden"
         style={{
           background:
-            'linear-gradient(135deg, rgba(47,169,142,0.12) 0%, rgba(27,107,123,0.08) 60%, rgba(94,53,177,0.06) 100%)',
+            'linear-gradient(135deg, rgba(47,169,142,0.12) 0%, rgba(4, 120, 87,0.08) 60%, rgba(94,53,177,0.06) 100%)',
           border: '1px solid rgba(255,255,255,0.08)',
         }}
       >
@@ -155,10 +155,10 @@ export default function SetupGuide({ collapsed }: { collapsed: boolean }) {
           <ProgressRing pct={pct} size={26} stroke={2.5} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              <Sparkles className="w-3 h-3 text-[#2fa98e]" />
-              <span className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-white/90">{t('components.setupGuide.title')}</span>
+              <Sparkles className="w-3 h-3 text-[#10B981]" />
+              <span className="text-micro font-bold uppercase tracking-[0.1em] text-white/90">{t('components.setupGuide.title')}</span>
             </div>
-            <div className="text-[11px] text-white/65 mt-0.5 truncate">
+            <div className="text-caption text-white/65 mt-0.5 truncate">
               {t('components.setupGuide.progress', { completed, total })}
             </div>
           </div>
@@ -217,7 +217,7 @@ function StepRow({ step, isNext, index, onClick }: { step: StepDef & { done: boo
         className={`w-[18px] h-[18px] rounded-full flex items-center justify-center flex-shrink-0 transition-all`}
         style={{
           background: step.done
-            ? 'linear-gradient(135deg, #2fa98e, #1B6B7B)'
+            ? 'linear-gradient(135deg, #10B981, #047857)'
             : isNext
               ? 'rgba(47,169,142,0.2)'
               : 'rgba(255,255,255,0.06)',
@@ -228,19 +228,19 @@ function StepRow({ step, isNext, index, onClick }: { step: StepDef & { done: boo
         {step.done ? (
           <Check className="w-2.5 h-2.5 text-white" />
         ) : isNext ? (
-          <span className="w-1.5 h-1.5 rounded-full bg-[#2fa98e] animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-[#10B981] animate-pulse" />
         ) : null}
       </span>
       <div className="flex-1 min-w-0">
-        <div className={`text-[11.5px] font-semibold truncate ${step.done ? 'text-white/40 line-through' : isNext ? 'text-white/95' : 'text-white/75'}`}>
+        <div className={`text-caption font-semibold truncate ${step.done ? 'text-white/40 line-through' : isNext ? 'text-white/95' : 'text-white/75'}`}>
           {t(`components.setupGuide.steps.${step.key}.title`, { defaultValue: step.title })}
         </div>
         {isNext && (
-          <div className="text-[10px] text-white/50 mt-0.5 truncate">{t(`components.setupGuide.steps.${step.key}.helper`, { defaultValue: step.helper })}</div>
+          <div className="text-caption text-white/50 mt-0.5 truncate">{t(`components.setupGuide.steps.${step.key}.helper`, { defaultValue: step.helper })}</div>
         )}
       </div>
       {isNext && !step.done && (
-        <ArrowRight className="w-3 h-3 text-[#2fa98e] flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
+        <ArrowRight className="w-3 h-3 text-[#10B981] flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
       )}
     </motion.button>
   )
@@ -266,8 +266,8 @@ function ProgressRing({ pct, size, stroke }: { pct: number; size: number; stroke
       />
       <defs>
         <linearGradient id="setup-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#2fa98e" />
-          <stop offset="100%" stopColor="#1B6B7B" />
+          <stop offset="0%" stopColor="#10B981" />
+          <stop offset="100%" stopColor="#047857" />
         </linearGradient>
       </defs>
     </svg>

@@ -75,13 +75,13 @@ export default function JargonTooltip({ term, children, iconOnly = false }: Prop
       {open && (
         <span
           role="tooltip"
-          className="absolute left-0 top-full mt-1.5 z-50 w-[260px] p-3 rounded-[8px] bg-[var(--bg-inverse)] text-white text-[11.5px] leading-relaxed shadow-xl pointer-events-none"
+          className="absolute left-0 top-full mt-1.5 z-50 w-[260px] p-3 rounded-[8px] bg-[var(--bg-inverse)] text-white text-caption leading-relaxed shadow-xl pointer-events-none"
           style={{ boxShadow: '0 10px 30px rgba(0,0,0,0.25)' }}
         >
           <div className="font-semibold text-[12px] mb-1 text-white">{headline}</div>
           <div className="text-white/80">{tooltipBody}</div>
           {entry?.framework && (
-            <div className="mt-2 text-[10px] uppercase tracking-[0.08em] font-semibold text-emerald-300/80">
+            <div className="mt-2 text-micro uppercase tracking-[0.06em] font-semibold text-emerald-300/80">
               {entry.framework}
             </div>
           )}

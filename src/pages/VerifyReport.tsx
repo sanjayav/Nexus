@@ -30,12 +30,12 @@ export default function VerifyReport() {
       className="min-h-screen"
       style={{
         background:
-          'radial-gradient(900px 500px at 10% -10%, rgba(27,107,123,0.08), transparent 60%), radial-gradient(800px 500px at 90% 110%, rgba(94,53,177,0.05), transparent 60%), var(--bg-secondary)',
+          'radial-gradient(900px 500px at 10% -10%, rgba(4, 120, 87,0.08), transparent 60%), radial-gradient(800px 500px at 90% 110%, rgba(94,53,177,0.05), transparent 60%), var(--bg-secondary)',
       }}
     >
       <header className="px-8 py-5 flex items-center justify-between">
         <a href="/" className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-[10px] flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1B6B7B, #1e8e7a)', boxShadow: '0 4px 12px rgba(27,107,123,0.3)' }}>
+          <div className="w-9 h-9 rounded-[10px] flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #047857, #059669)', boxShadow: '0 4px 12px rgba(4, 120, 87,0.3)' }}>
             <Leaf className="w-4 h-4 text-white" />
           </div>
           <span className="font-display font-bold tracking-[-0.02em] text-[15px]">Nexus</span>
@@ -73,7 +73,7 @@ export default function VerifyReport() {
         {state.kind === 'ok' && <VerifyResult data={state.data} />}
       </main>
 
-      <footer className="text-center py-8 text-[11.5px] text-[var(--text-tertiary)]">
+      <footer className="text-center py-8 text-caption text-[var(--text-tertiary)]">
         <Trans i18nKey="verify.footer" components={{ brand: <a href="/" className="link-underline text-[var(--color-brand)] hover:text-[var(--color-brand-strong)]" /> }} />
       </footer>
     </div>
@@ -127,17 +127,17 @@ function VerifyResult({ data }: { data: VerifyReportResponse }) {
       {/* Hash + anchor detail */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Panel icon={<Hash className="w-4 h-4" />} title={t('verify.hash.title')}>
-          <div className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)]">SHA-256</div>
+          <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">SHA-256</div>
           <div className="mt-1 font-mono text-[12px] text-[var(--text-primary)] break-all leading-relaxed">{data.pdf.sha256}</div>
-          <button onClick={() => copy(data.pdf.sha256)} className="mt-2 inline-flex items-center gap-1 text-[11px] text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] link-underline">
+          <button onClick={() => copy(data.pdf.sha256)} className="mt-2 inline-flex items-center gap-1 text-caption text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] link-underline">
             <Copy className="w-3 h-3" /> {t('verify.hash.copy')}
           </button>
           <div className="hairline my-4" />
-          <div className="text-[11px] text-[var(--text-tertiary)]">
+          <div className="text-caption text-[var(--text-tertiary)]">
             {t('verify.hash.fileSize', { size: (data.pdf.size / 1024).toFixed(1) })}
             {data.pdf.pages && <> · {t('verify.hash.pages', { count: data.pdf.pages })}</>}
           </div>
-          <p className="text-[11px] text-[var(--text-tertiary)] mt-2 leading-relaxed">
+          <p className="text-caption text-[var(--text-tertiary)] mt-2 leading-relaxed">
             <Trans i18nKey="verify.hash.howTo" components={{ code: <code className="font-mono bg-[var(--bg-secondary)] px-1 rounded" /> }} />
           </p>
         </Panel>
@@ -145,12 +145,12 @@ function VerifyResult({ data }: { data: VerifyReportResponse }) {
         <Panel icon={<ShieldCheck className="w-4 h-4" />} title={t('verify.anchor.title')}>
           {data.anchor ? (
             <>
-              <div className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)]">{t('verify.anchor.label')}</div>
+              <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">{t('verify.anchor.label')}</div>
               <div className="mt-1 text-[12.5px] text-[var(--text-primary)]">OpenTimestamps · <span className="text-[var(--status-ok)] font-semibold">{t('verify.anchor.anchored')}</span></div>
-              <div className="text-[11px] text-[var(--text-tertiary)] mt-1">{t('verify.anchor.anchoredOn', { date: new Date(data.anchor.anchored_at).toLocaleString(locale) })}</div>
-              <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{t('verify.anchor.calendar')} <a href={data.anchor.calendar} className="link-underline text-[var(--color-brand)]" target="_blank" rel="noreferrer">{data.anchor.calendar}</a></div>
+              <div className="text-caption text-[var(--text-tertiary)] mt-1">{t('verify.anchor.anchoredOn', { date: new Date(data.anchor.anchored_at).toLocaleString(locale) })}</div>
+              <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('verify.anchor.calendar')} <a href={data.anchor.calendar} className="link-underline text-[var(--color-brand)]" target="_blank" rel="noreferrer">{data.anchor.calendar}</a></div>
               <div className="hairline my-4" />
-              <p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">
+              <p className="text-caption text-[var(--text-tertiary)] leading-relaxed">
                 {data.anchor.note}
               </p>
             </>
@@ -203,11 +203,11 @@ function VerifyResult({ data }: { data: VerifyReportResponse }) {
         <ol className="text-[12.5px] text-[var(--text-secondary)] space-y-2.5 leading-relaxed">
           <li className="flex gap-3">
             <span className="text-[var(--color-brand)] font-bold">1.</span>
-            <span><Trans i18nKey="verify.manual.step1" components={{ code: <code className="font-mono bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded-[4px] text-[11.5px]" /> }} /></span>
+            <span><Trans i18nKey="verify.manual.step1" components={{ code: <code className="font-mono bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded-[4px] text-caption" /> }} /></span>
           </li>
           <li className="flex gap-3">
             <span className="text-[var(--color-brand)] font-bold">2.</span>
-            <span><Trans i18nKey="verify.manual.step2" components={{ code: <code className="font-mono bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded-[4px] text-[11.5px]" /> }} /></span>
+            <span><Trans i18nKey="verify.manual.step2" components={{ code: <code className="font-mono bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded-[4px] text-caption" /> }} /></span>
           </li>
           <li className="flex gap-3">
             <span className="text-[var(--color-brand)] font-bold">3.</span>

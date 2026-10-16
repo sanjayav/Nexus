@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { getDb } from './_db.js'
 import { cors, requirePermission } from './_auth.js'
+import { contentDisposition, toCsv } from './_http.js'
 
 /**
  * Audit log explorer. Gated `audit.view` — admin-only.
@@ -20,14 +21,6 @@ function parseList(v: unknown): string[] {
   if (Array.isArray(v)) return v.flatMap(x => String(x).split(',')).map(s => s.trim()).filter(Boolean)
   if (typeof v === 'string') return v.split(',').map(s => s.trim()).filter(Boolean)
   return []
-}
-
-function csvCell(v: unknown): string {
-  if (v === null || v === undefined) return ''
-  const s = typeof v === 'string' ? v : JSON.stringify(v)
-  // Quote any cell containing a quote, comma, newline. Escape inner quotes by doubling.
-  if (/["\n\r,]/.test(s)) return `"${s.replace(/"/g, '""')}"`
-  return s
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -104,23 +97,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (format === 'csv') {
       const header = ['created_at', 'actor', 'actor_email', 'action', 'resource_type', 'resource_id', 'ip_address', 'details']
-      const lines = [header.join(',')]
-      for (const r of rows) {
-        lines.push([
-          csvCell(r.created_at),
-          csvCell(r.user_name ?? ''),
-          csvCell(r.user_email ?? ''),
-          csvCell(r.action),
-          csvCell(r.resource_type),
-          csvCell(r.resource_id ?? ''),
-          csvCell(r.ip_address ?? ''),
-          csvCell(r.details ?? {}),
-        ].join(','))
-      }
-      const body = lines.join('\n')
+      const body = toCsv([
+        header,
+        ...rows.map(r => [
+          r.created_at,
+          r.user_name ?? '',
+          r.user_email ?? '',
+          r.action,
+          r.resource_type,
+          r.resource_id ?? '',
+          r.ip_address ?? '',
+          r.details ?? {},
+        ]),
+      ])
       res.setHeader('Content-Type', 'text/csv; charset=utf-8')
-      res.setHeader('Content-Disposition', `attachment; filename="audit-log-${new Date().toISOString().slice(0, 10)}.csv"`)
-      return res.status(200).send(body)
+      res.setHeader('Content-Disposition', contentDisposition(`audit-log-${new Date().toISOString().slice(0, 10)}.csv`))
+      // Buffer, so the leading BOM goes out as exactly the bytes EF BB BF.
+      return res.status(200).send(Buffer.from(body, 'utf8'))
     }
 
     return res.status(200).json({

@@ -100,7 +100,7 @@ export default function BlockchainProof({ isOpen, onClose, dataPoint, facility }
               </div>
 
               <div className="border-t border-dark-600 pt-4 space-y-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-dark-400">{t('components.blockchain.onChain')}</p>
+                <p className="text-micro font-semibold uppercase tracking-[0.06em] text-dark-400">{t('components.blockchain.onChain')}</p>
                 <ProofRow label={t('components.blockchain.rows.merkleRoot')} value={proof.merkleRoot} mono icon={Hash} />
                 <ProofRow label={t('components.blockchain.rows.txHash')} value={proof.txHash} mono icon={Hash} />
                 <ProofRow label={t('components.blockchain.rows.blockNumber')} value={proof.blockNumber.toLocaleString()} />
@@ -135,8 +135,8 @@ export default function BlockchainProof({ isOpen, onClose, dataPoint, facility }
                   <div className="pb-6">
                     <p className="text-sm font-semibold text-white">{step.label}</p>
                     <p className="text-xs text-dark-300 mt-0.5">{step.actor}</p>
-                    <p className="text-[11px] text-dark-400 font-mono mt-0.5">{step.did}</p>
-                    <p className="text-[11px] text-dark-400 mt-0.5">{step.time}</p>
+                    <p className="text-caption text-dark-400 font-mono mt-0.5">{step.did}</p>
+                    <p className="text-caption text-dark-400 mt-0.5">{step.time}</p>
                   </div>
                 </div>
               ))}
@@ -175,11 +175,11 @@ function ProofRow({
     <div className="flex items-start justify-between gap-4">
       <span className="text-xs text-dark-400 flex-shrink-0 pt-0.5">{label}</span>
       <div className="text-right">
-        <span className={`text-xs text-dark-300 font-medium ${mono ? 'font-mono text-[11px] break-all text-accent-400/80' : ''}`}>
+        <span className={`text-xs text-dark-300 font-medium ${mono ? 'font-mono text-caption break-all text-accent-400/80' : ''}`}>
           {Icon && <Icon className="w-3 h-3 inline mr-1 text-dark-400" />}
           {value}
         </span>
-        {sub && <p className="text-[10px] text-dark-400 font-mono">{sub}</p>}
+        {sub && <p className="text-caption text-dark-400 font-mono">{sub}</p>}
       </div>
     </div>
   )

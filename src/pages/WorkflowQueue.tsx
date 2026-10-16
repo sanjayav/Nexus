@@ -144,21 +144,21 @@ export default function WorkflowQueue({ kind }: { kind: QueueKind }) {
 
       <header className="flex items-start justify-between mb-5 flex-wrap gap-3">
         <div>
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
+          <div className="flex items-center gap-2 text-micro uppercase tracking-[0.06em] font-semibold text-[var(--color-brand)]">
             <meta.icon className="w-3 h-3" /> {t(meta.title)}
           </div>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <h1 className="font-display text-[28px] font-bold text-[var(--text-primary)]">{t(meta.title)}</h1>
             <FrameworkBadge size="md" />
           </div>
-          <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1 max-w-2xl">
+          <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] mt-1 max-w-2xl">
             {t(meta.subtitle)}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => navigate(kind === 'review' ? '/workflow/approval' : '/workflow/review')}
-            className="px-3 py-1.5 rounded-[var(--radius-md)] border border-[var(--border-default)] text-[var(--text-xs)] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] inline-flex items-center gap-1.5"
+            className="px-3 py-1.5 rounded-[var(--radius-md)] border border-[var(--border-default)] text-[length:var(--text-xs)] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] inline-flex items-center gap-1.5"
           >
             {kind === 'review' ? t('workflowQueue.switchToApproval') : t('workflowQueue.switchToReview')} <ArrowRight className="w-3 h-3" />
           </button>
@@ -191,7 +191,7 @@ export default function WorkflowQueue({ kind }: { kind: QueueKind }) {
           {/* Queue list */}
           <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] overflow-hidden max-h-[70vh] flex flex-col">
             <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] flex items-center justify-between bg-[var(--bg-secondary)]">
-              <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
+              <span className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">
                 {t('workflowQueue.queueCount', { count: assignments.length })}
               </span>
             </div>
@@ -221,13 +221,13 @@ export default function WorkflowQueue({ kind }: { kind: QueueKind }) {
                         <span className="absolute top-0 bottom-0 left-0 w-[3px]" style={{ background: 'var(--accent-amber)' }} />
                       )}
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-[9px] font-bold text-[var(--color-brand)]">{a.gri_code}</span>
+                        <span className="text-caption font-bold text-[var(--color-brand)]">{a.gri_code}</span>
                         {a.used_mode && (
-                          <span className="text-[9px] text-[var(--text-tertiary)] uppercase tracking-wider">· {t(`workflowQueue.mode.${a.used_mode}`, { defaultValue: a.used_mode })}</span>
+                          <span className="text-micro text-[var(--text-tertiary)] uppercase tracking-[0.06em]">· {t(`workflowQueue.mode.${a.used_mode}`, { defaultValue: a.used_mode })}</span>
                         )}
                         {flags.length > 0 && (
                           <span
-                            className="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9.5px] font-bold"
+                            className="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-caption font-bold"
                             style={{
                               background: hasCritical ? 'var(--accent-red-light)' : 'var(--accent-amber-light)',
                               color: hasCritical ? 'var(--accent-red)' : 'var(--accent-amber)',
@@ -238,15 +238,15 @@ export default function WorkflowQueue({ kind }: { kind: QueueKind }) {
                           </span>
                         )}
                       </div>
-                      <div className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)] line-clamp-2">
+                      <div className="text-[length:var(--text-xs)] font-semibold text-[var(--text-primary)] line-clamp-2">
                         {itemLabel(a, i18n.language)}
                       </div>
                       {headline && (
-                        <div className="text-[10px] mt-0.5 line-clamp-1" style={{ color: hasCritical ? 'var(--accent-red)' : 'var(--accent-amber)' }}>
+                        <div className="text-caption mt-0.5 line-clamp-1" style={{ color: hasCritical ? 'var(--accent-red)' : 'var(--accent-amber)' }}>
                           {headline}
                         </div>
                       )}
-                      <div className="mt-1.5 flex items-center gap-2 text-[10px] text-[var(--text-tertiary)]">
+                      <div className="mt-1.5 flex items-center gap-2 text-caption text-[var(--text-tertiary)]">
                         <Factory className="w-2.5 h-2.5" />
                         <span className="truncate flex-1">{plantName(a.entityId)}</span>
                         <span className="tabular-nums font-semibold text-[var(--text-secondary)]">
@@ -275,7 +275,7 @@ export default function WorkflowQueue({ kind }: { kind: QueueKind }) {
           ) : (
             <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)] p-12 text-center">
               <Inbox className="w-10 h-10 mx-auto text-[var(--text-tertiary)] mb-2" />
-              <p className="text-[var(--text-sm)] text-[var(--text-tertiary)]">{t('workflowQueue.pickRow')}</p>
+              <p className="text-[length:var(--text-sm)] text-[var(--text-tertiary)]">{t('workflowQueue.pickRow')}</p>
             </div>
           )}
         </div>
@@ -291,7 +291,7 @@ function QueueStat({ label, value, tone }: { label: string; value: number; tone:
     : tone === 'ok' ? 'var(--status-ok)' : 'var(--text-primary)'
   return (
     <div className="rounded-[var(--radius-md)] border border-[var(--border-default)] p-4" style={{ background: bg }}>
-      <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: fg, opacity: 0.8 }}>{label}</div>
+      <div className="text-micro uppercase tracking-[0.06em] font-semibold" style={{ color: fg, opacity: 0.8 }}>{label}</div>
       <div className="text-[24px] font-bold tabular-nums mt-0.5" style={{ color: fg }}>{value}</div>
     </div>
   )
@@ -303,17 +303,17 @@ function EmptyQueue({ kind }: { kind: QueueKind }) {
   return (
     <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)] py-14 text-center">
       <CheckCircle2 className="w-10 h-10 mx-auto text-[var(--status-ok)] mb-2" />
-      <h3 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">
+      <h3 className="font-display text-[length:var(--text-lg)] font-semibold text-[var(--text-primary)]">
         {t('workflowQueue.empty.title')}
       </h3>
-      <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1 max-w-sm mx-auto">
+      <p className="text-[length:var(--text-sm)] text-[var(--text-tertiary)] mt-1 max-w-sm mx-auto">
         {kind === 'review'
           ? t('workflowQueue.empty.review')
           : t('workflowQueue.empty.approval')}
       </p>
       <button
         onClick={() => navigate('/aggregator')}
-        className="mt-4 text-[var(--text-xs)] font-semibold text-[var(--color-brand)] hover:underline inline-flex items-center gap-1"
+        className="mt-4 text-[length:var(--text-xs)] font-semibold text-[var(--color-brand)] hover:underline inline-flex items-center gap-1"
       >
         {t('workflowQueue.empty.viewRollup')} <ArrowRight className="w-3 h-3" />
       </button>
@@ -343,14 +343,14 @@ function DetailPane({
       <div>
         <div className="flex items-center gap-2 flex-wrap mb-1">
           {fw && (
-            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+            <span className="text-micro font-bold uppercase tracking-[0.06em] px-1.5 py-0.5 rounded"
                   style={{ background: `${fw.color}22`, color: fw.color }}>
               {fw.code}
             </span>
           )}
-          <span className="text-[10px] font-bold text-[var(--color-brand)]">{assignment.gri_code}</span>
+          <span className="text-caption font-bold text-[var(--color-brand)]">{assignment.gri_code}</span>
         </div>
-        <h2 className="font-display text-[var(--text-xl)] font-bold text-[var(--text-primary)]">
+        <h2 className="font-display text-[length:var(--text-xl)] font-bold text-[var(--text-primary)]">
           {itemLabel(assignment, i18n.language)}
         </h2>
       </div>
@@ -370,23 +370,23 @@ function DetailPane({
       {/* Value or narrative preview */}
       {assignment.response_type === 'narrative' ? (
         <div className="rounded-[var(--radius-md)] border border-[var(--color-brand)]/30 bg-[var(--color-brand-soft)]/40 p-4">
-          <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand-strong)] mb-1">
+          <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--color-brand-strong)] mb-1">
             {t('workflowQueue.detail.narrative', { count: (assignment.narrative_body ?? '').length })}
           </div>
-          <p className="text-[var(--text-xs)] text-[var(--text-primary)] whitespace-pre-wrap leading-relaxed max-h-[200px] overflow-y-auto">
+          <p className="text-[length:var(--text-xs)] text-[var(--text-primary)] whitespace-pre-wrap leading-relaxed max-h-[200px] overflow-y-auto">
             {assignment.narrative_body || <span className="italic text-[var(--text-tertiary)]">{t('workflowQueue.detail.noNarrative')}</span>}
           </p>
         </div>
       ) : (
         <div className="rounded-[var(--radius-md)] border border-[var(--color-brand)]/30 bg-[var(--color-brand-soft)]/40 p-4">
-          <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand-strong)] mb-1">
+          <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--color-brand-strong)] mb-1">
             {t('workflowQueue.detail.value')}
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-[28px] font-bold tabular-nums text-[var(--color-brand-strong)]">
               {assignment.value != null ? formatValue(assignment.value) : '—'}
             </span>
-            {assignment.unit && <span className="text-[var(--text-xs)] text-[var(--color-brand-strong)]">{assignment.unit}</span>}
+            {assignment.unit && <span className="text-[length:var(--text-xs)] text-[var(--color-brand-strong)]">{assignment.unit}</span>}
           </div>
         </div>
       )}
@@ -410,12 +410,12 @@ function DetailPane({
       {/* Evidence */}
       {assignment.evidence_ids && assignment.evidence_ids.length > 0 && (
         <div>
-          <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-2 flex items-center gap-1">
+          <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-2 flex items-center gap-1">
             <Paperclip className="w-3 h-3" /> {t('workflowQueue.detail.evidence', { count: assignment.evidence_ids.length })}
           </div>
           <ul className="space-y-1">
             {assignment.evidence_ids.map((e, i) => (
-              <li key={i} className="text-[var(--text-xs)] text-[var(--text-secondary)] font-mono bg-[var(--bg-secondary)] px-2 py-1.5 rounded-[var(--radius-sm)]">
+              <li key={i} className="text-[length:var(--text-xs)] text-[var(--text-secondary)] font-mono bg-[var(--bg-secondary)] px-2 py-1.5 rounded-[var(--radius-sm)]">
                 {e.startsWith('connector:') ? `🔌 ${e.split(':')[1]}` : `📎 ${e.replace(/^ev_/, '')}`}
               </li>
             ))}
@@ -426,10 +426,10 @@ function DetailPane({
       {/* Prior comment */}
       {assignment.comment && (
         <div>
-          <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1 flex items-center gap-1">
+          <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1 flex items-center gap-1">
             <MessageSquare className="w-3 h-3" /> {t('workflowQueue.detail.note')}
           </div>
-          <p className="text-[var(--text-xs)] text-[var(--text-secondary)] italic bg-[var(--bg-secondary)] p-3 rounded-[var(--radius-sm)] border-l-2 border-[var(--color-brand)]">
+          <p className="text-[length:var(--text-xs)] text-[var(--text-secondary)] italic bg-[var(--bg-secondary)] p-3 rounded-[var(--radius-sm)] border-l-2 border-[var(--color-brand)]">
             {assignment.comment}
           </p>
         </div>
@@ -438,7 +438,7 @@ function DetailPane({
       {/* Decision panel */}
       <div className="pt-4 border-t border-[var(--border-subtle)] space-y-3">
         <div>
-          <label className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">
+          <label className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1">
             {t('workflowQueue.detail.commentLabel')}
           </label>
           <textarea
@@ -448,14 +448,14 @@ function DetailPane({
             placeholder={kind === 'review'
               ? t('workflowQueue.detail.commentPlaceholderReview')
               : t('workflowQueue.detail.commentPlaceholderApproval')}
-            className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none resize-none"
+            className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-xs)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none resize-none"
           />
         </div>
         <div className="flex gap-2">
           <button
             onClick={onPass}
             disabled={busy}
-            className="flex-1 px-4 py-2.5 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-60 inline-flex items-center justify-center gap-1.5"
+            className="flex-1 px-4 py-2.5 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold hover:bg-[var(--btn-primary-bg-hover)] disabled:opacity-60 inline-flex items-center justify-center gap-1.5"
           >
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
             {t(meta.passLabel)}
@@ -463,7 +463,7 @@ function DetailPane({
           <button
             onClick={onReject}
             disabled={busy}
-            className="px-4 py-2.5 rounded-[var(--radius-md)] border border-[var(--status-reject)]/30 text-[var(--status-reject)] text-[var(--text-sm)] font-semibold hover:bg-[var(--accent-red-light)] disabled:opacity-60 inline-flex items-center gap-1.5"
+            className="px-4 py-2.5 rounded-[var(--radius-md)] border border-[var(--status-reject)]/30 text-[var(--status-reject)] text-[length:var(--text-sm)] font-semibold hover:bg-[var(--accent-red-light)] disabled:opacity-60 inline-flex items-center gap-1.5"
           >
             <XCircle className="w-4 h-4" />
             {t(meta.rejectLabel)}
@@ -519,9 +519,9 @@ function VarianceCheck({ assignment }: { assignment: QuestionAssignment }) {
 
   return (
     <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-3 space-y-1.5">
-      <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">{t('workflowQueue.variance.title')}</div>
+      <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">{t('workflowQueue.variance.title')}</div>
       {flags.map((f, i) => (
-        <div key={i} className={`text-[11px] flex items-start gap-1.5 ${f.tone === 'warn' ? 'text-[var(--status-draft)]' : 'text-[var(--text-secondary)]'}`}>
+        <div key={i} className={`text-caption flex items-start gap-1.5 ${f.tone === 'warn' ? 'text-[var(--status-draft)]' : 'text-[var(--text-secondary)]'}`}>
           <span className="mt-0.5">{f.tone === 'warn' ? '⚠' : 'ℹ'}</span>
           <span>{f.text}</span>
         </div>
@@ -541,13 +541,13 @@ function ContextItem({
 }) {
   return (
     <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-3">
-      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
+      <div className="flex items-center gap-1.5 text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">
         <Icon className="w-3 h-3" /> {label}
       </div>
-      <div className={`text-[var(--text-sm)] font-semibold mt-1 ${tone === 'reject' ? 'text-[var(--status-reject)]' : 'text-[var(--text-primary)]'}`}>
+      <div className={`text-[length:var(--text-sm)] font-semibold mt-1 ${tone === 'reject' ? 'text-[var(--status-reject)]' : 'text-[var(--text-primary)]'}`}>
         {value}
       </div>
-      {subvalue && <div className="text-[10px] text-[var(--text-tertiary)] truncate">{subvalue}</div>}
+      {subvalue && <div className="text-caption text-[var(--text-tertiary)] truncate">{subvalue}</div>}
     </div>
   )
 }

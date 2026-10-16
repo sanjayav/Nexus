@@ -359,7 +359,7 @@ export default function Login() {
                 )}
                 <form onSubmit={handleMfaSubmit} className="space-y-3">
                   <div>
-                    <label htmlFor="mfa-code" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">
+                    <label htmlFor="mfa-code" className="text-micro font-medium text-white/50 uppercase tracking-[0.06em] block mb-1">
                       {t('auth.mfa.codeLabel')}
                     </label>
                     <div className="relative">
@@ -376,7 +376,7 @@ export default function Login() {
                         className="w-full h-10 pl-10 pr-4 rounded-lg border border-white/10 bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
                       />
                     </div>
-                    <p className="mt-1.5 text-[10px] text-white/30">
+                    <p className="mt-1.5 text-caption text-white/30">
                       {t('auth.mfa.lostDevice')}
                     </p>
                   </div>
@@ -411,7 +411,7 @@ export default function Login() {
               >
                 {ssoLoading
                   ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : <span className="w-4 h-4 rounded-full bg-emerald-400/20 text-emerald-300 flex items-center justify-center text-[9px] font-bold">SSO</span>}
+                  : <span className="w-4 h-4 rounded-full bg-emerald-400/20 text-emerald-300 flex items-center justify-center text-micro font-bold">SSO</span>}
                 {t('auth.sso.continueEnterprise')}
               </button>
             )}
@@ -440,13 +440,13 @@ export default function Login() {
                           }`}
                       >
                         <div className="flex items-center gap-1.5 mb-1">
-                          <span className="w-5 h-5 rounded bg-white/[0.06] border border-white/10 flex items-center justify-center text-[8px] font-bold text-white/50 group-hover:text-emerald-400 group-hover:border-emerald-400/30 transition-all">
+                          <span className="w-5 h-5 rounded bg-white/[0.06] border border-white/10 flex items-center justify-center text-caption font-bold text-white/50 group-hover:text-emerald-400 group-hover:border-emerald-400/30 transition-all">
                             {acc.role}
                           </span>
                           {isActive && <Loader2 className="w-3 h-3 text-emerald-400 animate-spin" />}
                         </div>
-                        <span className="text-[11px] font-semibold text-white leading-tight line-clamp-1">{t(`auth.roleTiles.${acc.role}.label`, { defaultValue: acc.label })}</span>
-                        <span className="text-[9px] text-white/40 mt-0.5 leading-tight line-clamp-2">{t(`auth.roleTiles.${acc.role}.desc`, { defaultValue: acc.desc })}</span>
+                        <span className="text-caption font-semibold text-white leading-tight line-clamp-1">{t(`auth.roleTiles.${acc.role}.label`, { defaultValue: acc.label })}</span>
+                        <span className="text-caption text-white/40 mt-0.5 leading-tight line-clamp-2">{t(`auth.roleTiles.${acc.role}.desc`, { defaultValue: acc.desc })}</span>
                       </button>
                     )
                   })}
@@ -454,7 +454,7 @@ export default function Login() {
 
                 <div className="flex items-center gap-3 py-1">
                   <div className="h-px flex-1 bg-white/10" />
-                  <span className="text-[9px] text-white/30 uppercase tracking-wider font-medium">{t('auth.login.orCredentials')}</span>
+                  <span className="text-micro text-white/30 uppercase tracking-wider font-medium">{t('auth.login.orCredentials')}</span>
                   <div className="h-px flex-1 bg-white/10" />
                 </div>
               </>
@@ -475,7 +475,7 @@ export default function Login() {
             {!mfaTempToken && (
             <form onSubmit={handleSubmit} noValidate aria-labelledby="form-title" className="space-y-3">
               <div>
-                <label htmlFor="email" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">{t('login.email')}</label>
+                <label htmlFor="email" className="text-micro font-medium text-white/50 uppercase tracking-wider block mb-1">{t('login.email')}</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                   <input
@@ -495,13 +495,13 @@ export default function Login() {
                   />
                 </div>
                 {mode === 'register' && touched.email && registerErrors.email && (
-                  <p id="email-err" className="mt-1 text-[11px] text-red-300">{registerErrors.email}</p>
+                  <p id="email-err" className="mt-1 text-caption text-red-300">{registerErrors.email}</p>
                 )}
               </div>
               {mode === 'register' && (
                 <>
                   <div>
-                    <label htmlFor="name" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">{t('auth.register.fullName')}</label>
+                    <label htmlFor="name" className="text-micro font-medium text-white/50 uppercase tracking-wider block mb-1">{t('auth.register.fullName')}</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                       <input
@@ -517,11 +517,11 @@ export default function Login() {
                       />
                     </div>
                     {touched.name && registerErrors.name && (
-                      <p id="name-err" className="mt-1 text-[11px] text-red-300">{registerErrors.name}</p>
+                      <p id="name-err" className="mt-1 text-caption text-red-300">{registerErrors.name}</p>
                     )}
                   </div>
                   <div>
-                    <label htmlFor="workspace" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">
+                    <label htmlFor="workspace" className="text-micro font-medium text-white/50 uppercase tracking-wider block mb-1">
                       {t('auth.register.workspace')} <span className="text-white/30 normal-case tracking-normal">{t('auth.register.optional')}</span>
                     </label>
                     <div className="relative">
@@ -556,7 +556,7 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => { setSsoAvailable(false); setSsoConnectionId(null) }}
-                    className="w-full text-center text-[11px] text-white/40 hover:text-emerald-400 transition-colors cursor-pointer"
+                    className="w-full text-center text-caption text-white/40 hover:text-emerald-400 transition-colors cursor-pointer"
                   >
                     {t('auth.sso.usePassword')}
                   </button>
@@ -565,9 +565,9 @@ export default function Login() {
                 <>
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label htmlFor="password" className="text-[11px] font-medium text-white/50 uppercase tracking-wider">{t('login.password')}</label>
+                      <label htmlFor="password" className="text-micro font-medium text-white/50 uppercase tracking-[0.06em]">{t('login.password')}</label>
                       {mode === 'login' && (
-                        <Link to="/forgot-password" className="text-[11px] text-emerald-400 hover:text-emerald-300 transition-colors">
+                        <Link to="/forgot-password" className="text-caption text-emerald-400 hover:text-emerald-300 transition-colors">
                           {t('login.forgotPassword')}
                         </Link>
                       )}
@@ -591,7 +591,7 @@ export default function Login() {
                       />
                     </div>
                     {mode === 'register' && touched.password && registerErrors.password && (
-                      <p id="pw-err" className="mt-1 text-[11px] text-red-300">{registerErrors.password}</p>
+                      <p id="pw-err" className="mt-1 text-caption text-red-300">{registerErrors.password}</p>
                     )}
                   </div>
                   <button
@@ -635,7 +635,7 @@ export default function Login() {
           {/* Overlay copy at the bottom */}
           <div className="relative z-20 flex flex-col justify-end p-10 w-full pointer-events-none">
             <div className="flex flex-col gap-2">
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-400/10 border border-emerald-400/20 text-[10px] font-semibold uppercase tracking-[0.15em] text-emerald-300 w-fit">
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-400/10 border border-emerald-400/20 text-micro font-semibold uppercase tracking-[0.06em] text-emerald-300 w-fit">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 {t('auth.hero.live3d')}
               </span>
@@ -652,7 +652,7 @@ export default function Login() {
                     <div className="w-6 h-6 rounded-md bg-emerald-400/10 flex items-center justify-center">
                       <Icon className="w-3 h-3 text-emerald-400" />
                     </div>
-                    <span className="text-[10px] text-white/60 leading-tight">{t(`auth.hero.features.f${fi}`, { defaultValue: text })}</span>
+                    <span className="text-caption text-white/60 leading-tight">{t(`auth.hero.features.f${fi}`, { defaultValue: text })}</span>
                   </div>
                 ))}
               </div>

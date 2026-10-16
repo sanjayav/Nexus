@@ -197,7 +197,7 @@ export default function ApiKeys() {
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] border-b border-[var(--border-default)]">
+                <tr className="text-left text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] border-b border-[var(--border-default)]">
                   <th className="py-2 pr-3">{t('apiKeys.table.name')}</th>
                   <th className="py-2 pr-3">{t('apiKeys.table.prefix')}</th>
                   <th className="py-2 pr-3">{t('apiKeys.table.scopes')}</th>
@@ -216,7 +216,7 @@ export default function ApiKeys() {
                       <div className="flex flex-wrap gap-1">
                         {k.scopes.slice(0, 3).map(s => <Badge key={s} variant="gray">{s}</Badge>)}
                         {k.scopes.length > 3 && (
-                          <span className="text-[11px] text-[var(--text-tertiary)]">+{k.scopes.length - 3}</span>
+                          <span className="text-caption text-[var(--text-tertiary)]">+{k.scopes.length - 3}</span>
                         )}
                       </div>
                     </td>
@@ -268,7 +268,7 @@ export default function ApiKeys() {
             </div>
             <div className="px-5 py-4 space-y-4">
               <div>
-                <label className="block text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('apiKeys.modal.name')}</label>
+                <label className="block text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] mb-1">{t('apiKeys.modal.name')}</label>
                 <input
                   type="text"
                   value={name}
@@ -278,7 +278,7 @@ export default function ApiKeys() {
                 />
               </div>
               <div>
-                <label className="block text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-2">{t('apiKeys.modal.scopes')}</label>
+                <label className="block text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] mb-2">{t('apiKeys.modal.scopes')}</label>
                 <div className="grid grid-cols-2 gap-2">
                   {standardScopes.map(scope => (
                     <label key={scope} className="flex items-center gap-2 cursor-pointer">
@@ -293,7 +293,7 @@ export default function ApiKeys() {
                 </div>
               </div>
               <div>
-                <label className="block text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('apiKeys.modal.expiresIn')}</label>
+                <label className="block text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] mb-1">{t('apiKeys.modal.expiresIn')}</label>
                 <input
                   type="number"
                   min="1"

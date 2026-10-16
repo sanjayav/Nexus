@@ -73,20 +73,20 @@ export default function DisclosureProgressBar({
       <div className="px-4 sm:px-6 pt-3 pb-2 flex items-center gap-2 sm:gap-4 flex-wrap">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center px-2 h-5 rounded-[var(--radius-xs)] bg-[var(--color-brand-soft)] text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand-strong)]">
+            <span className="inline-flex items-center px-2 h-5 rounded-[var(--radius-xs)] bg-[var(--color-brand-soft)] text-micro font-bold uppercase tracking-[0.06em] text-[var(--color-brand-strong)]">
               {frameworkCode}
             </span>
-            <h1 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)] truncate">
+            <h1 className="font-display text-[length:var(--text-lg)] font-semibold text-[var(--text-primary)] truncate">
               {frameworkName}
             </h1>
-            <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] font-mono">FY{reportingYear}</span>
-            <span className={`inline-flex items-center px-2 h-5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${STATUS_PILL[workflowStatus]}`}>
+            <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] font-mono">FY{reportingYear}</span>
+            <span className={`inline-flex items-center px-2 h-5 rounded-full text-micro font-semibold uppercase tracking-[0.06em] ${STATUS_PILL[workflowStatus]}`}>
               {t(STATUS_LABEL[workflowStatus])}
             </span>
           </div>
         </div>
 
-        <div className="hidden md:flex items-center gap-1 text-[var(--text-xs)] text-[var(--text-secondary)] tabular-nums">
+        <div className="hidden md:flex items-center gap-1 text-[length:var(--text-xs)] text-[var(--text-secondary)] tabular-nums">
           <span className="font-semibold text-[var(--text-primary)]">{completedCells}</span>
           <span>{t('disclosureEditor.progress.of')}</span>
           <span className="font-semibold text-[var(--text-primary)]">{totalCells}</span>
@@ -98,7 +98,7 @@ export default function DisclosureProgressBar({
         <button
           type="button"
           onClick={onToggleReadingMode}
-          className={`inline-flex items-center gap-1.5 h-9 sm:h-8 min-h-[36px] px-3 rounded-[var(--radius-sm)] border text-[var(--text-xs)] font-semibold transition-colors ${
+          className={`inline-flex items-center gap-1.5 h-9 sm:h-8 min-h-[36px] px-3 rounded-[var(--radius-sm)] border text-[length:var(--text-xs)] font-semibold transition-colors ${
             readingMode
               ? 'border-[var(--color-brand)] bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)]'
               : 'border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
@@ -118,7 +118,7 @@ export default function DisclosureProgressBar({
           onClick={onPublish}
           disabled={publishDisabled}
           title={tooltip}
-          className="inline-flex items-center gap-1.5 h-9 sm:h-8 min-h-[36px] px-3 rounded-[var(--radius-sm)] bg-[var(--color-brand)] text-white text-[var(--text-xs)] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="inline-flex items-center gap-1.5 h-9 sm:h-8 min-h-[36px] px-3 rounded-[var(--radius-sm)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-xs)] font-semibold hover:bg-[var(--btn-primary-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Send className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">{t('disclosureEditor.progress.publishReport')}</span>
@@ -169,7 +169,7 @@ function PresenceAvatarsInner() {
         return (
           <div
             key={connectionId}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold text-white border-2 border-[var(--bg-primary)] shadow-sm"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-caption font-semibold text-white border-2 border-[var(--bg-primary)] shadow-sm"
             style={{ background: color }}
             title={info?.email ? `${name} (${info.email})` : name}
           >
@@ -179,7 +179,7 @@ function PresenceAvatarsInner() {
       })}
       {overflow > 0 && (
         <div
-          className="w-7 h-7 rounded-full bg-[var(--bg-tertiary)] text-[10px] font-semibold text-[var(--text-secondary)] flex items-center justify-center border-2 border-[var(--bg-primary)] shadow-sm tabular-nums"
+          className="w-7 h-7 rounded-full bg-[var(--bg-tertiary)] text-caption font-semibold text-[var(--text-secondary)] flex items-center justify-center border-2 border-[var(--bg-primary)] shadow-sm tabular-nums"
           title={t('disclosureEditor.progress.moreInRoom', { count: overflow })}
         >
           +{overflow}

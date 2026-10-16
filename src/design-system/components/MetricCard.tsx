@@ -1,7 +1,7 @@
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
-import { motion, useMotionValue, useSpring, useTransform, useMotionValueEvent } from 'framer-motion'
-import { useEffect, useState } from 'react'
-import { popIn } from '../../components/motion'
+import { motion } from 'framer-motion'
+import { popIn } from '../../motion/tokens'
+import NumberTicker from '../../components/ui/NumberTicker'
 
 interface MetricCardProps {
   label: string
@@ -78,7 +78,7 @@ export default function MetricCard({
 
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
-        <span className="text-[10.5px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.14em]">
+        <span className="text-micro font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.06em]">
           {label}
         </span>
         {icon && (
@@ -96,22 +96,22 @@ export default function MetricCard({
         <CountUp
           value={numericValue}
           isPct={isPct}
-          className="font-display text-[28px] leading-none font-bold tracking-[-0.02em] text-[var(--text-primary)] tabular-nums"
+          className="type-figure text-[28px] leading-none text-[var(--text-primary)]"
         />
         {sub && (
-          <span className="text-[12.5px] text-[var(--text-tertiary)] tabular-nums">{sub}</span>
+          <span className="text-small text-[var(--text-tertiary)] tabular-nums">{sub}</span>
         )}
       </div>
 
       {trend && (
         <div className="mt-3 flex items-center gap-2">
-          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[5px] text-[11px] font-semibold ${trendColor}`}>
+          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[5px] text-caption font-semibold tabular-nums ${trendColor}`}>
             {TrendIcon && <TrendIcon className="w-3 h-3" />}
             {trend.value > 0 ? '+' : ''}
             {trend.value}%
           </span>
           {trend.label && (
-            <span className="text-[11px] text-[var(--text-tertiary)]">{trend.label}</span>
+            <span className="text-caption text-[var(--text-tertiary)]">{trend.label}</span>
           )}
         </div>
       )}
@@ -121,24 +121,14 @@ export default function MetricCard({
   )
 }
 
-/** Animated number counter — springs from 0 to target on mount. */
+/** Rolling figure — keeps MetricCard's historic k/M/% formatting. */
 function CountUp({ value, isPct, className }: { value: number; isPct: boolean; className: string }) {
-  const [display, setDisplay] = useState('0')
-  const mv = useMotionValue(0)
-  const spring = useSpring(mv, { stiffness: 90, damping: 22, mass: 1 })
-  const rounded = useTransform(spring, (v) => {
-    if (!isFinite(value)) return '—'
+  if (!isFinite(value)) return <span className={className}>—</span>
+  const format = (v: number) => {
     if (isPct) return Math.round(v) + '%'
     if (Math.abs(value) >= 1_000_000) return (v / 1_000_000).toFixed(2) + 'M'
     if (Math.abs(value) >= 1_000) return (v / 1_000).toFixed(1) + 'k'
     return Math.round(v).toLocaleString()
-  })
-
-  useEffect(() => {
-    mv.set(value)
-  }, [mv, value])
-
-  useMotionValueEvent(rounded, 'change', (v) => setDisplay(v))
-
-  return <span className={className}>{display}</span>
+  }
+  return <NumberTicker value={value} format={format} className={className} />
 }

@@ -46,8 +46,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     LEFT JOIN evidence e ON e.id = ax.evidence_id
     LEFT JOIN data_value dv ON dv.id = e.data_value_id
     LEFT JOIN reporting_year ry ON ry.id = dv.reporting_year_id
+    LEFT JOIN users eu ON eu.id = dv.entered_by
     WHERE ax.id = ${body.extractionId}
-      AND ry.organisation_id = ${token.org}
+      AND COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${token.org}
     LIMIT 1
   `) as Array<{ id: string }>
   if (ownership.length === 0) return res.status(404).json({ error: 'Extraction not found' })
@@ -57,7 +58,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     SELECT dv.id
     FROM data_value dv
     JOIN reporting_year ry ON ry.id = dv.reporting_year_id
-    WHERE dv.id = ${body.dataValueId} AND ry.organisation_id = ${token.org}
+    LEFT JOIN users eu ON eu.id = dv.entered_by
+    WHERE dv.id = ${body.dataValueId}
+      AND COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${token.org}
     LIMIT 1
   `) as Array<{ id: string }>
   if (dvCheck.length === 0) return res.status(404).json({ error: 'data_value not found' })

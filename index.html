@@ -4,24 +4,14 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://rsms.me/" />
     <!--
-      Web fonts are loaded NON-BLOCKING (media="print" → "all" on load).
-      fonts.googleapis.com / rsms.me are unreachable or very slow from
-      mainland China; a render-blocking <link rel="stylesheet"> there hangs
-      first paint until the request times out. With this pattern the page
-      paints immediately using the system stacks declared in index.css /
-      tailwind.config.js (PingFang SC, Microsoft YaHei, … for CJK) and swaps
-      in the Latin web fonts only if/when they arrive.
+      Fonts are self-hosted (public/fonts, SIL OFL 1.1): Inter variable and
+      JetBrains Mono, Latin subsets. No third-party font CDN — Google Fonts and
+      rsms.me are unreachable from mainland China. Hanzi always render in the
+      platform face (PingFang SC / Microsoft YaHei / Noto Sans SC), declared in
+      index.css and tailwind.config.js. @font-face lives in src/index.css.
     -->
-    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" media="print" onload="this.media='all'" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'" />
-    <noscript>
-      <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Instrument+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
-    </noscript>
+    <link rel="preload" href="/fonts/InterVariable-latin.woff2" as="font" type="font/woff2" crossorigin />
     <title>Nexus — CSRD-ready in 48 hours. Published pricing. Built ESG-first.</title>
     <meta name="description" content="The modern alternative to Workiva. 24 frameworks, AI-native, self-serve onboarding, transparent pricing from £500/mo. CSRD, ISSB, GRI, TCFD, CDP — all in one platform." />
     <meta name="theme-color" content="#10B981" />
@@ -60,9 +50,9 @@
       })();
     </script>
     <style>
-      html { background-color: #F4F6F8; }
+      html { background-color: #F8FAF9; }
       html[data-theme='glass'] { background-color: #FAFAF8; }
-      html[data-color-mode='light'] { background-color: #FAFBFC; }
+      html[data-color-mode='light'] { background-color: #F8FAF9; }
       html[data-color-mode='dark']  { background-color: #0B0E13; }
     </style>
   </head>

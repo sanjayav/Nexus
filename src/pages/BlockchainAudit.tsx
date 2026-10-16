@@ -167,8 +167,8 @@ function ChainVisualization({ records }: { records: BlockchainRecord[] }) {
       className="animate-slide-up stagger-8 rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] p-6"
       style={{ boxShadow: 'var(--shadow-card)' }}
     >
-      <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)] mb-1">{t('blockchain.chain.title')}</h2>
-      <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mb-6">
+      <h2 className="font-display text-[length:var(--text-lg)] font-semibold text-[var(--text-primary)] mb-1">{t('blockchain.chain.title')}</h2>
+      <p className="text-[length:var(--text-sm)] text-[var(--text-tertiary)] mb-6">
         <Trans
           i18nKey="blockchain.chain.tracing"
           values={{
@@ -202,19 +202,19 @@ function ChainVisualization({ records }: { records: BlockchainRecord[] }) {
                 >
                   <Icon className="w-5 h-5" style={{ color: accent.icon }} />
                 </div>
-                <span className="font-display font-semibold text-[var(--text-sm)] text-[var(--text-primary)]">{t(`blockchain.eventType.${eventTypeKey(step.eventType)}`)}</span>
-                <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">{formatTimestamp(step.timestamp, tsLocale)}</span>
-                <div className="flex items-center gap-1 text-[var(--text-xs)] text-[var(--text-secondary)]">
+                <span className="font-display font-semibold text-[length:var(--text-sm)] text-[var(--text-primary)]">{t(`blockchain.eventType.${eventTypeKey(step.eventType)}`)}</span>
+                <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)]">{formatTimestamp(step.timestamp, tsLocale)}</span>
+                <div className="flex items-center gap-1 text-[length:var(--text-xs)] text-[var(--text-secondary)]">
                   <User className="w-3 h-3" />
                   <span>{step.submitter === 'System' ? t('blockchain.system') : step.submitter}</span>
                 </div>
                 {step.approver && step.approver !== '' && (
-                  <div className="flex items-center gap-1 text-[var(--text-xs)] text-[var(--text-tertiary)]">
+                  <div className="flex items-center gap-1 text-[length:var(--text-xs)] text-[var(--text-tertiary)]">
                     <CheckCircle2 className="w-3 h-3" />
                     <span>{step.approver}</span>
                   </div>
                 )}
-                <code className="text-[10px] font-mono text-[var(--accent-teal)] opacity-80">{truncate(step.txHash, 20)}</code>
+                <code className="text-caption font-mono text-[var(--accent-teal)] opacity-80">{truncate(step.txHash, 20)}</code>
               </div>
 
               {/* Connector arrow */}
@@ -260,7 +260,7 @@ function FaqCard({ question, answer, index }: { question: string; answer: string
           <HelpCircle className="w-4 h-4 text-[var(--accent-teal)]" />
         </div>
         <div className="flex-1">
-          <span className="font-display font-semibold text-[var(--text-sm)] text-[var(--text-primary)]">{question}</span>
+          <span className="font-display font-semibold text-[length:var(--text-sm)] text-[var(--text-primary)]">{question}</span>
         </div>
         {open ? (
           <ChevronUp className="w-4 h-4 text-[var(--text-tertiary)] flex-shrink-0 mt-1 transition-transform duration-300" />
@@ -269,7 +269,7 @@ function FaqCard({ question, answer, index }: { question: string; answer: string
         )}
       </button>
       {open && (
-        <p className="text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed mt-3 ml-11 animate-expand">
+        <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] leading-relaxed mt-3 ml-11 animate-expand">
           {answer}
         </p>
       )}
@@ -414,13 +414,13 @@ export default function BlockchainAudit() {
               <Shield className="w-7 h-7 text-[var(--accent-teal)]" />
             </div>
             <div>
-              <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">
+              <h1 className="font-display text-[length:var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">
                 {t('blockchain.hero.title')}
               </h1>
-              <p className="mt-1 text-[var(--text-sm)] text-[var(--text-tertiary)] max-w-2xl leading-relaxed flex items-center gap-2 flex-wrap">
+              <p className="mt-1 text-[length:var(--text-sm)] text-[var(--text-tertiary)] max-w-2xl leading-relaxed flex items-center gap-2 flex-wrap">
                 {t('blockchain.hero.subtitle')}
                 {isLive && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--accent-green)] bg-[var(--accent-green-light)] px-2 py-0.5 rounded-full">
+                  <span className="inline-flex items-center gap-1 text-caption font-semibold text-[var(--accent-green)] bg-[var(--accent-green-light)] px-2 py-0.5 rounded-full">
                     <Wifi className="w-3 h-3" /> {t('blockchain.hero.live')}
                   </span>
                 )}
@@ -434,7 +434,7 @@ export default function BlockchainAudit() {
               <button
                 onClick={runVerify}
                 disabled={verifying}
-                className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--accent-teal)] text-white text-[var(--text-sm)] font-semibold hover:opacity-90 disabled:opacity-60 inline-flex items-center gap-2 shadow-sm"
+                className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold hover:opacity-90 disabled:opacity-60 inline-flex items-center gap-2 shadow-sm"
               >
                 <ShieldCheck className="w-4 h-4" />
                 {verifying ? t('blockchain.actions.verifying') : t('blockchain.actions.verify')}
@@ -443,7 +443,7 @@ export default function BlockchainAudit() {
                 onClick={runAnchor}
                 disabled={anchoring}
                 title={t('blockchain.actions.anchorTitle')}
-                className="px-4 py-2 rounded-[var(--radius-md)] bg-[#F7931A] text-white text-[var(--text-sm)] font-semibold hover:opacity-90 disabled:opacity-60 inline-flex items-center gap-2 shadow-sm"
+                className="px-4 py-2 rounded-[var(--radius-md)] bg-[#F7931A] text-white text-[length:var(--text-sm)] font-semibold hover:opacity-90 disabled:opacity-60 inline-flex items-center gap-2 shadow-sm"
               >
                 <Bitcoin className="w-4 h-4" />
                 {anchoring ? t('blockchain.actions.anchoring') : t('blockchain.actions.anchor')}
@@ -498,8 +498,8 @@ export default function BlockchainAudit() {
               <div className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: `linear-gradient(90deg, ${kpi.accent}, transparent)` }} />
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-semibold">{t(`blockchain.kpi.${kpi.labelKey}`)}</p>
-                  <p className="text-[var(--text-2xl)] font-bold text-[var(--text-primary)] mt-1 tabular-nums animate-count" style={{ animationDelay: `${200 + idx * 100}ms` }}>
+                  <p className="text-micro text-[var(--text-tertiary)] uppercase tracking-[0.06em] font-semibold">{t(`blockchain.kpi.${kpi.labelKey}`)}</p>
+                  <p className="text-[length:var(--text-2xl)] font-bold text-[var(--text-primary)] mt-1 tabular-nums animate-count" style={{ animationDelay: `${200 + idx * 100}ms` }}>
                     {kpi.value}
                   </p>
                 </div>
@@ -523,15 +523,15 @@ export default function BlockchainAudit() {
           <header className="px-5 py-3 border-b border-[var(--border-subtle)] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Bitcoin className="w-4 h-4 text-[#F7931A]" />
-              <h3 className="font-display text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('blockchain.anchors.title')}</h3>
+              <h3 className="font-display text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('blockchain.anchors.title')}</h3>
             </div>
-            <button onClick={loadAnchors} className="text-[10px] font-semibold text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] inline-flex items-center gap-1">
+            <button onClick={loadAnchors} className="text-caption font-semibold text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] inline-flex items-center gap-1">
               <RefreshCw className="w-3 h-3" /> {t('blockchain.anchors.refresh')}
             </button>
           </header>
-          <table className="w-full text-[var(--text-sm)]">
+          <table className="w-full text-[length:var(--text-sm)]">
             <thead>
-              <tr className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] bg-[var(--bg-secondary)]">
+              <tr className="text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] bg-[var(--bg-secondary)]">
                 <th className="text-left px-5 py-2 font-semibold">{t('blockchain.anchors.cols.anchored')}</th>
                 <th className="text-left px-3 py-2 font-semibold">{t('blockchain.anchors.cols.tipHash')}</th>
                 <th className="text-center px-3 py-2 font-semibold">{t('blockchain.anchors.cols.block')}</th>
@@ -542,20 +542,20 @@ export default function BlockchainAudit() {
             <tbody className="divide-y divide-[var(--border-subtle)]">
               {anchors.map(a => (
                 <tr key={a.id} className="hover:bg-[var(--bg-secondary)]">
-                  <td className="px-5 py-2.5 text-[var(--text-xs)] text-[var(--text-secondary)]">{new Date(a.anchored_at).toLocaleString(dateLocale)}</td>
-                  <td className="px-3 py-2.5 font-mono text-[10px] text-[var(--accent-teal)]">{a.tip_hash.slice(0, 24)}…</td>
-                  <td className="px-3 py-2.5 text-center text-[var(--text-xs)] tabular-nums text-[var(--text-secondary)]">#{a.tip_block_number}</td>
+                  <td className="px-5 py-2.5 text-[length:var(--text-xs)] text-[var(--text-secondary)]">{new Date(a.anchored_at).toLocaleString(dateLocale)}</td>
+                  <td className="px-3 py-2.5 font-mono text-caption text-[var(--accent-teal)]">{a.tip_hash.slice(0, 24)}…</td>
+                  <td className="px-3 py-2.5 text-center text-[length:var(--text-xs)] tabular-nums text-[var(--text-secondary)]">#{a.tip_block_number}</td>
                   <td className="px-3 py-2.5 text-center">
                     {a.status === 'confirmed' ? (
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--status-ok)] bg-[var(--accent-green-light)] px-1.5 py-0.5 rounded">
+                      <span className="text-micro font-bold uppercase tracking-[0.06em] text-[var(--status-ok)] bg-[var(--accent-green-light)] px-1.5 py-0.5 rounded">
                         {t('blockchain.anchors.btcBlock', { height: a.bitcoin_block_height })}
                       </span>
                     ) : a.status === 'pending' ? (
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-[#F7931A] bg-[#F7931A]/10 px-1.5 py-0.5 rounded">
+                      <span className="text-micro font-bold uppercase tracking-[0.06em] text-[#F7931A] bg-[#F7931A]/10 px-1.5 py-0.5 rounded">
                         {t('blockchain.anchors.pendingSubmitted')}
                       </span>
                     ) : (
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--status-reject)] bg-[var(--accent-red-light)] px-1.5 py-0.5 rounded" title={a.error_message ?? ''}>
+                      <span className="text-micro font-bold uppercase tracking-[0.06em] text-[var(--status-reject)] bg-[var(--accent-red-light)] px-1.5 py-0.5 rounded" title={a.error_message ?? ''}>
                         {t('blockchain.anchors.failed')}
                       </span>
                     )}
@@ -563,7 +563,7 @@ export default function BlockchainAudit() {
                   <td className="px-5 py-2.5 text-right">
                     {a.receipt_size != null && a.receipt_size > 0 ? (
                       <a href={blockchainApi.anchorReceiptUrl(a.id) + `&_auth=${localStorage.getItem('aeiforo_token') ?? ''}`}
-                         className="text-[var(--text-xs)] font-semibold text-[var(--color-brand)] hover:underline inline-flex items-center gap-1"
+                         className="text-[length:var(--text-xs)] font-semibold text-[var(--color-brand)] hover:underline inline-flex items-center gap-1"
                          onClick={async (e) => {
                            e.preventDefault()
                            try {
@@ -582,14 +582,14 @@ export default function BlockchainAudit() {
                         <Download className="w-3 h-3" /> .ots ({a.receipt_size}B)
                       </a>
                     ) : (
-                      <span className="text-[10px] text-[var(--text-tertiary)]">—</span>
+                      <span className="text-caption text-[var(--text-tertiary)]">—</span>
                     )}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div className="px-5 py-2 bg-[var(--bg-secondary)] text-[10px] text-[var(--text-tertiary)] border-t border-[var(--border-subtle)]">
+          <div className="px-5 py-2 bg-[var(--bg-secondary)] text-caption text-[var(--text-tertiary)] border-t border-[var(--border-subtle)]">
             <Trans
               i18nKey="blockchain.anchors.footnote"
               components={{
@@ -607,7 +607,7 @@ export default function BlockchainAudit() {
         style={{ boxShadow: 'var(--shadow-card)' }}
       >
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 text-[var(--text-sm)] text-[var(--text-tertiary)]">
+          <div className="flex items-center gap-2 text-[length:var(--text-sm)] text-[var(--text-tertiary)]">
             <Filter className="w-4 h-4" />
             <span className="font-medium">{t('blockchain.filters.label')}</span>
           </div>
@@ -616,7 +616,7 @@ export default function BlockchainAudit() {
           <select
             value={facilityFilter}
             onChange={(e) => setFacilityFilter(e.target.value)}
-            className="text-[var(--text-sm)] border border-[var(--border-default)] rounded-lg px-3 py-2 bg-[var(--bg-primary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent-teal)_20%,transparent)] focus:border-[var(--accent-teal)] transition-all duration-300 cursor-pointer"
+            className="text-[length:var(--text-sm)] border border-[var(--border-default)] rounded-lg px-3 py-2 bg-[var(--bg-primary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent-teal)_20%,transparent)] focus:border-[var(--accent-teal)] transition-all duration-300 cursor-pointer"
           >
             <option value="all">{t('blockchain.filters.allFacilities')}</option>
             {facilities.map((f) => (
@@ -630,7 +630,7 @@ export default function BlockchainAudit() {
           <select
             value={eventTypeFilter}
             onChange={(e) => setEventTypeFilter(e.target.value)}
-            className="text-[var(--text-sm)] border border-[var(--border-default)] rounded-lg px-3 py-2 bg-[var(--bg-primary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent-teal)_20%,transparent)] focus:border-[var(--accent-teal)] transition-all duration-300 cursor-pointer"
+            className="text-[length:var(--text-sm)] border border-[var(--border-default)] rounded-lg px-3 py-2 bg-[var(--bg-primary)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent-teal)_20%,transparent)] focus:border-[var(--accent-teal)] transition-all duration-300 cursor-pointer"
           >
             <option value="all">{t('blockchain.filters.allEventTypes')}</option>
             {eventTypes.map((et) => (
@@ -648,12 +648,12 @@ export default function BlockchainAudit() {
               placeholder={t('blockchain.filters.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full text-[var(--text-sm)] border border-[var(--border-default)] rounded-lg pl-9 pr-3 py-2 bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent-teal)_20%,transparent)] focus:border-[var(--accent-teal)] focus:bg-[var(--bg-primary)] transition-all duration-300"
+              className="w-full text-[length:var(--text-sm)] border border-[var(--border-default)] rounded-lg pl-9 pr-3 py-2 bg-[var(--bg-secondary)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[color-mix(in_srgb,var(--accent-teal)_20%,transparent)] focus:border-[var(--accent-teal)] focus:bg-[var(--bg-primary)] transition-all duration-300"
             />
           </div>
 
           {/* Result count */}
-          <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] ml-auto tabular-nums">
+          <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] ml-auto tabular-nums">
             {t('blockchain.filters.resultCount', { shown: filteredRecords.length, count: displayRecords.length })}
           </span>
         </div>
@@ -665,52 +665,52 @@ export default function BlockchainAudit() {
         style={{ boxShadow: 'var(--shadow-card)' }}
       >
         <div className="overflow-x-auto">
-          <table className="w-full text-[var(--text-sm)]">
+          <table className="w-full text-[length:var(--text-sm)]">
             <thead className="sticky top-0 z-10">
               <tr className="bg-[var(--bg-primary)] border-b border-[var(--border-default)]">
-                <th className="text-left font-display font-semibold text-[var(--text-tertiary)] px-4 py-3 whitespace-nowrap text-[var(--text-xs)] uppercase tracking-wider">
+                <th className="text-left font-display font-semibold text-[var(--text-tertiary)] px-4 py-3 whitespace-nowrap text-[length:var(--text-xs)] uppercase tracking-wider">
                   <div className="flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5" />
                     {t('blockchain.table.timestamp')}
                   </div>
                 </th>
-                <th className="text-left font-display font-semibold text-[var(--text-tertiary)] px-4 py-3 whitespace-nowrap text-[var(--text-xs)] uppercase tracking-wider">
+                <th className="text-left font-display font-semibold text-[var(--text-tertiary)] px-4 py-3 whitespace-nowrap text-[length:var(--text-xs)] uppercase tracking-wider">
                   {t('blockchain.table.eventType')}
                 </th>
-                <th className="text-left font-display font-semibold text-[var(--text-tertiary)] px-4 py-3 whitespace-nowrap text-[var(--text-xs)] uppercase tracking-wider">
+                <th className="text-left font-display font-semibold text-[var(--text-tertiary)] px-4 py-3 whitespace-nowrap text-[length:var(--text-xs)] uppercase tracking-wider">
                   {t('blockchain.table.facility')}
                 </th>
-                <th className="text-left font-display font-semibold text-[var(--text-tertiary)] px-4 py-3 whitespace-nowrap text-[var(--text-xs)] uppercase tracking-wider">
+                <th className="text-left font-display font-semibold text-[var(--text-tertiary)] px-4 py-3 whitespace-nowrap text-[length:var(--text-xs)] uppercase tracking-wider">
                   {t('blockchain.table.dataPoint')}
                 </th>
-                <th className="text-left font-display font-semibold text-[var(--text-tertiary)] px-4 py-3 whitespace-nowrap text-[var(--text-xs)] uppercase tracking-wider">
+                <th className="text-left font-display font-semibold text-[var(--text-tertiary)] px-4 py-3 whitespace-nowrap text-[length:var(--text-xs)] uppercase tracking-wider">
                   <div className="flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5" />
                     {t('blockchain.table.submitter')}
                   </div>
                 </th>
-                <th className="text-left font-display font-semibold text-[var(--text-tertiary)] px-4 py-3 whitespace-nowrap text-[var(--text-xs)] uppercase tracking-wider">
+                <th className="text-left font-display font-semibold text-[var(--text-tertiary)] px-4 py-3 whitespace-nowrap text-[length:var(--text-xs)] uppercase tracking-wider">
                   <div className="flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5" />
                     {t('blockchain.table.approver')}
                   </div>
                 </th>
-                <th className="text-left font-display font-semibold text-[var(--text-tertiary)] px-4 py-3 whitespace-nowrap text-[var(--text-xs)] uppercase tracking-wider">
+                <th className="text-left font-display font-semibold text-[var(--text-tertiary)] px-4 py-3 whitespace-nowrap text-[length:var(--text-xs)] uppercase tracking-wider">
                   <div className="flex items-center gap-1.5">
                     <Link2 className="w-3.5 h-3.5" />
                     {t('blockchain.table.merkleRoot')}
                   </div>
                 </th>
-                <th className="text-left font-display font-semibold text-[var(--text-tertiary)] px-4 py-3 whitespace-nowrap text-[var(--text-xs)] uppercase tracking-wider">
+                <th className="text-left font-display font-semibold text-[var(--text-tertiary)] px-4 py-3 whitespace-nowrap text-[length:var(--text-xs)] uppercase tracking-wider">
                   <div className="flex items-center gap-1.5">
                     <Hash className="w-3.5 h-3.5" />
                     {t('blockchain.table.txHash')}
                   </div>
                 </th>
-                <th className="text-left font-display font-semibold text-[var(--text-tertiary)] px-4 py-3 whitespace-nowrap text-[var(--text-xs)] uppercase tracking-wider">
+                <th className="text-left font-display font-semibold text-[var(--text-tertiary)] px-4 py-3 whitespace-nowrap text-[length:var(--text-xs)] uppercase tracking-wider">
                   {t('blockchain.table.block')}
                 </th>
-                <th className="text-left font-display font-semibold text-[var(--text-tertiary)] px-4 py-3 whitespace-nowrap text-[var(--text-xs)] uppercase tracking-wider">
+                <th className="text-left font-display font-semibold text-[var(--text-tertiary)] px-4 py-3 whitespace-nowrap text-[length:var(--text-xs)] uppercase tracking-wider">
                   {t('blockchain.table.status')}
                 </th>
               </tr>
@@ -723,7 +723,7 @@ export default function BlockchainAudit() {
                     key={record.id}
                     className={`border-b border-[var(--border-subtle)] transition-colors duration-200 hover:bg-[var(--bg-hover)] ${idx % 2 === 1 ? 'bg-[var(--bg-secondary)]' : 'bg-[var(--bg-primary)]'}`}
                   >
-                    <td className="px-4 py-3 whitespace-nowrap text-[var(--text-secondary)] font-mono text-[var(--text-xs)]">
+                    <td className="px-4 py-3 whitespace-nowrap text-[var(--text-secondary)] font-mono text-[length:var(--text-xs)]">
                       {formatTimestamp(record.timestamp, tsLocale)}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
@@ -732,41 +732,41 @@ export default function BlockchainAudit() {
                         {t(`blockchain.eventType.${eventTypeKey(record.eventType)}`)}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-[var(--text-secondary)] text-[var(--text-xs)]">
+                    <td className="px-4 py-3 whitespace-nowrap text-[var(--text-secondary)] text-[length:var(--text-xs)]">
                       {facilityLabel(record.facility)}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-[var(--text-secondary)] text-[var(--text-xs)] font-medium">
+                    <td className="px-4 py-3 whitespace-nowrap text-[var(--text-secondary)] text-[length:var(--text-xs)] font-medium">
                       {record.dataPoint}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="text-[var(--text-xs)] text-[var(--text-secondary)]">{record.submitter === 'System' ? t('blockchain.system') : record.submitter}</div>
-                      <code className="text-[10px] font-mono text-[var(--accent-teal)] opacity-80">
+                      <div className="text-[length:var(--text-xs)] text-[var(--text-secondary)]">{record.submitter === 'System' ? t('blockchain.system') : record.submitter}</div>
+                      <code className="text-caption font-mono text-[var(--accent-teal)] opacity-80">
                         {truncate(record.submitterDID, 22)}
                       </code>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       {record.approver ? (
                         <>
-                          <div className="text-[var(--text-xs)] text-[var(--text-secondary)]">{record.approver}</div>
-                          <code className="text-[10px] font-mono text-[var(--accent-teal)] opacity-80">
+                          <div className="text-[length:var(--text-xs)] text-[var(--text-secondary)]">{record.approver}</div>
+                          <code className="text-caption font-mono text-[var(--accent-teal)] opacity-80">
                             {truncate(record.approverDID, 22)}
                           </code>
                         </>
                       ) : (
-                        <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">--</span>
+                        <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)]">--</span>
                       )}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <code className="text-[var(--text-xs)] font-mono text-[var(--accent-teal)] bg-[var(--bg-tertiary)] px-2 py-0.5 rounded">
+                      <code className="text-[length:var(--text-xs)] font-mono text-[var(--accent-teal)] bg-[var(--bg-tertiary)] px-2 py-0.5 rounded">
                         {truncate(record.merkleRoot, 14)}
                       </code>
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <code className="text-[var(--text-xs)] font-mono text-[var(--accent-teal)] bg-[var(--bg-tertiary)] px-2 py-0.5 rounded">
+                      <code className="text-[length:var(--text-xs)] font-mono text-[var(--accent-teal)] bg-[var(--bg-tertiary)] px-2 py-0.5 rounded">
                         {truncate(record.txHash, 14)}
                       </code>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-[var(--text-xs)] text-[var(--text-secondary)] font-mono tabular-nums">
+                    <td className="px-4 py-3 whitespace-nowrap text-[length:var(--text-xs)] text-[var(--text-secondary)] font-mono tabular-nums">
                       {record.blockNumber.toLocaleString()}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap">
@@ -779,7 +779,7 @@ export default function BlockchainAudit() {
               })}
               {filteredRecords.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-[var(--text-sm)] text-[var(--text-tertiary)]">
+                  <td colSpan={10} className="px-4 py-12 text-center text-[length:var(--text-sm)] text-[var(--text-tertiary)]">
                     {t('blockchain.table.empty')}
                   </td>
                 </tr>
@@ -794,7 +794,7 @@ export default function BlockchainAudit() {
 
       {/* ── FAQ Section ── */}
       <div className="animate-slide-up stagger-9">
-        <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)] mb-3">
+        <h2 className="font-display text-[length:var(--text-lg)] font-semibold text-[var(--text-primary)] mb-3">
           {t('blockchain.faqTitle')}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

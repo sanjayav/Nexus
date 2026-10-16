@@ -81,8 +81,8 @@ export default function DataEntryPicker() {
           <AlertCircle className="w-5 h-5 text-[var(--status-reject)] flex-shrink-0 mt-0.5" />
           <div>
             <h3 className="font-semibold text-[var(--text-primary)]">{t('dataEntry.picker.unableToLoad')}</h3>
-            <p className="text-[var(--text-sm)] text-[var(--text-secondary)] font-mono mt-1">{state.error}</p>
-            <button onClick={load} className="mt-3 text-[var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">{t('dataEntry.picker.retry')}</button>
+            <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] font-mono mt-1">{state.error}</p>
+            <button onClick={load} className="mt-3 text-[length:var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">{t('dataEntry.picker.retry')}</button>
           </div>
         </div>
       </div>
@@ -94,8 +94,8 @@ export default function DataEntryPicker() {
   return (
     <div className="space-y-5 animate-fade-in">
       <header>
-        <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)]">{t('dataEntry.picker.title')}</h1>
-        <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1">
+        <h1 className="font-display text-[length:var(--text-2xl)] font-bold text-[var(--text-primary)]">{t('dataEntry.picker.title')}</h1>
+        <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] mt-1">
           {t('dataEntry.picker.subtitle', { year: 'FY2026' })}
           <span className="text-[var(--text-tertiary)] ml-2">{t('dataEntry.picker.seeded', { count: total, year: 'FY2025' })}</span>
         </p>
@@ -108,7 +108,7 @@ export default function DataEntryPicker() {
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder={t('dataEntry.picker.search')}
-          className="w-full pl-10 pr-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none"
+          className="w-full pl-10 pr-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none"
         />
       </div>
 
@@ -126,16 +126,16 @@ export default function DataEntryPicker() {
               >
                 <div className="flex items-center gap-3">
                   {isOpen ? <ChevronDown className="w-4 h-4 text-[var(--text-tertiary)]" /> : <ChevronRight className="w-4 h-4 text-[var(--text-tertiary)]" />}
-                  <span className="font-display text-[var(--text-base)] font-semibold text-[var(--text-primary)]">{t(capitalLabelKey(cap.capital), { defaultValue: cap.capital })}</span>
+                  <span className="font-display text-[length:var(--text-base)] font-semibold text-[var(--text-primary)]">{t(capitalLabelKey(cap.capital), { defaultValue: cap.capital })}</span>
                 </div>
-                <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] tabular-nums">{t('dataEntry.picker.items', { count })}</span>
+                <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] tabular-nums">{t('dataEntry.picker.items', { count })}</span>
               </button>
 
               {isOpen && (
                 <div className="border-t border-[var(--border-subtle)] divide-y divide-[var(--border-subtle)]">
                   {cap.subsections.map(sub => (
                     <div key={sub.name} className="px-5 py-3">
-                      <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand)] mb-2">{t(subsectionLabelKey(sub.name), { defaultValue: sub.name })}</div>
+                      <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--color-brand)] mb-2">{t(subsectionLabelKey(sub.name), { defaultValue: sub.name })}</div>
                       <div className="grid grid-cols-2 gap-1.5">
                         {sub.rows.map(it => <LineItemRow key={it.id} item={it} onOpen={() => navigate(`/data/entry/${it.id}`)} />)}
                       </div>
@@ -167,16 +167,16 @@ function LineItemRow({ item, onOpen }: { item: NexusQuestionnaireItem; onOpen: (
     >
       <ModeIcon className="w-3.5 h-3.5 text-[var(--text-tertiary)] group-hover:text-[var(--color-brand)] flex-shrink-0" />
       <div className="min-w-0 flex-1">
-        <div className="text-[var(--text-xs)] font-medium text-[var(--text-primary)] truncate group-hover:text-[var(--color-brand-strong)]">
+        <div className="text-[length:var(--text-xs)] font-medium text-[var(--text-primary)] truncate group-hover:text-[var(--color-brand-strong)]">
           {itemLabel(item, i18n.language)}
         </div>
-        <div className="text-[10px] text-[var(--text-tertiary)] font-mono">
+        <div className="text-caption text-[var(--text-tertiary)] font-mono">
           {item.gri_code}
           {item.scope_split ? ` · ${item.scope_split}` : ''}
           {item.unit ? ` · ${item.unit}` : ''}
         </div>
       </div>
-      <span className="px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[var(--bg-secondary)] group-hover:bg-white text-[9px] font-semibold text-[var(--text-tertiary)] flex-shrink-0 inline-flex items-center gap-1">
+      <span className="px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[var(--bg-secondary)] group-hover:bg-white text-caption font-semibold text-[var(--text-tertiary)] flex-shrink-0 inline-flex items-center gap-1">
         {RoleBadge && <RoleBadge className="w-2.5 h-2.5" />}
         {t(`workflowStatus.role.${item.default_workflow_role}`, { defaultValue: item.default_workflow_role })}
       </span>

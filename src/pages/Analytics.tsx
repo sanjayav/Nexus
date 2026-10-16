@@ -332,7 +332,7 @@ export default function Analytics() {
           ) : (
             <table className="w-full text-[13px]">
               <thead>
-                <tr className="text-[10.5px] uppercase tracking-[0.1em] text-[var(--text-tertiary)] bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)]">
+                <tr className="text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)]">
                   <th className="text-left px-5 py-3 font-semibold">{t('analytics.variance.columns.disclosure')}</th>
                   <th className="text-right px-3 py-3 font-semibold">{t('analytics.variance.columns.prior')}</th>
                   <th className="text-right px-3 py-3 font-semibold">{t('analytics.variance.columns.current')}</th>
@@ -347,14 +347,14 @@ export default function Analytics() {
                   return (
                     <motion.tr key={r.assignment.id} {...slideInLeft(i)} className="hover:bg-[var(--bg-secondary)] transition-colors">
                       <td className="px-5 py-3.5">
-                        <div className="text-[10.5px] font-bold text-[var(--color-brand)] tracking-[0.05em] uppercase">{r.assignment.gri_code}</div>
+                        <div className="text-micro font-bold text-[var(--color-brand)] tracking-[0.05em] uppercase">{r.assignment.gri_code}</div>
                         <div className="text-[13px] text-[var(--text-primary)] truncate max-w-[420px] font-medium mt-0.5">{itemLabel(r.assignment, i18n.language)}</div>
                       </td>
                       <td className="px-3 py-3.5 text-right tabular-nums">
                         {r.priorValue != null ? (
                           <>
                             <div className="text-[13px] text-[var(--text-secondary)] font-medium">{formatBig(r.priorValue)}</div>
-                            <div className="text-[10px] text-[var(--text-tertiary)] mt-0.5">{t('analytics.variance.fy', { year: r.priorYear })}</div>
+                            <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('analytics.variance.fy', { year: r.priorYear })}</div>
                           </>
                         ) : <span className="text-[var(--text-tertiary)] italic">—</span>}
                       </td>
@@ -429,8 +429,8 @@ function DqiRing({ score }: { score: number }) {
         <div className="text-[44px] font-bold leading-none tabular-nums" style={{ color }}>
           <AnimatedNumber value={score} />
         </div>
-        <div className="text-[10px] uppercase tracking-wider font-bold mt-1" style={{ color }}>{label}</div>
-        <div className="text-[9px] text-[var(--text-tertiary)] mt-0.5">{t('analytics.dqi.ring.composite')}</div>
+        <div className="text-micro uppercase tracking-[0.06em] font-bold mt-1" style={{ color }}>{label}</div>
+        <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('analytics.dqi.ring.composite')}</div>
       </div>
     </div>
   )
@@ -441,13 +441,13 @@ function DqiComponent({ label, value, weight, hint }: { label: string; value: nu
   return (
     <div className="rounded-[10px] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-3.5 transition-all hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-xs)]">
       <div className="flex items-center justify-between">
-        <span className="text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)]">{label}</span>
-        <span className="text-[9.5px] text-[var(--text-quaternary)] tabular-nums font-medium">{weight}%</span>
+        <span className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">{label}</span>
+        <span className="text-caption text-[var(--text-quaternary)] tabular-nums font-medium">{weight}%</span>
       </div>
       <div className="text-[26px] font-bold tabular-nums leading-none mt-2 tracking-[-0.02em]" style={{ color }}>
         <AnimatedNumber value={value} />
       </div>
-      <div className="text-[10.5px] text-[var(--text-tertiary)] mt-1.5 line-clamp-1">{hint}</div>
+      <div className="text-caption text-[var(--text-tertiary)] mt-1.5 line-clamp-1">{hint}</div>
       <div className="mt-2.5 h-1.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
         <motion.div className="h-full rounded-full"
                     initial={{ width: 0 }} animate={{ width: `${value}%` }} transition={{ duration: 0.9, delay: 0.2 }}
@@ -491,7 +491,7 @@ function TargetGapCard({ gap, navigate }: { gap: ReturnType<typeof useMemo> exte
           </span>
           <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">{t('analytics.target.title')}</h3>
         </div>
-        <span className={`text-[10px] font-bold uppercase tracking-[0.1em] px-2 py-0.5 rounded-full ${g.onTrack ? 'bg-[var(--accent-green-light)] text-[var(--status-ok)]' : 'bg-[var(--accent-red-light)] text-[var(--status-reject)]'}`}>
+        <span className={`text-micro font-bold uppercase tracking-[0.06em] px-2 py-0.5 rounded-full ${g.onTrack ? 'bg-[var(--accent-green-light)] text-[var(--status-ok)]' : 'bg-[var(--accent-red-light)] text-[var(--status-reject)]'}`}>
           {g.onTrack ? t('analytics.target.onPathway') : t('analytics.target.behindPathway')}
         </span>
       </header>
@@ -523,13 +523,13 @@ function TargetGapCard({ gap, navigate }: { gap: ReturnType<typeof useMemo> exte
           <Stat label={t('analytics.target.stats.yearsToTarget')}          value={String(g.yearsRemaining)} tone="neutral" />
         </div>
         {!g.onTrack && (
-          <div className="mt-3 p-2.5 rounded-[var(--radius-sm)] bg-[var(--accent-red-light)]/50 border border-[var(--status-reject)]/20 text-[11px] text-[var(--status-reject)]">
+          <div className="mt-3 p-2.5 rounded-[var(--radius-sm)] bg-[var(--accent-red-light)]/50 border border-[var(--status-reject)]/20 text-caption text-[var(--status-reject)]">
             <AlertTriangle className="w-3 h-3 inline -mt-0.5 mr-1" />
             {t('analytics.target.behindWarning', { gap: formatBig(g.gap), abatement: formatBig(Math.max(0, g.requiredAnnualAbatement)), unit: g.target.baseline_unit })}
           </div>
         )}
         <div className="mt-3">
-          <button onClick={() => navigate('/admin/materiality')} className="text-[10px] text-[var(--color-brand)] hover:underline">{t('analytics.target.manageLink')}</button>
+          <button onClick={() => navigate('/admin/materiality')} className="text-caption text-[var(--color-brand)] hover:underline">{t('analytics.target.manageLink')}</button>
         </div>
       </div>
     </div>
@@ -540,8 +540,8 @@ function Stat({ label, value, tone, suffix }: { label: string; value: string; to
   const color = tone === 'ok' ? 'var(--status-ok)' : tone === 'reject' ? 'var(--status-reject)' : 'var(--text-primary)'
   return (
     <div className="p-3 rounded-[8px] bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-      <div className="text-[9.5px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)]">{label}</div>
-      <div className="text-[15px] font-bold tabular-nums mt-1 tracking-[-0.01em]" style={{ color }}>{value}{suffix && <span className="text-[10px] text-[var(--text-tertiary)] ml-1 font-medium">{suffix}</span>}</div>
+      <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">{label}</div>
+      <div className="text-[15px] font-bold tabular-nums mt-1 tracking-[-0.01em]" style={{ color }}>{value}{suffix && <span className="text-caption text-[var(--text-tertiary)] ml-1 font-medium">{suffix}</span>}</div>
     </div>
   )
 }
@@ -587,7 +587,7 @@ function EmissionsDecomp({ data }: { data: Array<{ plant: string; s1: number; s2
             </BarChart>
           </ResponsiveContainer>
         </div>
-        <div className="flex items-center gap-4 mt-2 text-[10px] text-[var(--text-tertiary)]">
+        <div className="flex items-center gap-4 mt-2 text-caption text-[var(--text-tertiary)]">
           <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ background: '#0F7B6F' }} /> {t('analytics.emissions.scope1')}</span>
           <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ background: '#2563EB' }} /> {t('analytics.emissions.scope2')}</span>
           <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ background: '#7C3AED' }} /> {t('analytics.emissions.scope3')}</span>
@@ -610,7 +610,7 @@ function VarianceFlag({ flag }: { flag: 'ok' | 'watch' | 'warn' | 'no-baseline' 
   const m = map[flag]
   const Icon = m.icon
   return (
-    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: m.bg, color: m.fg }}>
+    <span className="inline-flex items-center gap-1 text-micro font-bold uppercase tracking-[0.06em] px-1.5 py-0.5 rounded" style={{ background: m.bg, color: m.fg }}>
       <Icon className="w-2.5 h-2.5" /> {m.label}
     </span>
   )
@@ -639,7 +639,7 @@ function PlantScorecard({ rows, navigate }: {
       ) : (
         <table className="w-full text-[13px]">
           <thead>
-            <tr className="text-[10px] uppercase tracking-[0.1em] text-[var(--text-tertiary)] bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)]">
+            <tr className="text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)]">
               <th className="text-left px-5 py-3 font-semibold">{t('analytics.plant.columns.plant')}</th>
               <th className="text-center px-2 py-3 font-semibold">{t('analytics.plant.columns.score')}</th>
               <th className="text-center px-2 py-3 font-semibold">{t('analytics.plant.columns.complete')}</th>
@@ -653,19 +653,19 @@ function PlantScorecard({ rows, navigate }: {
               <motion.tr key={r.plant.id} {...slideInLeft(i)} className="hover:bg-[var(--bg-secondary)] transition-colors">
                 <td className="px-5 py-3">
                   <div className="text-[13px] font-semibold text-[var(--text-primary)] truncate tracking-[-0.005em]">{r.plant.name}</div>
-                  {r.plant.country && <div className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-[0.1em] mt-0.5 font-medium">{r.plant.country}</div>}
+                  {r.plant.country && <div className="text-micro text-[var(--text-tertiary)] uppercase tracking-[0.06em] mt-0.5 font-medium">{r.plant.country}</div>}
                 </td>
                 <td className="px-2 py-3 text-center">
                   <ScorePill score={r.score} />
                 </td>
-                <td className="px-2 py-3 text-center text-[11.5px] tabular-nums text-[var(--text-secondary)] font-medium">{r.completion}%</td>
-                <td className="px-2 py-3 text-center text-[11.5px] tabular-nums">
+                <td className="px-2 py-3 text-center text-caption tabular-nums text-[var(--text-secondary)] font-medium">{r.completion}%</td>
+                <td className="px-2 py-3 text-center text-caption tabular-nums">
                   {r.rejected === 0 ? <span className="text-[var(--text-quaternary)]">—</span> : <span className="text-[var(--status-reject)] font-bold">{r.rejected}</span>}
                 </td>
-                <td className="px-2 py-3 text-center text-[11.5px] tabular-nums">
+                <td className="px-2 py-3 text-center text-caption tabular-nums">
                   {r.overdue === 0 ? <span className="text-[var(--text-quaternary)]">—</span> : <span className="text-[var(--status-reject)] font-bold">{r.overdue}</span>}
                 </td>
-                <td className="px-3 py-3 text-center text-[11.5px] tabular-nums text-[var(--text-secondary)] font-medium">
+                <td className="px-3 py-3 text-center text-caption tabular-nums text-[var(--text-secondary)] font-medium">
                   {r.avgDays != null ? t('analytics.plant.daysValue', { days: r.avgDays.toFixed(0) }) : '—'}
                 </td>
               </motion.tr>
@@ -711,7 +711,7 @@ function MaterialityCoverage({ rows, navigate }: {
             <motion.li key={r.topic.id} {...slideInLeft(i)} className="px-5 py-3 hover:bg-[var(--bg-secondary)] transition-colors">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[13px] font-semibold text-[var(--text-primary)] truncate flex-1 tracking-[-0.005em]">{r.topic.topic_name}</span>
-                <span className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-[0.08em] font-medium">{r.topic.topic_category}</span>
+                <span className="text-micro text-[var(--text-tertiary)] uppercase tracking-[0.06em] font-medium">{r.topic.topic_category}</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex-1 h-1.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
@@ -721,12 +721,12 @@ function MaterialityCoverage({ rows, navigate }: {
                     style={{ background: r.approvedPct === 100 ? 'var(--status-ok)' : r.approvedPct >= 50 ? 'var(--color-brand)' : 'var(--status-draft)' }}
                   />
                 </div>
-                <span className="text-[11px] tabular-nums text-[var(--text-tertiary)] flex-shrink-0 font-medium">
+                <span className="text-caption tabular-nums text-[var(--text-tertiary)] flex-shrink-0 font-medium">
                   {r.approved}<span className="text-[var(--text-quaternary)]">/{r.total}</span>
                 </span>
               </div>
               {r.coveragePct < 100 && (
-                <div className="text-[10.5px] text-[var(--status-draft)] mt-1.5 font-medium">
+                <div className="text-caption text-[var(--status-draft)] mt-1.5 font-medium">
                   {t('analytics.materiality.unassigned', { count: r.total - r.covered })}
                 </div>
               )}

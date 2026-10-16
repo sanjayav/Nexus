@@ -111,7 +111,7 @@ export default function Contact() {
                     <div>
                       <label
                         htmlFor="message"
-                        className="text-[11px] font-semibold uppercase tracking-[0.1em] block mb-1.5"
+                        className="text-micro font-semibold uppercase tracking-[0.06em] block mb-1.5"
                         style={{ color: 'var(--text-tertiary)' }}
                       >
                         {t('contact.form.message')}
@@ -157,7 +157,7 @@ export default function Contact() {
               <div className="space-y-7 lg:pl-6">
                 <div>
                   <p
-                    className="text-[11px] font-semibold uppercase tracking-[0.12em] mb-2"
+                    className="text-micro font-semibold uppercase tracking-[0.06em] mb-2"
                     style={{ color: 'var(--text-tertiary)' }}
                   >
                     {t('contact.sidebar.sales')}
@@ -173,7 +173,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <p
-                    className="text-[11px] font-semibold uppercase tracking-[0.12em] mb-2"
+                    className="text-micro font-semibold uppercase tracking-[0.06em] mb-2"
                     style={{ color: 'var(--text-tertiary)' }}
                   >
                     {t('contact.sidebar.support')}
@@ -189,7 +189,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <p
-                    className="text-[11px] font-semibold uppercase tracking-[0.12em] mb-2"
+                    className="text-micro font-semibold uppercase tracking-[0.06em] mb-2"
                     style={{ color: 'var(--text-tertiary)' }}
                   >
                     {t('contact.sidebar.address')}
@@ -242,7 +242,7 @@ function Field({ id, label, value, onChange, placeholder, type = 'text', require
     <div>
       <label
         htmlFor={id}
-        className="text-[11px] font-semibold uppercase tracking-[0.1em] block mb-1.5"
+        className="text-micro font-semibold uppercase tracking-[0.06em] block mb-1.5"
         style={{ color: 'var(--text-tertiary)' }}
       >
         {label}

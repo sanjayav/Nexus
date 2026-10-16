@@ -199,8 +199,8 @@ export default function AIReport() {
         <div className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4 flex items-start gap-3" role="status">
           <Sparkles className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
           <div className="min-w-0">
-            <div className="text-[var(--text-sm)] font-semibold text-amber-300">{t('aiReport.banner.title')}</div>
-            <div className="text-[var(--text-xs)] text-amber-300/80 mt-1 leading-relaxed">
+            <div className="text-[length:var(--text-sm)] font-semibold text-amber-300">{t('aiReport.banner.title')}</div>
+            <div className="text-[length:var(--text-xs)] text-amber-300/80 mt-1 leading-relaxed">
               <Trans i18nKey="aiReport.banner.body" components={{ code: <code className="font-mono" /> }} />
             </div>
           </div>
@@ -239,10 +239,10 @@ export default function AIReport() {
                 </div>
                 <Badge variant="purple">Claude Sonnet 4.6</Badge>
               </div>
-              <h1 className="font-display text-[var(--text-3xl)] font-bold text-[var(--text-primary)] tracking-tight">
+              <h1 className="font-display text-[length:var(--text-3xl)] font-bold text-[var(--text-primary)] tracking-tight">
                 {t('aiReport.title')}
               </h1>
-              <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1 max-w-xl leading-relaxed">
+              <p className="text-[length:var(--text-sm)] text-[var(--text-tertiary)] mt-1 max-w-xl leading-relaxed">
                 {t('aiReport.subtitle')}
               </p>
             </div>
@@ -295,7 +295,7 @@ export default function AIReport() {
         </div>
 
         <div className="mt-5 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-[var(--text-xs)] text-[var(--text-tertiary)]">
+          <div className="flex items-center gap-2 text-[length:var(--text-xs)] text-[var(--text-tertiary)]">
             <Shield className="w-3.5 h-3.5" />
             <span>{t('aiReport.grounded')}</span>
           </div>
@@ -329,10 +329,10 @@ export default function AIReport() {
               <FileText className="w-5 h-5" style={{ color: '#7C3AED' }} />
             </div>
             <div>
-              <h2 className="text-[var(--text-base)] font-semibold font-display text-[var(--text-primary)]">
+              <h2 className="text-[length:var(--text-base)] font-semibold font-display text-[var(--text-primary)]">
                 {sectionHeading || t('aiReport.draftPreview')}
               </h2>
-              <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
+              <p className="text-[length:var(--text-xs)] text-[var(--text-tertiary)]">
                 {framework.toUpperCase()} · {t(`aiReport.toneInline.${tone}`, { defaultValue: tone })}
               </p>
             </div>
@@ -341,7 +341,7 @@ export default function AIReport() {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCopy}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border-default)] text-[var(--text-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-all duration-200"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border-default)] text-[length:var(--text-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-all duration-200"
               >
                 {copied ? (
                   <Check className="w-3.5 h-3.5 text-[var(--accent-green)]" />
@@ -353,14 +353,14 @@ export default function AIReport() {
               <button
                 onClick={handleGenerate}
                 disabled={generating}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border-default)] text-[var(--text-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-all duration-200 disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border-default)] text-[length:var(--text-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-all duration-200 disabled:opacity-50"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 {t('aiReport.buttons.regenerate')}
               </button>
               <button
                 onClick={handleReset}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border-default)] text-[var(--text-sm)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-all duration-200"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border-default)] text-[length:var(--text-sm)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-all duration-200"
               >
                 {t('aiReport.buttons.clear')}
               </button>
@@ -395,9 +395,9 @@ export default function AIReport() {
               ) : (
                 <AlertCircle className="w-4 h-4 text-[var(--accent-red)] mt-0.5 flex-shrink-0" />
               )}
-              <div className={errorIsUnconfigured ? 'text-[var(--text-sm)] text-amber-300' : 'text-[var(--text-sm)] text-[var(--accent-red)]'}>
+              <div className={errorIsUnconfigured ? 'text-[length:var(--text-sm)] text-amber-300' : 'text-[length:var(--text-sm)] text-[var(--accent-red)]'}>
                 <p className="font-semibold">{errorIsUnconfigured ? t('aiReport.errors.notConfiguredTitle') : t('aiReport.errors.draftFailed')}</p>
-                <p className="text-[var(--text-xs)] opacity-90 mt-0.5">{error}</p>
+                <p className="text-[length:var(--text-xs)] opacity-90 mt-0.5">{error}</p>
               </div>
             </div>
           )}
@@ -409,7 +409,7 @@ export default function AIReport() {
                 dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
               />
               {usageLine && (
-                <div className="mt-5 pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between text-[var(--text-xs)] text-[var(--text-tertiary)]">
+                <div className="mt-5 pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between text-[length:var(--text-xs)] text-[var(--text-tertiary)]">
                   <span className="font-mono tabular-nums">{usageLine}</span>
                   <span className="flex items-center gap-1.5">
                     <Sparkles className="w-3 h-3 text-[var(--accent-purple)]" />
@@ -427,10 +427,10 @@ export default function AIReport() {
                 >
                   <Sparkles className="w-7 h-7" style={{ color: '#7C3AED', opacity: 0.5 }} />
                 </div>
-                <h3 className="text-[var(--text-base)] font-semibold font-display text-[var(--text-primary)] mb-1">
+                <h3 className="text-[length:var(--text-base)] font-semibold font-display text-[var(--text-primary)] mb-1">
                   {t('aiReport.empty.title')}
                 </h3>
-                <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] max-w-md mx-auto">
+                <p className="text-[length:var(--text-sm)] text-[var(--text-tertiary)] max-w-md mx-auto">
                   <Trans i18nKey="aiReport.empty.body" components={{ bold: <span className="font-medium" /> }} />
                 </p>
                 <div className="flex items-center justify-center gap-4 mt-5">
@@ -441,7 +441,7 @@ export default function AIReport() {
                   ].map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center gap-1.5 text-[var(--text-xs)] text-[var(--text-tertiary)]"
+                      className="flex items-center gap-1.5 text-[length:var(--text-xs)] text-[var(--text-tertiary)]"
                     >
                       <item.icon className="w-3 h-3" />
                       {item.label}
@@ -466,7 +466,7 @@ export default function AIReport() {
                     style={{ animationDelay: '0.4s' }}
                   />
                 </div>
-                <span className="text-[var(--text-xs)] text-[var(--accent-purple)] font-medium">
+                <span className="text-[length:var(--text-xs)] text-[var(--accent-purple)] font-medium">
                   {t('aiReport.drafting')}
                 </span>
               </div>

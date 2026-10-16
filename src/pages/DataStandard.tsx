@@ -179,7 +179,7 @@ export default function DataStandard() {
                   <h3 className="font-display text-[14px] font-bold text-[var(--text-primary)] tracking-[-0.01em]">
                     {sec.section === 'Other' ? t('dataStandard.otherSection') : sec.section}
                   </h3>
-                  <span className="text-[11px] text-[var(--text-tertiary)] font-semibold uppercase tracking-[0.12em] tabular-nums">
+                  <span className="text-micro text-[var(--text-tertiary)] font-semibold uppercase tracking-[0.12em] tabular-nums">
                     {t('dataStandard.sectionCount', { count: sec.rows.length })}
                   </span>
                 </header>
@@ -213,7 +213,7 @@ export default function DataStandard() {
 
 function StatTile({ icon: Icon, label, value, sub, tone }: { icon: typeof FileText; label: string; value: string | number; sub?: string; tone: 'teal' | 'blue' | 'purple' | 'green' }) {
   const palette = {
-    teal:   { fg: '#1B6B7B', bg: 'rgba(27,107,123,0.10)' },
+    teal:   { fg: '#047857', bg: 'rgba(4, 120, 87,0.10)' },
     blue:   { fg: '#1565C0', bg: 'rgba(21,101,192,0.10)' },
     purple: { fg: '#5E35B1', bg: 'rgba(94,53,177,0.10)' },
     green:  { fg: '#2E7D32', bg: 'rgba(46,125,50,0.10)' },
@@ -226,9 +226,9 @@ function StatTile({ icon: Icon, label, value, sub, tone }: { icon: typeof FileTe
           <Icon className="w-4 h-4" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[10.5px] uppercase tracking-[0.12em] font-bold text-[var(--text-tertiary)]">{label}</div>
+          <div className="text-micro uppercase tracking-[0.12em] font-bold text-[var(--text-tertiary)]">{label}</div>
           <div className="text-[22px] font-display font-bold text-[var(--text-primary)] tracking-[-0.015em] tabular-nums mt-0.5">{value}</div>
-          {sub && <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{sub}</div>}
+          {sub && <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{sub}</div>}
         </div>
       </div>
     </div>
@@ -251,7 +251,7 @@ function StandardRow({ row, open, toggle, index }: { row: DisclosureStandard; op
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-[10.5px] font-bold text-[var(--color-brand)] tracking-[0.02em]">{row.gri_code}</span>
+            <span className="font-mono text-caption font-bold text-[var(--color-brand)] tracking-[0.02em]">{row.gri_code}</span>
             <span className="text-[13.5px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{itemLabel(row, i18n.language)}</span>
           </div>
           <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
@@ -268,7 +268,7 @@ function StandardRow({ row, open, toggle, index }: { row: DisclosureStandard; op
               </span>
             )}
             {row.definition && (
-              <span className="chip" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)', borderColor: 'rgba(27,107,123,0.2)' }}>
+              <span className="chip" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)', borderColor: 'rgba(4, 120, 87,0.2)' }}>
                 <BookOpen className="w-3 h-3" />
                 {t('dataStandard.row.definition')}
               </span>
@@ -294,7 +294,7 @@ function StandardRow({ row, open, toggle, index }: { row: DisclosureStandard; op
           >
             <div className="px-5 pb-5 pl-[44px] space-y-4">
               {row.definition && (
-                <DetailBlock icon={BookOpen} label={t('dataStandard.row.canonicalDefinition')} color="#1B6B7B" body={row.definition} />
+                <DetailBlock icon={BookOpen} label={t('dataStandard.row.canonicalDefinition')} color="#047857" body={row.definition} />
               )}
               {row.calc_method && (
                 <DetailBlock icon={CalcIcon} label={t('dataStandard.row.calcMethod')} color="#5E35B1" body={row.calc_method} />
@@ -314,7 +314,7 @@ function DetailBlock({ icon: Icon, label, color, body }: { icon: typeof BookOpen
       <span aria-hidden className="absolute left-0 top-0 bottom-0 w-[2px] rounded-full" style={{ background: color, opacity: 0.35 }} />
       <div className="flex items-center gap-2 mb-1.5">
         <Icon className="w-3.5 h-3.5" style={{ color }} />
-        <span className="text-[10.5px] uppercase tracking-[0.12em] font-bold" style={{ color }}>{label}</span>
+        <span className="text-micro uppercase tracking-[0.12em] font-bold" style={{ color }}>{label}</span>
       </div>
       <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed">{body}</p>
     </div>
@@ -324,7 +324,7 @@ function DetailBlock({ icon: Icon, label, color, body }: { icon: typeof BookOpen
 function OwnershipChain({ row }: { row: DisclosureStandard }) {
   const { t } = useTranslation()
   const steps = [
-    { role: row.data_owner_role, label: t('dataStandard.chain.dataOwner'), icon: UserIcon, color: '#1B6B7B' },
+    { role: row.data_owner_role, label: t('dataStandard.chain.dataOwner'), icon: UserIcon, color: '#047857' },
     { role: row.reviewer_role,   label: t('dataStandard.chain.reviewer'),  icon: ShieldCheck, color: '#1565C0' },
     { role: row.approver_role,   label: t('dataStandard.chain.approver'),  icon: Award, color: '#2E7D32' },
   ]
@@ -332,7 +332,7 @@ function OwnershipChain({ row }: { row: DisclosureStandard }) {
     <div>
       <div className="flex items-center gap-2 mb-2">
         <Scale className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-        <span className="text-[10.5px] uppercase tracking-[0.12em] font-bold text-[var(--text-tertiary)]">{t('dataStandard.chain.title')}</span>
+        <span className="text-micro uppercase tracking-[0.12em] font-bold text-[var(--text-tertiary)]">{t('dataStandard.chain.title')}</span>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
         {steps.map((s, i) => {
@@ -347,7 +347,7 @@ function OwnershipChain({ row }: { row: DisclosureStandard }) {
                   <Icon className="w-3 h-3" />
                 </div>
                 <div>
-                  <div className="text-[9.5px] uppercase tracking-[0.1em] font-bold" style={{ color: s.color }}>{s.label}</div>
+                  <div className="text-micro uppercase tracking-[0.1em] font-bold" style={{ color: s.color }}>{s.label}</div>
                   <div className="text-[12px] font-semibold text-[var(--text-primary)] -mt-0.5">
                     {s.role ? t(`dataStandard.roles.${s.role}`, { defaultValue: ROLE_LABEL[s.role] ?? s.role }) : <span className="italic text-[var(--text-tertiary)]">{t('dataStandard.chain.unassigned')}</span>}
                   </div>
@@ -362,7 +362,7 @@ function OwnershipChain({ row }: { row: DisclosureStandard }) {
           )
         })}
       </div>
-      <p className="text-[10.5px] text-[var(--text-tertiary)] mt-2.5 flex items-center gap-1">
+      <p className="text-caption text-[var(--text-tertiary)] mt-2.5 flex items-center gap-1">
         <Clock className="w-3 h-3" />
         {t('dataStandard.chain.note')}
       </p>

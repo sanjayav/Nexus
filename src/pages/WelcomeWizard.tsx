@@ -231,11 +231,11 @@ export default function WelcomeWizard() {
   return (
     <div className="max-w-[760px] mx-auto animate-fade-in">
       <header className="mb-6">
-        <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
+        <div className="flex items-center gap-2 text-micro uppercase tracking-[0.06em] font-semibold text-[var(--color-brand)]">
           <Sparkles className="w-3 h-3" /> {t('components.tour.steps.welcome.title')}
         </div>
         <h1 className="font-display text-[28px] font-bold text-[var(--text-primary)] mt-1">{t('onboarding.welcome.title')}</h1>
-        <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1">
+        <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] mt-1">
           {t('onboarding.welcome.subtitle')}
         </p>
       </header>
@@ -313,7 +313,7 @@ export default function WelcomeWizard() {
         {step > 0 ? (
           <button
             onClick={back}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-md)] text-[var(--text-sm)] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-md)] text-[length:var(--text-sm)] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
           >
             <ArrowLeft className="w-4 h-4" /> {t('common.back')}
           </button>
@@ -321,14 +321,14 @@ export default function WelcomeWizard() {
         <div className="flex items-center gap-2">
           <button
             onClick={skip}
-            className="px-3 py-2 text-[var(--text-xs)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+            className="px-3 py-2 text-[length:var(--text-xs)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
           >
             {t('onboarding.welcome.skip')}
           </button>
           {step < 4 ? (
             <button
               onClick={next}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold hover:bg-[var(--btn-primary-bg-hover)] transition-colors"
             >
               {t('onboarding.welcome.continue')} <ArrowRight className="w-4 h-4" />
             </button>
@@ -336,7 +336,7 @@ export default function WelcomeWizard() {
             <button
               onClick={finish}
               disabled={submitting}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold hover:bg-[var(--btn-primary-bg-hover)] disabled:opacity-50 transition-colors"
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
               {t('onboarding.welcome.goToDashboard')}
@@ -351,7 +351,7 @@ export default function WelcomeWizard() {
 function ProgressBar({ step }: { step: StepIdx }) {
   const { t } = useTranslation()
   return (
-    <ol className="flex items-center gap-2 text-[11px]">
+    <ol className="flex items-center gap-2 text-caption">
       {STEPS.map((label, i) => {
         const done = i < step
         const active = i === step
@@ -359,7 +359,7 @@ function ProgressBar({ step }: { step: StepIdx }) {
           <li key={label} className="flex items-center gap-2 flex-1 min-w-0">
             <div
               className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold transition-colors ${
-                done ? 'bg-[var(--color-brand)] text-white'
+                done ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)]'
                   : active ? 'bg-[var(--color-brand-soft)] text-[var(--color-brand)] border border-[var(--color-brand)]/40'
                   : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)]'
               }`}
@@ -444,7 +444,7 @@ function Step2({
   return (
     <>
       <SectionHeading icon={Factory} title={t('onboarding.welcome.step2.title')} />
-      <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1">
+      <p className="text-[length:var(--text-sm)] text-[var(--text-tertiary)] mt-1">
         {t('onboarding.welcome.step2.body')}
       </p>
       <div className="grid grid-cols-2 gap-4 mt-4">
@@ -500,7 +500,7 @@ function Step3({ picked, onToggle }: { picked: Set<string>; onToggle: (id: strin
   return (
     <>
       <SectionHeading icon={Library} title={t('onboarding.welcome.step3.title')} />
-      <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1">
+      <p className="text-[length:var(--text-sm)] text-[var(--text-tertiary)] mt-1">
         {t('onboarding.welcome.step3.preselected')}{' '}
         <JargonTooltip term="GRI" />{t('onboarding.welcome.listSep')}<JargonTooltip term="ESRS E1" />{t('onboarding.welcome.listSep')}<JargonTooltip term="TCFD" />{t('onboarding.welcome.step3.endSentence')}
         {t('onboarding.welcome.step3.tweak')}
@@ -524,14 +524,14 @@ function Step3({ picked, onToggle }: { picked: Set<string>; onToggle: (id: strin
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{f.code}</span>
+                    <span className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)]">{f.code}</span>
                     {recommended && (
-                      <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--color-brand)]/20 text-[var(--color-brand-strong)] font-semibold">
+                      <span className="text-micro uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--color-brand)]/20 text-[var(--color-brand-strong)] font-semibold">
                         {t('onboarding.welcome.step3.recommended')}
                       </span>
                     )}
                   </div>
-                  <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5 line-clamp-2">{frameworkName(f, i18n.language)}</div>
+                  <div className="text-caption text-[var(--text-tertiary)] mt-0.5 line-clamp-2">{frameworkName(f, i18n.language)}</div>
                 </div>
               </label>
             </li>
@@ -557,7 +557,7 @@ function Step4({
   return (
     <>
       <SectionHeading icon={Users} title={t('onboarding.welcome.step4.title')} />
-      <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1">
+      <p className="text-[length:var(--text-sm)] text-[var(--text-tertiary)] mt-1">
         {t('onboarding.welcome.step4.body')}
       </p>
       <div className="mt-4 grid grid-cols-[1fr_180px_auto] gap-2">
@@ -571,7 +571,7 @@ function Step4({
             aria-invalid={!!draftError}
             aria-describedby={draftError ? 'invite-err' : undefined}
             onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), onAdd())}
-            className={`w-full pl-9 pr-3 h-10 rounded-[var(--radius-md)] border bg-[var(--bg-primary)] text-[var(--text-sm)] ${
+            className={`w-full pl-9 pr-3 h-10 rounded-[var(--radius-md)] border bg-[var(--bg-primary)] text-[length:var(--text-sm)] ${
               draftError ? 'border-[var(--status-reject)]' : 'border-[var(--border-default)]'
             }`}
           />
@@ -579,7 +579,7 @@ function Step4({
         <select
           value={draft.role}
           onChange={e => onDraftChange({ ...draft, role: e.target.value as PlatformRole })}
-          className="h-10 px-3 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+          className="h-10 px-3 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
         >
           {Object.values(ROLE_CATALOG).map(r => (
             <option key={r.slug} value={r.slug}>{t(`shell.roles.${r.slug}.name`, { defaultValue: r.name })}</option>
@@ -589,7 +589,7 @@ function Step4({
           type="button"
           onClick={onAdd}
           disabled={!draft.email}
-          className="px-4 h-10 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-50 transition-colors"
+          className="px-4 h-10 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold hover:bg-[var(--btn-primary-bg-hover)] disabled:opacity-50 transition-colors"
         >
           {t('onboarding.welcome.step4.add')}
         </button>
@@ -602,8 +602,8 @@ function Step4({
           {invites.map((inv, i) => (
             <li key={`${inv.email}-${i}`} className="flex items-center gap-2 px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)]">
               <Mail className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-              <span className="text-[var(--text-sm)] text-[var(--text-primary)] truncate flex-1">{inv.email}</span>
-              <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand)] bg-[var(--color-brand-soft)] px-1.5 py-0.5 rounded">
+              <span className="text-[length:var(--text-sm)] text-[var(--text-primary)] truncate flex-1">{inv.email}</span>
+              <span className="text-micro uppercase tracking-wider font-semibold text-[var(--color-brand)] bg-[var(--color-brand-soft)] px-1.5 py-0.5 rounded">
                 {t(`shell.roles.${inv.role}.name`, { defaultValue: ROLE_CATALOG[inv.role].name })}
               </span>
               <button
@@ -638,7 +638,7 @@ function Step5({
   return (
     <>
       <SectionHeading icon={Globe} title={t('onboarding.welcome.step5.title')} />
-      <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1">
+      <p className="text-[length:var(--text-sm)] text-[var(--text-tertiary)] mt-1">
         {t('onboarding.welcome.step5.body')}
       </p>
       <div className="mt-4 space-y-3">
@@ -661,7 +661,7 @@ function Step5({
       <button
         onClick={onFinish}
         disabled={submitting}
-        className="mt-5 inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-50 transition-colors"
+        className="mt-5 inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold hover:bg-[var(--btn-primary-bg-hover)] disabled:opacity-50 transition-colors"
       >
         {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
         {t('onboarding.welcome.goToDashboard')}
@@ -673,7 +673,7 @@ function Step5({
 // ── Shared primitives ──────────────────────────────────────
 function SectionHeading({ icon: Icon, title }: { icon: typeof Building2; title: string }) {
   return (
-    <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)] flex items-center gap-2">
+    <h2 className="font-display text-[length:var(--text-lg)] font-semibold text-[var(--text-primary)] flex items-center gap-2">
       <Icon className="w-4 h-4 text-[var(--color-brand)]" />
       {title}
     </h2>
@@ -691,21 +691,21 @@ function Field({
 }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-[11px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">
+      <label htmlFor={id} className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1">
         {label}
       </label>
       {children}
       {error ? (
         <p id={`${id}-err`} role="alert" className="mt-1 text-[12px] text-[var(--status-reject)]">{error}</p>
       ) : hint ? (
-        <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">{hint}</p>
+        <p className="mt-1 text-caption text-[var(--text-tertiary)]">{hint}</p>
       ) : null}
     </div>
   )
 }
 
 function inputCls(hasError: boolean) {
-  return `w-full h-10 px-3 rounded-[var(--radius-md)] border bg-[var(--bg-primary)] text-[var(--text-sm)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/40 focus:border-[var(--color-brand)] transition-colors ${
+  return `w-full h-10 px-3 rounded-[var(--radius-md)] border bg-[var(--bg-primary)] text-[length:var(--text-sm)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/40 focus:border-[var(--color-brand)] transition-colors ${
     hasError ? 'border-[var(--status-reject)]' : 'border-[var(--border-default)]'
   }`
 }
@@ -713,8 +713,8 @@ function inputCls(hasError: boolean) {
 function Summary({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3 py-2 border-b border-[var(--border-subtle)]">
-      <span className="text-[11px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">{label}</span>
-      <span className="text-[var(--text-sm)] text-[var(--text-primary)] font-medium text-right truncate max-w-[60%]">{value}</span>
+      <span className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">{label}</span>
+      <span className="text-[length:var(--text-sm)] text-[var(--text-primary)] font-medium text-right truncate max-w-[60%]">{value}</span>
     </div>
   )
 }

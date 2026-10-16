@@ -82,13 +82,13 @@ export default function PortfolioGrid({ assets, onChange }: Props) {
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder={t('pcaf.grid.searchPlaceholder')}
-            className="w-full pl-7 pr-2 py-1.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-sm)]"
+            className="w-full pl-7 pr-2 py-1.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[length:var(--text-sm)]"
           />
         </div>
         <select
           value={filterClass}
           onChange={e => setFilterClass(e.target.value as PcafAssetClass | '')}
-          className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2 py-1.5 text-[var(--text-sm)]"
+          className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2 py-1.5 text-[length:var(--text-sm)]"
         >
           <option value="">{t('pcaf.grid.allAssetClasses')}</option>
           {(Object.keys(ASSET_CLASS_LABEL) as PcafAssetClass[]).map(k => (
@@ -101,9 +101,9 @@ export default function PortfolioGrid({ assets, onChange }: Props) {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full text-[var(--text-sm)]">
+        <table className="w-full text-[length:var(--text-sm)]">
           <thead>
-            <tr className="text-left text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] bg-[var(--bg-secondary)]">
+            <tr className="text-left text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] bg-[var(--bg-secondary)]">
               <th className="px-3 py-2 font-medium">{t('pcaf.grid.counterparty')}</th>
               <th className="px-3 py-2 font-medium">{t('pcaf.grid.assetClass')}</th>
               <th className="px-3 py-2 font-medium text-right">{t('pcaf.grid.outstanding')}</th>
@@ -125,7 +125,7 @@ export default function PortfolioGrid({ assets, onChange }: Props) {
                 <td className="px-3 py-2 text-[var(--text-primary)]">
                   <div className="font-medium">{a.counterparty_name}</div>
                   {a.counterparty_sector ? (
-                    <div className="text-[10px] text-[var(--text-tertiary)]">{a.counterparty_sector}{a.counterparty_country ? ` · ${a.counterparty_country}` : ''}</div>
+                    <div className="text-caption text-[var(--text-tertiary)]">{a.counterparty_sector}{a.counterparty_country ? ` · ${a.counterparty_country}` : ''}</div>
                   ) : null}
                 </td>
                 <td className="px-3 py-2 text-[var(--text-secondary)]">{classLabel(a.asset_class)}</td>
@@ -141,13 +141,13 @@ export default function PortfolioGrid({ assets, onChange }: Props) {
                       <button
                         onClick={() => remove(a.id)}
                         disabled={busy === a.id}
-                        className="text-rose-400 hover:text-rose-300 text-[11px] font-medium px-1.5 py-0.5 rounded"
+                        className="text-rose-400 hover:text-rose-300 text-caption font-medium px-1.5 py-0.5 rounded"
                       >
                         {t('pcaf.grid.confirm')}
                       </button>
                       <button
                         onClick={() => setPendingDelete(null)}
-                        className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] text-[11px] px-1.5 py-0.5"
+                        className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] text-caption px-1.5 py-0.5"
                       >
                         {t('pcaf.grid.cancel')}
                       </button>
@@ -178,7 +178,7 @@ function DqBadge({ score }: { score: number }) {
     ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
     : 'bg-rose-500/15 text-rose-300 border-rose-500/30'
   return (
-    <span className={`inline-flex items-center justify-center min-w-[28px] px-1.5 py-0.5 rounded border text-[11px] font-medium ${colour}`}>
+    <span className={`inline-flex items-center justify-center min-w-[28px] px-1.5 py-0.5 rounded border text-caption font-medium ${colour}`}>
       {score}
     </span>
   )

@@ -3,8 +3,16 @@ import { z } from 'zod'
 import { getDb } from './_db.js'
 import { verifyToken, cors, requirePermission } from './_auth.js'
 import { audit, auditIp } from './_audit.js'
+import { loadOrgSettings } from './_orgSettings.js'
+import { sortFactorsByPreference, type RankableFactor } from './_efCnFactors.js'
 
 // GET    /api/emission-factors?scope=1&category=...&region=UK&source=...
+//        Rows carry `preferred: true` on the row to use for each
+//        (scope, category, fuel_or_activity, region) group, and that row is
+//        listed first in its group. Orgs with org_settings.market = 'cn'
+//        prefer official China sources (MEE / MEE-NBS / GB/T) for CN regions
+//        over IEA; rows whose notes contain '[unverified]' are never preferred.
+//        &preferred_only=1 returns just the preferred row per group.
 // POST   /api/emission-factors           (admin.org required) — upsert a factor
 // DELETE /api/emission-factors?id=<uuid> (admin.org required) — soft-delete
 
@@ -20,6 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'GET') {
       const token = await verifyToken(req)
       if (!token) return res.status(401).json({ error: 'Unauthorized' })
+      const preferredOnly = String(req.query.preferred_only ?? '0') === '1'
 
       const scope = req.query.scope ? Number(req.query.scope) : null
       const category = (req.query.category as string | undefined) || null
@@ -42,8 +51,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           AND (${source}::text IS NULL OR source = ${source}::text)
           AND (${includeInactive}::boolean OR COALESCE(is_active, true) = true)
         ORDER BY scope, category, fuel_or_activity, region, valid_from DESC
-      `
-      return res.status(200).json(rows)
+      ` as unknown as RankableFactor[]
+      const { market } = await loadOrgSettings(sql, token.org)
+      const ranked = sortFactorsByPreference(rows, market)
+      return res.status(200).json(preferredOnly ? ranked.filter(r => r.preferred) : ranked)
     }
 
     if (req.method === 'POST') {

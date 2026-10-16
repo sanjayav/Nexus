@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import * as crypto from 'crypto'
 import { getDb } from './_db.js'
 import { verifyToken, cors, requirePermission } from './_auth.js'
+import { contentDisposition } from './_http.js'
 import { z } from 'zod'
 
 // ── Per-action input schemas. Catch obviously malformed bodies before they
@@ -30,6 +31,8 @@ import { appendChainRecord } from './_hashChain.js'
 import { notify } from './_notify.js'
 import { audit, auditIp } from './_audit.js'
 import type { AssignmentLike, HistoricalPoint, Anomaly } from './_anomalies.js'
+import { resolveRequestLocale } from './_orgSettings.js'
+import { syncPeriodReportingYearSafe } from './_periodYear.js'
 
 /**
  * The PDF renderer (`@react-pdf/renderer` via _reportGenerator) and the
@@ -604,6 +607,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                  ra.is_draft, ra.verification_token, ra.published_at,
                  ra.anchor_tip_hash, ra.anchored_at,
                  ra.assurance_request_id,
+                 COALESCE(to_jsonb(ra)->>'locale', ra.metadata->>'locale') AS locale,
                  u.name AS published_by_name,
                  rp.label AS period_label, rp.year AS period_year,
                  ar.status AS assurance_status, ar.auditor_firm, ar.signed_at
@@ -629,7 +633,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (rows.length === 0) return res.status(404).json({ error: 'Report not found' })
         const { pdf_content } = rows[0]
         res.setHeader('Content-Type', 'application/pdf')
-        res.setHeader('Content-Disposition', `inline; filename="report-${rows[0].framework_id}-${rows[0].verification_token}.pdf"`)
+        res.setHeader('Content-Disposition', contentDisposition(`report-${rows[0].framework_id}-${rows[0].verification_token}.pdf`, 'inline'))
         res.setHeader('X-Report-Sha256', rows[0].pdf_sha256)
         res.setHeader('X-Verification-Token', rows[0].verification_token)
         res.status(200).end(Buffer.from(pdf_content))
@@ -646,7 +650,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const { generateDocx } = await import('./_reportDocx.js')
           const out = await generateDocx({ orgId, reportArtifactId: id })
           res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-          res.setHeader('Content-Disposition', `attachment; filename="${out.filename}"`)
+          // Prefer the readable UTF-8 name (e.g. "2025年度") when _reportDocx
+          // provides one; contentDisposition adds the ASCII fallback itself.
+          res.setHeader('Content-Disposition', contentDisposition((out as { filenameUtf8?: string }).filenameUtf8 || out.filename))
           res.setHeader('X-Report-Sha256', out.sha256)
           res.status(200).end(out.bytes)
           return
@@ -816,11 +822,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Run rules — dynamic-import the engine so the cold-start cost only
         // hits the anomaly-scan view, not every plain GET to /api/org.
         const { detectAnomaliesForAssignment } = await loadAnomalies()
+        // Headlines/details in the caller's language (user.locale → Accept-Language → org market).
+        const anomalyLocale = await resolveRequestLocale(sql, req, token)
         const detected: Anomaly[] = []
         for (const a of assignments as AssignmentLike[]) {
           const history = historyByItem.get(a.questionnaire_item_id) ?? []
           const peers = (peerByCode.get(a.gri_code) ?? []).filter(v => v !== Number(a.value ?? NaN))
-          detected.push(...detectAnomaliesForAssignment(a, history, peers))
+          detected.push(...detectAnomaliesForAssignment(a, history, peers, anomalyLocale))
         }
 
         // Attach suppressions
@@ -1145,6 +1153,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           kind: 'assignment_created',
           subject: `New assignment · ${gri_code}`,
           body: `${line_item} — due ${due_date || 'TBD'}`,
+          // Rendered in the recipient's language (api/_i18n.ts); subject/body above are the fallback.
+          message: {
+            key: 'notify.assignment_created',
+            params: { code: gri_code, item: line_item, due: due_date || '$t:common.tbd' },
+            paramsByLocale: created[0].line_item_zh ? { zh: { item: created[0].line_item_zh } } : undefined,
+          },
           route: '/my-tasks',
           relatedAssignmentId: created[0].id,
         })
@@ -1307,6 +1321,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             kind: 'assignment_bulk_created',
             subject: `${created} ${body.framework_id.toUpperCase()} item${created === 1 ? '' : 's'} assigned to you`,
             body: `You've been assigned ${created} disclosures${dueDate ? `, due ${dueDate}` : ''}. Open My Tasks to start entering data.`,
+            message: {
+              key: 'notify.assignment_bulk_created',
+              params: { count: created, framework: body.framework_id.toUpperCase(), due: dueDate || null },
+              bodyVariant: dueDate ? 'body_due' : 'body',
+            },
             route: '/my-tasks',
           })
           notificationSent = true
@@ -1568,7 +1587,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             submission_deadline = EXCLUDED.submission_deadline, notes = EXCLUDED.notes
           RETURNING id
         ` as Array<{ id: string }>
-        return res.status(201).json({ ok: true, id: rows[0].id })
+        // Create-or-link this org's reporting_year for the period's year, so
+        // data entry has a year to write into (api/_periodYear.ts).
+        const yearSync = await syncPeriodReportingYearSafe(sql, orgId, rows[0].id, { create: true })
+        return res.status(201).json({ ok: true, id: rows[0].id, ...yearSync })
       }
       if (action === 'transition-period') {
         // Period lifecycle → admin.org.
@@ -1607,7 +1629,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         } else {
           await sql`UPDATE reporting_periods SET status = ${status} WHERE id = ${id} AND org_id = ${orgId}`
         }
-        return res.status(200).json({ ok: true })
+        // Keep the org's reporting_year in step with the period lifecycle.
+        // Open states create-or-link the year; closing states only update an
+        // existing one (api/_periodYear.ts).
+        const yearSync = await syncPeriodReportingYearSafe(sql, orgId, id, {
+          create: status === 'setup' || status === 'active' || status === 'locked',
+        })
+        return res.status(200).json({ ok: true, ...yearSync })
       }
 
       // ─── Comments ───────────────────────────────────
@@ -1692,6 +1720,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             kind: 'comment',
             subject: `${u.name} commented on ${disclosure}`,
             body: body.slice(0, 140),
+            message: { key: 'notify.comment', params: { actor: u.name, code: disclosure, text: body.slice(0, 140) } },
             route: '/my-tasks',
             relatedAssignmentId: assignment_id,
           })
@@ -1713,6 +1742,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             kind: 'mention',
             subject: `${u.name} mentioned you on ${disclosure}`,
             body: body.slice(0, 140),
+            message: { key: 'notify.mention', params: { actor: u.name, code: disclosure, text: body.slice(0, 140) } },
             route: '/my-tasks',
             relatedAssignmentId: assignment_id,
           })
@@ -1738,6 +1768,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               kind: 'review_request',
               subject: `${u.name} requested a review on ${disclosure}`,
               body: body.slice(0, 140),
+              message: { key: 'notify.review_request', params: { actor: u.name, code: disclosure, text: body.slice(0, 140) } },
               route: '/work/review',
               relatedAssignmentId: assignment_id,
             })
@@ -1834,7 +1865,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Publishing → reports.publish.
         const gate = await requirePermission(req, res, 'reports.publish')
         if (!gate) return
-        const { period_id, framework_id, assurance_request_id, base_url } = req.body ?? {}
+        const { period_id, framework_id, assurance_request_id, base_url, locale: requestedLocale } = req.body ?? {}
         if (!period_id) return res.status(400).json({ error: 'period_id required' })
 
         // Resolve framework — either explicit or the period's framework.
@@ -1869,6 +1900,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Heavy: only loaded when a publish actually fires.
         const { assembleReportInput, renderReportPdf, anchorPdfToOts } = await loadReportGen()
 
+        // Report language: the publisher's UI language (body.locale), else the
+        // user / org preference. assembleReportInput resolves it against the org
+        // (Thai orgs keep their bilingual cover) and returns the final locale.
+        let reportLocale: string | null = typeof requestedLocale === 'string' ? requestedLocale : null
+        if (!reportLocale) {
+          try { reportLocale = await resolveRequestLocale(sql, req, token) } catch { reportLocale = null }
+        }
+
         const input = await assembleReportInput(sql as any, {
           orgId,
           periodId: period_id,
@@ -1878,7 +1917,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           verificationToken,
           baseUrl: String(origin).replace(/\/$/, ''),
           assuranceRequestId: assurance_request_id ?? null,
+          locale: reportLocale,
         })
+        const artifactLocale = input.locale ?? 'en'
 
         const { bytes, sha256, byteLength } = await renderReportPdf(input)
 
@@ -1906,10 +1947,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             ${bytes}, ${sha256}, ${byteLength}, ${null},
             ${input.assurance == null}, ${assurance_request_id ?? null},
             ${anchor?.receipt ?? null}, ${anchor?.anchoredAt ? sha256 : null}, ${anchor?.calendarUrl ?? null}, ${anchor?.anchoredAt ?? null},
-            ${verificationToken}, ${token.sub}, ${JSON.stringify({ metrics: input.metrics.length, narratives: input.narratives.length })}::jsonb
+            ${verificationToken}, ${token.sub}, ${JSON.stringify({ metrics: input.metrics.length, narratives: input.narratives.length, locale: artifactLocale })}::jsonb
           )
           RETURNING id
         ` as Array<{ id: string }>
+
+        // report_artifacts.locale (api/_reportSchema.ts). Best-effort so a deploy
+        // that precedes the migration still publishes; metadata.locale above is
+        // the fallback every reader checks.
+        try {
+          await sql`UPDATE report_artifacts SET locale = ${artifactLocale} WHERE id = ${created[0].id}`
+        } catch { /* column not migrated yet */ }
 
         // Append to hash chain
         await appendChainRecord(sql, orgId, {
@@ -1924,6 +1972,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             version,
             anchor_tip: anchor ? sha256 : null,
             verification_token: verificationToken,
+            locale: artifactLocale,
           },
         })
 
@@ -1938,6 +1987,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           anchored: !!anchor,
           anchor_calendar: anchor?.calendarUrl ?? null,
           is_draft: input.assurance == null,
+          locale: artifactLocale,
         })
       }
 
@@ -2106,6 +2156,11 @@ async function emitStatusTransitionNotifications(
     if (email.toLowerCase() === actorEmail.toLowerCase()) return // skip self
     await notify({
       orgId, toEmail: email, kind, subject, body, route, relatedAssignmentId: assignmentId,
+      // notify.status.{review_requested|approval_requested|approved|rejected} in api/_i18n.ts
+      message: {
+        key: `notify.status.${kind}`,
+        params: { ref: subjectBase, assignee: prior.assignee_name, comment: comment || '$t:notify.status.rejected.body_default' },
+      },
     })
   }
 

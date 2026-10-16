@@ -72,12 +72,12 @@ export default function AuditorUpload() {
       className="min-h-screen"
       style={{
         background:
-          'radial-gradient(900px 500px at 10% -10%, rgba(27,107,123,0.08), transparent 60%), radial-gradient(800px 500px at 90% 110%, rgba(46,125,50,0.06), transparent 60%), var(--bg-secondary)',
+          'radial-gradient(900px 500px at 10% -10%, rgba(4, 120, 87,0.08), transparent 60%), radial-gradient(800px 500px at 90% 110%, rgba(46,125,50,0.06), transparent 60%), var(--bg-secondary)',
       }}
     >
       <header className="px-8 py-5 flex items-center justify-between">
         <a href="/" className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-[10px] flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1B6B7B, #1e8e7a)', boxShadow: '0 4px 12px rgba(27,107,123,0.3)' }}>
+          <div className="w-9 h-9 rounded-[10px] flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #047857, #059669)', boxShadow: '0 4px 12px rgba(4, 120, 87,0.3)' }}>
             <Leaf className="w-4 h-4 text-white" />
           </div>
           <span className="font-display font-bold tracking-[-0.02em] text-[15px]">Nexus</span>
@@ -97,7 +97,7 @@ export default function AuditorUpload() {
             <p className="text-[13.5px] text-[var(--text-secondary)] mt-3 max-w-md mx-auto leading-relaxed">
               {t('auditor.upload.receivedBody')}
             </p>
-            <div className="text-[11px] text-[var(--text-tertiary)] mt-5">{t('auditor.upload.inactive')}</div>
+            <div className="text-caption text-[var(--text-tertiary)] mt-5">{t('auditor.upload.inactive')}</div>
           </motion.div>
         ) : (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={SPRING} className="surface-paper p-8">
@@ -113,7 +113,7 @@ export default function AuditorUpload() {
               <Field label={t('auditor.upload.firm')} value={firm} onChange={setFirm} placeholder={t('auditor.upload.firmPlaceholder')} />
               <Field label={t('auditor.upload.signer')} value={signedBy} onChange={setSignedBy} placeholder={t('auditor.upload.signerPlaceholder')} />
               <div>
-                <label className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{t('auditor.upload.level')}</label>
+                <label className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{t('auditor.upload.level')}</label>
                 <div className="flex gap-1.5">
                   {(['limited', 'reasonable'] as const).map(o => (
                     <button key={o} onClick={() => setOpinion(o)} className={`chip flex-1 justify-center ${opinion === o ? 'chip-active' : ''}`}>
@@ -126,7 +126,7 @@ export default function AuditorUpload() {
               <Field label={t('auditor.upload.notes')} value={notes} onChange={setNotes} as="textarea" placeholder={t('auditor.upload.notesPlaceholder')} />
 
               <div>
-                <label className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{t('auditor.upload.statement')}</label>
+                <label className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{t('auditor.upload.statement')}</label>
                 <div
                   onDragOver={e => { e.preventDefault(); setDragging(true) }}
                   onDragLeave={() => setDragging(false)}
@@ -150,7 +150,7 @@ export default function AuditorUpload() {
                       </span>
                       <div className="flex-1 min-w-0">
                         <div className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{file.name}</div>
-                        <div className="text-[11.5px] text-[var(--text-tertiary)]">{(file.size / 1024).toFixed(1)} KB</div>
+                        <div className="text-caption text-[var(--text-tertiary)]">{(file.size / 1024).toFixed(1)} KB</div>
                       </div>
                       <button
                         type="button"
@@ -165,7 +165,7 @@ export default function AuditorUpload() {
                     <div className="text-center">
                       <Upload className="w-6 h-6 text-[var(--text-tertiary)] mx-auto mb-2" />
                       <div className="text-[13px] font-semibold text-[var(--text-primary)]">{t('auditor.upload.drop')}</div>
-                      <div className="text-[11.5px] text-[var(--text-tertiary)] mt-0.5">{t('auditor.upload.dropHint')}</div>
+                      <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('auditor.upload.dropHint')}</div>
                     </div>
                   )}
                 </div>
@@ -180,7 +180,7 @@ export default function AuditorUpload() {
             )}
 
             <div className="mt-7 flex items-center justify-between gap-3">
-              <p className="text-[10.5px] text-[var(--text-tertiary)] leading-snug max-w-xs">
+              <p className="text-caption text-[var(--text-tertiary)] leading-snug max-w-xs">
                 {t('auditor.upload.attest')}
               </p>
               <Button variant="brand" size="md" icon={<ShieldCheck className="w-4 h-4" />} onClick={submit} loading={submitting}>
@@ -191,7 +191,7 @@ export default function AuditorUpload() {
         )}
       </main>
 
-      <footer className="text-center py-8 text-[11.5px] text-[var(--text-tertiary)]">
+      <footer className="text-center py-8 text-caption text-[var(--text-tertiary)]">
         <Trans i18nKey="auditor.upload.footer" components={{ a: <a href="/" className="link-underline text-[var(--color-brand)] hover:text-[var(--color-brand-strong)]" /> }} />
       </footer>
     </div>
@@ -201,7 +201,7 @@ export default function AuditorUpload() {
 function Field({ label, value, onChange, placeholder, as = 'input' }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; as?: 'input' | 'textarea' }) {
   return (
     <label className="block">
-      <span className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{label}</span>
+      <span className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{label}</span>
       {as === 'textarea' ? (
         <textarea
           value={value}

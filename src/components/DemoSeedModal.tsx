@@ -132,7 +132,7 @@ export default function DemoSeedModal({ onClose, onCompleted }: Props) {
           <div className="flex items-center gap-3 min-w-0">
             <div
               className="w-10 h-10 rounded-[10px] flex items-center justify-center text-white flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, #1B6B7B, #2E7D32)' }}
+              style={{ background: 'linear-gradient(135deg, #047857, #2E7D32)' }}
             >
               <Database className="w-5 h-5" />
             </div>
@@ -140,7 +140,7 @@ export default function DemoSeedModal({ onClose, onCompleted }: Props) {
               <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">
                 {t('components.demoSeed.title')}
               </h3>
-              <p className="text-[11.5px] text-[var(--text-tertiary)]">
+              <p className="text-caption text-[var(--text-tertiary)]">
                 {t('components.demoSeed.subtitle')}
               </p>
             </div>
@@ -179,7 +179,7 @@ export default function DemoSeedModal({ onClose, onCompleted }: Props) {
               </div>
               <div className="flex items-center gap-2 p-3 rounded-[8px] bg-[var(--accent-teal-subtle)]/40 border border-[var(--accent-teal-subtle)]">
                 <Sparkles className="w-3.5 h-3.5 text-[var(--color-brand)] flex-shrink-0" />
-                <span className="text-[11.5px] text-[var(--text-secondary)]">
+                <span className="text-caption text-[var(--text-secondary)]">
                   {t('components.demoSeed.recommended')}
                 </span>
               </div>
@@ -222,8 +222,8 @@ export default function DemoSeedModal({ onClose, onCompleted }: Props) {
                     >
                       {stage.label}
                     </div>
-                    {isActive && <span className="text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--color-brand)]">{t('components.demoSeed.working')}</span>}
-                    {isDone && <span className="text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--status-ok)]">{t('components.demoSeed.done')}</span>}
+                    {isActive && <span className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--color-brand)]">{t('components.demoSeed.working')}</span>}
+                    {isDone && <span className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--status-ok)]">{t('components.demoSeed.done')}</span>}
                   </div>
                 )
               })}
@@ -258,7 +258,7 @@ export default function DemoSeedModal({ onClose, onCompleted }: Props) {
               </button>
               <button
                 onClick={seed}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--color-brand)] text-white text-[13px] font-semibold hover:bg-[var(--color-brand-strong)] active:scale-[0.98] transition-all cursor-pointer"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[13px] font-semibold hover:bg-[var(--btn-primary-bg-hover)] active:scale-[0.98] transition-all cursor-pointer"
               >
                 <Database className="w-3.5 h-3.5" /> {t('components.demoSeed.load')}
               </button>
@@ -274,7 +274,7 @@ export default function DemoSeedModal({ onClose, onCompleted }: Props) {
               </button>
               <button
                 onClick={() => { setError(null); seed() }}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--color-brand)] text-white text-[13px] font-semibold hover:bg-[var(--color-brand-strong)] cursor-pointer"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[13px] font-semibold hover:bg-[var(--btn-primary-bg-hover)] cursor-pointer"
               >
                 {t('components.errorBoundary.tryAgain')}
               </button>

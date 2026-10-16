@@ -344,14 +344,14 @@ export default function FrameworkQuestions() {
                         {/* Auto chip */}
                         <div className="flex items-center gap-2 flex-shrink-0">
                           {q.autoPopulated && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-teal-500/15 text-teal-400 border border-teal-500/20">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-caption font-semibold bg-teal-500/15 text-teal-400 border border-teal-500/20">
                               <Zap className="w-2.5 h-2.5" />
                               {t('workflowStatus.role.AUTO')}
                             </span>
                           )}
 
                           {/* Role badge */}
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold ${roleBadgeClasses(q.assignedRole)}`}>
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-caption font-semibold ${roleBadgeClasses(q.assignedRole)}`}>
                             {q.assignedRole === 'auto' ? <Zap className="w-2.5 h-2.5" /> : <User className="w-2.5 h-2.5" />}
                             {roleLabel(q.assignedRole, t)}
                           </span>
@@ -362,7 +362,7 @@ export default function FrameworkQuestions() {
                           </span>
 
                           {/* Status badge */}
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${statusBadgeClasses(effectiveStatus)}`}>
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-caption font-semibold ${statusBadgeClasses(effectiveStatus)}`}>
                             {statusLabel(effectiveStatus, t)}
                           </span>
 
@@ -370,7 +370,7 @@ export default function FrameworkQuestions() {
                           {q.status === 'draft' && !submittedIds.has(q.id) && (
                             <button
                               onClick={() => handleSubmitForReview(q.id)}
-                              className="px-3 py-1 rounded-lg bg-accent-500 hover:bg-accent-600 text-white text-[10px] font-semibold transition-colors whitespace-nowrap"
+                              className="px-3 py-1 rounded-lg bg-accent-500 hover:bg-accent-600 text-white text-caption font-semibold transition-colors whitespace-nowrap"
                             >
                               {t('frameworkQuestions.submitForReview')}
                             </button>

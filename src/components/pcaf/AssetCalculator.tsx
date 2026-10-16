@@ -144,13 +144,13 @@ export default function AssetCalculator({ calculator, reportingYear, onSaved }: 
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-5">
       <header className="mb-4">
-        <h3 className="text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">{pcafCalculatorName(t, calculator)}</h3>
-        <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1">{pcafCalculatorDescription(t, calculator)}</p>
+        <h3 className="text-[length:var(--text-lg)] font-semibold text-[var(--text-primary)]">{pcafCalculatorName(t, calculator)}</h3>
+        <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] mt-1">{pcafCalculatorDescription(t, calculator)}</p>
         <a
           href={calculator.methodologyUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--color-brand)] mt-1"
+          className="inline-flex items-center gap-1 text-caption text-[var(--text-tertiary)] hover:text-[var(--color-brand)] mt-1"
         >
           {t('pcaf.calculator.methodology')} <ExternalLink className="w-3 h-3" />
         </a>
@@ -188,14 +188,14 @@ export default function AssetCalculator({ calculator, reportingYear, onSaved }: 
       <div className="mt-4 flex items-center gap-2">
         <button
           onClick={runServer}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] border border-[var(--border-default)] hover:bg-[var(--bg-secondary)] text-[var(--text-sm)]"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] border border-[var(--border-default)] hover:bg-[var(--bg-secondary)] text-[length:var(--text-sm)]"
         >
           <Info className="w-3.5 h-3.5" /> {t('pcaf.calculator.verifyServer')}
         </button>
         <button
           onClick={save}
           disabled={saving}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white font-medium hover:opacity-90 disabled:opacity-50 text-[var(--text-sm)]"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] font-medium hover:opacity-90 disabled:opacity-50 text-[length:var(--text-sm)]"
         >
           {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : saved ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
           {saved ? t('pcaf.calculator.saved') : saving ? t('pcaf.calculator.saving') : t('pcaf.calculator.saveAsset')}
@@ -278,7 +278,7 @@ function Field({ field, assetClass, value, onChange }: {
   const fieldLabel = t(`${base}.label`, { defaultValue: field.label })
   const help = field.help ? t(`${base}.help`, { defaultValue: field.help }) : null
   const label = (
-    <label className="block text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] mb-1">
+    <label className="block text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] mb-1">
       {fieldLabel}{field.unit ? ` (${field.unit})` : ''}
       {field.required ? <span className="text-rose-400 ml-0.5">*</span> : null}
     </label>
@@ -288,11 +288,11 @@ function Field({ field, assetClass, value, onChange }: {
     return (
       <div>
         {label}
-        <label className="inline-flex items-center gap-2 text-[var(--text-sm)] text-[var(--text-primary)]">
+        <label className="inline-flex items-center gap-2 text-[length:var(--text-sm)] text-[var(--text-primary)]">
           <input type="checkbox" checked={v} onChange={e => onChange(e.target.checked)} className="rounded" />
           {t('pcaf.calculator.yes')}
         </label>
-        {help ? <p className="text-[10px] text-[var(--text-tertiary)] mt-1">{help}</p> : null}
+        {help ? <p className="text-caption text-[var(--text-tertiary)] mt-1">{help}</p> : null}
       </div>
     )
   }
@@ -303,12 +303,12 @@ function Field({ field, assetClass, value, onChange }: {
         <select
           value={typeof value === 'string' ? value : ''}
           onChange={e => onChange(e.target.value)}
-          className="w-full rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2 py-1.5 text-[var(--text-sm)]"
+          className="w-full rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2 py-1.5 text-[length:var(--text-sm)]"
         >
           <option value="">—</option>
           {(field.options ?? []).map(o => <option key={o} value={o}>{t(`pcaf.options.${field.key}.${o}`, { defaultValue: o })}</option>)}
         </select>
-        {help ? <p className="text-[10px] text-[var(--text-tertiary)] mt-1">{help}</p> : null}
+        {help ? <p className="text-caption text-[var(--text-tertiary)] mt-1">{help}</p> : null}
       </div>
     )
   }
@@ -320,9 +320,9 @@ function Field({ field, assetClass, value, onChange }: {
         min={field.type === 'number' ? 0 : undefined}
         value={typeof value === 'string' ? value : ''}
         onChange={e => onChange(e.target.value)}
-        className="w-full rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2 py-1.5 text-[var(--text-sm)]"
+        className="w-full rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2 py-1.5 text-[length:var(--text-sm)]"
       />
-      {help ? <p className="text-[10px] text-[var(--text-tertiary)] mt-1">{help}</p> : null}
+      {help ? <p className="text-caption text-[var(--text-tertiary)] mt-1">{help}</p> : null}
     </div>
   )
 }
@@ -331,7 +331,7 @@ function ResultPanel({ result }: { result: PcafResult | PcafCalculateResponse })
   const { t } = useTranslation()
   return (
     <div className="mt-4 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[var(--text-sm)]">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[length:var(--text-sm)]">
         <Cell label={t('pcaf.calculator.result.attributionFactor')} value={result.attributionFactor.toFixed(6)} />
         <Cell label={t('pcaf.calculator.result.financedS1')} value={fmtTons(result.financedScope1)} />
         <Cell label={t('pcaf.calculator.result.financedS2')} value={fmtTons(result.financedScope2)} />
@@ -354,7 +354,7 @@ function fmtTons(v: number | undefined): string {
 function Cell({ label, value, highlight, span }: { label: string; value: string; highlight?: boolean; span?: number }) {
   return (
     <div className={span === 2 ? 'col-span-2 md:col-span-4' : ''}>
-      <div className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)]">{label}</div>
+      <div className="text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)]">{label}</div>
       <div className={`mt-0.5 ${highlight ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-secondary)]'}`}>{value}</div>
     </div>
   )

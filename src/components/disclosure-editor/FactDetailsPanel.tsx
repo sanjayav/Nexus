@@ -173,25 +173,25 @@ export default function FactDetailsPanel({
     <section data-testid="fact-details-panel" className="space-y-5">
       {/* Concept */}
       <div>
-        <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">
+        <div className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">
           {t('disclosureEditor.fact.concept')}
         </div>
         <div className="text-[12px] font-semibold text-[var(--text-primary)] leading-snug">
           {itemLabel(item, i18n.language)}
         </div>
-        <div className="text-[10px] font-mono text-[var(--text-tertiary)] mt-1 truncate" title={xbrlConcept}>
+        <div className="text-caption font-mono text-[var(--text-tertiary)] mt-1 truncate" title={xbrlConcept}>
           {xbrlConcept}
         </div>
       </div>
 
       {/* Dimensions */}
       <div>
-        <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">
+        <div className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">
           {t('disclosureEditor.fact.dimensions')}
         </div>
         <div className="flex flex-wrap gap-1">
           {dimensions.map(d => (
-            <span key={d} className="inline-flex items-center px-2 h-5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)] text-[10px] font-medium">
+            <span key={d} className="inline-flex items-center px-2 h-5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-secondary)] text-caption font-medium">
               {d}
             </span>
           ))}
@@ -200,17 +200,17 @@ export default function FactDetailsPanel({
 
       {/* Fiscal Period */}
       <div>
-        <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">
+        <div className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">
           {t('disclosureEditor.fact.fiscalPeriod')}
         </div>
-        <div className="text-[11px] font-mono text-[var(--text-primary)]">
+        <div className="text-caption font-mono text-[var(--text-primary)]">
           {period.start} → {period.end}
         </div>
       </div>
 
       {/* Source Value */}
       <div>
-        <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">
+        <div className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">
           {t('disclosureEditor.fact.sourceValue')}
         </div>
         <div className="text-[14px] font-semibold text-[var(--text-primary)] font-mono">
@@ -221,16 +221,16 @@ export default function FactDetailsPanel({
       {/* XBRL Footnotes */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] flex items-center gap-1">
+          <div className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)] flex items-center gap-1">
             <MessageSquare className="w-3 h-3" />
             {t('disclosureEditor.fact.footnotes')}
           </div>
           {foots.length > 0 && (
-            <span className="text-[9px] text-[var(--text-tertiary)]">{foots.length}</span>
+            <span className="text-caption text-[var(--text-tertiary)]">{foots.length}</span>
           )}
         </div>
         {!assignment ? (
-          <p className="text-[11px] text-[var(--text-tertiary)] italic">
+          <p className="text-caption text-[var(--text-tertiary)] italic">
             {t('disclosureEditor.fact.footnotesEmpty')}
           </p>
         ) : loadingFoots ? (
@@ -238,13 +238,13 @@ export default function FactDetailsPanel({
         ) : (
           <>
             {foots.length === 0 ? (
-              <p className="text-[11px] text-[var(--text-tertiary)] italic">{t('disclosureEditor.fact.noFootnotes')}</p>
+              <p className="text-caption text-[var(--text-tertiary)] italic">{t('disclosureEditor.fact.noFootnotes')}</p>
             ) : (
               <ul className="space-y-1.5 mb-2">
                 {foots.map(f => (
                   <li
                     key={f.id}
-                    className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-2 text-[11px] text-[var(--text-primary)] leading-relaxed flex items-start justify-between gap-2"
+                    className="rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-2 text-caption text-[var(--text-primary)] leading-relaxed flex items-start justify-between gap-2"
                   >
                     <span className="flex-1">{f.footnote_text}</span>
                     {canEditFootnotes && (
@@ -269,20 +269,20 @@ export default function FactDetailsPanel({
                   placeholder={t('disclosureEditor.fact.footnotePlaceholder')}
                   rows={2}
                   disabled={adding}
-                  className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[11px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-brand)] resize-none"
+                  className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-caption text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-brand)] resize-none"
                 />
                 <button
                   type="button"
                   onClick={() => void handleAddFootnote()}
                   disabled={adding || !newFootnote.trim()}
-                  className="inline-flex items-center gap-1 px-2 h-6 rounded-[var(--radius-sm)] bg-[var(--color-brand)] text-white text-[10px] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-50"
+                  className="inline-flex items-center gap-1 px-2 h-6 rounded-[var(--radius-sm)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-caption font-semibold hover:bg-[var(--btn-primary-bg-hover)] disabled:opacity-50"
                 >
                   {adding
                     ? <><Loader2 className="w-3 h-3 animate-spin" /> {t('disclosureEditor.fact.adding')}</>
                     : <><Plus className="w-3 h-3" /> {t('disclosureEditor.fact.applyFootnote')}</>}
                 </button>
                 {footError && (
-                  <div className="text-[10px] text-[var(--status-reject)] flex items-start gap-1">
+                  <div className="text-caption text-[var(--status-reject)] flex items-start gap-1">
                     <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-0.5" />
                     <span>{footError}</span>
                   </div>
@@ -296,7 +296,7 @@ export default function FactDetailsPanel({
       {/* Other Fact Locations */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] flex items-center gap-1">
+          <div className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)] flex items-center gap-1">
             <Link2 className="w-3 h-3 text-[var(--color-brand)]" />
             {t('disclosureEditor.fact.otherLocations')}
             {!loadingPeers && peers.length > 0 && (
@@ -304,7 +304,7 @@ export default function FactDetailsPanel({
             )}
           </div>
           {conceptKey && (
-            <span className="text-[9px] font-mono text-[var(--text-tertiary)] truncate max-w-[120px]" title={conceptKey}>
+            <span className="text-caption font-mono text-[var(--text-tertiary)] truncate max-w-[120px]" title={conceptKey}>
               {conceptKey}
             </span>
           )}
@@ -312,7 +312,7 @@ export default function FactDetailsPanel({
         {loadingPeers ? (
           <Loader2 className="w-3 h-3 animate-spin text-[var(--text-tertiary)]" />
         ) : peers.length === 0 ? (
-          <p className="text-[11px] text-[var(--text-tertiary)] italic">
+          <p className="text-caption text-[var(--text-tertiary)] italic">
             {t('disclosureEditor.fact.notLinked')}
           </p>
         ) : (
@@ -323,9 +323,9 @@ export default function FactDetailsPanel({
                   type="button"
                   onClick={() => handlePeerClick(p)}
                   data-testid={`fact-peer-${p.framework_id}`}
-                  className="w-full flex items-center gap-2 px-2 h-7 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] text-left text-[10px]"
+                  className="w-full flex items-center gap-2 px-2 h-7 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] text-left text-caption"
                 >
-                  <span className="inline-flex items-center justify-center px-1.5 h-4 rounded-[var(--radius-xs)] bg-[var(--bg-tertiary)] text-[9px] font-bold uppercase tracking-wide text-[var(--text-secondary)] flex-shrink-0">
+                  <span className="inline-flex items-center justify-center px-1.5 h-4 rounded-[var(--radius-xs)] bg-[var(--bg-tertiary)] text-micro font-bold uppercase tracking-[0.06em] text-[var(--text-secondary)] flex-shrink-0">
                     {frameworkLabel(p.framework_id)}
                   </span>
                   <span className="font-mono text-[var(--text-tertiary)] flex-shrink-0">{p.gri_code}</span>
@@ -341,7 +341,7 @@ export default function FactDetailsPanel({
         {assignment && peers.length > 0 && (
           <div className="mt-2 flex items-center justify-between">
             {overridden ? (
-              <span className="inline-flex items-center gap-1 px-2 h-5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-semibold">
+              <span className="inline-flex items-center gap-1 px-2 h-5 rounded-full bg-amber-100 text-amber-800 text-caption font-semibold">
                 <AlertTriangle className="w-3 h-3" /> {t('disclosureEditor.fact.overridden')}
               </span>
             ) : canOverride ? (
@@ -349,7 +349,7 @@ export default function FactDetailsPanel({
                 type="button"
                 onClick={() => void handleOverride()}
                 disabled={overrideBusy}
-                className="inline-flex items-center gap-1 px-2 h-6 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[10px] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-2 h-6 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-caption text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50"
                 title={t('disclosureEditor.fact.overrideTitle')}
               >
                 {overrideBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Lock className="w-3 h-3" />}
@@ -357,7 +357,7 @@ export default function FactDetailsPanel({
               </button>
             ) : null}
             {overrideError && (
-              <span className="text-[10px] text-[var(--status-reject)]">{overrideError}</span>
+              <span className="text-caption text-[var(--status-reject)]">{overrideError}</span>
             )}
           </div>
         )}

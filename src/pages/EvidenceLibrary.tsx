@@ -116,7 +116,7 @@ export default function EvidenceLibrary() {
       ) : (
         <div className="rounded-[12px] border border-[var(--border-subtle)] overflow-hidden bg-[var(--bg-primary)]">
           <table className="w-full text-[13px]">
-            <thead className="bg-[var(--bg-secondary)] text-[11px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)]">
+            <thead className="bg-[var(--bg-secondary)] text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">
               <tr>
                 <th className="text-left px-4 py-3">{t('evidence.columns.disclosure')}</th>
                 <th className="text-left px-4 py-3">{t('evidence.columns.files')}</th>
@@ -129,7 +129,7 @@ export default function EvidenceLibrary() {
               {evidenced.map(a => (
                 <tr key={a.id} className="hover:bg-[var(--bg-hover)]">
                   <td className="px-4 py-3">
-                    <div className="font-mono text-[11px] text-[var(--text-tertiary)]">{a.gri_code}</div>
+                    <div className="font-mono text-caption text-[var(--text-tertiary)]">{a.gri_code}</div>
                     <div className="text-[var(--text-primary)] font-medium truncate max-w-[420px]">{itemLabel(a, i18n.language)}</div>
                   </td>
                   <td className="px-4 py-3">

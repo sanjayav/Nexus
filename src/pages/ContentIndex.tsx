@@ -131,19 +131,19 @@ export default function ContentIndex() {
         <div className="flex-1 relative min-w-[260px]">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
           <input id="content-index-search" aria-label={t('contentIndex.filters.searchAria')} value={query} onChange={e => setQuery(e.target.value)} placeholder={t('contentIndex.filters.searchPlaceholder')}
-            className="w-full pl-9 pr-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]" />
+            className="w-full pl-9 pr-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]" />
         </div>
         <div className="relative">
           <Filter className="w-3 h-3 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
           <select id="content-status-filter" aria-label={t('contentIndex.filters.statusAria')} value={statusFilter} onChange={e => setStatusFilter(e.target.value as StatusFilter)}
-            className="pl-7 pr-7 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)] appearance-none">
+            className="pl-7 pr-7 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-xs)] appearance-none">
             <option value="all">{t('contentIndex.filters.allStatuses')}</option>
             <option value="fully">{t('contentIndex.filters.fully')}</option>
             <option value="partially">{t('contentIndex.filters.partially')}</option>
             <option value="omitted">{t('contentIndex.filters.omitted')}</option>
           </select>
         </div>
-        <label className="inline-flex items-center gap-2 px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] cursor-pointer text-[var(--text-xs)]">
+        <label className="inline-flex items-center gap-2 px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] cursor-pointer text-[length:var(--text-xs)]">
           <input type="checkbox" checked={materialOnly} onChange={e => setMaterialOnly(e.target.checked)} />
           <span className="font-medium text-[var(--text-secondary)]">{t('contentIndex.filters.materialOnly')}</span>
         </label>
@@ -160,9 +160,9 @@ export default function ContentIndex() {
         {loading ? (
           <div className="p-4"><SkeletonTable rows={10} cols={6} /></div>
         ) : (
-          <table className="w-full text-[var(--text-sm)] print:text-[9pt]">
+          <table className="w-full text-[length:var(--text-sm)] print:text-[9pt]">
             <thead>
-              <tr className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] bg-[var(--bg-secondary)] print:bg-gray-100">
+              <tr className="text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] bg-[var(--bg-secondary)] print:bg-gray-100">
                 <th className="text-left px-4 py-2.5 font-semibold w-[100px]">{t('contentIndex.columns.code')}</th>
                 <th className="text-left px-4 py-2.5 font-semibold">{t('contentIndex.columns.disclosure')}</th>
                 <th className="text-left px-3 py-2.5 font-semibold w-[140px]">{t('contentIndex.columns.section')}</th>
@@ -177,14 +177,14 @@ export default function ContentIndex() {
                 const topic = codeToTopic.get(codeNoVer)
                 return (
                   <motion.tr key={r.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.005 }}>
-                    <td className="px-4 py-2 font-mono text-[10px] text-[var(--color-brand)] font-bold">{r.gri_code}</td>
-                    <td className="px-4 py-2 text-[var(--text-xs)] text-[var(--text-primary)]">{itemLabel(r, i18n.language)}</td>
-                    <td className="px-3 py-2 text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">{r.section}</td>
-                    <td className="px-3 py-2 text-[10px] text-[var(--text-secondary)] truncate">
+                    <td className="px-4 py-2 font-mono text-caption text-[var(--color-brand)] font-bold">{r.gri_code}</td>
+                    <td className="px-4 py-2 text-[length:var(--text-xs)] text-[var(--text-primary)]">{itemLabel(r, i18n.language)}</td>
+                    <td className="px-3 py-2 text-micro text-[var(--text-tertiary)] uppercase tracking-[0.06em]">{r.section}</td>
+                    <td className="px-3 py-2 text-caption text-[var(--text-secondary)] truncate">
                       {topic ? topic.topic_name : <span className="italic text-[var(--text-tertiary)]">—</span>}
                     </td>
                     <td className="px-3 py-2 text-center"><IndexStatusChip status={r.status} /></td>
-                    <td className="px-3 py-2 text-center text-[10px] text-[var(--text-tertiary)] tabular-nums print:hidden">
+                    <td className="px-3 py-2 text-center text-caption text-[var(--text-tertiary)] tabular-nums print:hidden">
                       {r.total === 0 ? '—' : `${r.approved}/${r.total}`}
                     </td>
                   </motion.tr>
@@ -203,9 +203,9 @@ function SummaryCard({ label, value, hint, tone }: { label: string; value: numbe
   const fg = tone === 'ok' ? 'var(--status-ok)' : tone === 'pending' ? 'var(--status-pending)' : tone === 'reject' ? 'var(--status-reject)' : 'var(--text-primary)'
   return (
     <div className="rounded-[var(--radius-md)] border border-[var(--border-default)] p-4" style={{ background: bg }}>
-      <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: fg, opacity: 0.8 }}>{label}</div>
+      <div className="text-micro uppercase tracking-[0.06em] font-semibold" style={{ color: fg, opacity: 0.8 }}>{label}</div>
       <div className="text-[26px] font-bold tabular-nums mt-0.5" style={{ color: fg }}>{value}</div>
-      <div className="text-[10px] text-[var(--text-tertiary)] mt-0.5">{hint}</div>
+      <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{hint}</div>
     </div>
   )
 }
@@ -213,17 +213,17 @@ function SummaryCard({ label, value, hint, tone }: { label: string; value: numbe
 function IndexStatusChip({ status }: { status: ContentIndexRow['status'] }) {
   const { t } = useTranslation()
   if (status === 'fully') return (
-    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-[var(--status-ok)] bg-[var(--accent-green-light)] px-1.5 py-0.5 rounded">
+    <span className="inline-flex items-center gap-1 text-micro font-bold uppercase tracking-[0.06em] text-[var(--status-ok)] bg-[var(--accent-green-light)] px-1.5 py-0.5 rounded">
       <CheckCircle2 className="w-2.5 h-2.5" /> {t('contentIndex.status.fully')}
     </span>
   )
   if (status === 'partially') return (
-    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-[var(--status-pending)] bg-[var(--accent-blue-light)] px-1.5 py-0.5 rounded">
+    <span className="inline-flex items-center gap-1 text-micro font-bold uppercase tracking-[0.06em] text-[var(--status-pending)] bg-[var(--accent-blue-light)] px-1.5 py-0.5 rounded">
       <Circle className="w-2.5 h-2.5" /> {t('contentIndex.status.partially')}
     </span>
   )
   return (
-    <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded">
+    <span className="inline-flex items-center gap-1 text-micro font-bold uppercase tracking-[0.06em] text-[var(--text-tertiary)] bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded">
       <AlertTriangle className="w-2.5 h-2.5" /> {t('contentIndex.status.omitted')}
     </span>
   )

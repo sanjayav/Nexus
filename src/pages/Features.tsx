@@ -121,7 +121,7 @@ export default function Features() {
             >
               <div>
                 <p
-                  className="text-[11px] font-semibold uppercase tracking-[0.15em] mb-3"
+                  className="text-micro font-semibold uppercase tracking-[0.06em] mb-3"
                   style={{ color: 'var(--accent-600)' }}
                 >
                   {t('features.forRole', { role: roleName })}
@@ -187,7 +187,7 @@ export default function Features() {
                   }}
                 />
                 <div
-                  className="relative z-10 text-[11px] font-semibold uppercase tracking-[0.15em]"
+                  className="relative z-10 text-micro font-semibold uppercase tracking-[0.06em]"
                   style={{ color: 'var(--text-tertiary)' }}
                 >
                   {t('features.roleView', { role: roleName.toUpperCase() })}

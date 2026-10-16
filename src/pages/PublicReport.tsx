@@ -163,12 +163,12 @@ export default function PublicReport() {
           <div className="flex items-center gap-3">
             <span
               className="w-8 h-8 rounded-md flex items-center justify-center text-white"
-              style={{ background: 'linear-gradient(135deg, #2fa98e, #1B6B7B)' }}
+              style={{ background: 'linear-gradient(135deg, #10B981, #047857)' }}
             >
               <ShieldCheck className="w-4 h-4" />
             </span>
             <div>
-              <div className="text-[10px] uppercase tracking-[0.15em] font-bold text-[var(--text-tertiary)]">
+              <div className="text-micro uppercase tracking-[0.06em] font-bold text-[var(--text-tertiary)]">
                 {t('publicReport.header')}
               </div>
               <div className="font-display text-[15px] font-semibold text-[var(--text-primary)]">
@@ -214,7 +214,7 @@ export default function PublicReport() {
           <Accordion title={t('publicReportPage.quantitative')} defaultOpen>
             <table className="w-full text-[13px]">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)]">
+                <tr className="text-left text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)]">
                   <th className="py-2 pr-4">{t('publicReportPage.table.code')}</th>
                   <th className="py-2 pr-4">{t('publicReportPage.table.lineItem')}</th>
                   <th className="py-2 pr-4 text-right">{t('publicReportPage.table.value')}</th>
@@ -243,7 +243,7 @@ export default function PublicReport() {
               {narrativeSections.map((s, i) => (
                 <div key={i}>
                   <div className="flex items-baseline gap-2 mb-1">
-                    <span className="font-mono text-[11px] text-[var(--text-tertiary)]">{s.gri_code}</span>
+                    <span className="font-mono text-caption text-[var(--text-tertiary)]">{s.gri_code}</span>
                     <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">{itemLabel(s, i18n.language)}</h3>
                   </div>
                   <p className="text-[13px] text-[var(--text-secondary)] whitespace-pre-line">
@@ -292,7 +292,7 @@ export default function PublicReport() {
             </div>
           )}
           <div>{t('publicReportPage.footer.publishedBy', { name: r.published_by_name, hash: r.pdf_sha256.slice(0, 16) })}</div>
-          <div className="text-[10px] uppercase tracking-[0.15em] text-[var(--text-tertiary)] pt-1">{t('publicReportPage.footer.poweredBy')}</div>
+          <div className="text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] pt-1">{t('publicReportPage.footer.poweredBy')}</div>
         </footer>
       </main>
     </div>

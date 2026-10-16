@@ -18,7 +18,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className={className}>
         {label && (
-          <label className="block text-[var(--text-sm)] font-medium text-[var(--text-primary)] mb-1.5">
+          <label className="block text-[length:var(--text-sm)] font-medium text-[var(--text-primary)] mb-1.5">
             {label}
           </label>
         )}
@@ -26,10 +26,10 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           <select
             ref={ref}
             className={`
-              w-full h-10 px-3 pr-9 text-[var(--text-base)] text-[var(--text-primary)]
+              w-full h-10 px-3 pr-9 text-[length:var(--text-base)] text-[var(--text-primary)]
               bg-[var(--bg-primary)] border rounded-[var(--radius-md)]
               appearance-none cursor-pointer
-              transition-colors duration-[var(--transition-fast)]
+              transition-colors duration-micro
               focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)] focus:ring-offset-1
               ${error
                 ? 'border-[var(--accent-red)]'
@@ -52,7 +52,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)] pointer-events-none" />
         </div>
         {error && (
-          <p className="mt-1 text-[var(--text-xs)] text-[var(--accent-red)]">{error}</p>
+          <p className="mt-1 text-[length:var(--text-xs)] text-[var(--accent-red)]">{error}</p>
         )}
       </div>
     )

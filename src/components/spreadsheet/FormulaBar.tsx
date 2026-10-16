@@ -63,7 +63,7 @@ export function FormulaBar({
     >
       {/* Cell-ref pill */}
       <div
-        className="inline-flex items-center justify-center min-w-[56px] px-2 h-8 rounded-[6px] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] font-mono text-[11px] font-semibold text-[var(--text-secondary)] tabular-nums"
+        className="inline-flex items-center justify-center min-w-[56px] px-2 h-8 rounded-[6px] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] font-mono text-caption font-semibold text-[var(--text-secondary)] tabular-nums"
         aria-label={t('spreadsheet.activeCell')}
       >
         {activeCellLabel || '—'}
@@ -103,7 +103,7 @@ export function FormulaBar({
         <button
           type="button"
           onClick={onShowHelp}
-          className="inline-flex items-center gap-1 px-2 h-8 rounded-[6px] border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+          className="inline-flex items-center gap-1 px-2 h-8 rounded-[6px] border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-caption text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
           aria-label={t('spreadsheet.help')}
           title={t('spreadsheet.examples')}
         >

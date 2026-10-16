@@ -15,7 +15,8 @@
 //
 // `lineItem` is the canonical English text and part of the questionnaire_item
 // conflict key. `lineItemZh` is the Simplified Chinese wording shown when the
-// UI language is zh (see src/lib/itemLabel.ts).
+// UI language is zh (see src/lib/itemLabel.ts). Section / subsection headings
+// carry zh too (SECTION_ZH, *_SUBSECTION_ZH → section_zh / subsection_zh).
 //
 // Unlike the older seeders, this one does NOT switch the framework on for any
 // organisation: tenants opt in from Settings → Frameworks.
@@ -38,6 +39,41 @@ export interface ItemSpec {
 }
 
 const SECTION = 'CN-SSE Sustainability Reporting Guidelines'
+const SECTION_ZH = '上市公司可持续发展报告指引'
+/**
+ * Simplified Chinese subsection headings, written to questionnaire_item.subsection_zh
+ * (section_zh gets SECTION_ZH). Reports and the questionnaire tree show these when
+ * the language is zh; NULL falls back to the English heading.
+ */
+export const CN_SSE_SUBSECTION_ZH: Record<string, string> = {
+  'Reporting basis': '报告编制基础',
+  'Double materiality assessment': '双重重要性评估',
+  'Sustainability governance': '可持续发展治理',
+  'Climate — Governance': '应对气候变化——治理',
+  'Climate — Strategy': '应对气候变化——战略',
+  'Climate — Impact, risk and opportunity management': '应对气候变化——影响、风险和机遇管理',
+  'Climate — Metrics and targets': '应对气候变化——指标与目标',
+  'Pollutant emissions': '污染物排放',
+  'Waste management': '废弃物处理',
+  'Ecosystem and biodiversity protection': '生态系统和生物多样性保护',
+  'Environmental compliance management': '环境合规管理',
+  'Energy use': '能源利用',
+  'Water resource use': '水资源利用',
+  'Circular economy': '循环经济',
+  'Rural revitalisation': '乡村振兴',
+  'Social contribution': '社会贡献',
+  'Innovation-driven development': '创新驱动',
+  'Ethics of science and technology': '科技伦理',
+  'Supply chain security': '供应链安全',
+  'Fair treatment of SMEs': '平等对待中小企业',
+  'Product and service safety and quality': '产品和服务安全与质量',
+  'Data security and customer privacy': '数据安全与客户隐私保护',
+  'Employees': '员工',
+  'Due diligence': '尽职调查',
+  'Stakeholder communication': '利益相关方沟通',
+  'Anti-commercial bribery and anti-corruption': '反商业贿赂及反贪污',
+  'Anti-unfair competition': '反不正当竞争',
+}
 const FRAMEWORK_ID = 'cn-sse'
 const REPORTING_SCOPE: ReportingScope = 'group'
 
@@ -194,11 +230,15 @@ import type { Sql } from './_db'
 export async function seedCNSSE(sql: Sql): Promise<void> {
   await sql`ALTER TABLE questionnaire_item ADD COLUMN IF NOT EXISTS framework_id TEXT`
   await sql`ALTER TABLE questionnaire_item ADD COLUMN IF NOT EXISTS line_item_zh TEXT`
+  await sql`ALTER TABLE questionnaire_item ADD COLUMN IF NOT EXISTS section_zh TEXT`
+  await sql`ALTER TABLE questionnaire_item ADD COLUMN IF NOT EXISTS subsection_zh TEXT`
   // One HTTP round trip, one transaction: either the whole catalogue lands or none of it.
   await sql.transaction(txn => CN_SSE_ITEMS.map(it => txn`
       WITH upd AS (
         UPDATE questionnaire_item
-           SET line_item_zh = ${it.lineItemZh}::text
+           SET line_item_zh = ${it.lineItemZh}::text,
+               section_zh = ${SECTION_ZH}::text,
+               subsection_zh = ${CN_SSE_SUBSECTION_ZH[it.subsection] ?? null}::text
          WHERE gri_code = ${it.griCode}::text
            AND line_item = ${it.lineItem}::text
            AND scope_split IS NOT DISTINCT FROM ${it.scopeSplit}::text
@@ -206,17 +246,20 @@ export async function seedCNSSE(sql: Sql): Promise<void> {
         RETURNING id
       )
       INSERT INTO questionnaire_item
-        (framework_id, section, subsection, gri_code, line_item, line_item_zh, unit, scope_split,
+        (framework_id, section, section_zh, subsection, subsection_zh, gri_code, line_item, line_item_zh, unit, scope_split,
          has_target, requires_coverage, default_workflow_role, entry_mode_default,
          footnote_refs, reporting_scope)
       SELECT
-        ${FRAMEWORK_ID}::text, ${SECTION}::text, ${it.subsection}::text, ${it.griCode}::text,
+        ${FRAMEWORK_ID}::text, ${SECTION}::text, ${SECTION_ZH}::text, ${it.subsection}::text,
+        ${CN_SSE_SUBSECTION_ZH[it.subsection] ?? null}::text, ${it.griCode}::text,
         ${it.lineItem}::text, ${it.lineItemZh}::text, ${it.unit}::text, ${it.scopeSplit}::text,
         ${it.hasTarget}::boolean, ${it.requiresCoverage}::boolean,
         ${it.defaultRole}::text, ${it.entryMode}::text, '[]'::jsonb, ${REPORTING_SCOPE}::text
       WHERE NOT EXISTS (SELECT 1 FROM upd)
       ON CONFLICT (gri_code, line_item, scope_split, reporting_scope)
-        DO UPDATE SET line_item_zh = EXCLUDED.line_item_zh
+        DO UPDATE SET line_item_zh = EXCLUDED.line_item_zh,
+                      section_zh = EXCLUDED.section_zh,
+                      subsection_zh = EXCLUDED.subsection_zh
     `))
   // Intentionally no per-org enablement here: orgs opt in via Settings.
 }

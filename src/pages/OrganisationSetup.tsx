@@ -159,17 +159,17 @@ export default function OrganisationSetup() {
       {/* ── Header ── */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">
+          <h1 className="font-display text-[length:var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">
             {t('orgSetup.title')}
           </h1>
-          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-tertiary)]">
+          <p className="mt-1 text-[length:var(--text-sm)] text-[var(--text-tertiary)]">
             {t('orgSetup.subtitle', { count: STEPS.length })}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <p className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">{t('orgSetup.progress')}</p>
-            <p className="font-display text-[var(--text-xl)] font-bold text-[var(--text-primary)] tabular-nums">{completionPct}%</p>
+            <p className="text-[length:var(--text-xs)] font-medium text-[var(--text-tertiary)] uppercase tracking-wider">{t('orgSetup.progress')}</p>
+            <p className="font-display text-[length:var(--text-xl)] font-bold text-[var(--text-primary)] tabular-nums">{completionPct}%</p>
           </div>
           <div className="w-12 h-12 relative">
             <svg width={48} height={48} className="-rotate-90">
@@ -183,7 +183,7 @@ export default function OrganisationSetup() {
                 style={{ transition: 'stroke-dashoffset 0.6s var(--ease-out-expo)' }}
               />
             </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-[var(--text-secondary)] tabular-nums">
+            <span className="absolute inset-0 flex items-center justify-center text-caption font-bold text-[var(--text-secondary)] tabular-nums">
               {completedSteps.size}/{STEPS.length}
             </span>
           </div>
@@ -203,7 +203,7 @@ export default function OrganisationSetup() {
                   w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold
                   transition-all duration-300 cursor-pointer flex-shrink-0
                   ${done
-                    ? 'bg-[var(--accent-teal)] text-white shadow-[var(--shadow-glow-teal)]'
+                    ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] shadow-[var(--shadow-glow-teal)]'
                     : active
                       ? 'bg-[var(--bg-inverse)] text-white shadow-[var(--shadow-md)]'
                       : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:bg-[var(--border-strong)]'
@@ -252,13 +252,13 @@ export default function OrganisationSetup() {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">
+                    <span className="text-micro font-bold text-[var(--text-tertiary)] uppercase tracking-[0.06em]">
                       {t('orgSetup.stepLabel', { number: step.number })}
                     </span>
                     {isDone && <Badge variant="teal" dot>{t('orgSetup.complete')}</Badge>}
                   </div>
-                  <h3 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)] mt-0.5">{t(step.titleKey)}</h3>
-                  <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-0.5">{t(step.descKey)}</p>
+                  <h3 className="text-[length:var(--text-base)] font-semibold text-[var(--text-primary)] mt-0.5">{t(step.titleKey)}</h3>
+                  <p className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] mt-0.5">{t(step.descKey)}</p>
                 </div>
 
                 <div className="flex-shrink-0 text-[var(--text-tertiary)]">
@@ -285,13 +285,13 @@ export default function OrganisationSetup() {
 
                   {/* Step footer */}
                   <div className="border-t border-[var(--border-subtle)] px-6 py-4 flex items-center justify-between bg-[var(--bg-secondary)]">
-                    <div className="flex items-center gap-2 text-[var(--text-xs)] text-[var(--text-tertiary)]">
+                    <div className="flex items-center gap-2 text-[length:var(--text-xs)] text-[var(--text-tertiary)]">
                       <Info className="w-3.5 h-3.5" />
                       <span>{t('orgSetup.autoSaved')}</span>
                     </div>
                     <button
                       onClick={() => markComplete(step.id)}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--bg-inverse)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--bg-inverse-soft)] active:scale-[0.98] transition-all cursor-pointer shadow-sm"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--bg-inverse)] text-white text-[length:var(--text-sm)] font-semibold hover:bg-[var(--bg-inverse-soft)] active:scale-[0.98] transition-all cursor-pointer shadow-sm"
                     >
                       <span>{t('orgSetup.markComplete')}</span>
                       <ArrowRight className="w-4 h-4" />
@@ -312,10 +312,10 @@ export default function OrganisationSetup() {
               <Check className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="font-display text-[var(--text-lg)] font-bold text-[var(--text-primary)]">
+              <h3 className="font-display text-[length:var(--text-lg)] font-bold text-[var(--text-primary)]">
                 {t('orgSetup.done.title')}
               </h3>
-              <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1">
+              <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] mt-1">
                 {t('orgSetup.done.body')}
               </p>
               <div className="flex items-center gap-3 mt-4">
@@ -365,7 +365,7 @@ function TenantConfig() {
       {/* Info panel */}
       <div className="flex items-start gap-3 p-4 rounded-xl bg-[var(--accent-blue-light)] border border-blue-100">
         <AlertCircle className="w-4 h-4 text-[var(--accent-blue)] flex-shrink-0 mt-0.5" />
-        <div className="text-[var(--text-xs)] text-[var(--accent-blue)] leading-relaxed">
+        <div className="text-[length:var(--text-xs)] text-[var(--accent-blue)] leading-relaxed">
           <strong>{t('orgSetup.tenant.infoStrong')}</strong>{t('orgSetup.tenant.infoBody')}
         </div>
       </div>
@@ -421,10 +421,10 @@ function BoundaryConfig({ value, onChange }: { value: string; onChange: (v: stri
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{approach.title}</span>
+              <span className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)]">{approach.title}</span>
               {approach.recommended && <Badge variant="teal">{t('orgSetup.boundary.recommended')}</Badge>}
             </div>
-            <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-1 leading-relaxed">{approach.desc}</p>
+            <p className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] mt-1 leading-relaxed">{approach.desc}</p>
           </div>
         </button>
       ))}
@@ -462,7 +462,7 @@ function FrameworkConfig({ selected, onToggle }: { selected: Set<string>; onTogg
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t(fw.labelKey)}</span>
+                  <span className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)]">{t(fw.labelKey)}</span>
                   <Badge variant={fw.color}>v{fw.version}</Badge>
                 </div>
               </div>
@@ -473,7 +473,7 @@ function FrameworkConfig({ selected, onToggle }: { selected: Set<string>; onTogg
           )
         })}
       </div>
-      <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
+      <p className="text-[length:var(--text-xs)] text-[var(--text-tertiary)]">
         {t('orgSetup.frameworks.selected', { count: selected.size })}
       </p>
     </div>
@@ -485,10 +485,10 @@ function GroupsConfig() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+        <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)]">
           {t('orgSetup.groups.defined', { n: DEMO_GROUPS.length })}
         </p>
-        <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-[var(--border-strong)] text-[var(--text-sm)] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-teal)] hover:text-[var(--accent-teal)] hover:bg-[var(--accent-teal-subtle)] transition-all cursor-pointer">
+        <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-[var(--border-strong)] text-[length:var(--text-sm)] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-teal)] hover:text-[var(--accent-teal)] hover:bg-[var(--accent-teal-subtle)] transition-all cursor-pointer">
           <Plus className="w-3.5 h-3.5" />
           {t('orgSetup.groups.add')}
         </button>
@@ -504,8 +504,8 @@ function GroupsConfig() {
               <Network className="w-4 h-4 text-[var(--text-tertiary)]" />
             </div>
             <div className="flex-1 min-w-0">
-              <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] block">{t(group.nameKey)}</span>
-              <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
+              <span className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)] block">{t(group.nameKey)}</span>
+              <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)]">
                 {t('orgSetup.groups.summary', { subsidiaries: group.subsidiaries, subdivisions: group.subdivisions })}
               </span>
             </div>
@@ -527,10 +527,10 @@ function SubdivisionsConfig() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+        <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)]">
           {t('orgSetup.subdivisions.registered', { n: DEMO_SUBDIVISIONS.length })}
         </p>
-        <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-[var(--border-strong)] text-[var(--text-sm)] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-teal)] hover:text-[var(--accent-teal)] hover:bg-[var(--accent-teal-subtle)] transition-all cursor-pointer">
+        <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-[var(--border-strong)] text-[length:var(--text-sm)] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-teal)] hover:text-[var(--accent-teal)] hover:bg-[var(--accent-teal-subtle)] transition-all cursor-pointer">
           <Plus className="w-3.5 h-3.5" />
           {t('orgSetup.subdivisions.add')}
         </button>
@@ -539,11 +539,11 @@ function SubdivisionsConfig() {
       {/* Table-like list */}
       <div className="rounded-xl border border-[var(--border-default)] overflow-hidden">
         <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-4 py-2.5 bg-[var(--bg-secondary)] border-b border-[var(--border-default)]">
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">{t('orgSetup.subdivisions.cols.facility')}</span>
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">{t('orgSetup.subdivisions.cols.group')}</span>
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">{t('orgSetup.subdivisions.cols.country')}</span>
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">{t('orgSetup.subdivisions.cols.type')}</span>
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider text-right">{t('orgSetup.subdivisions.cols.sources')}</span>
+          <span className="text-micro font-bold text-[var(--text-tertiary)] uppercase tracking-[0.06em]">{t('orgSetup.subdivisions.cols.facility')}</span>
+          <span className="text-micro font-bold text-[var(--text-tertiary)] uppercase tracking-[0.06em]">{t('orgSetup.subdivisions.cols.group')}</span>
+          <span className="text-micro font-bold text-[var(--text-tertiary)] uppercase tracking-[0.06em]">{t('orgSetup.subdivisions.cols.country')}</span>
+          <span className="text-micro font-bold text-[var(--text-tertiary)] uppercase tracking-[0.06em]">{t('orgSetup.subdivisions.cols.type')}</span>
+          <span className="text-micro font-bold text-[var(--text-tertiary)] uppercase tracking-[0.06em] text-right">{t('orgSetup.subdivisions.cols.sources')}</span>
         </div>
         {DEMO_SUBDIVISIONS.map((sub, i) => (
           <div
@@ -554,12 +554,12 @@ function SubdivisionsConfig() {
           >
             <div className="flex items-center gap-3 min-w-0">
               <MapPin className="w-4 h-4 text-[var(--text-tertiary)] flex-shrink-0" />
-              <span className="text-[var(--text-sm)] font-medium text-[var(--text-primary)] truncate">{sub.name}</span>
+              <span className="text-[length:var(--text-sm)] font-medium text-[var(--text-primary)] truncate">{sub.name}</span>
             </div>
             <Badge variant="gray">{t(sub.groupKey)}</Badge>
-            <span className="text-[var(--text-sm)] text-[var(--text-secondary)] font-mono">{sub.country}</span>
+            <span className="text-[length:var(--text-sm)] text-[var(--text-secondary)] font-mono">{sub.country}</span>
             <Badge variant="blue">{t(sub.typeKey)}</Badge>
-            <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] tabular-nums text-right">{sub.sources}</span>
+            <span className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)] tabular-nums text-right">{sub.sources}</span>
           </div>
         ))}
       </div>
@@ -571,7 +571,7 @@ function SourcesConfig() {
   const { t } = useTranslation()
   return (
     <div className="space-y-5">
-      <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+      <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)]">
         {t('orgSetup.sources.intro')}
       </p>
 
@@ -583,8 +583,8 @@ function SourcesConfig() {
             className="flex items-center gap-4 p-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] hover:border-[var(--border-strong)] transition-colors group"
           >
             <div className="flex-1 min-w-0">
-              <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t(src.typeKey)}</span>
-              <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] ml-2">{t('orgSetup.sources.count', { n: src.count })}</span>
+              <span className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)]">{t(src.typeKey)}</span>
+              <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] ml-2">{t('orgSetup.sources.count', { n: src.count })}</span>
             </div>
 
             {/* Routing arrow */}
@@ -606,7 +606,7 @@ function SourcesConfig() {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 text-[var(--text-xs)] text-[var(--text-tertiary)]">
+      <div className="flex items-center gap-4 text-[length:var(--text-xs)] text-[var(--text-tertiary)]">
         <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[var(--accent-teal)]" />{t('orgSetup.sources.scope1')}</span>
         <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[var(--accent-amber)]" />{t('orgSetup.sources.scope2')}</span>
         <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[var(--accent-purple)]" />{t('orgSetup.sources.scope3')}</span>
@@ -619,16 +619,16 @@ function GridConfig() {
   const { t } = useTranslation()
   return (
     <div className="space-y-5">
-      <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+      <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)]">
         {t('orgSetup.grid.intro')}
       </p>
 
       <div className="rounded-xl border border-[var(--border-default)] overflow-hidden">
         <div className="grid grid-cols-[1fr_1fr_auto_auto] gap-4 px-4 py-2.5 bg-[var(--bg-secondary)] border-b border-[var(--border-default)]">
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">{t('orgSetup.grid.cols.facility')}</span>
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">{t('orgSetup.grid.cols.gridSubregion')}</span>
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">{t('orgSetup.grid.cols.ef')}</span>
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">{t('orgSetup.grid.cols.unit')}</span>
+          <span className="text-micro font-bold text-[var(--text-tertiary)] uppercase tracking-[0.06em]">{t('orgSetup.grid.cols.facility')}</span>
+          <span className="text-micro font-bold text-[var(--text-tertiary)] uppercase tracking-[0.06em]">{t('orgSetup.grid.cols.gridSubregion')}</span>
+          <span className="text-micro font-bold text-[var(--text-tertiary)] uppercase tracking-[0.06em]">{t('orgSetup.grid.cols.ef')}</span>
+          <span className="text-micro font-bold text-[var(--text-tertiary)] uppercase tracking-[0.06em]">{t('orgSetup.grid.cols.unit')}</span>
         </div>
         {GRID_REGIONS.map((row, i) => (
           <div
@@ -637,17 +637,17 @@ function GridConfig() {
               i < GRID_REGIONS.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''
             }`}
           >
-            <span className="text-[var(--text-sm)] font-medium text-[var(--text-primary)]">{row.facility}</span>
+            <span className="text-[length:var(--text-sm)] font-medium text-[var(--text-primary)]">{row.facility}</span>
             <Badge variant="blue">{row.grid}</Badge>
-            <span className="text-[var(--text-sm)] font-mono font-semibold text-[var(--text-primary)] tabular-nums">{row.ef}</span>
-            <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] font-mono">{row.unit}</span>
+            <span className="text-[length:var(--text-sm)] font-mono font-semibold text-[var(--text-primary)] tabular-nums">{row.ef}</span>
+            <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] font-mono">{row.unit}</span>
           </div>
         ))}
       </div>
 
       <div className="flex items-start gap-3 p-4 rounded-xl bg-[var(--accent-amber-light)] border border-amber-100">
         <AlertCircle className="w-4 h-4 text-[var(--accent-amber)] flex-shrink-0 mt-0.5" />
-        <div className="text-[var(--text-xs)] text-[var(--accent-amber)] leading-relaxed">
+        <div className="text-[length:var(--text-xs)] text-[var(--accent-amber)] leading-relaxed">
           <strong>{t('orgSetup.grid.noteStrong')}</strong>{t('orgSetup.grid.noteBody')}
         </div>
       </div>

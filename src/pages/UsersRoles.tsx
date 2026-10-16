@@ -71,8 +71,8 @@ const colorFor = (slug: string) => ROLE_COLORS[slug] ?? ROLE_COLORS['viewer']
 
 /* ─── Quick-login role catalog (canonical 7 roles from rbac.ts) ─ */
 const ROLE_LOGIN: Record<PlatformRole, { email: string; short: string; accent: string }> = {
-  platform_admin:               { email: 'admin@aeiforo.com',    short: 'ADM', accent: '#1B6B7B' },
-  group_sustainability_officer: { email: 'so@aeiforo.com',       short: 'GSO', accent: '#3B8A9B' },
+  platform_admin:               { email: 'admin@aeiforo.com',    short: 'ADM', accent: '#047857' },
+  group_sustainability_officer: { email: 'so@aeiforo.com',       short: 'GSO', accent: '#059669' },
   subsidiary_lead:              { email: 'tl@aeiforo.com',       short: 'SL',  accent: '#5B7FB8' },
   plant_manager:                { email: 'fm@aeiforo.com',       short: 'PM',  accent: '#7C5FB8' },
   data_contributor:             { email: 'maya@aeiforo.com',     short: 'DC',  accent: '#B85F9C' },
@@ -393,10 +393,10 @@ export default function UsersRoles() {
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)]">
-                  <th className="text-left px-5 py-2.5 text-[10.5px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em]">{t('usersRoles.users.colUser')}</th>
-                  <th className="text-left px-5 py-2.5 text-[10.5px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em]">{t('usersRoles.users.colRole')}</th>
-                  <th className="text-left px-5 py-2.5 text-[10.5px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em]">{t('usersRoles.users.colLastSeen')}</th>
-                  <th className="text-right px-5 py-2.5 text-[10.5px] font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em]">{t('usersRoles.users.colActions')}</th>
+                  <th className="text-left px-5 py-2.5 text-micro font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em]">{t('usersRoles.users.colUser')}</th>
+                  <th className="text-left px-5 py-2.5 text-micro font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em]">{t('usersRoles.users.colRole')}</th>
+                  <th className="text-left px-5 py-2.5 text-micro font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em]">{t('usersRoles.users.colLastSeen')}</th>
+                  <th className="text-right px-5 py-2.5 text-micro font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em]">{t('usersRoles.users.colActions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-subtle)]">
@@ -426,7 +426,7 @@ export default function UsersRoles() {
               <h2 className="font-display text-[16px] font-semibold text-[var(--text-primary)] tracking-[-0.005em] flex items-center gap-2">
                 <Zap className="w-4 h-4 text-[var(--color-brand)]" /> {t('usersRoles.switcher.heading')}
               </h2>
-              <p className="text-[11.5px] text-[var(--text-tertiary)] mt-0.5">
+              <p className="text-caption text-[var(--text-tertiary)] mt-0.5">
                 {t('usersRoles.switcher.intro')}
               </p>
             </div>
@@ -448,7 +448,7 @@ export default function UsersRoles() {
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <span
-                      className="inline-flex items-center justify-center w-7 h-7 rounded-[8px] text-[10px] font-bold text-white tracking-[0.04em]"
+                      className="inline-flex items-center justify-center w-7 h-7 rounded-[8px] text-caption font-bold text-white tracking-[0.04em]"
                       style={{ background: meta.accent }}
                     >
                       {meta.short}
@@ -460,14 +460,14 @@ export default function UsersRoles() {
                   <div className="text-[12px] font-semibold text-[var(--text-primary)] leading-tight tracking-[-0.005em] line-clamp-2 min-h-[28px]">
                     {defName}
                   </div>
-                  <div className="text-[10.5px] text-[var(--text-tertiary)] mt-1 truncate w-full">
+                  <div className="text-caption text-[var(--text-tertiary)] mt-1 truncate w-full">
                     {meta.email}
                   </div>
                 </button>
               )
             })}
           </div>
-          <p className="text-[10.5px] text-[var(--text-tertiary)] mt-2 leading-relaxed">
+          <p className="text-caption text-[var(--text-tertiary)] mt-2 leading-relaxed">
             <Info className="inline w-3 h-3 mr-1 align-[-2px]" />
             {t('usersRoles.switcher.footnote')}
           </p>
@@ -479,9 +479,9 @@ export default function UsersRoles() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <h2 className="font-display text-[16px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{t('usersRoles.roles.heading')}</h2>
-            <p className="text-[11.5px] text-[var(--text-tertiary)] mt-0.5">{t('usersRoles.roles.intro')}</p>
+            <p className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('usersRoles.roles.intro')}</p>
           </div>
-          <button onClick={() => setEditingRole('new')} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[8px] bg-[var(--color-brand)] text-white text-[12.5px] font-semibold hover:bg-[var(--color-brand-strong)] cursor-pointer">
+          <button onClick={() => setEditingRole('new')} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[8px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[12.5px] font-semibold hover:bg-[var(--btn-primary-bg-hover)] cursor-pointer">
             <Plus className="w-3.5 h-3.5" /> {t('usersRoles.roles.newRole')}
           </button>
         </div>
@@ -551,7 +551,7 @@ function KpiTile({ icon: Icon, label, value, accent, subtle }: { icon: typeof Us
         <Icon className="w-4 h-4" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)]">{label}</div>
+        <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">{label}</div>
         <div className="font-display text-[20px] font-bold tabular-nums text-[var(--text-primary)] tracking-[-0.01em] leading-tight">
           {value}
           {subtle && <span className="text-[12px] font-medium text-[var(--text-tertiary)] ml-1">{subtle}</span>}
@@ -586,7 +586,7 @@ function UserRow({ user, onEdit, onToggle, onRoleClick }: {
               {user.name}
               {!user.is_active && <span className="chip" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)', fontSize: 10 }}>{t('usersRoles.users.inactive')}</span>}
             </div>
-            <div className="text-[11.5px] text-[var(--text-tertiary)] truncate">{user.email}</div>
+            <div className="text-caption text-[var(--text-tertiary)] truncate">{user.email}</div>
           </div>
         </div>
       </td>
@@ -612,14 +612,14 @@ function UserRow({ user, onEdit, onToggle, onRoleClick }: {
         <div className="flex items-center gap-1.5 justify-end">
           <button
             onClick={onEdit}
-            className="inline-flex items-center gap-1 h-8 px-2.5 rounded-[6px] text-[11.5px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 h-8 px-2.5 rounded-[6px] text-caption font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
             title={t('usersRoles.users.changeRole')}
           >
             <Pencil className="w-3 h-3" /> {t('usersRoles.users.changeRole')}
           </button>
           <button
             onClick={onToggle}
-            className="inline-flex items-center gap-1 h-8 px-2.5 rounded-[6px] text-[11.5px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 h-8 px-2.5 rounded-[6px] text-caption font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
             title={user.is_active ? t('usersRoles.users.deactivateUser') : t('usersRoles.users.reactivateUser')}
           >
             <UserX className="w-3 h-3" /> {user.is_active ? t('usersRoles.users.deactivate') : t('usersRoles.users.reactivate')}
@@ -653,7 +653,7 @@ function EmptyUsers({ hasSearch, onAdd, onClearSearch }: { hasSearch: boolean; o
             {t('usersRoles.empty.clearSearch')}
           </button>
         ) : (
-          <button onClick={onAdd} className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[8px] bg-[var(--color-brand)] text-white text-[12.5px] font-semibold hover:bg-[var(--color-brand-strong)] cursor-pointer">
+          <button onClick={onAdd} className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[8px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[12.5px] font-semibold hover:bg-[var(--btn-primary-bg-hover)] cursor-pointer">
             <UserPlus className="w-3.5 h-3.5" /> {t('usersRoles.empty.addFirst')}
           </button>
         )}
@@ -682,7 +682,7 @@ function RoleTile({ role, onClick, onEdit, onDelete }: {
         </div>
         <div className="text-[14px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{roleName(role)}</div>
         <p className="text-[12px] text-[var(--text-secondary)] mt-1 leading-relaxed line-clamp-2 min-h-[32px]">{roleDescription(role)}</p>
-        <div className="text-[11px] text-[var(--color-brand)] font-semibold mt-3 inline-flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+        <div className="text-caption text-[var(--color-brand)] font-semibold mt-3 inline-flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
           {t('usersRoles.roles.viewDetails', { perms: t('usersRoles.roles.permissionCount', { count: role.permissions.length }) })}
         </div>
       </button>
@@ -747,7 +747,7 @@ function RoleEditorModal({ initial, permissions, onClose, onSave }: {
             <div>
               <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{isEdit ? t('usersRoles.roleEditor.editTitle') : t('usersRoles.roleEditor.createTitle')}</h3>
               {isSystem && (
-                <p className="text-[11.5px] text-[var(--status-draft)]">{t('usersRoles.roleEditor.systemNote')}</p>
+                <p className="text-caption text-[var(--status-draft)]">{t('usersRoles.roleEditor.systemNote')}</p>
               )}
             </div>
           </div>
@@ -759,7 +759,7 @@ function RoleEditorModal({ initial, permissions, onClose, onSave }: {
             <Field label={t('usersRoles.roleEditor.slug')} value={slug} onChange={v => setSlug(v.toLowerCase().replace(/[^a-z0-9-_]/g, '-'))} placeholder={t('usersRoles.roleEditor.slugPlaceholder')} />
           )}
           <div>
-            <label className="block text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('usersRoles.roleEditor.description')}</label>
+            <label className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('usersRoles.roleEditor.description')}</label>
             <textarea
               value={description}
               onChange={e => setDescription(e.target.value)}
@@ -770,11 +770,11 @@ function RoleEditorModal({ initial, permissions, onClose, onSave }: {
           </div>
           {!isSystem && (
             <div>
-              <label className="block text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('usersRoles.roleEditor.permissions')}</label>
+              <label className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('usersRoles.roleEditor.permissions')}</label>
               <div className="space-y-3">
                 {grouped.map(([resource, perms]) => (
                   <div key={resource} className="rounded-[8px] border border-[var(--border-subtle)] p-3">
-                    <div className="text-[11px] uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{permResource(resource)}</div>
+                    <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{permResource(resource)}</div>
                     <div className="flex flex-wrap gap-1.5">
                       {perms.map(p => {
                         const checked = permissionIds.includes(p.id)
@@ -807,7 +807,7 @@ function RoleEditorModal({ initial, permissions, onClose, onSave }: {
           <button
             onClick={() => valid && onSave({ name: name.trim(), slug: slug.trim(), description: description.trim(), permissionIds })}
             disabled={!valid}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--color-brand)] text-white text-[13px] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[13px] font-semibold hover:bg-[var(--btn-primary-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
           >
             {isEdit ? t('usersRoles.roleEditor.saveChanges') : t('usersRoles.roleEditor.createRole')}
           </button>
@@ -838,7 +838,7 @@ function AddUserModal({ roles, onClose, onCreate }: {
             </div>
             <div>
               <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{t('usersRoles.addUserModal.title')}</h3>
-              <p className="text-[11.5px] text-[var(--text-tertiary)]">{t('usersRoles.addUserModal.subtitle')}</p>
+              <p className="text-caption text-[var(--text-tertiary)]">{t('usersRoles.addUserModal.subtitle')}</p>
             </div>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer"><X className="w-4 h-4" /></button>
@@ -857,7 +857,7 @@ function AddUserModal({ roles, onClose, onCreate }: {
             hintTone={form.password && form.password.length < 6 ? 'err' : 'muted'}
           />
           <div>
-            <label className="block text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('usersRoles.addUserModal.role')}</label>
+            <label className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('usersRoles.addUserModal.role')}</label>
             <div className="grid grid-cols-1 gap-2">
               {roles.map(r => {
                 const checked = form.roleId === r.id
@@ -878,7 +878,7 @@ function AddUserModal({ roles, onClose, onCreate }: {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-[13px] font-semibold text-[var(--text-primary)]">{roleName(r)}</div>
-                      <div className="text-[11px] text-[var(--text-tertiary)] truncate">{roleDescription(r)}</div>
+                      <div className="text-caption text-[var(--text-tertiary)] truncate">{roleDescription(r)}</div>
                     </div>
                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${checked ? 'bg-[var(--color-brand)] border-[var(--color-brand)]' : 'border-[var(--border-default)]'}`}>
                       {checked && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
@@ -894,7 +894,7 @@ function AddUserModal({ roles, onClose, onCreate }: {
           <button onClick={onClose} className="flex-1 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-[13px] font-semibold hover:bg-[var(--bg-secondary)] cursor-pointer">
             {t('usersRoles.addUserModal.cancel')}
           </button>
-          <button onClick={() => valid && onCreate(form)} disabled={!valid} className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--color-brand)] text-white text-[13px] font-semibold hover:bg-[var(--color-brand-strong)] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+          <button onClick={() => valid && onCreate(form)} disabled={!valid} className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[13px] font-semibold hover:bg-[var(--btn-primary-bg-hover)] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
             <UserPlus className="w-3.5 h-3.5" /> {t('usersRoles.addUserModal.addUser')}
           </button>
         </footer>
@@ -916,7 +916,7 @@ function Field({ label, value, onChange, placeholder, type = 'text', icon: Icon,
 }) {
   return (
     <label className="block">
-      <span className="block text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)] mb-1.5">{label}</span>
+      <span className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{label}</span>
       <div className="relative">
         {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-tertiary)]" />}
         <input
@@ -929,7 +929,7 @@ function Field({ label, value, onChange, placeholder, type = 'text', icon: Icon,
         />
       </div>
       {hint && (
-        <span className={`block text-[11px] mt-1 ${hintTone === 'err' ? 'text-[var(--status-reject)]' : 'text-[var(--text-tertiary)]'}`}>{hint}</span>
+        <span className={`block text-caption mt-1 ${hintTone === 'err' ? 'text-[var(--status-reject)]' : 'text-[var(--text-tertiary)]'}`}>{hint}</span>
       )}
     </label>
   )
@@ -951,7 +951,7 @@ function EditRoleModal({ user, roles, onClose, onSave }: {
         <header className="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
           <div>
             <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{t('usersRoles.editRoleModal.title')}</h3>
-            <p className="text-[11.5px] text-[var(--text-tertiary)]">{user.name} · {user.email}</p>
+            <p className="text-caption text-[var(--text-tertiary)]">{user.name} · {user.email}</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer"><X className="w-4 h-4" /></button>
         </header>
@@ -974,7 +974,7 @@ function EditRoleModal({ user, roles, onClose, onSave }: {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-[13.5px] font-semibold text-[var(--text-primary)]">{roleName(r)}</div>
-                  <div className="text-[11.5px] text-[var(--text-tertiary)] truncate">{roleDescription(r)}</div>
+                  <div className="text-caption text-[var(--text-tertiary)] truncate">{roleDescription(r)}</div>
                 </div>
                 <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${checked ? 'bg-[var(--color-brand)] border-[var(--color-brand)]' : 'border-[var(--border-default)]'}`}>
                   {checked && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
@@ -985,7 +985,7 @@ function EditRoleModal({ user, roles, onClose, onSave }: {
         </div>
         <footer className="flex items-center gap-2 p-5 border-t border-[var(--border-subtle)]">
           <button onClick={onClose} className="flex-1 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-[13px] font-semibold hover:bg-[var(--bg-secondary)] cursor-pointer">{t('usersRoles.editRoleModal.cancel')}</button>
-          <button onClick={() => onSave(selected)} className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--color-brand)] text-white text-[13px] font-semibold hover:bg-[var(--color-brand-strong)] cursor-pointer">
+          <button onClick={() => onSave(selected)} className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[13px] font-semibold hover:bg-[var(--btn-primary-bg-hover)] cursor-pointer">
             {t('usersRoles.editRoleModal.saveChange')}
           </button>
         </footer>
@@ -1024,7 +1024,7 @@ function RoleDetailModal({ role, permissions, onClose }: {
             </div>
             <div className="min-w-0">
               <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{roleName(role)}</h3>
-              <p className="text-[11.5px] text-[var(--text-tertiary)] line-clamp-2">{roleDescription(role)}</p>
+              <p className="text-caption text-[var(--text-tertiary)] line-clamp-2">{roleDescription(role)}</p>
             </div>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer flex-shrink-0"><X className="w-4 h-4" /></button>
@@ -1043,15 +1043,15 @@ function RoleDetailModal({ role, permissions, onClose }: {
             if (grantedPerms.length === 0 && deniedPerms.length === 0) return null
             return (
               <div key={resource}>
-                <div className="text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)] mb-1.5">{permResource(resource)}</div>
+                <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{permResource(resource)}</div>
                 <div className="flex flex-wrap gap-1.5">
                   {grantedPerms.map(({ perm }) => (
-                    <span key={perm.id} className="inline-flex items-center gap-1 text-[11px] font-medium rounded-[6px] px-2 py-1" style={{ background: 'var(--accent-green-light)', color: 'var(--status-ok)' }}>
+                    <span key={perm.id} className="inline-flex items-center gap-1 text-caption font-medium rounded-[6px] px-2 py-1" style={{ background: 'var(--accent-green-light)', color: 'var(--status-ok)' }}>
                       <CheckCircle2 className="w-3 h-3" /> {permAction(perm.action)}
                     </span>
                   ))}
                   {deniedPerms.map(({ perm }) => (
-                    <span key={perm.id} className="inline-flex items-center gap-1 text-[11px] font-medium rounded-[6px] px-2 py-1 line-through opacity-50" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' }}>
+                    <span key={perm.id} className="inline-flex items-center gap-1 text-caption font-medium rounded-[6px] px-2 py-1 line-through opacity-50" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' }}>
                       {permAction(perm.action)}
                     </span>
                   ))}
@@ -1084,17 +1084,17 @@ function DbSetupModal({ onClose, onSetup, loading }: {
         <header className="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
           <div>
             <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{t('usersRoles.dbSetup.title')}</h3>
-            <p className="text-[11.5px] text-[var(--text-tertiary)]">{t('usersRoles.dbSetup.subtitle')}</p>
+            <p className="text-caption text-[var(--text-tertiary)]">{t('usersRoles.dbSetup.subtitle')}</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer"><X className="w-4 h-4" /></button>
         </header>
         <div className="p-5 space-y-3 text-[12.5px] text-[var(--text-secondary)] leading-relaxed">
-          <p>{t('usersRoles.dbSetup.bodySet')}<code className="font-mono text-[11.5px] px-1.5 py-0.5 rounded bg-[var(--bg-secondary)]">DATABASE_URL</code>{t('usersRoles.dbSetup.bodyAnd')}<code className="font-mono text-[11.5px] px-1.5 py-0.5 rounded bg-[var(--bg-secondary)]">JWT_SECRET</code>{t('usersRoles.dbSetup.bodyRest')}</p>
-          <p className="text-[11.5px] text-[var(--text-tertiary)]">{t('usersRoles.dbSetup.note')}</p>
+          <p>{t('usersRoles.dbSetup.bodySet')}<code className="font-mono text-caption px-1.5 py-0.5 rounded bg-[var(--bg-secondary)]">DATABASE_URL</code>{t('usersRoles.dbSetup.bodyAnd')}<code className="font-mono text-caption px-1.5 py-0.5 rounded bg-[var(--bg-secondary)]">JWT_SECRET</code>{t('usersRoles.dbSetup.bodyRest')}</p>
+          <p className="text-caption text-[var(--text-tertiary)]">{t('usersRoles.dbSetup.note')}</p>
         </div>
         <footer className="flex items-center gap-2 p-5 border-t border-[var(--border-subtle)]">
           <button onClick={onClose} className="flex-1 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-[13px] font-semibold hover:bg-[var(--bg-secondary)] cursor-pointer">{t('usersRoles.dbSetup.cancel')}</button>
-          <button onClick={onSetup} disabled={loading} className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--color-brand)] text-white text-[13px] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-60 cursor-pointer">
+          <button onClick={onSetup} disabled={loading} className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[13px] font-semibold hover:bg-[var(--btn-primary-bg-hover)] disabled:opacity-60 cursor-pointer">
             {loading ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t('usersRoles.dbSetup.settingUp')}</> : <><Plus className="w-3.5 h-3.5" /> {t('usersRoles.dbSetup.runSetup')}</>}
           </button>
         </footer>

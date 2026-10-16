@@ -186,7 +186,7 @@ export default function ProductTour({ userId, steps = STEPS }: ProductTourProps)
           <div className="flex items-start justify-between gap-3 mb-2">
             <div className="flex items-center gap-2 text-[var(--color-brand)]">
               <Sparkles className="w-4 h-4" />
-              <span className="text-[11px] font-semibold uppercase tracking-wider">{t('components.tour.quickTour')}</span>
+              <span className="text-micro font-semibold uppercase tracking-wider">{t('components.tour.quickTour')}</span>
             </div>
             <button
               type="button"
@@ -197,28 +197,28 @@ export default function ProductTour({ userId, steps = STEPS }: ProductTourProps)
               <X className="w-4 h-4" />
             </button>
           </div>
-          <h3 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)] leading-snug">
+          <h3 className="font-display text-[length:var(--text-lg)] font-semibold text-[var(--text-primary)] leading-snug">
             {title}
           </h3>
-          <p className="mt-2 text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
+          <p className="mt-2 text-[length:var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
             {body}
           </p>
           <div className="mt-5 flex items-center justify-between">
             <button
               type="button"
               onClick={complete}
-              className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+              className="text-[length:var(--text-xs)] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
             >
               {t('components.tour.skip')}
             </button>
             <div className="flex items-center gap-3">
-              <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] tabular-nums">
+              <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] tabular-nums">
                 {stepIdx + 1} / {steps.length}
               </span>
               <button
                 type="button"
                 onClick={next}
-                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold hover:bg-[var(--btn-primary-bg-hover)] transition-colors"
               >
                 {isLast ? t('components.tour.start') : t('common.next')}
                 {!isLast && <ArrowRight className="w-3.5 h-3.5" />}

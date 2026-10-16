@@ -34,6 +34,18 @@ export interface ItemSpec {
 }
 
 const SECTION = 'CASS-ESG 5.0'
+const SECTION_ZH = '中国企业社会责任报告指南（CASS-ESG 5.0）'
+/**
+ * Simplified Chinese subsection headings, written to questionnaire_item.subsection_zh
+ * (section_zh gets SECTION_ZH). Reports and the questionnaire tree show these when
+ * the language is zh; NULL falls back to the English heading.
+ */
+export const CASS_ESG_SUBSECTION_ZH: Record<string, string> = {
+  'G — Governance': 'G 治理',
+  'E — Environment': 'E 环境',
+  'S — Social': 'S 社会',
+  'V — Value creation': 'V 价值创造',
+}
 const FRAMEWORK_ID = 'cass-esg'
 const REPORTING_SCOPE: ReportingScope = 'group'
 
@@ -105,11 +117,15 @@ import type { Sql } from './_db'
 export async function seedCASSESG(sql: Sql): Promise<void> {
   await sql`ALTER TABLE questionnaire_item ADD COLUMN IF NOT EXISTS framework_id TEXT`
   await sql`ALTER TABLE questionnaire_item ADD COLUMN IF NOT EXISTS line_item_zh TEXT`
+  await sql`ALTER TABLE questionnaire_item ADD COLUMN IF NOT EXISTS section_zh TEXT`
+  await sql`ALTER TABLE questionnaire_item ADD COLUMN IF NOT EXISTS subsection_zh TEXT`
   // One HTTP round trip, one transaction: either the whole catalogue lands or none of it.
   await sql.transaction(txn => CASS_ESG_ITEMS.map(it => txn`
       WITH upd AS (
         UPDATE questionnaire_item
-           SET line_item_zh = ${it.lineItemZh}::text
+           SET line_item_zh = ${it.lineItemZh}::text,
+               section_zh = ${SECTION_ZH}::text,
+               subsection_zh = ${CASS_ESG_SUBSECTION_ZH[it.subsection] ?? null}::text
          WHERE gri_code = ${it.griCode}::text
            AND line_item = ${it.lineItem}::text
            AND scope_split IS NOT DISTINCT FROM ${it.scopeSplit}::text
@@ -117,17 +133,20 @@ export async function seedCASSESG(sql: Sql): Promise<void> {
         RETURNING id
       )
       INSERT INTO questionnaire_item
-        (framework_id, section, subsection, gri_code, line_item, line_item_zh, unit, scope_split,
+        (framework_id, section, section_zh, subsection, subsection_zh, gri_code, line_item, line_item_zh, unit, scope_split,
          has_target, requires_coverage, default_workflow_role, entry_mode_default,
          footnote_refs, reporting_scope)
       SELECT
-        ${FRAMEWORK_ID}::text, ${SECTION}::text, ${it.subsection}::text, ${it.griCode}::text,
+        ${FRAMEWORK_ID}::text, ${SECTION}::text, ${SECTION_ZH}::text, ${it.subsection}::text,
+        ${CASS_ESG_SUBSECTION_ZH[it.subsection] ?? null}::text, ${it.griCode}::text,
         ${it.lineItem}::text, ${it.lineItemZh}::text, ${it.unit}::text, ${it.scopeSplit}::text,
         ${it.hasTarget}::boolean, ${it.requiresCoverage}::boolean,
         ${it.defaultRole}::text, ${it.entryMode}::text, '[]'::jsonb, ${REPORTING_SCOPE}::text
       WHERE NOT EXISTS (SELECT 1 FROM upd)
       ON CONFLICT (gri_code, line_item, scope_split, reporting_scope)
-        DO UPDATE SET line_item_zh = EXCLUDED.line_item_zh
+        DO UPDATE SET line_item_zh = EXCLUDED.line_item_zh,
+                      section_zh = EXCLUDED.section_zh,
+                      subsection_zh = EXCLUDED.subsection_zh
     `))
   // Intentionally no per-org enablement here: orgs opt in via Settings.
 }

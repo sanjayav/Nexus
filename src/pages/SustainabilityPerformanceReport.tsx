@@ -156,8 +156,8 @@ function SectionBlock({ section, years }: { section: ReportSection; years: numbe
 
 function sectionAccent(id: ReportSection['id']): { bg: string; label: string } {
   switch (id) {
-    case 'financial':   return { bg: '#1B6B7B', label: 'Financial Capital' }
-    case 'manufacture': return { bg: '#3B8A9B', label: 'Manufacture Capital' }
+    case 'financial':   return { bg: '#047857', label: 'Financial Capital' }
+    case 'manufacture': return { bg: '#059669', label: 'Manufacture Capital' }
     case 'human':       return { bg: '#E6A817', label: 'Human Capital' }
     case 'social':      return { bg: '#C2410C', label: 'Social Capital' }
     case 'natural':     return { bg: '#2E7D32', label: 'Natural Capital' }
@@ -181,11 +181,11 @@ function ReportTableBlock({ table, years, accent }: { table: ReportTable; years:
         <table className="w-full text-[12px] tabular-nums">
           <thead>
             <tr style={{ background: `${accent}10` }}>
-              <th rowSpan={hasSplit ? 2 : 1} className="text-left px-4 py-2 font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] text-[10.5px] border-b border-[var(--border-subtle)] w-[90px]">GRI</th>
-              <th rowSpan={hasSplit ? 2 : 1} className="text-left px-4 py-2 font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] text-[10.5px] border-b border-[var(--border-subtle)]">{t('perfReport.table.requiredData')}</th>
-              <th rowSpan={hasSplit ? 2 : 1} className="text-left px-4 py-2 font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] text-[10.5px] border-b border-[var(--border-subtle)] w-[140px]">{t('perfReport.table.unit')}</th>
+              <th rowSpan={hasSplit ? 2 : 1} className="text-left px-4 py-2 font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] text-micro border-b border-[var(--border-subtle)] w-[90px]">GRI</th>
+              <th rowSpan={hasSplit ? 2 : 1} className="text-left px-4 py-2 font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] text-micro border-b border-[var(--border-subtle)]">{t('perfReport.table.requiredData')}</th>
+              <th rowSpan={hasSplit ? 2 : 1} className="text-left px-4 py-2 font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] text-micro border-b border-[var(--border-subtle)] w-[140px]">{t('perfReport.table.unit')}</th>
               {years.map(y => (
-                <th key={y} colSpan={hasSplit ? 2 : 1} className="text-center px-4 py-2 font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] text-[10.5px] border-b border-[var(--border-subtle)] border-l border-[var(--border-subtle)]">
+                <th key={y} colSpan={hasSplit ? 2 : 1} className="text-center px-4 py-2 font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] text-micro border-b border-[var(--border-subtle)] border-l border-[var(--border-subtle)]">
                   {y}
                 </th>
               ))}
@@ -194,8 +194,8 @@ function ReportTableBlock({ table, years, accent }: { table: ReportTable; years:
               <tr style={{ background: `${accent}08` }}>
                 {years.map(y => (
                   <Fragment key={y}>
-                    <th className="text-right px-3 py-1.5 font-medium text-[var(--text-tertiary)] text-[10px] border-b border-[var(--border-subtle)] border-l border-[var(--border-subtle)] w-[80px]">{t('perfReport.table.male')}</th>
-                    <th className="text-right px-3 py-1.5 font-medium text-[var(--text-tertiary)] text-[10px] border-b border-[var(--border-subtle)] w-[80px]">{t('perfReport.table.female')}</th>
+                    <th className="text-right px-3 py-1.5 font-medium text-[var(--text-tertiary)] text-caption border-b border-[var(--border-subtle)] border-l border-[var(--border-subtle)] w-[80px]">{t('perfReport.table.male')}</th>
+                    <th className="text-right px-3 py-1.5 font-medium text-[var(--text-tertiary)] text-caption border-b border-[var(--border-subtle)] w-[80px]">{t('perfReport.table.female')}</th>
                   </Fragment>
                 ))}
               </tr>
@@ -219,11 +219,11 @@ function ReportRowEl({ row, years, hasSplit }: { row: ReportRow; years: number[]
   const isHeader = row.unit === '' && Object.values(row.values).every(v => v == null)
   return (
     <tr className={isHeader ? 'bg-[var(--bg-secondary)]' : 'hover:bg-[var(--bg-secondary)]'}>
-      <td className="px-4 py-2 text-[10.5px] font-mono text-[var(--text-tertiary)] align-top">{row.gri ?? ''}</td>
+      <td className="px-4 py-2 text-caption font-mono text-[var(--text-tertiary)] align-top">{row.gri ?? ''}</td>
       <td className="px-4 py-2 text-[12px] text-[var(--text-primary)]" style={{ paddingLeft: 16 + indent * 16, fontWeight: isHeader ? 600 : 400 }}>
         {t(`perfReport.demo.rows.${row.id}`, { defaultValue: row.label })}
       </td>
-      <td className="px-4 py-2 text-[11.5px] text-[var(--text-tertiary)]">{row.unit ? t(`perfReport.demo.units.${i18nSlug(row.unit)}`, { defaultValue: row.unit }) : row.unit}</td>
+      <td className="px-4 py-2 text-caption text-[var(--text-tertiary)]">{row.unit ? t(`perfReport.demo.units.${i18nSlug(row.unit)}`, { defaultValue: row.unit }) : row.unit}</td>
       {years.map(y => {
         const val = row.values[y]
         if (row.split === 'mf') {
@@ -360,7 +360,7 @@ function AddYearModal({ report, onClose, onImport }: {
         </div>
 
         <div className="mb-4">
-          <label className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{t('perfReport.modal.year')}</label>
+          <label className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{t('perfReport.modal.year')}</label>
           <input
             type="number"
             value={year}
@@ -379,7 +379,7 @@ function AddYearModal({ report, onClose, onImport }: {
           {parsing ? <Loader2 className="w-6 h-6 text-[var(--color-brand)] animate-spin" /> : <FileSpreadsheet className="w-6 h-6 text-[var(--color-brand)]" />}
           <div className="text-center">
             <div className="text-[13px] font-semibold text-[var(--text-primary)]">{t('perfReport.modal.drop', { year })}</div>
-            <div className="text-[11.5px] text-[var(--text-tertiary)] mt-1"><Trans i18nKey="perfReport.modal.dropHint" components={{ mono: <span className="font-mono" /> }} /></div>
+            <div className="text-caption text-[var(--text-tertiary)] mt-1"><Trans i18nKey="perfReport.modal.dropHint" components={{ mono: <span className="font-mono" /> }} /></div>
           </div>
         </div>
 

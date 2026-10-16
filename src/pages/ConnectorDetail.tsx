@@ -108,13 +108,13 @@ export default function ConnectorDetail() {
       <Card variant="paper" className="mb-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[13px]">
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('connectorDetail.fields.status')}</div>
+            <div className="text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] mb-1">{t('connectorDetail.fields.status')}</div>
             <Badge variant={connection.status === 'active' ? 'green' : connection.status === 'error' ? 'red' : 'gray'}>
               {t(`connectorDetail.connectionStatus.${connection.status}`, { defaultValue: connection.status })}
             </Badge>
           </div>
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('connectorDetail.fields.lastSync')}</div>
+            <div className="text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] mb-1">{t('connectorDetail.fields.lastSync')}</div>
             <div className="text-[var(--text-primary)]">
               {connection.last_sync_at ? fmtDateTime(connection.last_sync_at) : t('connectorDetail.fields.never')}
             </div>
@@ -123,7 +123,7 @@ export default function ConnectorDetail() {
             )}
           </div>
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('connectorDetail.fields.account')}</div>
+            <div className="text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] mb-1">{t('connectorDetail.fields.account')}</div>
             <div className="text-[var(--text-primary)] font-mono text-[12px] truncate">
               {connection.instance_url ?? connection.base_url ?? connection.account_id ?? '—'}
             </div>
@@ -164,7 +164,7 @@ export default function ConnectorDetail() {
             </Button>
           </div>
         </div>
-        <div className="text-[11.5px] text-[var(--text-tertiary)]">
+        <div className="text-caption text-[var(--text-tertiary)]">
           {t('connectorDetail.sync.helpBefore')}<code className="font-mono">draft</code>{t('connectorDetail.sync.helpAfter')}
         </div>
       </Card>
@@ -180,7 +180,7 @@ export default function ConnectorDetail() {
           <div className="overflow-x-auto">
             <table className="w-full text-[12.5px]">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] border-b border-[var(--border-default)]">
+                <tr className="text-left text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] border-b border-[var(--border-default)]">
                   <th className="py-2 pr-3">{t('connectorDetail.history.started')}</th>
                   <th className="py-2 pr-3">{t('connectorDetail.history.status')}</th>
                   <th className="py-2 pr-3">{t('connectorDetail.history.fetched')}</th>

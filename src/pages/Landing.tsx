@@ -260,7 +260,7 @@ function NexusHero() {
                   <Icon className="w-5 h-5" />
                 </div>
                 <p
-                  className="text-[11px] font-semibold uppercase tracking-[0.14em] mb-3"
+                  className="text-micro font-semibold uppercase tracking-[0.06em] mb-3"
                   style={{ color: 'var(--text-tertiary)' }}
                 >
                   {label}

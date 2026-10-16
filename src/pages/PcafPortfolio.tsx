@@ -116,19 +116,19 @@ export default function PcafPortfolio() {
             <select
               value={reportingYear}
               onChange={e => setReportingYear(Number(e.target.value))}
-              className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2 py-1.5 text-[var(--text-sm)]"
+              className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2 py-1.5 text-[length:var(--text-sm)]"
             >
               {yearOptions().map(y => <option key={y} value={y}>{t('pcaf.page.fyOption', { year: y })}</option>)}
             </select>
             <button
               onClick={() => void load()}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] border border-[var(--border-default)] hover:bg-[var(--bg-secondary)] text-[var(--text-sm)]"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] border border-[var(--border-default)] hover:bg-[var(--bg-secondary)] text-[length:var(--text-sm)]"
             >
               <RefreshCw className="w-3.5 h-3.5" /> {t('pcaf.page.refresh')}
             </button>
             <button
               onClick={() => { setAdding(true); setPickedClass(null) }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white font-medium hover:opacity-90 text-[var(--text-sm)]"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] font-medium hover:opacity-90 text-[length:var(--text-sm)]"
             >
               <Plus className="w-3.5 h-3.5" /> {t('pcaf.page.addAsset')}
             </button>
@@ -181,9 +181,9 @@ export default function PcafPortfolio() {
       {/* Asset-class summary table */}
       {summary && summary.by_asset_class.length > 0 && (
         <section className="mb-5 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] overflow-hidden">
-          <table className="w-full text-[var(--text-sm)]">
+          <table className="w-full text-[length:var(--text-sm)]">
             <thead>
-              <tr className="text-left text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] bg-[var(--bg-secondary)]">
+              <tr className="text-left text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] bg-[var(--bg-secondary)]">
                 <th className="px-3 py-2 font-medium">{t('pcaf.summaryTable.assetClass')}</th>
                 <th className="px-3 py-2 font-medium text-right">{t('pcaf.summaryTable.assets')}</th>
                 <th className="px-3 py-2 font-medium text-right">{t('pcaf.summaryTable.outstanding')}</th>
@@ -210,7 +210,7 @@ export default function PcafPortfolio() {
       <section className="mb-5 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-4">
         <div className="flex flex-wrap items-center gap-3">
           <div>
-            <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('pcaf.sync.title')}</div>
+            <div className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('pcaf.sync.title')}</div>
             <div className="text-[12px] text-[var(--text-tertiary)] mt-0.5">
               {t('pcaf.sync.description', { year: reportingYear })}
             </div>
@@ -218,7 +218,7 @@ export default function PcafPortfolio() {
           <div className="ml-auto flex items-center gap-2">
             <select
               id="pcaf-sync-facility"
-              className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2 py-1.5 text-[var(--text-sm)]"
+              className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2 py-1.5 text-[length:var(--text-sm)]"
               disabled={facilities.length === 0}
               defaultValue={facilities[0]?.id ?? ''}
             >
@@ -242,7 +242,7 @@ export default function PcafPortfolio() {
                 }
               }}
               disabled={syncBusy || assets.length === 0}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white font-medium hover:opacity-90 disabled:opacity-50 text-[var(--text-sm)]"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] font-medium hover:opacity-90 disabled:opacity-50 text-[length:var(--text-sm)]"
             >
               {syncBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
               {t('pcaf.sync.button')}
@@ -279,7 +279,7 @@ export default function PcafPortfolio() {
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[var(--text-lg)] font-semibold">{pickedClass ? t(`pcaf.assetClasses.${pickedClass.assetClass}.name`, { defaultValue: pickedClass.name }) : t('pcaf.drawer.title')}</h2>
+              <h2 className="text-[length:var(--text-lg)] font-semibold">{pickedClass ? t(`pcaf.assetClasses.${pickedClass.assetClass}.name`, { defaultValue: pickedClass.name }) : t('pcaf.drawer.title')}</h2>
               <button onClick={() => setAdding(false)} aria-label={t('pcaf.drawer.close')} className="p-1 rounded hover:bg-[var(--bg-secondary)]">
                 <X className="w-4 h-4" />
               </button>
@@ -292,8 +292,8 @@ export default function PcafPortfolio() {
                     onClick={() => setPickedClass(c)}
                     className="text-left rounded-[var(--radius-md)] border border-[var(--border-default)] p-3 hover:bg-[var(--bg-secondary)] transition"
                   >
-                    <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t(`pcaf.assetClasses.${c.assetClass}.name`, { defaultValue: c.name })}</div>
-                    <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{t(`pcaf.assetClasses.${c.assetClass}.description`, { defaultValue: c.description })}</div>
+                    <div className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)]">{t(`pcaf.assetClasses.${c.assetClass}.name`, { defaultValue: c.name })}</div>
+                    <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{t(`pcaf.assetClasses.${c.assetClass}.description`, { defaultValue: c.description })}</div>
                   </button>
                 ))}
               </div>
@@ -301,7 +301,7 @@ export default function PcafPortfolio() {
               <div>
                 <button
                   onClick={() => setPickedClass(null)}
-                  className="text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] mb-2"
+                  className="text-caption text-[var(--text-tertiary)] hover:text-[var(--text-primary)] mb-2"
                 >
                   {t('pcaf.drawer.pickDifferent')}
                 </button>
@@ -349,9 +349,9 @@ function fmtTons(v: number): string {
 function Kpi({ label, value, subtle }: { label: string; value: string; subtle?: string }) {
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-4">
-      <div className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)]">{label}</div>
-      <div className="mt-1 text-[var(--text-xl)] font-semibold text-[var(--text-primary)]">{value}</div>
-      {subtle ? <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{subtle}</div> : null}
+      <div className="text-micro uppercase tracking-wider text-[var(--text-tertiary)]">{label}</div>
+      <div className="mt-1 text-[length:var(--text-xl)] font-semibold text-[var(--text-primary)]">{value}</div>
+      {subtle ? <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{subtle}</div> : null}
     </div>
   )
 }
@@ -359,7 +359,7 @@ function Kpi({ label, value, subtle }: { label: string; value: string; subtle?: 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-4">
-      <div className="text-[11px] uppercase tracking-wider text-[var(--text-tertiary)] mb-2">{title}</div>
+      <div className="text-micro uppercase tracking-wider text-[var(--text-tertiary)] mb-2">{title}</div>
       {children}
     </div>
   )

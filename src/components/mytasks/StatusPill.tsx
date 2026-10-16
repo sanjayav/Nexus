@@ -13,7 +13,7 @@ export function StatusPill({ status }: { status: QuestionAssignment['status'] })
   }[status]
   return (
     <span
-      className="px-2 py-0.5 rounded-[var(--radius-sm)] text-[10px] font-semibold uppercase tracking-wider flex-shrink-0 inline-flex items-center gap-1.5"
+      className="px-2 py-0.5 rounded-[var(--radius-sm)] text-micro font-semibold uppercase tracking-[0.06em] flex-shrink-0 inline-flex items-center gap-1.5"
       style={{ background: map.bg, color: map.fg }}
     >
       {map.dot && <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: map.fg }} />}

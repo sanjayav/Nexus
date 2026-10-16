@@ -129,11 +129,11 @@ export default function GapAnalysisPanel({
       <header>
         <div className="flex items-center gap-2 mb-1">
           <Sparkles className="w-3.5 h-3.5 text-[var(--color-brand)]" />
-          <h3 className="font-display text-[var(--text-base)] font-semibold text-[var(--text-primary)]">
+          <h3 className="font-display text-[length:var(--text-base)] font-semibold text-[var(--text-primary)]">
             {t('disclosureEditor.rail.tabGap')}
           </h3>
         </div>
-        <p className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">
+        <p className="text-caption text-[var(--text-tertiary)] leading-relaxed">
           {t('disclosureEditor.gap.intro')}
         </p>
       </header>
@@ -153,7 +153,7 @@ export default function GapAnalysisPanel({
           <button
             type="submit"
             disabled={!question.trim() || state.kind === 'loading'}
-            className="inline-flex items-center gap-1 px-3 h-7 rounded-[var(--radius-sm)] bg-[var(--color-brand)] text-white text-[11px] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1 px-3 h-7 rounded-[var(--radius-sm)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-caption font-semibold hover:bg-[var(--btn-primary-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
             title={aiUnavailable ? t('components.integration.ai') : undefined}
           >
             <Send className="w-3 h-3" /> {t('disclosureEditor.gap.analyse')}
@@ -163,7 +163,7 @@ export default function GapAnalysisPanel({
               <button
                 type="button"
                 onClick={handleCopySummary}
-                className="inline-flex items-center gap-1 px-2 h-6 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[10px] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
+                className="inline-flex items-center gap-1 px-2 h-6 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-caption text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
                 title={t('disclosureEditor.gap.copySummary')}
               >
                 <Copy className="w-3 h-3" /> {t('disclosureEditor.gap.copy')}
@@ -171,7 +171,7 @@ export default function GapAnalysisPanel({
               <button
                 type="button"
                 onClick={handleRegenerate}
-                className="inline-flex items-center gap-1 px-2 h-6 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[10px] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
+                className="inline-flex items-center gap-1 px-2 h-6 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-caption text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
                 title={t('disclosureEditor.gap.regenerateTitle')}
               >
                 <RefreshCw className="w-3 h-3" /> {t('disclosureEditor.gap.regenerate')}
@@ -183,7 +183,7 @@ export default function GapAnalysisPanel({
 
       {state.kind === 'idle' && (
         <section>
-          <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-2">
+          <div className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-2">
             {t('disclosureEditor.gap.tryThese')}
           </div>
           <ul className="space-y-1">
@@ -192,7 +192,7 @@ export default function GapAnalysisPanel({
                 <button
                   type="button"
                   onClick={() => handleSuggested(t(p))}
-                  className="w-full text-left px-2.5 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] text-[11px] text-[var(--text-secondary)]"
+                  className="w-full text-left px-2.5 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] text-caption text-[var(--text-secondary)]"
                   title={aiUnavailable ? t('components.integration.ai') : undefined}
                 >
                   <ChevronRight className="inline w-2.5 h-2.5 text-[var(--color-brand)] mr-1" />
@@ -202,7 +202,7 @@ export default function GapAnalysisPanel({
             ))}
           </ul>
           {aiUnavailable && (
-            <p className="mt-3 text-[10px] text-[var(--text-tertiary)] italic leading-relaxed">
+            <p className="mt-3 text-caption text-[var(--text-tertiary)] italic leading-relaxed">
               {t('components.integration.ai')}
             </p>
           )}
@@ -223,7 +223,7 @@ export default function GapAnalysisPanel({
       )}
 
       {state.kind === 'error' && (
-        <div className="rounded-[var(--radius-sm)] border border-[var(--status-reject)]/30 bg-[var(--accent-red-light)] px-3 py-2 text-[11px] text-[var(--status-reject)] flex items-start gap-2">
+        <div className="rounded-[var(--radius-sm)] border border-[var(--status-reject)]/30 bg-[var(--accent-red-light)] px-3 py-2 text-caption text-[var(--status-reject)] flex items-start gap-2">
           <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
           <span>{state.message}</span>
         </div>
@@ -233,11 +233,11 @@ export default function GapAnalysisPanel({
         <div className="space-y-4">
           <section>
             <div className="flex items-center gap-1.5 mb-1.5">
-              <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
+              <span className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
                 {t('disclosureEditor.gap.summary')}
               </span>
               {state.cached && (
-                <span className="px-1.5 h-4 inline-flex items-center rounded-full bg-[var(--accent-blue-light)] text-[var(--status-pending)] text-[9px] font-semibold uppercase tracking-wider">
+                <span className="px-1.5 h-4 inline-flex items-center rounded-full bg-[var(--accent-blue-light)] text-[var(--status-pending)] text-micro font-semibold uppercase tracking-wider">
                   {t('disclosureEditor.gap.cached')}
                 </span>
               )}
@@ -251,7 +251,7 @@ export default function GapAnalysisPanel({
             <section>
               <div className="flex items-center gap-1.5 mb-2">
                 <ListChecks className="w-3 h-3 text-[var(--color-brand)]" />
-                <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
+                <span className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
                   {t('disclosureEditor.gap.missing', { count: state.analysis.missingCount })}
                 </span>
               </div>
@@ -266,21 +266,21 @@ export default function GapAnalysisPanel({
                     >
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <div className="min-w-0">
-                          <div className="text-[10px] font-mono text-[var(--text-tertiary)]">{m.code}</div>
-                          <div className="text-[11px] font-semibold text-[var(--text-primary)] leading-snug">
+                          <div className="text-caption font-mono text-[var(--text-tertiary)]">{m.code}</div>
+                          <div className="text-caption font-semibold text-[var(--text-primary)] leading-snug">
                             {m.lineItem}
                           </div>
                         </div>
-                        <span className={`px-1.5 h-4 inline-flex items-center rounded-full text-[9px] font-semibold uppercase tracking-wider flex-shrink-0 ${effortPill(m.estimated_effort)}`}>
+                        <span className={`px-1.5 h-4 inline-flex items-center rounded-full text-micro font-semibold uppercase tracking-[0.06em] flex-shrink-0 ${effortPill(m.estimated_effort)}`}>
                           {t(`disclosureEditor.gap.effort.${m.estimated_effort}`, { defaultValue: m.estimated_effort })}
                         </span>
                       </div>
-                      <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">
+                      <p className="text-caption text-[var(--text-secondary)] leading-relaxed">
                         {m.why_critical}
                       </p>
                       <div className="flex items-center justify-between mt-1.5">
                         {m.suggested_owner_role && (
-                          <span className="text-[9px] font-mono text-[var(--text-tertiary)]">
+                          <span className="text-caption font-mono text-[var(--text-tertiary)]">
                             {t('disclosureEditor.gap.owner', { role: m.suggested_owner_role })}
                           </span>
                         )}
@@ -288,7 +288,7 @@ export default function GapAnalysisPanel({
                           <button
                             type="button"
                             onClick={() => onOpenCell(matchId)}
-                            className="inline-flex items-center gap-0.5 px-2 h-5 rounded-[var(--radius-xs)] bg-[var(--color-brand-soft)] text-[var(--color-brand)] text-[9px] font-semibold hover:opacity-80"
+                            className="inline-flex items-center gap-0.5 px-2 h-5 rounded-[var(--radius-xs)] bg-[var(--color-brand-soft)] text-[var(--color-brand)] text-caption font-semibold hover:opacity-80"
                           >
                             {t('disclosureEditor.gap.open')} <ChevronRight className="w-2.5 h-2.5" />
                           </button>
@@ -305,14 +305,14 @@ export default function GapAnalysisPanel({
             <section>
               <div className="flex items-center gap-1.5 mb-2">
                 <AlertTriangle className="w-3 h-3 text-amber-600" />
-                <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
+                <span className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
                   {t('disclosureEditor.gap.qualityIssues')}
                 </span>
               </div>
               <ul className="space-y-1">
                 {state.analysis.qualityIssues.map((q, idx) => (
-                  <li key={idx} className="text-[11px] text-[var(--text-secondary)] flex items-start gap-1.5">
-                    <span className="font-mono text-[10px] text-[var(--text-tertiary)] mt-0.5">{q.code}</span>
+                  <li key={idx} className="text-caption text-[var(--text-secondary)] flex items-start gap-1.5">
+                    <span className="font-mono text-caption text-[var(--text-tertiary)] mt-0.5">{q.code}</span>
                     <span>{q.issue}</span>
                   </li>
                 ))}
@@ -324,11 +324,11 @@ export default function GapAnalysisPanel({
             <section>
               <div className="flex items-center gap-1.5 mb-2">
                 <CheckCircle2 className="w-3 h-3 text-[var(--status-ok)]" />
-                <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
+                <span className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
                   {t('disclosureEditor.gap.nextSteps')}
                 </span>
               </div>
-              <ol className="space-y-1 list-decimal list-inside text-[11px] text-[var(--text-primary)]">
+              <ol className="space-y-1 list-decimal list-inside text-caption text-[var(--text-primary)]">
                 {state.analysis.recommendedNextSteps.map((s, idx) => (
                   <li key={idx} className="leading-relaxed">{s}</li>
                 ))}

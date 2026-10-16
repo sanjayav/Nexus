@@ -59,7 +59,7 @@ export default function TaskCalendar({ assignments, onPickDay }: TaskCalendarPro
           <button
             type="button"
             onClick={() => setCursor(new Date(today.getFullYear(), today.getMonth(), 1))}
-            className="px-3 h-8 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] text-[10px] uppercase tracking-wider font-semibold text-[var(--text-secondary)]"
+            className="px-3 h-8 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-secondary)]"
           >
             {t('tasks.calendar.today')}
           </button>
@@ -76,7 +76,7 @@ export default function TaskCalendar({ assignments, onPickDay }: TaskCalendarPro
 
       <div className="grid grid-cols-7 gap-1 mb-1">
         {WEEKDAY_KEYS.map(d => (
-          <div key={d} className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] text-center">
+          <div key={d} className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] text-center">
             {t(`tasks.calendar.weekday.${d}`)}
           </div>
         ))}
@@ -130,7 +130,7 @@ export default function TaskCalendar({ assignments, onPickDay }: TaskCalendarPro
                   </div>
                 ))}
                 {items.length > 2 && (
-                  <div className="text-[9px] text-[var(--text-tertiary)] font-semibold">
+                  <div className="text-caption text-[var(--text-tertiary)] font-semibold">
                     {t('tasks.calendar.more', { count: items.length - 2 })}
                   </div>
                 )}

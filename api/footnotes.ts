@@ -6,13 +6,16 @@
  *   POST   /api/footnotes                        → create  { data_value_id, footnote_text }
  *   DELETE /api/footnotes?id=…                   → remove (owner only)
  *
- * All paths org-scoped via data_value → reporting_year join so a caller can't
- * touch another tenant's footnotes.
+ * All paths org-scoped by the shared data_value ownership predicate
+ * (api/_tenancy.ts) so a caller can't touch another tenant's footnotes. The
+ * reporting year alone is not a tenant key — legacy values of several orgs
+ * share one year.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { z } from 'zod'
 import { cors, requirePermission } from './_auth.js'
 import { getDb } from './_db.js'
+import { loadOwnedDataValue } from './_tenancy.js'
 
 const createSchema = z.object({
   data_value_id: z.string().uuid(),
@@ -40,14 +43,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const dataValueId = (req.query.data_value_id as string | undefined) ?? ''
     if (!dataValueId) return res.status(400).json({ error: 'data_value_id required' })
 
-    // Confirm the data_value belongs to the caller's org via reporting_year.
-    const ownership = (await sql`
-      SELECT dv.id FROM data_value dv
-      JOIN reporting_year ry ON ry.id = dv.reporting_year_id
-      WHERE dv.id = ${dataValueId} AND ry.organisation_id = ${t.org}
-      LIMIT 1
-    `) as Array<{ id: string }>
-    if (ownership.length === 0) return res.status(404).json({ error: 'Data value not found' })
+    // Confirm the data_value belongs to the caller's org.
+    if (!(await loadOwnedDataValue(sql, t.org, dataValueId))) {
+      return res.status(404).json({ error: 'Data value not found' })
+    }
 
     const rows = (await sql`
       SELECT f.id, f.data_value_id, f.footnote_text, f.created_by, f.created_at,
@@ -73,13 +72,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Ownership check before insert.
-    const ownership = (await sql`
-      SELECT dv.id FROM data_value dv
-      JOIN reporting_year ry ON ry.id = dv.reporting_year_id
-      WHERE dv.id = ${body.data_value_id} AND ry.organisation_id = ${t.org}
-      LIMIT 1
-    `) as Array<{ id: string }>
-    if (ownership.length === 0) return res.status(404).json({ error: 'Data value not found' })
+    if (!(await loadOwnedDataValue(sql, t.org, body.data_value_id))) {
+      return res.status(404).json({ error: 'Data value not found' })
+    }
 
     const inserted = (await sql`
       INSERT INTO xbrl_footnotes (data_value_id, footnote_text, created_by)
@@ -98,12 +93,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Owner-only delete — verify creator + org scope in one query.
     const deleted = (await sql`
       DELETE FROM xbrl_footnotes f
-      USING data_value dv, reporting_year ry
       WHERE f.id = ${id}
-        AND dv.id = f.data_value_id
-        AND ry.id = dv.reporting_year_id
-        AND ry.organisation_id = ${t.org}
         AND f.created_by = ${t.sub}
+        AND EXISTS (
+          SELECT 1
+          FROM data_value dv
+          LEFT JOIN users eu ON eu.id = dv.entered_by
+          LEFT JOIN reporting_year ry ON ry.id = dv.reporting_year_id
+          WHERE dv.id = f.data_value_id
+            AND COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${t.org}
+        )
       RETURNING f.id
     `) as Array<{ id: string }>
     if (deleted.length === 0) {

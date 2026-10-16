@@ -149,7 +149,7 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
           <span className="kicker !mb-0">{t('components.history.title')}</span>
         </div>
         <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em] leading-snug">{itemLabel(ref_.meta, i18n.language)}</h3>
-        <div className="text-[11px] text-[var(--text-tertiary)] mt-1 flex items-center gap-2 flex-wrap">
+        <div className="text-caption text-[var(--text-tertiary)] mt-1 flex items-center gap-2 flex-wrap">
           <span className="font-mono font-semibold text-[var(--color-brand)]">{ref_.meta.gri_code}</span>
           {ref_.meta.unit && <span>·</span>}
           {ref_.meta.unit && <span>{ref_.meta.unit}</span>}
@@ -169,18 +169,18 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <BookOpenIcon className="w-3 h-3 text-[var(--color-brand)]" />
-                <span className="text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--color-brand)]">{t('components.history.definition')}</span>
+                <span className="text-micro uppercase tracking-[0.12em] font-bold text-[var(--color-brand)]">{t('components.history.definition')}</span>
               </div>
-              <p className="text-[11.5px] text-[var(--text-secondary)] leading-relaxed">{ref_.meta.definition}</p>
+              <p className="text-caption text-[var(--text-secondary)] leading-relaxed">{ref_.meta.definition}</p>
             </div>
           )}
           {ref_.meta.calc_method && (
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <CalculatorIcon className="w-3 h-3 text-[var(--accent-purple)]" />
-                <span className="text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--accent-purple)]">{t('components.history.calcMethod')}</span>
+                <span className="text-micro uppercase tracking-[0.12em] font-bold text-[var(--accent-purple)]">{t('components.history.calcMethod')}</span>
               </div>
-              <p className="text-[11.5px] text-[var(--text-secondary)] leading-relaxed">{ref_.meta.calc_method}</p>
+              <p className="text-caption text-[var(--text-secondary)] leading-relaxed">{ref_.meta.calc_method}</p>
             </div>
           )}
         </div>
@@ -192,7 +192,7 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
           <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={SPRING}>
             <div className="flex items-baseline justify-between gap-3">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)]">{t('components.history.entry', { year: currentYear })}</div>
+                <div className="text-micro uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)]">{t('components.history.entry', { year: currentYear })}</div>
                 <div className="text-[22px] font-bold tabular-nums text-[var(--text-primary)] leading-tight tracking-[-0.02em]">{fmtBig(currentValue)}</div>
               </div>
               {yoy != null && (
@@ -212,8 +212,8 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
               <ComposedChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="histo-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#1B6B7B" stopOpacity={0.28} />
-                    <stop offset="100%" stopColor="#1B6B7B" stopOpacity={0.02} />
+                    <stop offset="0%" stopColor="#047857" stopOpacity={0.28} />
+                    <stop offset="100%" stopColor="#047857" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="label" tick={{ fill: 'var(--text-tertiary)', fontSize: 10 }} axisLine={{ stroke: 'var(--border-subtle)' }} tickLine={false} />
@@ -223,7 +223,7 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
                   contentStyle={{ background: 'var(--bg-primary)', border: '1px solid var(--border-default)', borderRadius: 8, fontSize: 11, padding: '6px 10px' }}
                   formatter={(v: any) => fmtBig(Number(v))}
                 />
-                <Area type="monotone" dataKey="value" stroke="#1B6B7B" strokeWidth={2} fill="url(#histo-grad)" dot={{ r: 3, fill: '#1B6B7B', strokeWidth: 0 }} connectNulls />
+                <Area type="monotone" dataKey="value" stroke="#047857" strokeWidth={2} fill="url(#histo-grad)" dot={{ r: 3, fill: '#047857', strokeWidth: 0 }} connectNulls />
                 <Line type="monotone" dataKey="current" stroke="none" dot={{ r: 5, fill: '#E6A817', stroke: 'white', strokeWidth: 2 }} />
                 {ref_.meta.target_fy2026 != null && (
                   <ReferenceLine y={ref_.meta.target_fy2026} stroke="var(--accent-green)" strokeDasharray="3 3" strokeWidth={1.5}
@@ -237,7 +237,7 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
             </ResponsiveContainer>
           </div>
         ) : (
-          <div className="h-[120px] flex items-center justify-center text-[11.5px] text-[var(--text-tertiary)] italic">{t('components.history.noValues')}</div>
+          <div className="h-[120px] flex items-center justify-center text-caption text-[var(--text-tertiary)] italic">{t('components.history.noValues')}</div>
         )}
 
         {/* Stats grid */}
@@ -253,14 +253,14 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
         {/* Year-by-year with source */}
         {series.length > 0 && (
           <div>
-            <div className="text-[10px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-2">{t('components.history.yearByYear')}</div>
+            <div className="text-micro uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-2">{t('components.history.yearByYear')}</div>
             <ul className="space-y-1.5">
               {series.map(h => (
                 <li key={h.year} className="flex items-center justify-between gap-3 text-[12px]">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-[11px] text-[var(--text-tertiary)] font-medium uppercase tracking-[0.08em] w-10">FY{String(h.year).slice(-2)}</span>
+                    <span className="text-micro text-[var(--text-tertiary)] font-medium uppercase tracking-[0.08em] w-10">FY{String(h.year).slice(-2)}</span>
                     {h.source_report && (
-                      <span className="text-[10px] text-[var(--text-tertiary)] truncate max-w-[150px]" title={h.source_report}>{h.source_report}</span>
+                      <span className="text-caption text-[var(--text-tertiary)] truncate max-w-[150px]" title={h.source_report}>{h.source_report}</span>
                     )}
                   </div>
                   <span className="font-semibold text-[var(--text-primary)] tabular-nums flex-shrink-0">{fmtBig(h.value)}</span>
@@ -272,10 +272,10 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
 
         {/* Target */}
         {ref_.meta.target_fy2026 != null && (
-          <div className="p-3 rounded-[10px] relative overflow-hidden" style={{ background: 'var(--gradient-brand-soft)', border: '1px solid rgba(27,107,123,0.15)' }}>
+          <div className="p-3 rounded-[10px] relative overflow-hidden" style={{ background: 'var(--gradient-brand-soft)', border: '1px solid rgba(4, 120, 87,0.15)' }}>
             <div className="flex items-center gap-2 mb-1">
               <TargetIcon className="w-3.5 h-3.5 text-[var(--color-brand)]" />
-              <span className="text-[10px] uppercase tracking-[0.12em] font-semibold text-[var(--color-brand-strong)]">{t('components.history.fyTarget', { year: currentYear })}</span>
+              <span className="text-micro uppercase tracking-[0.12em] font-semibold text-[var(--color-brand-strong)]">{t('components.history.fyTarget', { year: currentYear })}</span>
             </div>
             <div className="text-[18px] font-bold tabular-nums text-[var(--color-brand-strong)] tracking-[-0.01em]">{ref_.meta.target_fy2026}</div>
           </div>
@@ -284,7 +284,7 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
         {/* Peer comparison */}
         {ref_.peers.length > 0 && (
           <div>
-            <div className="text-[10px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-2">{t('components.history.peers')}</div>
+            <div className="text-micro uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-2">{t('components.history.peers')}</div>
             <ul className="space-y-1.5">
               {ref_.peers.slice(0, 4).map(p => (
                 <li key={p.entity_id} className="flex items-center justify-between gap-3 text-[12px]">
@@ -299,7 +299,7 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
         {/* Live anomaly callouts */}
         {currentValue != null && flags.length > 0 && (
           <div>
-            <div className="text-[10px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-2">{t('components.history.qualityCheck')}</div>
+            <div className="text-micro uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-2">{t('components.history.qualityCheck')}</div>
             <div className="space-y-1.5">
               {flags.map((f, i) => {
                 const Icon = f.icon
@@ -314,7 +314,7 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
                     <Icon className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: color.fg }} />
                     <div className="min-w-0 flex-1">
                       <div className="text-[12px] font-semibold tracking-[-0.005em]" style={{ color: color.fg }}>{f.title}</div>
-                      <div className="text-[11px] leading-relaxed text-[var(--text-secondary)] mt-0.5">{f.body}</div>
+                      <div className="text-caption leading-relaxed text-[var(--text-secondary)] mt-0.5">{f.body}</div>
                     </div>
                   </motion.div>
                 )
@@ -325,7 +325,7 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
 
         {/* Footer — confidence */}
         {series.length > 0 && series.some(h => h.source_report) && (
-          <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center gap-1.5 text-[10px] text-[var(--text-tertiary)]">
+          <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center gap-1.5 text-caption text-[var(--text-tertiary)]">
             <Clock className="w-3 h-3" />
             <span>{t('components.history.sources', { level: series.every(h => (h.confidence_score ?? 0) >= 0.9) ? t('components.history.high') : t('components.history.mixed') })}</span>
           </div>
@@ -338,7 +338,7 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
 function StatCell({ label, value }: { label: string; value: string }) {
   return (
     <div className="p-2 rounded-[8px] bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-      <div className="text-[9px] uppercase tracking-[0.1em] text-[var(--text-tertiary)] font-semibold">{label}</div>
+      <div className="text-micro uppercase tracking-[0.1em] text-[var(--text-tertiary)] font-semibold">{label}</div>
       <div className="text-[13px] font-bold tabular-nums text-[var(--text-primary)] mt-0.5 tracking-[-0.01em]">{value}</div>
     </div>
   )

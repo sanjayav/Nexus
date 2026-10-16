@@ -149,7 +149,7 @@ export default function ResetPassword() {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label htmlFor="pw" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">
+                  <label htmlFor="pw" className="text-micro font-medium text-white/50 uppercase tracking-[0.06em] block mb-1">
                     {t('auth.reset.newPassword')}
                   </label>
                   <div className="relative">
@@ -171,11 +171,11 @@ export default function ResetPassword() {
                     />
                   </div>
                   {touched.password && fieldErrors.password && (
-                    <p id="pw-err" className="mt-1 text-[11px] text-red-300">{fieldErrors.password}</p>
+                    <p id="pw-err" className="mt-1 text-caption text-red-300">{fieldErrors.password}</p>
                   )}
                 </div>
                 <div>
-                  <label htmlFor="pw2" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">
+                  <label htmlFor="pw2" className="text-micro font-medium text-white/50 uppercase tracking-[0.06em] block mb-1">
                     {t('auth.reset.confirmPassword')}
                   </label>
                   <div className="relative">
@@ -196,7 +196,7 @@ export default function ResetPassword() {
                     />
                   </div>
                   {touched.confirm && fieldErrors.confirm && (
-                    <p id="pw2-err" className="mt-1 text-[11px] text-red-300">{fieldErrors.confirm}</p>
+                    <p id="pw2-err" className="mt-1 text-caption text-red-300">{fieldErrors.confirm}</p>
                   )}
                 </div>
 

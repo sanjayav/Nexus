@@ -10,13 +10,16 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table'
 import {
-  Loader2, AlertCircle, Search, Link2, Download, Send, ShieldCheck, AlertTriangle, X,
+  Loader2, AlertCircle, Search, Link2, Download, Send, ShieldCheck, AlertTriangle, X, CalendarClock,
 } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { orgStore, type QuestionAssignment, type OrgEntity } from '../lib/orgStore'
 import { useFramework, getFramework, getActiveFrameworks } from '../lib/frameworks'
 import { nexus } from '../lib/api'
 import { showWarning } from '../lib/toast'
+import { downloadCsv } from '../lib/csv'
+import EmptyState from '../components/EmptyState'
+import { useActiveReportingYear, fetchActiveReportingYear } from '../lib/activeReportingYear'
 import {
   asNumber,
   isFormula,
@@ -71,8 +74,6 @@ const STATUS_CLASS: Record<StatusKey, string> = {
   rejected:     'bg-rose-100 text-rose-800',
 }
 
-const ACTIVE_REPORTING_YEAR_ID = '11000000-0000-0000-0000-000000000026'
-
 /** Pre-canned formula recipes for the Help popover. `description` is an i18n key. */
 const FORMULA_EXAMPLES: Array<{ formula: string; description: string }> = [
   { formula: '=SUM(D2:D5)',               description: 'dataEntry.sheet.examples.sum' },
@@ -91,6 +92,11 @@ export default function DataEntrySpreadsheet() {
   const { active: framework } = useFramework()
   const navigate = useNavigate()
   const { t, i18n } = useTranslation()
+
+  // The org's own open reporting year. The data_value mirror below writes
+  // into it; with no open year the mirror is skipped (assignment edits still
+  // save) and a notice points to Reporting cycles.
+  const activeYear = useActiveReportingYear()
 
   const [assignments, setAssignments] = useState<QuestionAssignment[]>([])
   const [entities, setEntities] = useState<OrgEntity[]>([])
@@ -255,11 +261,14 @@ export default function DataEntrySpreadsheet() {
       })
       // Mirror into data_value so the workflow + reports pipeline see it.
       // Failures here are non-fatal: the assignment is the user-facing record.
-      if (input.value !== null) {
+      // Awaiting the (cached) lookup avoids racing the hook on first edit.
+      const year = input.value !== null ? await fetchActiveReportingYear() : null
+      const reportingYearId = year?.kind === 'ready' ? year.year.id : null
+      if (input.value !== null && reportingYearId) {
         try {
           await nexus.enterValue({
             question_id: a.questionId,
-            reporting_year_id: ACTIVE_REPORTING_YEAR_ID,
+            reporting_year_id: reportingYearId,
             value: input.value,
             unit: a.unit ?? undefined,
             mode: 'Manual',
@@ -561,20 +570,15 @@ export default function DataEntrySpreadsheet() {
     const rows = filtered.filter(a => selected.has(a.id))
     if (rows.length === 0) return
     const header = ['gri_code', 'line_item', 'unit', 'value', 'status', 'assignee', 'entity', 'last_updated']
-    const lines = [header.join(',')]
-    for (const r of rows) {
-      const fields = [
+    // downloadCsv adds the UTF-8 BOM so Excel (incl. Chinese Windows) reads
+    // Chinese line items correctly.
+    downloadCsv(`data-entry-${Date.now()}.csv`, [
+      header,
+      ...rows.map(r => [
         r.gri_code, r.line_item, r.unit ?? '', r.value ?? '', r.status,
         r.assigneeName, entityById.get(r.entityId)?.name ?? '', r.last_updated ?? '',
-      ].map(v => `"${String(v).replace(/"/g, '""')}"`)
-      lines.push(fields.join(','))
-    }
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url; a.download = `data-entry-${Date.now()}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+      ]),
+    ])
   }
 
   if (loading) {
@@ -601,6 +605,19 @@ export default function DataEntrySpreadsheet() {
           <SaveIndicator label={saveLabel} saving={savingCount > 0} error={errorCount > 0} />
         </div>
       </div>
+
+      {activeYear.kind === 'none' && (
+        <div className="surface-paper">
+          <EmptyState
+            density="compact"
+            icon={CalendarClock}
+            title={t('reportingYear.none.title')}
+            body={t('reportingYear.none.inlineBody')}
+            cta={{ label: t('reportingYear.none.cta'), onClick: () => navigate('/admin/periods') }}
+            secondaryCta={{ label: t('reportingYear.none.retry'), onClick: activeYear.reload }}
+          />
+        </div>
+      )}
 
       {/* Load-failure banner — grid still renders any rows that did make it
           into local state from a previous refresh, but the user needs to know

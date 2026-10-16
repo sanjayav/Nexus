@@ -118,6 +118,9 @@ export const handlers = [
     return HttpResponse.json([])
   }),
   http.post('/api/workflow', () => HttpResponse.json({ ok: true, value_hash: 'mock' })),
+  // The caller org's open reporting year (src/lib/activeReportingYear.ts).
+  http.get('/api/reporting-year/active', () =>
+    HttpResponse.json({ id: '11000000-0000-0000-0000-000000000026', year: 2026, status: 'active' })),
 
   http.get('/api/concept-mappings', () =>
     HttpResponse.json({ concept_key: null, mappings: [] })),

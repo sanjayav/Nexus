@@ -122,7 +122,7 @@ export default function NotificationsPage() {
         description={t('components.inbox.description', { total, unread })}
         actions={unread > 0 ? (
           <button onClick={markAll}
-            className="text-[var(--text-xs)] font-semibold text-[var(--color-brand)] hover:underline inline-flex items-center gap-1">
+            className="text-[length:var(--text-xs)] font-semibold text-[var(--color-brand)] hover:underline inline-flex items-center gap-1">
             <CheckCheck className="w-3.5 h-3.5" /> {t('components.notifications.markAllRead')}
           </button>
         ) : undefined}
@@ -133,7 +133,7 @@ export default function NotificationsPage() {
           onClick={() => setFilterKind('all')}
           className={`text-[10px] uppercase tracking-wider font-semibold px-2.5 py-1 rounded-full border ${
             filterKind === 'all'
-              ? 'bg-[var(--color-brand)] text-white border-[var(--color-brand)]'
+              ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] border-[var(--color-brand)]'
               : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-default)] hover:bg-[var(--bg-secondary)]'
           }`}
         >{t('common.all')}</button>
@@ -143,7 +143,7 @@ export default function NotificationsPage() {
             onClick={() => setFilterKind(k)}
             className={`text-[10px] uppercase tracking-wider font-semibold px-2.5 py-1 rounded-full border ${
               filterKind === k
-                ? 'bg-[var(--color-brand)] text-white border-[var(--color-brand)]'
+                ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] border-[var(--color-brand)]'
                 : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-default)] hover:bg-[var(--bg-secondary)]'
             }`}
           >{notificationKindLabel(k)}</button>
@@ -182,17 +182,17 @@ export default function NotificationsPage() {
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${!n.read_at ? 'bg-[var(--color-brand)]' : 'bg-transparent'}`} />
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand)]">{notificationKindLabel(n.kind)}</span>
-                      <span className="ml-auto text-[10px] text-[var(--text-tertiary)]">{relativeTime(n.created_at)}</span>
+                      <span className="text-micro font-bold uppercase tracking-[0.06em] text-[var(--color-brand)]">{notificationKindLabel(n.kind)}</span>
+                      <span className="ml-auto text-caption text-[var(--text-tertiary)]">{relativeTime(n.created_at)}</span>
                       {!n.read_at && (
                         <button
                           onClick={(e) => markOne(n, e)}
-                          className="text-[10px] font-semibold text-[var(--color-brand)] hover:underline"
+                          className="text-caption font-semibold text-[var(--color-brand)] hover:underline"
                         >{t('components.notifications.markRead')}</button>
                       )}
                     </div>
-                    <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{n.subject}</div>
-                    {n.body && <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5 line-clamp-2">{n.body}</div>}
+                    <div className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)]">{n.subject}</div>
+                    {n.body && <div className="text-caption text-[var(--text-tertiary)] mt-0.5 line-clamp-2">{n.body}</div>}
                   </button>
                 </li>
               </StaggerItem>
@@ -206,7 +206,7 @@ export default function NotificationsPage() {
           <button
             onClick={loadMore}
             disabled={loadingMore}
-            className="text-[var(--text-sm)] font-semibold px-4 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50"
+            className="text-[length:var(--text-sm)] font-semibold px-4 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50"
           >
             {loadingMore ? <Loader2 className="w-3.5 h-3.5 inline-block mr-1 animate-spin" /> : null}
             {t('components.inbox.loadMore', { count: total - notes.length })}

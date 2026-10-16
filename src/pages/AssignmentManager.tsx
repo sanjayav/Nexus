@@ -222,7 +222,7 @@ export default function AssignmentManager() {
       </div>
       <header className="flex items-start justify-between mb-5">
         <div>
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
+          <div className="flex items-center gap-2 text-micro uppercase tracking-[0.06em] font-semibold text-[var(--color-brand)]">
             <ClipboardList className="w-3 h-3" /> {t('assignments.frameworkDisclosures', { framework: framework.code })}
           </div>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -269,7 +269,7 @@ export default function AssignmentManager() {
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder={t('assignments.searchPlaceholder')}
-            className="w-full pl-9 pr-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+            className="w-full pl-9 pr-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
           />
         </div>
         <div className="relative">
@@ -277,7 +277,7 @@ export default function AssignmentManager() {
           <select
             value={filterStatus}
             onChange={e => setFilterStatus(e.target.value as any)}
-            className="pl-7 pr-7 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)] appearance-none"
+            className="pl-7 pr-7 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-xs)] appearance-none"
           >
             <option value="all">{t('assignments.allStatuses')}</option>
             {Object.entries(STATUS_META).map(([k, v]) => <option key={k} value={k}>{t(v.label)}</option>)}
@@ -308,7 +308,7 @@ export default function AssignmentManager() {
         <select
           value={filterEntity}
           onChange={e => setFilterEntity(e.target.value)}
-          className="px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)] max-w-[220px]"
+          className="px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-xs)] max-w-[220px]"
         >
           <option value="all">{t('assignments.allEntities')}</option>
           {plants.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -352,9 +352,9 @@ export default function AssignmentManager() {
       ) : (
         <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] overflow-hidden">
           <div className="overflow-x-auto">
-          <table className="w-full text-[var(--text-sm)] min-w-[900px]">
+          <table className="w-full text-[length:var(--text-sm)] min-w-[900px]">
             <thead>
-              <tr className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] bg-[var(--bg-secondary)]">
+              <tr className="text-micro uppercase tracking-wider text-[var(--text-tertiary)] bg-[var(--bg-secondary)]">
                 <th scope="col" className="text-left px-4 py-2.5 font-semibold sticky left-0 bg-[var(--bg-secondary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">{t('assignments.table.lineItem')}</th>
                 <th scope="col" className="text-left px-4 py-2.5 font-semibold">{t('assignments.table.entity')}</th>
                 <th scope="col" className="text-left px-4 py-2.5 font-semibold">{t('assignments.table.assignee')}</th>
@@ -377,27 +377,27 @@ export default function AssignmentManager() {
                     transition={{ duration: 0.18, delay: Math.min(idx, 12) * 0.025 }}
                     className="group/arow hover:bg-[var(--bg-secondary)]">
                     <td className="px-4 py-3 sticky left-0 bg-[var(--bg-primary)] group-hover/arow:bg-[var(--bg-secondary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">
-                      <div className="text-[10px] font-semibold text-[var(--color-brand)]">{a.gri_code}</div>
-                      <div className="text-[var(--text-sm)] text-[var(--text-primary)] font-medium truncate max-w-[320px]">{itemLabel(a, i18n.language)}</div>
+                      <div className="text-caption font-semibold text-[var(--color-brand)]">{a.gri_code}</div>
+                      <div className="text-[length:var(--text-sm)] text-[var(--text-primary)] font-medium truncate max-w-[320px]">{itemLabel(a, i18n.language)}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5 text-[var(--text-xs)]">
+                      <div className="flex items-center gap-1.5 text-[length:var(--text-xs)]">
                         <Factory className="w-3 h-3 text-[var(--text-tertiary)]" />
                         <span className="text-[var(--text-primary)] font-medium truncate max-w-[180px]">{entity?.name ?? '—'}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-[var(--color-brand)] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                        <div className="w-7 h-7 rounded-full bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-caption font-bold flex items-center justify-center flex-shrink-0">
                           {a.assigneeName.slice(0, 2).toUpperCase()}
                         </div>
                         <div className="min-w-0">
-                          <div className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)] truncate">{a.assigneeName}</div>
-                          <div className="text-[10px] text-[var(--text-tertiary)] truncate">{a.assigneeEmail}</div>
+                          <div className="text-[length:var(--text-xs)] font-semibold text-[var(--text-primary)] truncate">{a.assigneeName}</div>
+                          <div className="text-caption text-[var(--text-tertiary)] truncate">{a.assigneeEmail}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-3 text-[var(--text-xs)]">
+                    <td className="px-3 py-3 text-[length:var(--text-xs)]">
                       <div className="flex items-center gap-1 flex-wrap">
                         {modes.map(m => {
                           const Icon = m === 'Manual' ? PencilLine : m === 'Calculator' ? CalcIcon : Plug
@@ -405,7 +405,7 @@ export default function AssignmentManager() {
                           return (
                             <span key={m} className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
                               isUsed
-                                ? 'bg-[var(--color-brand)] text-white'
+                                ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)]'
                                 : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
                             }`} title={isUsed ? t('assignments.mode.usedTitle') : t('assignments.mode.allowedTitle')}>
                               <Icon className="w-3 h-3" /> {t(`assignments.mode.${m}`, { defaultValue: m })}
@@ -414,7 +414,7 @@ export default function AssignmentManager() {
                         })}
                       </div>
                     </td>
-                    <td className="px-3 py-3 text-[var(--text-xs)]">
+                    <td className="px-3 py-3 text-[length:var(--text-xs)]">
                       {a.due_date ? (
                         <span className="inline-flex items-center gap-1 text-[var(--text-secondary)]">
                           <Calendar className="w-3 h-3" /> {a.due_date}
@@ -422,7 +422,7 @@ export default function AssignmentManager() {
                       ) : <span className="text-[var(--text-tertiary)]">—</span>}
                     </td>
                     <td className="px-3 py-3">
-                      <span className="inline-block px-2 py-0.5 rounded-[var(--radius-sm)] text-[10px] font-semibold uppercase tracking-wider"
+                      <span className="inline-block px-2 py-0.5 rounded-[var(--radius-sm)] text-micro font-semibold uppercase tracking-wider"
                             style={{ background: status.bg, color: status.fg }}>
                         {t(status.label)}
                       </span>
@@ -446,7 +446,7 @@ export default function AssignmentManager() {
         <div className="fixed inset-0 z-50 flex justify-end bg-black/40 animate-fade-in" onClick={() => setDrawerOpen(false)}>
           <div className="w-full sm:w-[520px] sm:max-w-[90vw] h-full bg-[var(--bg-primary)] shadow-2xl p-4 sm:p-6 overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
-              <h2 className="font-display text-[var(--text-xl)] font-bold text-[var(--text-primary)]">{t('assignments.newAssignment')}</h2>
+              <h2 className="font-display text-[length:var(--text-xl)] font-bold text-[var(--text-primary)]">{t('assignments.newAssignment')}</h2>
               <button onClick={() => setDrawerOpen(false)} className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">✕</button>
             </div>
 
@@ -480,9 +480,9 @@ export default function AssignmentManager() {
                       className={`text-left p-3 rounded-[var(--radius-md)] border ${active ? 'border-[var(--color-brand)] bg-[var(--color-brand-soft)]' : 'border-[var(--border-default)] hover:bg-[var(--bg-secondary)]'}`}>
                       <div className="flex items-center gap-1.5 mb-1">
                         <Icon className="w-3.5 h-3.5" style={{ color: active ? 'var(--color-brand-strong)' : 'var(--text-secondary)' }} />
-                        <span className={`text-[var(--text-xs)] font-semibold ${active ? 'text-[var(--color-brand-strong)]' : 'text-[var(--text-primary)]'}`}>{opt.label}</span>
+                        <span className={`text-[length:var(--text-xs)] font-semibold ${active ? 'text-[var(--color-brand-strong)]' : 'text-[var(--text-primary)]'}`}>{opt.label}</span>
                       </div>
-                      <div className="text-[10px] text-[var(--text-tertiary)]">{opt.desc}</div>
+                      <div className="text-caption text-[var(--text-tertiary)]">{opt.desc}</div>
                     </button>
                   )
                 })}
@@ -494,7 +494,7 @@ export default function AssignmentManager() {
                 value={pickedEntity}
                 onChange={e => setPickedEntity(e.target.value)}
                 disabled={!pickedQuestion}
-                className="w-full px-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)] disabled:opacity-50"
+                className="w-full px-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)] disabled:opacity-50"
               >
                 <option value="">{t('assignments.drawer.selectEntity')}</option>
                 {entities
@@ -516,12 +516,12 @@ export default function AssignmentManager() {
                   onChange={setPickedMember}
                 />
               ) : (
-                <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] italic">{t('assignments.drawer.pickEntityFirst')}</div>
+                <div className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] italic">{t('assignments.drawer.pickEntityFirst')}</div>
               )}
             </Step>
 
             <Step num={5} title={t('assignments.drawer.step5')} disabled={!pickedQuestion || pickedResponseType === 'narrative'}>
-              <p className="text-[10px] text-[var(--text-tertiary)] mb-2">
+              <p className="text-caption text-[var(--text-tertiary)] mb-2">
                 {t('assignments.drawer.modesHint')}
               </p>
               <div className="grid grid-cols-3 gap-2">
@@ -536,23 +536,23 @@ export default function AssignmentManager() {
                       type="button"
                       disabled={disabled}
                       onClick={() => toggleMode(m)}
-                      className={`relative px-3 py-3 rounded-[var(--radius-md)] border text-[var(--text-xs)] font-semibold flex flex-col items-center gap-1 transition-colors ${
+                      className={`relative px-3 py-3 rounded-[var(--radius-md)] border text-[length:var(--text-xs)] font-semibold flex flex-col items-center gap-1 transition-colors ${
                         active ? 'border-[var(--color-brand)] bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)]'
                                : 'border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
                       } disabled:opacity-40 disabled:cursor-not-allowed`}
                     >
                       {active && (
-                        <span className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-[var(--color-brand)] text-white flex items-center justify-center text-[9px]">✓</span>
+                        <span className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] flex items-center justify-center text-micro">✓</span>
                       )}
                       <Icon className="w-4 h-4" />
                       {t(`assignments.mode.${m}`)}
-                      {disabled && <span className="text-[9px] font-normal text-[var(--text-tertiary)]">{t('assignments.drawer.noCalculator')}</span>}
+                      {disabled && <span className="text-caption font-normal text-[var(--text-tertiary)]">{t('assignments.drawer.noCalculator')}</span>}
                     </button>
                   )
                 })}
               </div>
               {pickedModes.length > 1 && (
-                <p className="text-[10px] text-[var(--color-brand)] mt-2">
+                <p className="text-caption text-[var(--color-brand)] mt-2">
                   {t('assignments.drawer.tabSwitcher', { modes: pickedModes.map(m => t(`assignments.mode.${m}`)).join(' · ') })}
                 </p>
               )}
@@ -563,7 +563,7 @@ export default function AssignmentManager() {
                 type="date"
                 value={pickedDue}
                 onChange={e => setPickedDue(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                className="w-full px-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
               />
             </Step>
 
@@ -571,11 +571,11 @@ export default function AssignmentManager() {
               <button
                 onClick={saveAssignment}
                 disabled={!pickedQuestion || !pickedEntity || !pickedMember}
-                className="flex-1 px-4 py-2.5 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold disabled:opacity-50 hover:bg-[var(--color-brand-strong)] transition-colors"
+                className="flex-1 px-4 py-2.5 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold disabled:opacity-50 hover:bg-[var(--btn-primary-bg-hover)] transition-colors"
               >
                 {t('assignments.empty.create')}
               </button>
-              <button onClick={() => setDrawerOpen(false)} className="px-4 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] text-[var(--text-sm)] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">
+              <button onClick={() => setDrawerOpen(false)} className="px-4 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] text-[length:var(--text-sm)] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">
                 {t('common.cancel')}
               </button>
             </div>
@@ -591,7 +591,7 @@ function Stat({ label, value, tone }: { label: string; value: number; tone: 'neu
   const fg = tone === 'ok' ? 'var(--status-ok)' : tone === 'pending' ? 'var(--status-pending)' : tone === 'draft' ? 'var(--status-draft)' : 'var(--text-primary)'
   return (
     <div className="rounded-[var(--radius-md)] border border-[var(--border-default)] p-4" style={{ background: bg }}>
-      <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: fg, opacity: 0.8 }}>{label}</div>
+      <div className="text-micro uppercase tracking-wider font-semibold" style={{ color: fg, opacity: 0.8 }}>{label}</div>
       <div className="text-[22px] font-bold tabular-nums mt-1" style={{ color: fg }}>{value}</div>
     </div>
   )
@@ -601,8 +601,8 @@ function Step({ num, title, disabled, children }: { num: number; title: string; 
   return (
     <div className={`mb-5 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
       <div className="flex items-center gap-2 mb-2">
-        <span className="w-5 h-5 rounded-full bg-[var(--color-brand)] text-white text-[10px] font-bold flex items-center justify-center">{num}</span>
-        <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{title}</h3>
+        <span className="w-5 h-5 rounded-full bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-caption font-bold flex items-center justify-center">{num}</span>
+        <h3 className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)]">{title}</h3>
       </div>
       {children}
     </div>
@@ -647,10 +647,10 @@ function QuestionPicker({ questions, selected, onSelect }: {
     <div>
       {selected ? (
         <div className="p-3 rounded-[var(--radius-md)] border border-[var(--color-brand)] bg-[var(--color-brand-soft)]/40">
-          <div className="text-[10px] font-semibold text-[var(--color-brand-strong)] uppercase tracking-wider">{selected.gri_code}</div>
-          <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mt-0.5">{itemLabel(selected, i18n.language)}</div>
-          <div className="text-[10px] text-[var(--text-tertiary)] mt-0.5">{t(capitalLabelKey(selected.section), { defaultValue: selected.section })} · {t(subsectionLabelKey(selected.subsection), { defaultValue: selected.subsection })}</div>
-          <button onClick={() => onSelect(null as any)} className="mt-2 text-[var(--text-xs)] text-[var(--color-brand)] hover:underline">{t('assignments.picker.change')}</button>
+          <div className="text-micro font-semibold text-[var(--color-brand-strong)] uppercase tracking-wider">{selected.gri_code}</div>
+          <div className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)] mt-0.5">{itemLabel(selected, i18n.language)}</div>
+          <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{t(capitalLabelKey(selected.section), { defaultValue: selected.section })} · {t(subsectionLabelKey(selected.subsection), { defaultValue: selected.subsection })}</div>
+          <button onClick={() => onSelect(null as any)} className="mt-2 text-[length:var(--text-xs)] text-[var(--color-brand)] hover:underline">{t('assignments.picker.change')}</button>
         </div>
       ) : (
         <>
@@ -661,7 +661,7 @@ function QuestionPicker({ questions, selected, onSelect }: {
               onChange={e => setQ(e.target.value)}
               autoFocus
               placeholder={t('assignments.picker.search')}
-              className="w-full pl-9 pr-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+              className="w-full pl-9 pr-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
             />
           </div>
           <div className="max-h-[240px] overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)]">
@@ -672,11 +672,11 @@ function QuestionPicker({ questions, selected, onSelect }: {
                 onClick={() => onSelect(x)}
                 className="w-full px-3 py-2 text-left hover:bg-[var(--bg-primary)] border-b border-[var(--border-subtle)] last:border-b-0"
               >
-                <div className="text-[9px] font-semibold text-[var(--color-brand)]">{x.gri_code}</div>
-                <div className="text-[var(--text-xs)] font-medium text-[var(--text-primary)] truncate">{itemLabel(x, i18n.language)}</div>
+                <div className="text-caption font-semibold text-[var(--color-brand)]">{x.gri_code}</div>
+                <div className="text-[length:var(--text-xs)] font-medium text-[var(--text-primary)] truncate">{itemLabel(x, i18n.language)}</div>
               </button>
             ))}
-            {filtered.length === 0 && <div className="p-4 text-center text-[var(--text-xs)] text-[var(--text-tertiary)]">{t('assignments.picker.noMatches')}</div>}
+            {filtered.length === 0 && <div className="p-4 text-center text-[length:var(--text-xs)] text-[var(--text-tertiary)]">{t('assignments.picker.noMatches')}</div>}
           </div>
         </>
       )}
@@ -700,7 +700,7 @@ function AssigneePicker({ entityId, members, entities, value, onChange }: {
 
   if (inScope.length === 0) {
     return (
-      <div className="p-3 rounded-[var(--radius-md)] border border-dashed border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-xs)] text-[var(--text-tertiary)]">
+      <div className="p-3 rounded-[var(--radius-md)] border border-dashed border-[var(--border-default)] bg-[var(--bg-secondary)] text-[length:var(--text-xs)] text-[var(--text-tertiary)]">
         <AlertCircle className="w-3.5 h-3.5 inline -mt-0.5 mr-1" />
         <Trans i18nKey="assignments.picker.noMembers" components={{ b: <strong /> }} />
       </div>
@@ -711,7 +711,7 @@ function AssigneePicker({ entityId, members, entities, value, onChange }: {
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
-      className="w-full px-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+      className="w-full px-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
     >
       <option value="">{t('assignments.picker.selectAssignee')}</option>
       {inScope.map(m => <option key={m.id} value={m.id}>{m.name} ({m.email})</option>)}
@@ -760,12 +760,12 @@ function KanbanView({
           >
             <header className="px-4 py-3 border-b border-[var(--border-subtle)] flex items-center gap-2 flex-shrink-0" style={{ background: col.bg }}>
               <span className="w-2 h-2 rounded-full" style={{ background: col.color }} />
-              <span className="text-[11.5px] font-bold uppercase tracking-[0.1em]" style={{ color: col.color }}>{t(col.label)}</span>
-              <span className="ml-auto text-[11px] font-bold tabular-nums px-1.5 py-0.5 rounded-full bg-white/70" style={{ color: col.color }}>{cards.length}</span>
+              <span className="text-micro font-bold uppercase tracking-[0.1em]" style={{ color: col.color }}>{t(col.label)}</span>
+              <span className="ml-auto text-caption font-bold tabular-nums px-1.5 py-0.5 rounded-full bg-white/70" style={{ color: col.color }}>{cards.length}</span>
             </header>
             <div className="flex-1 overflow-y-auto p-2 space-y-2">
               {cards.length === 0 ? (
-                <div className="py-6 text-center text-[11px] text-[var(--text-tertiary)] italic">{t('assignments.kanban.emptyLane')}</div>
+                <div className="py-6 text-center text-caption text-[var(--text-tertiary)] italic">{t('assignments.kanban.emptyLane')}</div>
               ) : (
                 cards.map((a, i) => <KanbanCard key={a.id} a={a} entity={entityById.get(a.entityId)} index={i} onRemove={() => onRemove(a.id)} accent={col.color} />)
               )}
@@ -796,7 +796,7 @@ function KanbanCard({ a, entity, index, onRemove, accent }: {
     >
       <span className="absolute left-0 top-2 bottom-2 w-[2px] rounded-r-full" style={{ background: accent }} />
       <div className="flex items-start justify-between gap-2 mb-1.5">
-        <span className="font-mono text-[10px] font-bold text-[var(--color-brand)] tracking-[0.02em]">{a.gri_code}</span>
+        <span className="font-mono text-caption font-bold text-[var(--color-brand)] tracking-[0.02em]">{a.gri_code}</span>
         <button onClick={(e) => { e.stopPropagation(); onRemove() }} className="w-5 h-5 rounded text-[var(--text-tertiary)] hover:text-[var(--accent-red)] hover:bg-[var(--accent-red-light)] opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center">
           <Trash2 className="w-3 h-3" />
         </button>
@@ -804,19 +804,19 @@ function KanbanCard({ a, entity, index, onRemove, accent }: {
       <div className="text-[12.5px] font-semibold text-[var(--text-primary)] leading-snug line-clamp-2 tracking-[-0.005em]">{itemLabel(a, i18n.language)}</div>
       <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
         {entity && (
-          <span className="inline-flex items-center gap-1 text-[10.5px] text-[var(--text-tertiary)] bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded">
+          <span className="inline-flex items-center gap-1 text-caption text-[var(--text-tertiary)] bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded">
             <Factory className="w-2.5 h-2.5" />{entity.name}
           </span>
         )}
         {a.response_type === 'narrative' && (
-          <span className="inline-flex items-center gap-1 text-[10.5px] text-[var(--accent-purple)] bg-[var(--accent-purple-light)] px-1.5 py-0.5 rounded font-semibold">
+          <span className="inline-flex items-center gap-1 text-caption text-[var(--accent-purple)] bg-[var(--accent-purple-light)] px-1.5 py-0.5 rounded font-semibold">
             <FileText className="w-2.5 h-2.5" />{t('assignments.drawer.narrative')}
           </span>
         )}
         {modes.length > 0 && modes[0] && (() => {
           const Icon = modes[0] === 'Manual' ? PencilLine : modes[0] === 'Calculator' ? CalcIcon : Plug
           return (
-            <span className="inline-flex items-center gap-0.5 text-[10.5px] text-[var(--text-tertiary)] bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded">
+            <span className="inline-flex items-center gap-0.5 text-caption text-[var(--text-tertiary)] bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded">
               <Icon className="w-2.5 h-2.5" />{t(`assignments.mode.${modes[0]}`, { defaultValue: modes[0] })}
             </span>
           )
@@ -824,13 +824,13 @@ function KanbanCard({ a, entity, index, onRemove, accent }: {
       </div>
       <div className="mt-2.5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
-          <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8.5px] font-bold text-white flex-shrink-0" style={{ background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-strong))' }}>
+          <div className="w-5 h-5 rounded-full flex items-center justify-center text-caption font-bold text-white flex-shrink-0" style={{ background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-strong))' }}>
             {a.assigneeName.slice(0, 2).toUpperCase()}
           </div>
-          <span className="text-[10.5px] text-[var(--text-secondary)] truncate font-medium">{a.assigneeName}</span>
+          <span className="text-caption text-[var(--text-secondary)] truncate font-medium">{a.assigneeName}</span>
         </div>
         {a.due_date && (
-          <span className={`inline-flex items-center gap-0.5 text-[10px] tabular-nums flex-shrink-0 font-semibold ${overdue ? 'text-[var(--accent-red)]' : 'text-[var(--text-tertiary)]'}`}>
+          <span className={`inline-flex items-center gap-0.5 text-caption tabular-nums flex-shrink-0 font-semibold ${overdue ? 'text-[var(--accent-red)]' : 'text-[var(--text-tertiary)]'}`}>
             <Calendar className="w-2.5 h-2.5" />
             {new Date(a.due_date).toLocaleDateString(i18n.language?.startsWith('zh') ? 'zh-CN' : undefined, { month: 'short', day: 'numeric' })}
           </span>
@@ -887,7 +887,7 @@ function TreeView({
     <div className="surface-paper p-4 relative overflow-hidden">
       {/* ambient top-right wash */}
       <div aria-hidden className="pointer-events-none absolute -top-20 -right-24 w-[360px] h-[360px] rounded-full"
-        style={{ background: 'radial-gradient(circle, rgba(27,107,123,0.06), transparent 60%)' }} />
+        style={{ background: 'radial-gradient(circle, rgba(4, 120, 87,0.06), transparent 60%)' }} />
       <div className="relative space-y-1">
         {rootIds.map((id, i) => (
           <TreeNode key={id} entityId={id} depth={0} byParent={byParent} byEntity={byEntity} entities={entities} onRemove={onRemove} index={i} />
@@ -900,12 +900,12 @@ function TreeView({
 /** Entity icon painted into a filled rounded square with tint matching the type. */
 function EntityGlyph({ type }: { type: string }) {
   const style = {
-    group:         { fg: '#1B6B7B', bg: 'rgba(27,107,123,0.12)',  label: 'GROUP' },
+    group:         { fg: '#047857', bg: 'rgba(4, 120, 87,0.12)',  label: 'GROUP' },
     business_unit: { fg: '#5E35B1', bg: 'rgba(94,53,177,0.12)',   label: 'BU' },
     subsidiary:    { fg: '#1565C0', bg: 'rgba(21,101,192,0.12)',  label: 'SUB' },
     plant:         { fg: '#2E7D32', bg: 'rgba(46,125,50,0.12)',   label: 'PLANT' },
     office:        { fg: '#E6A817', bg: 'rgba(230,168,23,0.12)',  label: 'OFFICE' },
-  }[type as string] ?? { fg: '#1B6B7B', bg: 'rgba(27,107,123,0.1)', label: '—' }
+  }[type as string] ?? { fg: '#047857', bg: 'rgba(4, 120, 87,0.1)', label: '—' }
 
   return (
     <div
@@ -1019,19 +1019,19 @@ function TreeNode({
               {entity.name}
             </span>
             <span
-              className="text-[9.5px] font-bold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded-[5px]"
+              className="text-micro font-bold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded-[5px]"
               style={{ background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' }}
             >
               {t(`assignments.entityType.${entity.type}`, { defaultValue: entity.type.replace('_', ' ') })}
             </span>
             {entity.country && (
-              <span className="text-[9.5px] font-medium uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+              <span className="text-micro font-medium uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
                 · {entity.country}
               </span>
             )}
           </div>
           {bucket.total > 0 && (
-            <div className="mt-1 flex items-center gap-2 text-[10.5px] text-[var(--text-tertiary)]">
+            <div className="mt-1 flex items-center gap-2 text-caption text-[var(--text-tertiary)]">
               {bucket.approved > 0 && <span className="text-[var(--status-ok)] font-semibold">{t('assignments.counts.approved', { count: bucket.approved })}</span>}
               {bucket.inReview > 0 && <span className="text-[var(--status-pending)] font-semibold">{t('assignments.counts.inReview', { count: bucket.inReview })}</span>}
               {bucket.open > 0     && <span className="text-[var(--status-draft)]  font-semibold">{t('assignments.counts.open', { count: bucket.open })}</span>}
@@ -1049,7 +1049,7 @@ function TreeNode({
           >
             {pct}%
           </span>
-          <span className="text-[10.5px] tabular-nums text-[var(--text-tertiary)] font-medium w-[62px] text-right">
+          <span className="text-caption tabular-nums text-[var(--text-tertiary)] font-medium w-[62px] text-right">
             {bucket.approved}<span className="text-[var(--text-quaternary)]">/{bucket.total}</span>
           </span>
         </div>
@@ -1129,12 +1129,12 @@ function TreeAssignmentRow({ a, depth, onRemove, index }: {
 
         {/* code + line-item */}
         <div className="min-w-0 flex-1 grid grid-cols-[auto_1fr] gap-x-2.5 items-center">
-          <span className="font-mono text-[10.5px] font-bold text-[var(--color-brand)] tracking-[0.02em]">{a.gri_code}</span>
+          <span className="font-mono text-caption font-bold text-[var(--color-brand)] tracking-[0.02em]">{a.gri_code}</span>
           <span className="text-[12.5px] text-[var(--text-primary)] truncate font-medium">{itemLabel(a, i18n.language)}</span>
         </div>
 
         {/* mode chip */}
-        <span className="hidden md:inline-flex items-center gap-1 px-1.5 h-5 rounded-[5px] bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-[10px] text-[var(--text-tertiary)] font-medium flex-shrink-0">
+        <span className="hidden md:inline-flex items-center gap-1 px-1.5 h-5 rounded-[5px] bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-caption text-[var(--text-tertiary)] font-medium flex-shrink-0">
           <ModeIcon className="w-2.5 h-2.5" />
           {t(`assignments.mode.${modes[0]}`, { defaultValue: modes[0] })}
         </span>
@@ -1142,17 +1142,17 @@ function TreeAssignmentRow({ a, depth, onRemove, index }: {
         {/* assignee */}
         <div className="inline-flex items-center gap-1.5 flex-shrink-0">
           <div
-            className="w-5 h-5 rounded-full flex items-center justify-center text-[8.5px] font-bold text-white"
+            className="w-5 h-5 rounded-full flex items-center justify-center text-caption font-bold text-white"
             style={{ background: avatarGrad, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), 0 1px 2px rgba(11,18,32,0.15)' }}
           >
             {a.assigneeName.slice(0, 2).toUpperCase()}
           </div>
-          <span className="text-[11px] text-[var(--text-secondary)] font-medium truncate max-w-[80px]">{a.assigneeName.split(' ')[0]}</span>
+          <span className="text-caption text-[var(--text-secondary)] font-medium truncate max-w-[80px]">{a.assigneeName.split(' ')[0]}</span>
         </div>
 
         {/* status pill */}
         <span
-          className="inline-flex items-center gap-1 h-5 px-1.5 rounded-[5px] text-[9.5px] font-bold uppercase tracking-[0.1em] flex-shrink-0"
+          className="inline-flex items-center gap-1 h-5 px-1.5 rounded-[5px] text-micro font-bold uppercase tracking-[0.06em] flex-shrink-0"
           style={{ background: status.bg, color: status.fg }}
         >
           {t(status.label)}
@@ -1286,20 +1286,20 @@ function NetworkView({
     )
   }
 
-  const BRAND = '#1B6B7B'
+  const BRAND = '#047857'
   const hovered = hoverId ? nodes.find(n => n.id === hoverId) : null
 
   return (
     <div className="surface-paper relative overflow-hidden" style={{ minHeight: 520 }}>
       {/* chrome */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-subtle)]">
-        <div className="flex items-center gap-2 text-[11px] text-[var(--text-tertiary)]">
+        <div className="flex items-center gap-2 text-caption text-[var(--text-tertiary)]">
           <NetworkIcon className="w-3.5 h-3.5" />
           <span className="font-mono uppercase tracking-[0.12em]">{t('assignments.view.network')}</span>
           <span className="text-[var(--text-quaternary)]">·</span>
           <span>{t('assignments.network.nodesLinks', { nodes: nodes.length, links: edges.length })}</span>
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-[var(--text-tertiary)]">
+        <div className="flex items-center gap-3 text-caption text-[var(--text-tertiary)]">
           <LegendItem label={t('assignments.entityType.group')} />
           <LegendItem label={t('assignments.network.bu')} />
           <LegendItem label={t('assignments.entityType.subsidiary')} />
@@ -1438,10 +1438,10 @@ function NetworkView({
           <div className="flex items-center gap-5 flex-wrap">
             <div>
               <div className="text-[13.5px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{hovered.name}</div>
-              <div className="text-[10.5px] text-[var(--text-tertiary)] uppercase tracking-[0.12em] mt-0.5 font-semibold">{t(`assignments.entityType.${hovered.type}`, { defaultValue: hovered.type.replace('_', ' ') })}</div>
+              <div className="text-micro text-[var(--text-tertiary)] uppercase tracking-[0.12em] mt-0.5 font-semibold">{t(`assignments.entityType.${hovered.type}`, { defaultValue: hovered.type.replace('_', ' ') })}</div>
             </div>
             <span className="h-8 w-px bg-[var(--border-subtle)]" />
-            <div className="flex items-center gap-4 text-[11.5px] font-semibold tabular-nums">
+            <div className="flex items-center gap-4 text-caption font-semibold tabular-nums">
               <span className="text-[var(--status-ok)]">{t('assignments.counts.approved', { count: hovered.approved })}</span>
               <span className="text-[var(--status-pending)]">{t('assignments.counts.review', { count: hovered.inReview })}</span>
               <span className="text-[var(--status-draft)]">{t('assignments.counts.open', { count: hovered.open })}</span>
@@ -1453,7 +1453,7 @@ function NetworkView({
             </div>
           </div>
         ) : (
-          <div className="text-[11.5px] text-[var(--text-tertiary)]">{t('assignments.network.hoverHint')}</div>
+          <div className="text-caption text-[var(--text-tertiary)]">{t('assignments.network.hoverHint')}</div>
         )}
       </div>
     </div>
@@ -1621,17 +1621,17 @@ function BulkAssignModal({
         className="bg-[var(--bg-primary)] rounded-[var(--radius-lg)] border border-[var(--border-default)] w-full max-w-lg p-5 shadow-xl max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
-        <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">{t('assignments.bulk.eyebrow')}</div>
+        <div className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">{t('assignments.bulk.eyebrow')}</div>
         <h3 className="font-display text-[20px] font-bold text-[var(--text-primary)]">{t('assignments.bulk.title')}</h3>
-        <p className="text-[var(--text-xs)] text-[var(--text-secondary)] mt-1 mb-4">
+        <p className="text-[length:var(--text-xs)] text-[var(--text-secondary)] mt-1 mb-4">
           {t('assignments.bulk.intro')}
         </p>
 
         {done ? (
           <div className="space-y-3">
             <div className="p-4 rounded-[var(--radius-md)] bg-[var(--accent-green-light)] border border-[var(--status-ok)]/30">
-              <div className="text-[var(--text-sm)] font-semibold text-[var(--status-ok)]">{t('assignments.bulk.done')}</div>
-              <div className="text-[var(--text-xs)] text-[var(--text-secondary)] mt-1">
+              <div className="text-[length:var(--text-sm)] font-semibold text-[var(--status-ok)]">{t('assignments.bulk.done')}</div>
+              <div className="text-[length:var(--text-xs)] text-[var(--text-secondary)] mt-1">
                 <Trans
                   i18nKey="assignments.bulk.result"
                   count={done.created}
@@ -1641,7 +1641,7 @@ function BulkAssignModal({
               </div>
             </div>
             <div className="flex justify-end">
-              <button onClick={() => void onDone()} className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold">
+              <button onClick={() => void onDone()} className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold">
                 {t('common.close')}
               </button>
             </div>
@@ -1650,11 +1650,11 @@ function BulkAssignModal({
           <>
             <div className="space-y-3">
               <label className="block">
-                <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('assignments.bulk.entity')}</span>
+                <span className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('assignments.bulk.entity')}</span>
                 <select
                   value={entityId}
                   onChange={e => setEntityId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                  className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
                 >
                   <option value="">{t('assignments.bulk.orgRoot')}</option>
                   {entities.map(e => (
@@ -1664,11 +1664,11 @@ function BulkAssignModal({
               </label>
 
               <label className="block">
-                <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('assignments.bulk.assignee')}</span>
+                <span className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('assignments.bulk.assignee')}</span>
                 <select
                   value={assigneeMemberId}
                   onChange={e => setAssigneeMemberId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                  className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
                 >
                   <option value="">{t('assignments.bulk.pickPerson')}</option>
                   {members.map(m => (
@@ -1678,17 +1678,17 @@ function BulkAssignModal({
               </label>
 
               <label className="block">
-                <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('assignments.bulk.dueDate')}</span>
+                <span className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('assignments.bulk.dueDate')}</span>
                 <input
                   type="date"
                   value={dueDate}
                   onChange={e => setDueDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                  className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
                 />
               </label>
 
               <div>
-                <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">
+                <span className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">
                   {t('assignments.bulk.sections', { count: questions.length })}
                 </span>
                 <div className="flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto p-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)]">
@@ -1701,59 +1701,59 @@ function BulkAssignModal({
                         onClick={() => toggleSection(s)}
                         className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${
                           on
-                            ? 'bg-[var(--color-brand)] text-white border-[var(--color-brand)]'
+                            ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] border-[var(--color-brand)]'
                             : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-default)]'
                         }`}
                       >{t(capitalLabelKey(s), { defaultValue: s })}</button>
                     )
                   })}
                   {allSections.length === 0 && (
-                    <span className="text-[10px] text-[var(--text-tertiary)]">{t('assignments.bulk.noSections')}</span>
+                    <span className="text-caption text-[var(--text-tertiary)]">{t('assignments.bulk.noSections')}</span>
                   )}
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
-                  <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('assignments.bulk.reviewer')}</span>
+                  <span className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('assignments.bulk.reviewer')}</span>
                   <input
                     type="email"
                     value={reviewerEmail}
                     onChange={e => setReviewerEmail(e.target.value)}
-                    className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                    className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
                     placeholder="reviewer@example.com"
                   />
                 </label>
                 <label className="block">
-                  <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('assignments.bulk.approver')}</span>
+                  <span className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('assignments.bulk.approver')}</span>
                   <input
                     type="email"
                     value={approverEmail}
                     onChange={e => setApproverEmail(e.target.value)}
-                    className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                    className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
                     placeholder="approver@example.com"
                   />
                 </label>
               </div>
             </div>
 
-            <div className={`mt-3 p-2 rounded-[var(--radius-md)] text-[var(--text-xs)] ${tooMany ? 'bg-red-500/10 text-red-400 border border-red-500/30' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border-subtle)]'}`}>
+            <div className={`mt-3 p-2 rounded-[var(--radius-md)] text-[length:var(--text-xs)] ${tooMany ? 'bg-red-500/10 text-red-400 border border-red-500/30' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border-subtle)]'}`}>
               <Trans i18nKey="assignments.bulk.matched" count={matchedCount} values={{ count: matchedCount }} components={{ b: <strong /> }} />
               {tooMany && t('assignments.bulk.capHint')}
             </div>
 
             {err && (
-              <div className="mt-3 p-2 rounded-[var(--radius-md)] bg-red-500/10 border border-red-500/30 text-red-400 text-[var(--text-xs)]">{err}</div>
+              <div className="mt-3 p-2 rounded-[var(--radius-md)] bg-red-500/10 border border-red-500/30 text-red-400 text-[length:var(--text-xs)]">{err}</div>
             )}
 
             <div className="mt-5 flex items-center justify-end gap-2">
-              <button onClick={onClose} className="px-3 py-2 rounded-[var(--radius-md)] text-[var(--text-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">
+              <button onClick={onClose} className="px-3 py-2 rounded-[var(--radius-md)] text-[length:var(--text-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">
                 {t('common.cancel')}
               </button>
               <button
                 onClick={submit}
                 disabled={submitting || !assigneeMemberId || tooMany}
-                className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold disabled:opacity-50 inline-flex items-center gap-1.5"
+                className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold disabled:opacity-50 inline-flex items-center gap-1.5"
               >
                 {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
                 {t('assignments.bulk.assign')}

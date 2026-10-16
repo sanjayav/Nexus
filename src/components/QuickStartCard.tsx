@@ -24,7 +24,7 @@ const STEPS: Step[] = [
     icon: Upload,
     cta: 'Open Performance data',
     route: '/reports/performance',
-    accent: '#1B6B7B',
+    accent: '#047857',
   },
   {
     num: 2,
@@ -33,7 +33,7 @@ const STEPS: Step[] = [
     icon: CheckSquare,
     cta: 'Open review queue',
     route: '/workflow/review',
-    accent: '#3B8A9B',
+    accent: '#059669',
   },
   {
     num: 3,
@@ -70,7 +70,7 @@ export default function QuickStartCard() {
       <div
         aria-hidden
         className="absolute -top-20 -right-20 w-[280px] h-[280px] rounded-full pointer-events-none opacity-50"
-        style={{ background: 'radial-gradient(circle, rgba(27,107,123,0.10), transparent 70%)' }}
+        style={{ background: 'radial-gradient(circle, rgba(4, 120, 87,0.10), transparent 70%)' }}
       />
 
       <button
@@ -114,7 +114,7 @@ export default function QuickStartCard() {
                   <step.icon className="w-5 h-5" />
                 </div>
                 <span
-                  className="w-6 h-6 rounded-full text-[11px] font-bold flex items-center justify-center"
+                  className="w-6 h-6 rounded-full text-caption font-bold flex items-center justify-center"
                   style={{ background: step.accent, color: 'white' }}
                 >
                   {step.num}

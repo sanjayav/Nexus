@@ -131,7 +131,7 @@ export default function NotificationsBell() {
         {unread > 0 && (
           <motion.span
             initial={{ scale: 0 }} animate={{ scale: 1 }} transition={SPRING}
-            className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-[var(--accent-red)] text-white text-[9px] font-bold rounded-full flex items-center justify-center ring-2 ring-[var(--bg-primary)] tabular-nums"
+            className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-[var(--accent-red)] text-white text-micro font-bold rounded-full flex items-center justify-center ring-2 ring-[var(--bg-primary)] tabular-nums"
           >
             {unread > 99 ? '99+' : unread}
           </motion.span>
@@ -153,23 +153,23 @@ export default function NotificationsBell() {
           >
             <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] flex items-center justify-between">
               <div>
-                <h3 id="notifications-heading" className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('components.notifications.title')}</h3>
-                <p className="text-[10px] text-[var(--text-tertiary)]">{t('components.notifications.unread', { count: unread })}</p>
+                <h3 id="notifications-heading" className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('components.notifications.title')}</h3>
+                <p className="text-caption text-[var(--text-tertiary)]">{t('components.notifications.unread', { count: unread })}</p>
               </div>
               {unread > 0 && (
-                <button onClick={markAll} className="text-[10px] font-semibold text-[var(--color-brand)] hover:underline inline-flex items-center gap-1">
+                <button onClick={markAll} className="text-caption font-semibold text-[var(--color-brand)] hover:underline inline-flex items-center gap-1">
                   <CheckCheck className="w-3 h-3" /> {t('components.notifications.markAllRead')}
                 </button>
               )}
             </div>
 
             {loading ? (
-              <div className="py-8 text-center text-[var(--text-xs)] text-[var(--text-tertiary)]">{t('common.loading')}</div>
+              <div className="py-8 text-center text-[length:var(--text-xs)] text-[var(--text-tertiary)]">{t('common.loading')}</div>
             ) : notes.length === 0 ? (
               <div className="py-10 text-center">
                 <Inbox className="w-8 h-8 mx-auto text-[var(--text-tertiary)] mb-1" />
-                <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('components.notifications.emptyTitle')}</div>
-                <div className="text-[10px] text-[var(--text-tertiary)] mt-0.5">{t('components.notifications.emptyBody')}</div>
+                <div className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('components.notifications.emptyTitle')}</div>
+                <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('components.notifications.emptyBody')}</div>
               </div>
             ) : (
               <>
@@ -184,17 +184,17 @@ export default function NotificationsBell() {
                       >
                         <div className="flex items-center gap-2 mb-1">
                           <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${!n.read_at ? 'bg-[var(--color-brand)]' : 'bg-transparent'}`} />
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand)]">{notificationKindLabel(n.kind)}</span>
-                          <span className="ml-auto text-[9px] text-[var(--text-tertiary)]">{relativeTime(n.created_at)}</span>
+                          <span className="text-micro font-bold uppercase tracking-[0.06em] text-[var(--color-brand)]">{notificationKindLabel(n.kind)}</span>
+                          <span className="ml-auto text-caption text-[var(--text-tertiary)]">{relativeTime(n.created_at)}</span>
                           {!n.read_at && (
                             <button
                               onClick={(e) => markOne(n.id, e)}
-                              className="text-[9px] font-semibold text-[var(--color-brand)] hover:underline"
+                              className="text-caption font-semibold text-[var(--color-brand)] hover:underline"
                             >{t('components.notifications.markRead')}</button>
                           )}
                         </div>
-                        <div className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)]">{n.subject}</div>
-                        {n.body && <div className="text-[10px] text-[var(--text-tertiary)] mt-0.5 line-clamp-2">{n.body}</div>}
+                        <div className="text-[length:var(--text-xs)] font-semibold text-[var(--text-primary)]">{n.subject}</div>
+                        {n.body && <div className="text-caption text-[var(--text-tertiary)] mt-0.5 line-clamp-2">{n.body}</div>}
                       </button>
                     </li>
                   ))}
@@ -202,7 +202,7 @@ export default function NotificationsBell() {
                 <div className="px-4 py-2 border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)]/30 text-center">
                   <button
                     onClick={() => { setOpen(false); navigate('/inbox') }}
-                    className="text-[10px] font-semibold text-[var(--color-brand)] hover:underline"
+                    className="text-caption font-semibold text-[var(--color-brand)] hover:underline"
                   >{t('components.notifications.viewAll')}</button>
                 </div>
               </>

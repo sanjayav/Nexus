@@ -140,7 +140,7 @@ export default function ScimTokens() {
         </div>
         <div className="flex flex-wrap gap-3 items-end">
           <div className="min-w-[200px]">
-            <label className="block text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('scim.generate.defaultRole')}</label>
+            <label className="block text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] mb-1">{t('scim.generate.defaultRole')}</label>
             <select
               value={defaultRole}
               onChange={e => setDefaultRole(e.target.value)}
@@ -174,17 +174,17 @@ export default function ScimTokens() {
         {showSetup && (
           <div className="mt-4 space-y-3 text-[12.5px] text-[var(--text-secondary)]">
             <div>
-              <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('scim.setup.baseUrl')}</div>
+              <div className="text-micro uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('scim.setup.baseUrl')}</div>
               <code className="block px-3 py-2 rounded-md bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[12px] font-mono text-[var(--text-primary)]">
                 {scimBaseUrl}
               </code>
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('scim.setup.authentication')}</div>
+              <div className="text-micro uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('scim.setup.authentication')}</div>
               <div>{t('scim.setup.authBody')}</div>
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('scim.setup.endpoints')}</div>
+              <div className="text-micro uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('scim.setup.endpoints')}</div>
               <ul className="list-disc pl-5 space-y-0.5">
                 <li><code className="font-mono">GET /ServiceProviderConfig</code> · <code className="font-mono">GET /ResourceTypes</code> · <code className="font-mono">GET /Schemas</code></li>
                 <li><code className="font-mono">GET, POST /Users</code> {t('scim.setup.filterBy')} <code className="font-mono">userName eq</code> / <code className="font-mono">externalId eq</code>{t('scim.setup.filterClose')}</li>
@@ -192,11 +192,11 @@ export default function ScimTokens() {
               </ul>
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('scim.setup.azureTitle')}</div>
+              <div className="text-micro uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('scim.setup.azureTitle')}</div>
               <div>{t('scim.setup.azureBody')}</div>
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('scim.setup.oktaTitle')}</div>
+              <div className="text-micro uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('scim.setup.oktaTitle')}</div>
               <div>{t('scim.setup.oktaBody')}</div>
             </div>
           </div>
@@ -223,7 +223,7 @@ export default function ScimTokens() {
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] border-b border-[var(--border-default)]">
+                <tr className="text-left text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] border-b border-[var(--border-default)]">
                   <th className="py-2 pr-3">{t('scim.table.prefix')}</th>
                   <th className="py-2 pr-3">{t('scim.table.defaultRole')}</th>
                   <th className="py-2 pr-3">{t('scim.table.status')}</th>

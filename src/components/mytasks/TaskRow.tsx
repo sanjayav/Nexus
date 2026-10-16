@@ -91,19 +91,19 @@ const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(function TaskRow({
           <div className="flex items-center gap-2 mb-0.5 flex-wrap">
             {fw && (
               <span
-                className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                className="text-micro font-bold uppercase tracking-[0.06em] px-1.5 py-0.5 rounded"
                 style={{ background: `${fw.color}22`, color: fw.color }}
               >
                 {fw.code}
               </span>
             )}
-            <span className="text-[10px] font-bold text-[var(--color-brand)] tabular-nums">{a.gri_code}</span>
+            <span className="text-caption font-bold text-[var(--color-brand)] tabular-nums">{a.gri_code}</span>
             {question?.section && (
-              <span className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">· {t(capitalLabelKey(question.section), { defaultValue: question.section })}</span>
+              <span className="text-micro text-[var(--text-tertiary)] uppercase tracking-[0.06em]">· {t(capitalLabelKey(question.section), { defaultValue: question.section })}</span>
             )}
           </div>
-          <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{itemLabel(a, i18n.language)}</div>
-          <div className="flex items-center gap-3 mt-1 text-[10px] text-[var(--text-tertiary)] flex-wrap">
+          <div className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{itemLabel(a, i18n.language)}</div>
+          <div className="flex items-center gap-3 mt-1 text-caption text-[var(--text-tertiary)] flex-wrap">
             <span className="inline-flex items-center gap-1"><Factory className="w-3 h-3" /> {entity?.name ?? t('tasks.row.unknownEntity')}</span>
             <span className="inline-flex items-center gap-1">
               {modes.map((m, i) => {

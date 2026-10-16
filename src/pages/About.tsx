@@ -66,7 +66,7 @@ export default function About() {
               }}
             >
               <p
-                className="text-[11px] font-semibold uppercase tracking-[0.15em] mb-4"
+                className="text-micro font-semibold uppercase tracking-[0.06em] mb-4"
                 style={{ color: 'var(--text-tertiary)' }}
               >
                 {t('about.mission.eyebrow')}

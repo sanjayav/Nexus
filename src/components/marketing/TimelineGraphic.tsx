@@ -112,7 +112,7 @@ export default function TimelineGraphic() {
                   <m.Icon className="w-6 h-6" />
                 </div>
                 <p
-                  className="mt-5 text-[11px] font-semibold uppercase tracking-[0.18em]"
+                  className="mt-5 text-micro font-semibold uppercase tracking-[0.06em]"
                   style={{ color: 'var(--accent-600)' }}
                 >
                   {t(`marketing.timeline.${m.id}.when`)}
@@ -170,7 +170,7 @@ export default function TimelineGraphic() {
 
               <div className="pb-8 pt-1">
                 <p
-                  className="text-[10px] font-semibold uppercase tracking-[0.18em]"
+                  className="text-micro font-semibold uppercase tracking-[0.06em]"
                   style={{ color: 'var(--accent-600)' }}
                 >
                   {t(`marketing.timeline.${m.id}.when`)}

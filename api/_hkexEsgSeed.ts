@@ -39,6 +39,33 @@ export interface ItemSpec {
 }
 
 const SECTION = 'HKEX ESG Reporting Code (Appendix C2)'
+const SECTION_ZH = '环境、社会及管治守则（附录 C2）'
+/**
+ * Simplified Chinese subsection headings, written to questionnaire_item.subsection_zh
+ * (section_zh gets SECTION_ZH). Reports and the questionnaire tree show these when
+ * the language is zh; NULL falls back to the English heading.
+ */
+export const HKEX_ESG_SUBSECTION_ZH: Record<string, string> = {
+  'Mandatory — Governance structure': '强制披露——管治架构',
+  'Mandatory — Reporting principles': '强制披露——汇报原则',
+  'Mandatory — Reporting boundary': '强制披露——汇报范围',
+  'Climate — Governance': '气候——管治',
+  'Climate — Strategy': '气候——策略',
+  'Climate — Risk management': '气候——风险管理',
+  'Climate — Metrics and targets': '气候——指标及目标',
+  'Climate — GHG emissions': '气候——温室气体排放',
+  'A1 Emissions': 'A1 排放物',
+  'A2 Use of resources': 'A2 资源使用',
+  'A3 The environment and natural resources': 'A3 环境及天然资源',
+  'B1 Employment': 'B1 雇佣',
+  'B2 Health and safety': 'B2 健康与安全',
+  'B3 Development and training': 'B3 发展及培训',
+  'B4 Labour standards': 'B4 劳工准则',
+  'B5 Supply chain management': 'B5 供应链管理',
+  'B6 Product responsibility': 'B6 产品责任',
+  'B7 Anti-corruption': 'B7 反贪污',
+  'B8 Community investment': 'B8 社区投资',
+}
 const FRAMEWORK_ID = 'hkex-esg'
 const REPORTING_SCOPE: ReportingScope = 'group'
 
@@ -157,11 +184,15 @@ import type { Sql } from './_db'
 export async function seedHKEXESG(sql: Sql): Promise<void> {
   await sql`ALTER TABLE questionnaire_item ADD COLUMN IF NOT EXISTS framework_id TEXT`
   await sql`ALTER TABLE questionnaire_item ADD COLUMN IF NOT EXISTS line_item_zh TEXT`
+  await sql`ALTER TABLE questionnaire_item ADD COLUMN IF NOT EXISTS section_zh TEXT`
+  await sql`ALTER TABLE questionnaire_item ADD COLUMN IF NOT EXISTS subsection_zh TEXT`
   // One HTTP round trip, one transaction: either the whole catalogue lands or none of it.
   await sql.transaction(txn => HKEX_ESG_ITEMS.map(it => txn`
       WITH upd AS (
         UPDATE questionnaire_item
-           SET line_item_zh = ${it.lineItemZh}::text
+           SET line_item_zh = ${it.lineItemZh}::text,
+               section_zh = ${SECTION_ZH}::text,
+               subsection_zh = ${HKEX_ESG_SUBSECTION_ZH[it.subsection] ?? null}::text
          WHERE gri_code = ${it.griCode}::text
            AND line_item = ${it.lineItem}::text
            AND scope_split IS NOT DISTINCT FROM ${it.scopeSplit}::text
@@ -169,17 +200,20 @@ export async function seedHKEXESG(sql: Sql): Promise<void> {
         RETURNING id
       )
       INSERT INTO questionnaire_item
-        (framework_id, section, subsection, gri_code, line_item, line_item_zh, unit, scope_split,
+        (framework_id, section, section_zh, subsection, subsection_zh, gri_code, line_item, line_item_zh, unit, scope_split,
          has_target, requires_coverage, default_workflow_role, entry_mode_default,
          footnote_refs, reporting_scope)
       SELECT
-        ${FRAMEWORK_ID}::text, ${SECTION}::text, ${it.subsection}::text, ${it.griCode}::text,
+        ${FRAMEWORK_ID}::text, ${SECTION}::text, ${SECTION_ZH}::text, ${it.subsection}::text,
+        ${HKEX_ESG_SUBSECTION_ZH[it.subsection] ?? null}::text, ${it.griCode}::text,
         ${it.lineItem}::text, ${it.lineItemZh}::text, ${it.unit}::text, ${it.scopeSplit}::text,
         ${it.hasTarget}::boolean, ${it.requiresCoverage}::boolean,
         ${it.defaultRole}::text, ${it.entryMode}::text, '[]'::jsonb, ${REPORTING_SCOPE}::text
       WHERE NOT EXISTS (SELECT 1 FROM upd)
       ON CONFLICT (gri_code, line_item, scope_split, reporting_scope)
-        DO UPDATE SET line_item_zh = EXCLUDED.line_item_zh
+        DO UPDATE SET line_item_zh = EXCLUDED.line_item_zh,
+                      section_zh = EXCLUDED.section_zh,
+                      subsection_zh = EXCLUDED.subsection_zh
     `))
   // Intentionally no per-org enablement here: orgs opt in via Settings.
 }

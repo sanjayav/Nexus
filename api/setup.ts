@@ -25,6 +25,10 @@ import { seedCNCSDS } from './_cnCsdsSeed.js'
 import { seedHKEXESG } from './_hkexEsgSeed.js'
 import { seedCASSESG } from './_cassEsgSeed.js'
 import { seedCnEmissionFactors } from './_efCnFactors.js'
+import { ensureReportSchema } from './_reportSchema.js'
+import { ensureTenancySchema } from './_tenancySchema.js'
+import { ensureCnSchema } from './_cnSchema.js'
+import { ensurePeriodYearSchema } from './_periodYearSchema.js'
 import { seedConnectorTemplates } from './_connectorSeed.js'
 import { seedConceptMappings } from './_conceptSeed.js'
 
@@ -1382,6 +1386,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Direct XBRL concept assignment (overrides the heuristic
     // inferConceptId mapping in api/_ixbrlTaxonomy.ts when set).
     await sql`ALTER TABLE data_value ADD COLUMN IF NOT EXISTS xbrl_concept_id TEXT`
+    // Tenant ownership on data_value (additive, nullable; no backfill here).
+    await ensureTenancySchema(sql)
 
     await seedConceptMappings(sql)
 
@@ -1611,6 +1617,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       UNIQUE(org_id, framework_id, year)
     )`
     await sql`CREATE INDEX IF NOT EXISTS idx_reporting_periods_org ON reporting_periods(org_id, framework_id, year)`
+    // Link each period to its org's own reporting_year (additive).
+    await ensurePeriodYearSchema(sql)
 
     // ── org_targets — sustainability targets per org ──
     await sql`CREATE TABLE IF NOT EXISTS org_targets (
@@ -1681,6 +1689,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await sql`CREATE INDEX IF NOT EXISTS idx_report_artifacts_org ON report_artifacts(org_id, framework_id, version DESC)`
     await sql`CREATE INDEX IF NOT EXISTS idx_report_artifacts_period ON report_artifacts(period_id)`
     await sql`CREATE INDEX IF NOT EXISTS idx_report_artifacts_token ON report_artifacts(verification_token)`
+    // Report locale + Chinese questionnaire/org text (additive, nullable).
+    await ensureReportSchema(sql)
 
     // ── report_share_links — public read-only share URLs for published reports ──
     await sql`CREATE TABLE IF NOT EXISTS report_share_links (
@@ -1770,6 +1780,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     )`
     await sql`CREATE INDEX IF NOT EXISTS idx_chain_anchors_org ON chain_anchors(org_id, anchored_at DESC)`
     await sql`CREATE INDEX IF NOT EXISTS idx_chain_anchors_tip ON chain_anchors(org_id, tip_hash)`
+
+    // China market: org settings, per-org IM webhooks, locale columns, green
+    // certificate / carbon credit ledgers. Additive only; inserts no rows.
+    await ensureCnSchema(sql)
 
     return res.status(200).json({ ok: true, message: 'Database setup complete — tables created and seeded' })
   } catch (err: unknown) {

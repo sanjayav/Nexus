@@ -259,7 +259,7 @@ export default function IXBRLPreview() {
             <tbody>
               {(result?.coverage ?? []).map(c => (
                 <tr key={c.conceptId + (c.valueId ?? '')} className="border-t border-[var(--border-subtle)]">
-                  <td className="px-3 py-2 font-mono text-[11px] text-[var(--text-tertiary)]">{c.conceptId}</td>
+                  <td className="px-3 py-2 font-mono text-caption text-[var(--text-tertiary)]">{c.conceptId}</td>
                   <td className="px-3 py-2 text-[var(--text-secondary)]">{c.label}</td>
                   <td className="px-3 py-2 text-[var(--text-tertiary)]">{c.framework}</td>
                   <td className="px-3 py-2 text-[var(--text-tertiary)]">{c.griCode ?? '—'}</td>
@@ -324,7 +324,7 @@ export default function IXBRLPreview() {
                 </div>
               )}
 
-              <p className="text-[11px] text-[var(--text-tertiary)] pt-2 border-t border-[var(--border-subtle)]">
+              <p className="text-caption text-[var(--text-tertiary)] pt-2 border-t border-[var(--border-subtle)]">
                 {t('ixbrl.validation.footnote')}
               </p>
             </div>

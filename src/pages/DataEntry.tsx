@@ -6,7 +6,7 @@ import { itemLabel } from '../lib/itemLabel'
 import { localizeCalc, localizeUnit } from '../calculators/labels'
 import {
   ArrowLeft, Loader2, AlertCircle, CheckCircle2, Upload, Plug, Calculator as CalcIcon,
-  PencilLine, Send, Hash, FileText, X,
+  PencilLine, Send, Hash, FileText, X, CalendarClock,
 } from 'lucide-react'
 import {
   ai,
@@ -24,9 +24,8 @@ import { HistoricalReferencePanel } from '../components/HistoricalReferencePanel
 import { LinkedDataPanel } from '../components/LinkedDataPanel'
 import AiExtractionPanel from '../components/AiExtractionPanel'
 import { orgStore } from '../lib/orgStore'
-
-const ACTIVE_REPORTING_YEAR_ID = '11000000-0000-0000-0000-000000000026'
-const ACTIVE_YEAR = 2026
+import EmptyState from '../components/EmptyState'
+import { useActiveReportingYear } from '../lib/activeReportingYear'
 
 type EntryMode = 'Manual' | 'Calculator' | 'Connector'
 
@@ -50,6 +49,10 @@ export default function DataEntry() {
   const { t, i18n } = useTranslation()
 
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
+  // The org's own open reporting year — every value is written into it.
+  const activeYear = useActiveReportingYear()
+  const reportingYearId = activeYear.kind === 'ready' ? activeYear.year.id : null
+  const reportingYear = activeYear.kind === 'ready' ? activeYear.year.year : new Date().getFullYear()
   const [mode, setMode] = useState<EntryMode>('Manual')
   const [value, setValue] = useState<string>('')
   const [comment, setComment] = useState<string>('')
@@ -178,12 +181,12 @@ export default function DataEntry() {
   }, [mode, calcResult, value])
 
   const handleSaveDraft = async () => {
-    if (state.kind !== 'ready' || effectiveValue == null) return
+    if (state.kind !== 'ready' || effectiveValue == null || !reportingYearId) return
     setStatus('saving'); setErrMsg(null)
     try {
       const res = await nexus.enterValue({
         question_id: state.item.id,
-        reporting_year_id: ACTIVE_REPORTING_YEAR_ID,
+        reporting_year_id: reportingYearId,
         scope_key: state.item.scope_split,
         value: effectiveValue,
         unit: state.item.unit ?? undefined,
@@ -200,12 +203,12 @@ export default function DataEntry() {
   }
 
   const handleConnectorPull = async () => {
-    if (state.kind !== 'ready') return
+    if (state.kind !== 'ready' || !reportingYearId) return
     setStatus('saving'); setErrMsg(null)
     try {
       const res = await nexus.connectorPull({
         question_id: state.item.id,
-        reporting_year_id: ACTIVE_REPORTING_YEAR_ID,
+        reporting_year_id: reportingYearId,
         connector: pickConnector(state.item),
       })
       setDataValueId(res.id)
@@ -263,12 +266,22 @@ export default function DataEntry() {
     }
   }
 
-  if (state.kind === 'loading') return <Center><Loader2 className="w-6 h-6 animate-spin text-[var(--color-brand)]" /></Center>
+  if (state.kind === 'loading' || activeYear.kind === 'loading') return <Center><Loader2 className="w-6 h-6 animate-spin text-[var(--color-brand)]" /></Center>
   if (state.kind === 'empty') return <SetupGuard onReady={load} />
+  if (activeYear.kind === 'none') return (
+    <EmptyState
+      icon={CalendarClock}
+      title={t('reportingYear.none.title')}
+      body={t('reportingYear.none.body')}
+      cta={{ label: t('reportingYear.none.cta'), onClick: () => navigate('/admin/periods') }}
+      secondaryCta={{ label: t('reportingYear.none.retry'), onClick: activeYear.reload }}
+    />
+  )
+  if (activeYear.kind === 'error') return <ErrorPane error={activeYear.error} onRetry={activeYear.reload} />
   if (state.kind === 'notfound') return (
     <div className="max-w-lg mx-auto mt-20 p-6 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)]">
       <h2 className="font-semibold text-[var(--text-primary)] mb-1">{t('dataEntry.entry.notFound')}</h2>
-      <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mb-4">{t('dataEntry.entry.notFoundBody')}</p>
+      <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] mb-4">{t('dataEntry.entry.notFoundBody')}</p>
       <Button variant="primary" size="sm" onClick={() => navigate('/data/entry')}>{t('dataEntry.entry.backToPicker')}</Button>
     </div>
   )
@@ -308,7 +321,7 @@ export default function DataEntry() {
             <div className="flex items-center gap-2 flex-wrap mt-5">
               {item.unit && <span className="chip"><span className="text-[var(--text-quaternary)]">{t('dataEntry.entry.unit')}</span><strong className="text-[var(--text-primary)]">{localizeUnit(t, item.unit)}</strong></span>}
               {item.scope_split && <span className="chip"><span className="text-[var(--text-quaternary)]">{t('dataEntry.entry.scope')}</span><strong className="text-[var(--text-primary)]">{t(`dataEntry.scope.${item.scope_split}`, { defaultValue: item.scope_split })}</strong></span>}
-              {item.target_fy2026 != null && <span className="chip chip-active"><span>{t('dataEntry.entry.target', { year: ACTIVE_YEAR })}</span><strong>{item.target_fy2026}</strong></span>}
+              {item.target_fy2026 != null && <span className="chip chip-active"><span>{t('dataEntry.entry.target', { year: 2026 /* target_fy2026 is an FY2026 target */ })}</span><strong>{item.target_fy2026}</strong></span>}
               <span className="chip"><span className="text-[var(--text-quaternary)]">{t('dataEntry.entry.reporting')}</span><strong className="text-[var(--text-primary)]">{item.reporting_scope === 'jv' ? t('dataEntry.entry.jvParallel') : t('dataEntry.entry.group')}</strong></span>
             </div>
           </div>
@@ -363,7 +376,7 @@ export default function DataEntry() {
                           disabled={status === 'saving' || status === 'submitting' || status === 'submitted'}
                           className={`inline-flex items-center gap-1.5 px-3 h-8 rounded-[7px] text-[12px] font-semibold transition-all ${
                             active
-                              ? 'bg-[var(--accent-teal-subtle)] text-[var(--color-brand-strong)] shadow-[inset_0_0_0_1px_rgba(27,107,123,0.2)]'
+                              ? 'bg-[var(--accent-teal-subtle)] text-[var(--color-brand-strong)] shadow-[inset_0_0_0_1px_rgba(4, 120, 87,0.2)]'
                               : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'
                           } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
@@ -378,8 +391,8 @@ export default function DataEntry() {
               {/* Value block per mode */}
               {mode === 'Manual' && (
                 <label className="block">
-                  <span className="block text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-2">
-                    {t('dataEntry.entry.valueFor', { year: ACTIVE_YEAR })}
+                  <span className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-2">
+                    {t('dataEntry.entry.valueFor', { year: reportingYear })}
                   </span>
                   <div className="flex gap-2">
                     <input
@@ -402,7 +415,7 @@ export default function DataEntry() {
 
               {mode === 'Calculator' && calculator && (
                 <div className="space-y-4">
-                  <div className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">
+                  <div className="text-caption text-[var(--text-tertiary)] leading-relaxed">
                     {t('dataEntry.entry.calcIntro', { description: calculator.description })}
                   </div>
                   <div className={`grid gap-3 ${calculator.inputs.length >= 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
@@ -416,7 +429,7 @@ export default function DataEntry() {
                     ))}
                   </div>
                   {calculator.footnotes && calculator.footnotes.length > 0 && (
-                    <div className="text-[10.5px] text-[var(--text-tertiary)] leading-relaxed italic">
+                    <div className="text-caption text-[var(--text-tertiary)] leading-relaxed italic">
                       {t('calculators.page.methodology', { notes: calculator.footnotes.join(t('calculators.page.listSeparator')) })}
                     </div>
                   )}
@@ -432,7 +445,7 @@ export default function DataEntry() {
                       </span>
                       <div className="flex-1 min-w-0">
                         <div className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{pickConnector(item)}</div>
-                        <div className="text-[11px] text-[var(--text-tertiary)]">{t('dataEntry.entry.connectorHint')}</div>
+                        <div className="text-caption text-[var(--text-tertiary)]">{t('dataEntry.entry.connectorHint')}</div>
                       </div>
                       {!receiptHash && (
                         <Button
@@ -452,7 +465,7 @@ export default function DataEntry() {
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           {t('dataEntry.entry.pulled')} <span className="font-mono tabular-nums">{value}</span> {localizeUnit(t, item.unit)}
                         </div>
-                        <div className="text-[10.5px] text-[var(--text-tertiary)] font-mono mt-1">{t('dataEntry.entry.receipt', { hash: truncateHash(receiptHash, 10, 8) })}</div>
+                        <div className="text-caption text-[var(--text-tertiary)] font-mono mt-1">{t('dataEntry.entry.receipt', { hash: truncateHash(receiptHash, 10, 8) })}</div>
                       </div>
                     )}
                   </div>
@@ -484,7 +497,7 @@ export default function DataEntry() {
               {/* Comment */}
               <div className="mt-4">
                 <label className="block">
-                  <span className="block text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-1.5">
+                  <span className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">
                     {t('dataEntry.entry.commentLabel')}
                   </span>
                   <textarea
@@ -552,7 +565,7 @@ export default function DataEntry() {
           <HistoricalReferencePanel
             questionnaire_item_id={item.id}
             currentValue={effectiveValue}
-            currentYear={ACTIVE_YEAR}
+            currentYear={reportingYear}
           />
         </aside>
       </div>
@@ -566,7 +579,7 @@ function CalcField({ input, value, onChange }: { input: import('../calculators/r
   const { t } = useTranslation()
   return (
     <label className="block">
-      <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">
+      <span className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1">
         {input.label}
         {input.unit && <span className="ml-1 text-[var(--text-tertiary)]/70 normal-case tracking-normal">({localizeUnit(t, input.unit)})</span>}
       </span>
@@ -574,7 +587,7 @@ function CalcField({ input, value, onChange }: { input: import('../calculators/r
         <select
           value={value}
           onChange={e => onChange(e.target.value)}
-          className="w-full px-2.5 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none"
+          className="w-full px-2.5 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none"
         >
           <option value="">{t('dataEntry.entry.select')}</option>
           {input.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -586,13 +599,13 @@ function CalcField({ input, value, onChange }: { input: import('../calculators/r
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={input.placeholder}
-          className="w-full px-2.5 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)] tabular-nums focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none"
+          className="w-full px-2.5 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)] tabular-nums focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none"
         />
       )}
-      {input.hint && <span className="block text-[10px] text-[var(--text-tertiary)] mt-1">{input.hint}</span>}
+      {input.hint && <span className="block text-caption text-[var(--text-tertiary)] mt-1">{input.hint}</span>}
       {input.options && value && (() => {
         const opt = input.options!.find(o => o.value === value)
-        return opt?.note ? <span className="block text-[10px] text-[var(--color-brand)] mt-1 font-mono">{opt.note}</span> : null
+        return opt?.note ? <span className="block text-caption text-[var(--color-brand)] mt-1 font-mono">{opt.note}</span> : null
       })()}
     </label>
   )
@@ -660,7 +673,7 @@ function EvidenceZone({
           accept=".pdf,.xlsx,.xls,.csv,.png,.jpg,.jpeg,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,image/png,image/jpeg"
           disabled={!canUpload}
         />
-        <div className={`text-[var(--text-xs)] font-semibold ${empty && canUpload ? 'text-[var(--status-reject)]' : 'text-[var(--text-secondary)]'}`}>
+        <div className={`text-[length:var(--text-xs)] font-semibold ${empty && canUpload ? 'text-[var(--status-reject)]' : 'text-[var(--text-secondary)]'}`}>
           {uploading ? (
             <><Loader2 className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5 animate-spin" /> {t('dataEntry.evidence.uploading')}</>
           ) : empty ? (
@@ -669,11 +682,11 @@ function EvidenceZone({
             <><Upload className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" /> {t('dataEntry.evidence.another')}</>
           )}
         </div>
-        <div className="text-[10px] text-[var(--text-tertiary)] mt-1">
+        <div className="text-caption text-[var(--text-tertiary)] mt-1">
           {t('dataEntry.evidence.formats')}
           {!dataValueId && t('dataEntry.evidence.saveFirst')}
         </div>
-        {error && <div className="text-[10px] text-[var(--status-reject)] font-mono mt-2">{error}</div>}
+        {error && <div className="text-caption text-[var(--status-reject)] font-mono mt-2">{error}</div>}
       </div>
 
       {/* File list */}
@@ -684,8 +697,8 @@ function EvidenceZone({
               <div className="flex items-center gap-2 px-3 py-2">
                 <FileText className="w-3.5 h-3.5 text-[var(--color-brand)] flex-shrink-0" />
                 <div className="min-w-0 flex-1">
-                  <div className="text-[var(--text-xs)] font-medium text-[var(--text-primary)] truncate">{e.filename}</div>
-                  <div className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-1.5">
+                  <div className="text-[length:var(--text-xs)] font-medium text-[var(--text-primary)] truncate">{e.filename}</div>
+                  <div className="text-caption text-[var(--text-tertiary)] flex items-center gap-1.5">
                     <span>{(e.file_size / 1024).toFixed(1)} KB</span>
                     <span>·</span>
                     <Hash className="w-2.5 h-2.5" />
@@ -696,7 +709,7 @@ function EvidenceZone({
                   href={nexus.evidenceDownloadUrl(e.id)}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-[10px] text-[var(--color-brand)] hover:underline"
+                  className="text-caption text-[var(--color-brand)] hover:underline"
                 >
                   {t('dataEntry.evidence.open')}
                 </a>
@@ -748,7 +761,7 @@ function StatusChip({ status }: { status: 'idle' | 'saving' | 'saved' | 'submitt
   const c = map[status]
   if (!c) return null
   return (
-    <span className="px-2 py-0.5 rounded-[var(--radius-sm)] text-[10px] font-semibold uppercase tracking-wider" style={{ background: c.bg, color: c.fg }}>
+    <span className="px-2 py-0.5 rounded-[var(--radius-sm)] text-micro font-semibold uppercase tracking-wider" style={{ background: c.bg, color: c.fg }}>
       {c.label}
     </span>
   )
@@ -766,8 +779,8 @@ function ErrorPane({ error, onRetry }: { error: string; onRetry: () => void }) {
         <AlertCircle className="w-5 h-5 text-[var(--status-reject)] flex-shrink-0 mt-0.5" />
         <div>
           <h3 className="font-semibold text-[var(--text-primary)] mb-1">{t('dataEntry.entry.unableToLoad')}</h3>
-          <p className="text-[var(--text-sm)] text-[var(--text-secondary)] font-mono">{error}</p>
-          <button onClick={onRetry} className="mt-3 text-[var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">{t('dataEntry.picker.retry')}</button>
+          <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] font-mono">{error}</p>
+          <button onClick={onRetry} className="mt-3 text-[length:var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">{t('dataEntry.picker.retry')}</button>
         </div>
       </div>
     </div>
@@ -827,7 +840,7 @@ function CompareSources({
       <div className="flex items-center justify-between mb-4">
         <div>
           <span className="kicker !mb-0.5">{t('dataEntry.compare.title')}</span>
-          <div className="text-[11.5px] text-[var(--text-tertiary)]">{t('dataEntry.compare.intro')}</div>
+          <div className="text-caption text-[var(--text-tertiary)]">{t('dataEntry.compare.intro')}</div>
         </div>
       </div>
 
@@ -852,16 +865,16 @@ function CompareSources({
               >
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <Icon className={`w-3 h-3 ${isPrimary ? 'text-[var(--color-brand)]' : 'text-[var(--text-tertiary)]'}`} />
-                  <span className={`text-[10px] uppercase tracking-[0.1em] font-bold truncate ${isPrimary ? 'text-[var(--color-brand-strong)]' : 'text-[var(--text-tertiary)]'}`}>{s.label}</span>
+                  <span className={`text-micro uppercase tracking-[0.1em] font-bold truncate ${isPrimary ? 'text-[var(--color-brand-strong)]' : 'text-[var(--text-tertiary)]'}`}>{s.label}</span>
                 </div>
                 <div className={`text-[18px] font-bold tabular-nums tracking-[-0.01em] ${isPrimary ? 'text-[var(--color-brand-strong)]' : s.value != null ? 'text-[var(--text-primary)]' : 'text-[var(--text-quaternary)]'}`}>
                   {s.value != null ? fmt(s.value) : '—'}
                 </div>
-                {s.sub && <div className="text-[10px] text-[var(--text-tertiary)] mt-1 truncate" title={s.sub}>{s.sub}</div>}
+                {s.sub && <div className="text-caption text-[var(--text-tertiary)] mt-1 truncate" title={s.sub}>{s.sub}</div>}
                 {s.actionable && !isPrimary && s.value != null && (
                   <button
                     onClick={() => onUse(s.key === 'calculator' ? 'calculator' : s.key === 'connector' ? 'connector' : 'historical', s.value as number)}
-                    className="mt-2 text-[10.5px] font-semibold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] inline-flex items-center gap-1 link-underline"
+                    className="mt-2 text-caption font-semibold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] inline-flex items-center gap-1 link-underline"
                   >
                     {t('dataEntry.compare.useValue')}
                   </button>

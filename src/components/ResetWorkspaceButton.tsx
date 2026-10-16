@@ -60,7 +60,7 @@ export default function ResetWorkspaceButton({ onReset, variant = 'subtle' }: Pr
 
   const triggerClass = variant === 'danger'
     ? 'inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[8px] border border-[var(--status-reject)]/30 text-[12.5px] font-semibold text-[var(--status-reject)] hover:bg-[var(--accent-red-light)] cursor-pointer'
-    : 'inline-flex items-center gap-1 text-[11.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--status-reject)] cursor-pointer transition-colors'
+    : 'inline-flex items-center gap-1 text-caption font-medium text-[var(--text-tertiary)] hover:text-[var(--status-reject)] cursor-pointer transition-colors'
 
   return (
     <>
@@ -99,7 +99,7 @@ export default function ResetWorkspaceButton({ onReset, variant = 'subtle' }: Pr
                   {t('components.reset.preserved')}
                 </p>
                 <div className="p-3 rounded-[8px] bg-[var(--accent-red-light)] border border-[rgba(220,38,38,0.3)]">
-                  <p className="text-[11.5px] text-[var(--status-reject)] font-medium">
+                  <p className="text-caption text-[var(--status-reject)] font-medium">
                     <Trans i18nKey="components.reset.typeToConfirm" components={{ b: <strong className="font-mono" /> }} />
                   </p>
                   <input
@@ -113,7 +113,7 @@ export default function ResetWorkspaceButton({ onReset, variant = 'subtle' }: Pr
                   />
                 </div>
                 {error && (
-                  <div className="text-[11.5px] text-[var(--status-reject)]">{error}</div>
+                  <div className="text-caption text-[var(--status-reject)]">{error}</div>
                 )}
               </div>
             )}

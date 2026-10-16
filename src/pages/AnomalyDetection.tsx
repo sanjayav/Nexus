@@ -159,7 +159,7 @@ export default function AnomalyDetection() {
       />
 
       <div className="flex items-center gap-2 flex-wrap" role="toolbar" aria-label={t('anomalyPage.filters.aria')}>
-        <span className="text-[11px] uppercase tracking-[0.1em] font-bold text-[var(--text-tertiary)]">{t('anomalyPage.filters.severity')}</span>
+        <span className="text-micro uppercase tracking-[0.1em] font-bold text-[var(--text-tertiary)]">{t('anomalyPage.filters.severity')}</span>
         {(['all', 'critical', 'warn', 'info'] as SeverityFilter[]).map(s => (
           <button
             key={s}
@@ -170,7 +170,7 @@ export default function AnomalyDetection() {
           </button>
         ))}
         <span className="mx-2 w-px h-4 bg-[var(--border-default)]" />
-        <span className="text-[11px] uppercase tracking-[0.1em] font-bold text-[var(--text-tertiary)]">{t('anomalyPage.filters.status')}</span>
+        <span className="text-micro uppercase tracking-[0.1em] font-bold text-[var(--text-tertiary)]">{t('anomalyPage.filters.status')}</span>
         {(['all', 'open', 'investigating', 'resolved', 'dismissed'] as StatusFilter[]).map(s => (
           <button
             key={s}
@@ -251,7 +251,7 @@ export default function AnomalyDetection() {
                         <div className="flex items-baseline justify-between mb-1 gap-3">
                           <span className="text-[12.5px] font-semibold text-[var(--text-primary)] truncate">{e.entity}</span>
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            {e.critical > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full tabular-nums" style={{ background: 'var(--accent-red-light)', color: 'var(--accent-red)' }}>{t('anomalyPage.distribution.crit', { count: e.critical })}</span>}
+                            {e.critical > 0 && <span className="text-caption font-bold px-1.5 py-0.5 rounded-full tabular-nums" style={{ background: 'var(--accent-red-light)', color: 'var(--accent-red)' }}>{t('anomalyPage.distribution.crit', { count: e.critical })}</span>}
                             <span className="text-[12px] font-bold tabular-nums text-[var(--text-primary)]">{e.count}</span>
                           </div>
                         </div>
@@ -277,7 +277,7 @@ export default function AnomalyDetection() {
                 <span className="w-7 h-7 rounded-[8px] flex items-center justify-center" style={{ background: r.bg, color: r.fg }}>
                   <r.icon className="w-3.5 h-3.5" />
                 </span>
-                <div className="text-[11px] uppercase tracking-[0.1em] font-bold text-[var(--text-tertiary)]">{t(`anomalyPage.rules.${r.type}.severity`, { defaultValue: r.severity })}</div>
+                <div className="text-micro uppercase tracking-[0.1em] font-bold text-[var(--text-tertiary)]">{t(`anomalyPage.rules.${r.type}.severity`, { defaultValue: r.severity })}</div>
               </div>
               <h4 className="text-[14px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{t(`anomalyPage.rules.${r.type}.title`, { defaultValue: r.title })}</h4>
               <p className="text-[12px] text-[var(--text-secondary)] mt-1.5 leading-relaxed">{t(`anomalyPage.rules.${r.type}.desc`, { defaultValue: r.desc })}</p>
@@ -301,7 +301,7 @@ export default function AnomalyDetection() {
             <div className="overflow-x-auto">
             <table className="w-full text-[12.5px] min-w-[820px]">
               <thead>
-                <tr className="text-left text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)]">
+                <tr className="text-left text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)]">
                   <th className="px-3 py-2">{t('anomalyPage.triage.columns.severity')}</th>
                   <th className="px-3 py-2 sticky left-0 bg-[var(--bg-primary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">{t('anomalyPage.triage.columns.title')}</th>
                   <th className="px-3 py-2">{t('anomalyPage.triage.columns.facility')}</th>
@@ -331,11 +331,11 @@ export default function AnomalyDetection() {
                       </td>
                       <td className="px-3 py-2 sticky left-0 bg-[var(--bg-primary)] group-hover/row:bg-[var(--bg-secondary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">
                         <div className="font-semibold text-[var(--text-primary)]">{a.headline}</div>
-                        <div className="text-[11px] text-[var(--text-tertiary)]">{typeLabel(a.anomaly_type)}</div>
+                        <div className="text-caption text-[var(--text-tertiary)]">{typeLabel(a.anomaly_type)}</div>
                       </td>
                       <td className="px-3 py-2 text-[var(--text-secondary)]">{a.entity_name}</td>
                       <td className="px-3 py-2">
-                        <span className="font-mono text-[11px] text-[var(--text-tertiary)]">{a.gri_code}</span>
+                        <span className="font-mono text-caption text-[var(--text-tertiary)]">{a.gri_code}</span>
                         <div className="text-[var(--text-secondary)]">{itemLabel(a, i18n.language)}</div>
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums text-[var(--text-secondary)]">
@@ -445,7 +445,7 @@ function DismissWithReasonModal({
             </div>
             <div>
               <h3 className="font-display text-[16px] font-semibold text-[var(--text-primary)]">{t('anomalyPage.dismissModal.title')}</h3>
-              <p className="text-[11.5px] text-[var(--text-tertiary)]">{anomaly.headline}</p>
+              <p className="text-caption text-[var(--text-tertiary)]">{anomaly.headline}</p>
             </div>
           </div>
           <button onClick={onCancel} className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer"><XCircle className="w-4 h-4" /></button>
@@ -455,7 +455,7 @@ function DismissWithReasonModal({
             {t('anomalyPage.dismissModal.body')}
           </p>
           <label className="block">
-            <span className="block text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('anomalyPage.dismissModal.reasonLabel')}</span>
+            <span className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('anomalyPage.dismissModal.reasonLabel')}</span>
             <textarea
               value={reason}
               onChange={e => setReason(e.target.value)}
@@ -464,12 +464,12 @@ function DismissWithReasonModal({
               placeholder={t('anomalyPage.dismissModal.placeholder')}
               className="w-full px-3.5 py-2.5 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13px] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/15 focus:border-[var(--color-brand)] resize-none"
             />
-            <span className={`block text-[11px] mt-1 ${tooShort ? 'text-[var(--accent-amber)]' : 'text-[var(--text-tertiary)]'}`}>
+            <span className={`block text-caption mt-1 ${tooShort ? 'text-[var(--accent-amber)]' : 'text-[var(--text-tertiary)]'}`}>
               {t('anomalyPage.dismissModal.charCount', { count: reason.trim().length })}
             </span>
           </label>
           {err && (
-            <div className="p-2 rounded-[8px] bg-red-500/10 border border-red-500/30 text-red-300 text-[11.5px]">{err}</div>
+            <div className="p-2 rounded-[8px] bg-red-500/10 border border-red-500/30 text-red-300 text-caption">{err}</div>
           )}
         </div>
         <footer className="flex items-center gap-2 p-5 border-t border-[var(--border-subtle)]">
@@ -587,7 +587,7 @@ function PersistedAnomaliesPanel() {
           <div className="overflow-x-auto">
           <table className="w-full text-[12.5px] min-w-[720px]">
             <thead>
-              <tr className="text-left text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)]">
+              <tr className="text-left text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)]">
                 <th className="px-3 py-2">{t('anomalyPage.triage.columns.severity')}</th>
                 <th className="px-3 py-2 sticky left-0 bg-[var(--bg-primary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">{t('anomalyPage.ai.columns.titleFacility')}</th>
                 <th className="px-3 py-2">{t('anomalyPage.triage.columns.metric')}</th>
@@ -611,10 +611,10 @@ function PersistedAnomaliesPanel() {
                       </td>
                       <td className="px-3 py-2 sticky left-0 bg-[var(--bg-primary)] group-hover/persisted:bg-[var(--bg-secondary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">
                         <div className="font-semibold text-[var(--text-primary)]">{r.title}</div>
-                        <div className="text-[11px] text-[var(--text-tertiary)]">{r.facility_name ?? t('anomalyPage.ai.noFacility')} · {t('anomalyPage.ai.scope', { scope: r.scope ?? '—' })}</div>
+                        <div className="text-caption text-[var(--text-tertiary)]">{r.facility_name ?? t('anomalyPage.ai.noFacility')} · {t('anomalyPage.ai.scope', { scope: r.scope ?? '—' })}</div>
                       </td>
                       <td className="px-3 py-2">
-                        <span className="font-mono text-[11px] text-[var(--text-tertiary)]">{r.metric ?? '—'}</span>
+                        <span className="font-mono text-caption text-[var(--text-tertiary)]">{r.metric ?? '—'}</span>
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums text-[var(--text-secondary)]">
                         {(() => {
@@ -672,7 +672,7 @@ function PersistedAnomaliesPanel() {
                             }}
                           >
                             <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
-                              <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.1em] font-bold" style={{ color: 'var(--accent-purple, #7855c8)' }}>
+                              <div className="flex items-center gap-2 text-micro uppercase tracking-[0.06em] font-bold" style={{ color: 'var(--accent-purple, #7855c8)' }}>
                                 <Sparkles className="w-3.5 h-3.5" /> {t('anomalyPage.ai.explanation')}
                               </div>
                               <div className="flex items-center gap-2">
@@ -709,7 +709,7 @@ function PersistedAnomaliesPanel() {
                             ) : n?.text ? (
                               <>
                                 <p className="text-[13px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap">{n.text}</p>
-                                <div className="mt-2 text-[10.5px] text-[var(--text-tertiary)] italic">
+                                <div className="mt-2 text-caption text-[var(--text-tertiary)] italic">
                                   {t('anomalyPage.ai.generatedBy')}
                                   {n.generatedAt && <> · {t('anomalyPage.ai.lastUpdated', { when: formatRelative(n.generatedAt, t) })}</>}
                                 </div>
@@ -775,10 +775,10 @@ function HeadlineCard({ icon, accent, label, count, hint, index }: { icon: React
         <span className="w-10 h-10 rounded-[10px] flex items-center justify-center" style={{ background: palette.bg, color: palette.fg }}>
           {icon}
         </span>
-        <span className="text-[10px] uppercase tracking-[0.12em] font-bold" style={{ color: palette.fg }}>{label}</span>
+        <span className="text-micro uppercase tracking-[0.06em] font-bold" style={{ color: palette.fg }}>{label}</span>
       </div>
       <div className="text-[34px] leading-none font-bold tabular-nums text-[var(--text-primary)] tracking-[-0.02em]">{count}</div>
-      <div className="text-[11.5px] text-[var(--text-tertiary)] mt-1.5">{hint}</div>
+      <div className="text-caption text-[var(--text-tertiary)] mt-1.5">{hint}</div>
     </motion.div>
   )
 }

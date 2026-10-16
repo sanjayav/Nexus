@@ -2,9 +2,15 @@
  * China IM group-bot notification channels: DingTalk (钉钉), Feishu (飞书) and
  * WeCom (企业微信) custom-robot webhooks.
  *
- * Configured the same way as the email channel (api/_email.ts): through env
- * vars, and a channel with no env var set is simply skipped. Nothing here
- * throws — every sender returns { ok, error? } like sendEmail().
+ * Two configuration sources (see loadOrgImConfig):
+ *   1. Per-org rows in `org_notify_channels` (api/_cnSchema.ts), managed by
+ *      admins through /api/org-webhooks. URL + secret are stored encrypted
+ *      (api/_crypto.ts). When an org has ANY row, the rows are authoritative
+ *      for that org (a disabled row is not overridden by env).
+ *   2. Fallback for orgs with no rows: the env vars below, unchanged — still
+ *      gated by NOTIFY_IM_ORG_IDS and NOTIFY_IM_KINDS.
+ * A channel with no configuration is simply skipped. Nothing here throws —
+ * every sender returns { ok, error? } like sendEmail().
  *
  *   DINGTALK_WEBHOOK_URL   https://oapi.dingtalk.com/robot/send?access_token=…
  *   DINGTALK_WEBHOOK_SECRET  optional — "加签" secret (SEC…); enables HMAC signing
@@ -25,6 +31,8 @@
  * tested without network access (src/test/unit/notify-channels.test.ts).
  */
 import { createHmac } from 'node:crypto'
+import { decrypt } from './_crypto.js'
+import type { Sql } from './_db.js'
 
 export type ImChannel = 'dingtalk' | 'feishu' | 'wecom'
 
@@ -33,6 +41,8 @@ export interface ImMessage {
   body?: string
   /** Absolute URL to open in Nexus. */
   link?: string
+  /** Link text in the recipient org's language (default: Chinese). */
+  linkLabel?: string
 }
 
 export interface ImChannelConfig {
@@ -90,7 +100,7 @@ export function buildDingTalkUrl(webhookUrl: string, secret?: string, nowMs: num
 export function buildDingTalkPayload(msg: ImMessage) {
   const lines = [`#### ${msg.title}`]
   if (msg.body) lines.push('', msg.body)
-  if (msg.link) lines.push('', `[${LINK_LABEL}](${msg.link})`)
+  if (msg.link) lines.push('', `[${msg.linkLabel ?? LINK_LABEL}](${msg.link})`)
   return {
     msgtype: 'markdown' as const,
     markdown: { title: msg.title, text: lines.join('\n') },
@@ -111,7 +121,7 @@ export function signFeishu(secret: string, timestampSec: number): string {
 export function buildFeishuPayload(msg: ImMessage, secret?: string, nowSec: number = Math.floor(Date.now() / 1000)) {
   const content: Array<Array<{ tag: 'text'; text: string } | { tag: 'a'; text: string; href: string }>> = []
   if (msg.body) content.push([{ tag: 'text', text: msg.body }])
-  if (msg.link) content.push([{ tag: 'a', text: LINK_LABEL, href: msg.link }])
+  if (msg.link) content.push([{ tag: 'a', text: msg.linkLabel ?? LINK_LABEL, href: msg.link }])
   const payload: {
     msg_type: 'post'
     content: { post: { zh_cn: { title: string; content: typeof content } } }
@@ -152,7 +162,7 @@ function truncateUtf8(s: string, maxBytes: number): string {
 export function buildWeComPayload(msg: ImMessage) {
   const lines = [`**${msg.title}**`]
   if (msg.body) lines.push(msg.body)
-  if (msg.link) lines.push(`[${LINK_LABEL}](${msg.link})`)
+  if (msg.link) lines.push(`[${msg.linkLabel ?? LINK_LABEL}](${msg.link})`)
   return {
     msgtype: 'markdown' as const,
     markdown: { content: truncateUtf8(lines.join('\n'), WECOM_MARKDOWN_MAX_BYTES) },
@@ -250,4 +260,96 @@ export async function sendImNotifications(msg: ImMessage, cfg: ImChannelConfig =
   if (cfg.wecom) jobs.push(sendWeCom(cfg.wecom, msg))
   if (jobs.length === 0) return []
   return Promise.all(jobs)
+}
+
+// ─── Per-org configuration (org_notify_channels) ─────────────────────────
+
+export const IM_CHANNELS = ['dingtalk', 'feishu', 'wecom'] as const satisfies readonly ImChannel[]
+
+export interface OrgChannelRow {
+  channel: ImChannel
+  webhook_url_enc: string
+  secret_enc: string | null
+  enabled: boolean
+  kinds: string[] | null
+}
+
+/** Display form of a webhook URL that never reveals the token: host + last 4. */
+export function maskWebhookUrl(url: string): string {
+  try {
+    const u = new URL(url)
+    const token = u.searchParams.get('access_token') ?? u.searchParams.get('key') ?? u.pathname.split('/').filter(Boolean).pop() ?? ''
+    return `${u.hostname}/…${token.slice(-4)}`
+  } catch {
+    return '…'
+  }
+}
+
+/** Does a row's `kinds` filter allow this notification kind? (null/empty = all) */
+export function rowForwardsKind(kinds: string[] | null | undefined, kind: string): boolean {
+  if (!kinds || kinds.length === 0) return true
+  return kinds.includes(kind)
+}
+
+/**
+ * Build an ImChannelConfig from an org's rows: enabled rows whose kind filter
+ * matches. Rows that fail to decrypt are skipped (logged), never thrown.
+ */
+export function imConfigFromOrgRows(
+  rows: OrgChannelRow[],
+  kind: string | null,
+  decryptFn: (b64: string) => string = decrypt,
+): ImChannelConfig {
+  const cfg: ImChannelConfig = {}
+  for (const r of rows) {
+    if (!r.enabled) continue
+    if (kind !== null && !rowForwardsKind(r.kinds, kind)) continue
+    let webhookUrl: string
+    let secret: string | undefined
+    try {
+      webhookUrl = decryptFn(r.webhook_url_enc)
+      secret = r.secret_enc ? decryptFn(r.secret_enc) : undefined
+    } catch (err: unknown) {
+      // eslint-disable-next-line no-console
+      console.error(`[notifyChannels] cannot decrypt ${r.channel} webhook:`, err instanceof Error ? err.message : err)
+      continue
+    }
+    if (r.channel === 'dingtalk') cfg.dingtalk = { webhookUrl, secret }
+    else if (r.channel === 'feishu') cfg.feishu = { webhookUrl, secret }
+    else if (r.channel === 'wecom') cfg.wecom = { webhookUrl }
+  }
+  return cfg
+}
+
+export function hasAnyChannel(cfg: ImChannelConfig): boolean {
+  return Boolean(cfg.dingtalk || cfg.feishu || cfg.wecom)
+}
+
+/**
+ * Resolve the IM channels for one notification of `kind` in `orgId`:
+ * per-org rows first; env vars (NOTIFY_IM_ORG_IDS / NOTIFY_IM_KINDS
+ * semantics) only when the org has no rows at all.
+ */
+export async function loadOrgImConfig(
+  sql: Sql,
+  orgId: string,
+  kind: string,
+  env: Record<string, string | undefined> = process.env,
+): Promise<{ source: 'org' | 'env' | 'none'; config: ImChannelConfig }> {
+  let rows: OrgChannelRow[] = []
+  try {
+    rows = (await sql`
+      SELECT channel, webhook_url_enc, secret_enc, enabled, kinds
+      FROM org_notify_channels WHERE org_id = ${orgId}
+    `) as OrgChannelRow[]
+  } catch {
+    rows = [] // table not migrated yet → env fallback
+  }
+  if (rows.length > 0) {
+    const config = imConfigFromOrgRows(rows, kind)
+    return { source: hasAnyChannel(config) ? 'org' : 'none', config }
+  }
+  const envCfg = imChannelConfigForOrg(orgId, env)
+  if (hasAnyChannel(envCfg) && shouldForwardKind(kind, env)) return { source: 'env', config: envCfg }
+  return { source: 'none', config: {} }
 }

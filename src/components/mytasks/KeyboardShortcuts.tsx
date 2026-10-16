@@ -47,12 +47,12 @@ export default function KeyboardShortcuts({ open, onClose }: KeyboardShortcutsPr
         <ul className="space-y-2">
           {SHORTCUTS.map(s => (
             <li key={s.label} className="flex items-center justify-between gap-3 py-1">
-              <span className="text-[var(--text-sm)] text-[var(--text-secondary)]">{t(s.label)}</span>
+              <span className="text-[length:var(--text-sm)] text-[var(--text-secondary)]">{t(s.label)}</span>
               <span className="flex items-center gap-1">
                 {s.keys.map(k => (
                   <kbd
                     key={k}
-                    className="font-mono text-[10px] font-semibold px-2 py-1 rounded border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] min-w-[24px] text-center"
+                    className="font-mono text-caption font-semibold px-2 py-1 rounded border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] min-w-[24px] text-center"
                   >
                     {k}
                   </kbd>

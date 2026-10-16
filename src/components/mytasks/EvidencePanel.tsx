@@ -18,10 +18,10 @@ export function EvidencePanel({ evidence, locked, onAdd, onRemove }: {
 
   return (
     <aside className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 h-fit">
-      <h4 className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-primary)] mb-2 flex items-center gap-1">
+      <h4 className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-primary)] mb-2 flex items-center gap-1">
         <Paperclip className="w-3 h-3" /> {t('tasks.evidence.title')}
       </h4>
-      <p className="text-[10px] text-[var(--text-tertiary)] mb-3">
+      <p className="text-caption text-[var(--text-tertiary)] mb-3">
         {t('tasks.evidence.hint')}
       </p>
 
@@ -38,7 +38,7 @@ export function EvidencePanel({ evidence, locked, onAdd, onRemove }: {
           }`}
         >
           <Upload className="w-4 h-4 mx-auto text-[var(--text-tertiary)] mb-1" />
-          <div className="text-[10px] font-semibold text-[var(--text-primary)]">
+          <div className="text-caption font-semibold text-[var(--text-primary)]">
             {evidence.length === 0 ? t('tasks.evidence.drop') : t('tasks.evidence.addAnother')}
           </div>
           <input type="file" multiple className="hidden" onChange={e => handleFiles(e.target.files)} />
@@ -50,7 +50,7 @@ export function EvidencePanel({ evidence, locked, onAdd, onRemove }: {
           {evidence.map((e, i) => (
             <li key={e + i} className="flex items-center gap-2 px-2 py-1.5 rounded-[var(--radius-sm)] bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
               <FileText className="w-3 h-3 text-[var(--color-brand)] flex-shrink-0" />
-              <div className="text-[10px] font-medium text-[var(--text-primary)] truncate flex-1 font-mono">
+              <div className="text-caption font-medium text-[var(--text-primary)] truncate flex-1 font-mono">
                 {e.startsWith('connector:') ? e.split(':')[1] : e.split('_').slice(2).join('_') || e}
               </div>
               {!locked && (
@@ -95,7 +95,7 @@ export function HandoffHint({
   }
 
   return (
-    <div className="flex items-center gap-2 text-[var(--text-xs)]">
+    <div className="flex items-center gap-2 text-[length:var(--text-xs)]">
       <CheckCircle2 className="w-3.5 h-3.5 text-[var(--status-ok)]" />
       <span className="text-[var(--text-secondary)]">
         {label} {name && <strong className="text-[var(--text-primary)]">{name}</strong>}

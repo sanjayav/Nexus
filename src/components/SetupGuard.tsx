@@ -46,10 +46,10 @@ export default function SetupGuard({
             : <Database className="w-7 h-7 text-[var(--color-brand)]" />}
         </div>
 
-        <h2 className="font-display text-[var(--text-xl)] font-semibold text-[var(--text-primary)] mb-2">
+        <h2 className="font-display text-[length:var(--text-xl)] font-semibold text-[var(--text-primary)] mb-2">
           {status === 'done' ? t('components.setupGuard.complete') : status === 'error' ? t('components.setupGuard.failed') : (title ?? t('components.setupGuard.title'))}
         </h2>
-        <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mb-6 leading-relaxed">
+        <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] mb-6 leading-relaxed">
           {status === 'done' ? t('components.setupGuard.reloading')
             : status === 'error' ? error
             : (message ?? t('components.setupGuard.message'))}
@@ -60,7 +60,7 @@ export default function SetupGuard({
             type="button"
             onClick={run}
             disabled={status === 'running'}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-60 transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold hover:bg-[var(--btn-primary-bg-hover)] disabled:opacity-60 transition-colors"
           >
             {status === 'running'
               ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('components.setupGuard.initializing')}</>
@@ -70,7 +70,7 @@ export default function SetupGuard({
           </button>
         )}
 
-        <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-5">
+        <p className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] mt-5">
           {t('components.setupGuard.footnote')}
         </p>
       </div>

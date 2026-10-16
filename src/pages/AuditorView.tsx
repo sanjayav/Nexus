@@ -116,8 +116,8 @@ export default function AuditorView() {
           <AlertCircle className="w-5 h-5 text-[var(--status-reject)] flex-shrink-0 mt-0.5" />
           <div>
             <h3 className="font-semibold text-[var(--text-primary)] mb-1">{t('auditor.view.unableToLoad')}</h3>
-            <p className="text-[var(--text-sm)] text-[var(--text-secondary)] font-mono">{state.error}</p>
-            <button onClick={load} className="mt-3 text-[var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">{t('auditor.view.retry')}</button>
+            <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] font-mono">{state.error}</p>
+            <button onClick={load} className="mt-3 text-[length:var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">{t('auditor.view.retry')}</button>
           </div>
         </div>
       </div>
@@ -130,12 +130,12 @@ export default function AuditorView() {
       <div className="flex items-center justify-between mb-6 sticky top-0 z-10 bg-[var(--bg-secondary)] -mx-8 px-8 py-3 border-b border-[var(--border-subtle)]">
         <button
           onClick={() => navigate('/reports')}
-          className="inline-flex items-center gap-2 text-[var(--text-sm)] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          className="inline-flex items-center gap-2 text-[length:var(--text-sm)] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
         >
           <ArrowLeft className="w-4 h-4" /> {t('auditor.view.back')}
         </button>
         <div className="flex items-center gap-3">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[var(--radius-sm)] bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)] text-[var(--text-xs)] font-semibold">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[var(--radius-sm)] bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)] text-[length:var(--text-xs)] font-semibold">
             <Shield className="w-3 h-3" /> {t('auditor.view.readOnly')}
           </span>
           <Button variant="secondary" size="sm" icon={<Eye className="w-3.5 h-3.5" />} onClick={() => navigate('/reports/preview')}>
@@ -148,11 +148,11 @@ export default function AuditorView() {
         {/* Document */}
         <article className="bg-white text-[var(--text-primary)] rounded-[var(--radius-md)] border border-[var(--border-subtle)]">
           <header className="px-8 py-6 border-b border-[var(--border-subtle)]">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--color-brand)] font-semibold mb-1">
+            <div className="text-micro uppercase tracking-[0.06em] text-[var(--color-brand)] font-semibold mb-1">
               {t('auditor.view.eyebrow')}
             </div>
-            <h1 className="font-display text-[var(--text-2xl)] font-bold">Demo Co — FY{ACTIVE_YEAR}</h1>
-            <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1">
+            <h1 className="font-display text-[length:var(--text-2xl)] font-bold">Demo Co — FY{ACTIVE_YEAR}</h1>
+            <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] mt-1">
               {t('auditor.view.intro')}
             </p>
           </header>
@@ -170,10 +170,10 @@ export default function AuditorView() {
               <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-[var(--color-brand-soft)] flex items-center justify-center mb-3">
                 <Shield className="w-6 h-6 text-[var(--color-brand)]" />
               </div>
-              <h3 className="font-display text-[var(--text-base)] font-semibold text-[var(--text-primary)] mb-1">
+              <h3 className="font-display text-[length:var(--text-base)] font-semibold text-[var(--text-primary)] mb-1">
                 {t('auditor.view.drillTitle')}
               </h3>
-              <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] leading-relaxed">
+              <p className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] leading-relaxed">
                 {t('auditor.view.drillBody')}
               </p>
             </div>
@@ -194,27 +194,27 @@ function TrailDocumentBlock({
   const { t, i18n } = useTranslation()
   return (
     <section>
-      <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--color-brand)] px-8 pt-6 pb-2">
+      <h2 className="font-display text-[length:var(--text-lg)] font-semibold text-[var(--color-brand)] px-8 pt-6 pb-2">
         {heading}
       </h2>
       {sections.map(sec => (
         <div key={sec.capital} className="px-8 py-4">
-          <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mb-3 pb-1 border-b-2 border-[var(--color-brand)]">
+          <h3 className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)] mb-3 pb-1 border-b-2 border-[var(--color-brand)]">
             {t(capitalLabelKey(sec.capital), { defaultValue: sec.capital })}
           </h3>
           {sec.subsections.map(sub => (
             <div key={sub.name} className="mb-5">
-              <h4 className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand)] mb-2">
+              <h4 className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--color-brand)] mb-2">
                 {t(subsectionLabelKey(sub.name), { defaultValue: sub.name })}
               </h4>
               <div className="space-y-1.5">
                 {sub.rows.map(row => {
                   const dv = row.current
                   return (
-                    <div key={row.item.id} className="flex items-center justify-between gap-3 text-[var(--text-xs)] py-1">
+                    <div key={row.item.id} className="flex items-center justify-between gap-3 text-[length:var(--text-xs)] py-1">
                       <div className="min-w-0 flex-1">
                         <div className="text-[var(--text-primary)] font-medium truncate">{itemLabel(row.item, i18n.language)}</div>
-                        <div className="text-[10px] text-[var(--text-tertiary)]">
+                        <div className="text-caption text-[var(--text-tertiary)]">
                           {row.item.gri_code}
                           {row.item.scope_split ? ` · ${row.item.scope_split}` : ''}
                           {row.item.unit ? ` · ${row.item.unit}` : ''}
@@ -227,7 +227,7 @@ function TrailDocumentBlock({
                           className="inline-flex items-center gap-2 px-2.5 py-1 rounded-[var(--radius-sm)] bg-[var(--color-brand-soft)] hover:bg-[var(--color-brand)] hover:text-white text-[var(--color-brand-strong)] transition-colors group"
                         >
                           <span className="tabular-nums font-semibold">{formatValue(dv.value, row.item.unit)}</span>
-                          <span className="font-mono text-[10px] opacity-70 group-hover:opacity-100">{truncateHash(dv.value_hash)}</span>
+                          <span className="font-mono text-caption opacity-70 group-hover:opacity-100">{truncateHash(dv.value_hash)}</span>
                         </button>
                       ) : (
                         <span className="text-[var(--text-tertiary)] px-2.5 py-1 font-mono">—</span>
@@ -251,13 +251,13 @@ function TrailPanel({ panel, onClose }: { panel: Exclude<PanelState, null>; onCl
     <>
       <header className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] uppercase tracking-wider text-[var(--color-brand)] font-semibold mb-0.5">
+          <div className="text-micro uppercase tracking-[0.06em] text-[var(--color-brand)] font-semibold mb-0.5">
             {panel.item.gri_code}
           </div>
-          <h3 className="font-display text-[var(--text-sm)] font-semibold text-[var(--text-primary)] leading-snug">
+          <h3 className="font-display text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)] leading-snug">
             {itemLabel(panel.item, i18n.language)}
           </h3>
-          <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5">
+          <p className="text-caption text-[var(--text-tertiary)] mt-0.5">
             {t(capitalLabelKey(panel.item.section), { defaultValue: panel.item.section })} · {t(subsectionLabelKey(panel.item.subsection), { defaultValue: panel.item.subsection })}
           </p>
         </div>
@@ -273,16 +273,16 @@ function TrailPanel({ panel, onClose }: { panel: Exclude<PanelState, null>; onCl
       {/* Current value summary */}
       <div className="px-5 py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
         <div className="flex items-baseline justify-between mb-1">
-          <div className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)]">FY{ACTIVE_YEAR}</div>
+          <div className="text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)]">FY{ACTIVE_YEAR}</div>
           <StatusPill status={panel.dv.status} />
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-[var(--text-2xl)] font-bold tabular-nums text-[var(--text-primary)]">
+          <span className="text-[length:var(--text-2xl)] font-bold tabular-nums text-[var(--text-primary)]">
             {formatValue(panel.dv.value, panel.item.unit)}
           </span>
-          {panel.item.unit && <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">{panel.item.unit}</span>}
+          {panel.item.unit && <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)]">{panel.item.unit}</span>}
         </div>
-        <div className="flex items-center gap-2 mt-2 text-[10px] text-[var(--text-tertiary)]">
+        <div className="flex items-center gap-2 mt-2 text-caption text-[var(--text-tertiary)]">
           <Hash className="w-3 h-3" />
           <span className="font-mono">{truncateHash(panel.dv.value_hash, 10, 8)}</span>
           <span>·</span>
@@ -298,12 +298,12 @@ function TrailPanel({ panel, onClose }: { panel: Exclude<PanelState, null>; onCl
           </div>
         )}
         {panel.kind === 'error' && (
-          <div className="p-5 text-[var(--text-sm)] text-[var(--status-reject)]">{panel.error}</div>
+          <div className="p-5 text-[length:var(--text-sm)] text-[var(--status-reject)]">{panel.error}</div>
         )}
         {panel.kind === 'ready' && (
           <ol className="p-5 space-y-4">
             {panel.trail.length === 0 && (
-              <li className="text-[var(--text-xs)] text-[var(--text-tertiary)] italic">{t('auditor.view.noEvents')}</li>
+              <li className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] italic">{t('auditor.view.noEvents')}</li>
             )}
             {panel.trail.map((ev, idx) => (
               <li key={ev.id} className="relative pl-6">
@@ -311,11 +311,11 @@ function TrailPanel({ panel, onClose }: { panel: Exclude<PanelState, null>; onCl
                   <span className="absolute left-[10px] top-5 bottom-[-16px] w-px bg-[var(--border-default)]" />
                 )}
                 <EventDot type={ev.event_type} />
-                <div className="text-[var(--text-xs)]">
+                <div className="text-[length:var(--text-xs)]">
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="font-semibold text-[var(--text-primary)] capitalize">{t(`auditor.event.${ev.event_type}`, { defaultValue: ev.event_type })}</span>
                     {ev.actor_workflow_role && (
-                      <span className="px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)] text-[9px] font-semibold uppercase">
+                      <span className="px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)] text-micro font-semibold uppercase">
                         {t(`workflowStatus.role.${ev.actor_workflow_role}`, { defaultValue: ev.actor_workflow_role })}
                       </span>
                     )}
@@ -324,7 +324,7 @@ function TrailPanel({ panel, onClose }: { panel: Exclude<PanelState, null>; onCl
                     {ev.actor_name ?? ev.actor_email ?? t('auditor.view.system')}
                     {ev.actor_platform_role ? ` · ${ev.actor_platform_role}` : ''}
                   </div>
-                  <div className="text-[10px] text-[var(--text-tertiary)] mt-0.5">
+                  <div className="text-caption text-[var(--text-tertiary)] mt-0.5">
                     {new Date(ev.timestamp).toLocaleString(locale)}
                   </div>
                   {ev.comment && (
@@ -332,7 +332,7 @@ function TrailPanel({ panel, onClose }: { panel: Exclude<PanelState, null>; onCl
                       &ldquo;{ev.comment}&rdquo;
                     </div>
                   )}
-                  <div className="flex items-center gap-1.5 mt-1.5 text-[10px] font-mono text-[var(--text-tertiary)]">
+                  <div className="flex items-center gap-1.5 mt-1.5 text-caption font-mono text-[var(--text-tertiary)]">
                     <LinkIcon className="w-2.5 h-2.5" />
                     <span>{t('auditor.view.prevHash', { hash: truncateHash(ev.previous_hash) })}</span>
                     <span>→</span>
@@ -361,7 +361,7 @@ function StatusPill({ status }: { status: NexusDataValue['status'] }) {
   }
   const c = map[status]
   return (
-    <span className="px-2 py-0.5 rounded-[var(--radius-sm)] text-[10px] font-semibold uppercase tracking-wider" style={{ background: c.bg, color: c.fg }}>
+    <span className="px-2 py-0.5 rounded-[var(--radius-sm)] text-micro font-semibold uppercase tracking-[0.06em]" style={{ background: c.bg, color: c.fg }}>
       {t(c.label)}
     </span>
   )

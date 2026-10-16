@@ -34,6 +34,24 @@ export interface ItemSpec {
 }
 
 const SECTION = 'CN-CSDS Corporate Sustainability Disclosure Standards'
+const SECTION_ZH = '企业可持续披露准则'
+/**
+ * Simplified Chinese subsection headings, written to questionnaire_item.subsection_zh
+ * (section_zh gets SECTION_ZH). Reports and the questionnaire tree show these when
+ * the language is zh; NULL falls back to the English heading.
+ */
+export const CN_CSDS_SUBSECTION_ZH: Record<string, string> = {
+  'Basic standard — General requirements': '基本准则——一般要求',
+  'Basic standard — Governance': '基本准则——治理',
+  'Basic standard — Strategy': '基本准则——战略',
+  'Basic standard — Impact, risk and opportunity management': '基本准则——影响、风险和机遇管理',
+  'Basic standard — Metrics and targets': '基本准则——指标和目标',
+  'Climate — Governance': '气候——治理',
+  'Climate — Strategy': '气候——战略',
+  'Climate — Impact, risk and opportunity management': '气候——影响、风险和机遇管理',
+  'Climate — Metrics and targets': '气候——指标和目标',
+  'Climate — GHG emissions': '气候——温室气体排放',
+}
 const FRAMEWORK_ID = 'cn-csds'
 const REPORTING_SCOPE: ReportingScope = 'group'
 
@@ -120,11 +138,15 @@ import type { Sql } from './_db'
 export async function seedCNCSDS(sql: Sql): Promise<void> {
   await sql`ALTER TABLE questionnaire_item ADD COLUMN IF NOT EXISTS framework_id TEXT`
   await sql`ALTER TABLE questionnaire_item ADD COLUMN IF NOT EXISTS line_item_zh TEXT`
+  await sql`ALTER TABLE questionnaire_item ADD COLUMN IF NOT EXISTS section_zh TEXT`
+  await sql`ALTER TABLE questionnaire_item ADD COLUMN IF NOT EXISTS subsection_zh TEXT`
   // One HTTP round trip, one transaction: either the whole catalogue lands or none of it.
   await sql.transaction(txn => CN_CSDS_ITEMS.map(it => txn`
       WITH upd AS (
         UPDATE questionnaire_item
-           SET line_item_zh = ${it.lineItemZh}::text
+           SET line_item_zh = ${it.lineItemZh}::text,
+               section_zh = ${SECTION_ZH}::text,
+               subsection_zh = ${CN_CSDS_SUBSECTION_ZH[it.subsection] ?? null}::text
          WHERE gri_code = ${it.griCode}::text
            AND line_item = ${it.lineItem}::text
            AND scope_split IS NOT DISTINCT FROM ${it.scopeSplit}::text
@@ -132,17 +154,20 @@ export async function seedCNCSDS(sql: Sql): Promise<void> {
         RETURNING id
       )
       INSERT INTO questionnaire_item
-        (framework_id, section, subsection, gri_code, line_item, line_item_zh, unit, scope_split,
+        (framework_id, section, section_zh, subsection, subsection_zh, gri_code, line_item, line_item_zh, unit, scope_split,
          has_target, requires_coverage, default_workflow_role, entry_mode_default,
          footnote_refs, reporting_scope)
       SELECT
-        ${FRAMEWORK_ID}::text, ${SECTION}::text, ${it.subsection}::text, ${it.griCode}::text,
+        ${FRAMEWORK_ID}::text, ${SECTION}::text, ${SECTION_ZH}::text, ${it.subsection}::text,
+        ${CN_CSDS_SUBSECTION_ZH[it.subsection] ?? null}::text, ${it.griCode}::text,
         ${it.lineItem}::text, ${it.lineItemZh}::text, ${it.unit}::text, ${it.scopeSplit}::text,
         ${it.hasTarget}::boolean, ${it.requiresCoverage}::boolean,
         ${it.defaultRole}::text, ${it.entryMode}::text, '[]'::jsonb, ${REPORTING_SCOPE}::text
       WHERE NOT EXISTS (SELECT 1 FROM upd)
       ON CONFLICT (gri_code, line_item, scope_split, reporting_scope)
-        DO UPDATE SET line_item_zh = EXCLUDED.line_item_zh
+        DO UPDATE SET line_item_zh = EXCLUDED.line_item_zh,
+                      section_zh = EXCLUDED.section_zh,
+                      subsection_zh = EXCLUDED.subsection_zh
     `))
   // Intentionally no per-org enablement here: orgs opt in via Settings.
 }

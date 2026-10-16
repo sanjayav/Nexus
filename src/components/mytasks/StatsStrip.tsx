@@ -54,7 +54,7 @@ export default function StatsStrip({ stats, approvedThisWeek, filter, onChange }
                   : 'border-[var(--border-subtle)] bg-[var(--bg-card-premium)] hover:border-[var(--color-brand)]/30 hover:-translate-y-px'
             }`}
           >
-            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
+            <div className="flex items-center gap-1.5 text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">
               <t.icon className={`w-3 h-3 ${danger ? 'text-[var(--status-reject)]' : ''}`} />
               <span className={danger ? 'text-[var(--status-reject)]' : ''}>{t.label}</span>
             </div>

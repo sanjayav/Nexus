@@ -43,7 +43,7 @@ export default function Scope3CalculatorsPage() {
 
       <div className="grid grid-cols-12 gap-4">
         <aside className="col-span-4 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-3">
-          <h3 className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-2 px-2">{t('scope3.page.categoriesHeading')}</h3>
+          <h3 className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-2 px-2">{t('scope3.page.categoriesHeading')}</h3>
           <Stagger>
             <ul className="space-y-1">
               {SCOPE3_CALCULATORS.map(c => (
@@ -52,7 +52,7 @@ export default function Scope3CalculatorsPage() {
                     <button
                       onClick={() => setSelectedId(c.id)}
                       className={[
-                        'w-full text-left px-3 py-2 rounded-[var(--radius-md)] text-[var(--text-sm)] transition',
+                        'w-full text-left px-3 py-2 rounded-[var(--radius-md)] text-[length:var(--text-sm)] transition',
                         selectedId === c.id
                           ? 'bg-[var(--color-brand)]/10 text-[var(--text-primary)] ring-1 ring-[var(--color-brand)]/40'
                           : 'hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]',
@@ -60,9 +60,9 @@ export default function Scope3CalculatorsPage() {
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{t('scope3.page.catLabel', { n: c.category })}</span>
-                        <span className="text-[10px] text-[var(--text-tertiary)]">{t('scope3.page.methodsCount', { count: c.methods.length })}</span>
+                        <span className="text-caption text-[var(--text-tertiary)]">{t('scope3.page.methodsCount', { count: c.methods.length })}</span>
                       </div>
-                      <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{localizeScope3(t, c).shortName}</div>
+                      <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{localizeScope3(t, c).shortName}</div>
                     </button>
                   </li>
                 </StaggerItem>
@@ -128,19 +128,19 @@ function CalculatorPanel({ calculator }: { calculator: Scope3Calculator }) {
   return (
     <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-5">
       <div className="mb-4">
-        <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
+        <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">
           {t('scope3.page.catLabel', { n: calculator.category })} · {lc.shortName}
         </div>
         <h2 className="font-display text-[22px] font-bold text-[var(--text-primary)] mt-0.5">{lc.name}</h2>
-        <p className="text-[var(--text-xs)] text-[var(--text-secondary)] mt-1">{lc.description}</p>
+        <p className="text-[length:var(--text-xs)] text-[var(--text-secondary)] mt-1">{lc.description}</p>
       </div>
 
       <div className="mb-4">
-        <label className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.method')}</label>
+        <label className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.method')}</label>
         <select
           value={methodId}
           onChange={e => onMethodChange(e.target.value)}
-          className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+          className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
         >
           {lc.methods
             .slice()
@@ -162,7 +162,7 @@ function CalculatorPanel({ calculator }: { calculator: Scope3Calculator }) {
       )}
 
       <div className="flex items-center justify-between mt-5 pt-4 border-t border-[var(--border-subtle)]">
-        <span className="text-[11px] text-[var(--text-tertiary)]">
+        <span className="text-caption text-[var(--text-tertiary)]">
           {savedId
             ? <>{t('scope3.page.savedAsActivity')} <Link to="/data" className="text-[var(--color-brand)] hover:underline">{t('scope3.page.viewInIngestion')}</Link>{t('scope3.page.sentenceEnd')}</>
             : t('scope3.page.computeHint')}
@@ -171,7 +171,7 @@ function CalculatorPanel({ calculator }: { calculator: Scope3Calculator }) {
           {result && (
             <button
               onClick={() => setSaveOpen(true)}
-              className="px-3 py-2 rounded-[var(--radius-md)] border border-[var(--color-brand)] text-[var(--color-brand)] text-[var(--text-sm)] font-semibold inline-flex items-center gap-1.5 hover:bg-[var(--color-brand)]/10"
+              className="px-3 py-2 rounded-[var(--radius-md)] border border-[var(--color-brand)] text-[var(--color-brand)] text-[length:var(--text-sm)] font-semibold inline-flex items-center gap-1.5 hover:bg-[var(--color-brand)]/10"
             >
               <Save className="w-3.5 h-3.5" />
               {t('scope3.page.saveToActivity')}
@@ -180,7 +180,7 @@ function CalculatorPanel({ calculator }: { calculator: Scope3Calculator }) {
           <button
             onClick={run}
             disabled={running}
-            className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold disabled:opacity-50 inline-flex items-center gap-1.5"
+            className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold disabled:opacity-50 inline-flex items-center gap-1.5"
           >
             {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Calculator className="w-3.5 h-3.5" />}
             {t('scope3.page.compute')}
@@ -189,7 +189,7 @@ function CalculatorPanel({ calculator }: { calculator: Scope3Calculator }) {
       </div>
 
       {error && (
-        <div className="mt-3 p-3 rounded-[var(--radius-md)] bg-red-500/10 border border-red-500/30 text-red-400 text-[var(--text-xs)]">
+        <div className="mt-3 p-3 rounded-[var(--radius-md)] bg-red-500/10 border border-red-500/30 text-red-400 text-[length:var(--text-xs)]">
           {error}
         </div>
       )}
@@ -229,14 +229,14 @@ function MethodInputs({
         const v = values[inp.key] ?? (inp.default !== undefined ? String(inp.default) : '')
         return (
           <label key={inp.key} className="block">
-            <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">
+            <span className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">
               {inp.label}{inp.unit ? ` (${localizeUnit(t, inp.unit)})` : ''}{inp.required ? ' *' : ''}
             </span>
             {inp.type === 'select' ? (
               <select
                 value={v}
                 onChange={e => set(inp.key, e.target.value)}
-                className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
               >
                 <option value="">{t('scope3.page.selectPlaceholder')}</option>
                 {(inp.options ?? []).map(o => (
@@ -248,10 +248,10 @@ function MethodInputs({
                 type={inp.type === 'number' ? 'number' : 'text'}
                 value={v}
                 onChange={e => set(inp.key, e.target.value)}
-                className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
               />
             )}
-            {inp.hint && <span className="block text-[10px] text-[var(--text-tertiary)] mt-1">{inp.hint}</span>}
+            {inp.hint && <span className="block text-caption text-[var(--text-tertiary)] mt-1">{inp.hint}</span>}
           </label>
         )
       })}
@@ -264,18 +264,18 @@ function ResultPanel({ result, savedId }: { result: Scope3MethodResult; savedId:
   return (
     <div className="mt-4 p-4 rounded-[var(--radius-md)] bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
       <div className="flex items-center justify-between">
-        <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">{t('scope3.page.result')}</div>
+        <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">{t('scope3.page.result')}</div>
         {savedId && (
-          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--status-ok)]">
+          <span className="inline-flex items-center gap-1 text-caption font-semibold text-[var(--status-ok)]">
             <CheckCircle2 className="w-3 h-3" /> {t('scope3.page.savedAsDraft')}
           </span>
         )}
       </div>
       <div className="text-[28px] font-display font-bold text-[var(--color-brand)] tabular-nums mt-1">
-        {result.co2e_tonnes.toFixed(3)} <span className="text-[var(--text-sm)] text-[var(--text-secondary)]">tCO2e</span>
+        {result.co2e_tonnes.toFixed(3)} <span className="text-[length:var(--text-sm)] text-[var(--text-secondary)]">tCO2e</span>
       </div>
       {result.ef_used && (
-        <div className="mt-2 text-[11px] text-[var(--text-secondary)]">
+        <div className="mt-2 text-caption text-[var(--text-secondary)]">
           <strong>{t('scope3.page.efUsed')}</strong> {result.ef_used.co2e_per_unit} {result.ef_used.unit ?? ''}
           {result.ef_used.source ? ` · ${result.ef_used.source}` : ''}
           {result.ef_used.region ? ` · ${result.ef_used.region}` : ''}
@@ -283,14 +283,14 @@ function ResultPanel({ result, savedId }: { result: Scope3MethodResult; savedId:
       )}
       {result.breakdown && (
         <details className="mt-2">
-          <summary className="text-[11px] text-[var(--text-tertiary)] cursor-pointer">{t('scope3.page.breakdown')}</summary>
-          <pre className="mt-1 text-[10px] font-mono text-[var(--text-secondary)] bg-[var(--bg-primary)] p-2 rounded overflow-auto">
+          <summary className="text-caption text-[var(--text-tertiary)] cursor-pointer">{t('scope3.page.breakdown')}</summary>
+          <pre className="mt-1 text-caption font-mono text-[var(--text-secondary)] bg-[var(--bg-primary)] p-2 rounded overflow-auto">
             {JSON.stringify(result.breakdown, null, 2)}
           </pre>
         </details>
       )}
       {result.notes && (
-        <div className="mt-2 text-[10px] text-[var(--text-tertiary)] italic">{localizeCalcNote(t, result.notes)}</div>
+        <div className="mt-2 text-caption text-[var(--text-tertiary)] italic">{localizeCalcNote(t, result.notes)}</div>
       )}
     </div>
   )
@@ -372,20 +372,20 @@ function SaveModal({
         className="bg-[var(--bg-primary)] rounded-[var(--radius-lg)] border border-[var(--border-default)] w-full max-w-md p-5 shadow-xl"
         onClick={e => e.stopPropagation()}
       >
-        <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">{t('scope3.page.persistEyebrow')}</div>
+        <div className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">{t('scope3.page.persistEyebrow')}</div>
         <h3 className="font-display text-[20px] font-bold text-[var(--text-primary)]">{t('scope3.page.saveToActivity')}</h3>
-        <p className="text-[var(--text-xs)] text-[var(--text-secondary)] mt-1 mb-4">
+        <p className="text-[length:var(--text-xs)] text-[var(--text-secondary)] mt-1 mb-4">
           {t('scope3.page.modalDescBefore')} <code className="font-mono">activity_data</code> {t('scope3.page.modalDescMiddle')}
           <code className="font-mono">{calculator.id}</code> · <code className="font-mono">{method.id}</code>{t('scope3.page.modalDescAfter')}
         </p>
 
         <div className="space-y-3">
           <label className="block">
-            <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.facility')} *</span>
+            <span className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.facility')} *</span>
             <select
               value={facilityId}
               onChange={e => setFacilityId(e.target.value)}
-              className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+              className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
             >
               {facilityList.length === 0 && <option value="">{t('scope3.page.noFacilities')}</option>}
               {facilityList.map(f => (
@@ -396,22 +396,22 @@ function SaveModal({
 
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.year')}</span>
+              <span className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.year')}</span>
               <input
                 type="number"
                 value={year}
                 onChange={e => setYear(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
                 min={2000}
                 max={2100}
               />
             </label>
             <label className="block">
-              <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.month')}</span>
+              <span className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.month')}</span>
               <select
                 value={month}
                 onChange={e => setMonth(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
               >
                 {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                   <option key={m} value={m}>{m.toString().padStart(2, '0')}</option>
@@ -421,31 +421,31 @@ function SaveModal({
           </div>
 
           <label className="block">
-            <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.notes')}</span>
+            <span className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.notes')}</span>
             <textarea
               rows={2}
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+              className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
               placeholder={t('scope3.page.notesPlaceholder')}
             />
           </label>
         </div>
 
         {err && (
-          <div className="mt-3 p-2 rounded-[var(--radius-md)] bg-red-500/10 border border-red-500/30 text-red-400 text-[var(--text-xs)]">
+          <div className="mt-3 p-2 rounded-[var(--radius-md)] bg-red-500/10 border border-red-500/30 text-red-400 text-[length:var(--text-xs)]">
             {err}
           </div>
         )}
 
         <div className="mt-5 flex items-center justify-end gap-2">
-          <button onClick={onClose} className="px-3 py-2 rounded-[var(--radius-md)] text-[var(--text-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">
+          <button onClick={onClose} className="px-3 py-2 rounded-[var(--radius-md)] text-[length:var(--text-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">
             {t('common.cancel')}
           </button>
           <button
             onClick={save}
             disabled={saving || !facilityId}
-            className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold disabled:opacity-50 inline-flex items-center gap-1.5"
+            className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold disabled:opacity-50 inline-flex items-center gap-1.5"
           >
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
             {t('scope3.page.saveDraft')}
@@ -552,25 +552,25 @@ function VendorAiMatcher({
     <div className="mt-4 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-3">
       <div className="flex items-center gap-2 mb-2">
         <Sparkles className="w-3.5 h-3.5 text-[var(--color-brand)]" />
-        <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">{t('scope3.page.aiMatcherTitle')}</span>
+        <span className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">{t('scope3.page.aiMatcherTitle')}</span>
       </div>
       <div className="grid grid-cols-12 gap-2 items-end">
         <label className="col-span-6 block">
-          <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.vendorName')}</span>
+          <span className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.vendorName')}</span>
           <input
             type="text"
             value={vendor}
             onChange={e => setVendor(e.target.value)}
             placeholder={t('scope3.page.vendorPlaceholder')}
-            className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+            className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
           />
         </label>
         <label className="col-span-3 block">
-          <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.region')}</span>
+          <span className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.region')}</span>
           <select
             value={region}
             onChange={e => setRegion(e.target.value)}
-            className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+            className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
           >
             {['GLOBAL','UK','US','EU','IN','CN','JP','AU','CA','DE','FR'].map(r => (
               <option key={r} value={r}>{scope3OptionLabel(t, r)}</option>
@@ -584,7 +584,7 @@ function VendorAiMatcher({
             disabled={loading || !vendor.trim() || unconfigured || integrations.loading}
             title={unconfigured ? t('scope3.page.aiNotConfiguredTitle') : undefined}
             aria-label={unconfigured ? t('scope3.page.aiNotConfiguredTitle') : t('scope3.page.suggestAria')}
-            className="w-full px-3 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
+            className="w-full px-3 py-2 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
           >
             {loading
               ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -595,12 +595,12 @@ function VendorAiMatcher({
       </div>
 
       {error && !unconfigured && (
-        <div className="mt-2 p-2 rounded-[var(--radius-md)] bg-red-500/10 border border-red-500/30 text-red-400 text-[var(--text-xs)]">
+        <div className="mt-2 p-2 rounded-[var(--radius-md)] bg-red-500/10 border border-red-500/30 text-red-400 text-[length:var(--text-xs)]">
           {error}
         </div>
       )}
       {unconfigured && (
-        <div className="mt-2 p-2 rounded-[var(--radius-md)] bg-amber-400/5 border border-amber-400/30 text-[var(--text-xs)] text-amber-300 flex items-start gap-2">
+        <div className="mt-2 p-2 rounded-[var(--radius-md)] bg-amber-400/5 border border-amber-400/30 text-[length:var(--text-xs)] text-amber-300 flex items-start gap-2">
           <Lock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
           <span>
             {t('scope3.page.aiBannerLine')}
@@ -624,7 +624,7 @@ function VendorAiMatcher({
               <button
                 type="button"
                 onClick={() => setAltsOpen(o => !o)}
-                className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
+                className="inline-flex items-center gap-1 text-caption text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
               >
                 {altsOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
                 {t('scope3.page.alternates', { count: match.alternates.length })}
@@ -647,7 +647,7 @@ function VendorAiMatcher({
             </div>
           )}
           {match.overallNotes && (
-            <div className="text-[10px] italic text-[var(--text-tertiary)] mt-1">{match.overallNotes}</div>
+            <div className="text-caption italic text-[var(--text-tertiary)] mt-1">{match.overallNotes}</div>
           )}
         </div>
       )}
@@ -672,22 +672,22 @@ function EfMatchCard({
     <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] p-3">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] shrink-0">{badge}</span>
-          <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{ef.fuel_or_activity}</span>
+          <span className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] shrink-0">{badge}</span>
+          <span className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{ef.fuel_or_activity}</span>
         </div>
-        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${tone}`}>{pct}%</span>
+        <span className={`text-caption font-semibold px-1.5 py-0.5 rounded ${tone}`}>{pct}%</span>
       </div>
-      <div className="mt-1 text-[10px] text-[var(--text-tertiary)] tabular-nums">
+      <div className="mt-1 text-caption text-[var(--text-tertiary)] tabular-nums">
         {Number(ef.co2e_per_unit)} {ef.unit} · {ef.source}{ef.region ? ` · ${ef.region}` : ''}
       </div>
-      <div className="mt-1.5 text-[11px] text-[var(--text-secondary)]">{reasoning}</div>
+      <div className="mt-1.5 text-caption text-[var(--text-secondary)]">{reasoning}</div>
       <div className="mt-2 flex items-center justify-end">
         <button
           type="button"
           onClick={onUse}
           disabled={applied}
           className={[
-            'px-2.5 py-1 rounded-[var(--radius-md)] text-[11px] font-semibold inline-flex items-center gap-1',
+            'px-2.5 py-1 rounded-[var(--radius-md)] text-caption font-semibold inline-flex items-center gap-1',
             applied ? 'bg-emerald-500/15 text-emerald-300' : 'border border-[var(--color-brand)] text-[var(--color-brand)] hover:bg-[var(--color-brand)]/10',
           ].join(' ')}
         >

@@ -113,13 +113,13 @@ export default function OrgOnboarding() {
         {/* TREE */}
         <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-5 min-h-[480px]">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-[var(--text-base)] font-semibold text-[var(--text-primary)]">
+            <h2 className="font-display text-[length:var(--text-base)] font-semibold text-[var(--text-primary)]">
               {t('onboarding.org.treeTitle')}
             </h2>
             {roots.length === 0 && (
               <button
                 onClick={() => setAddingUnder('__root__')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-xs)] font-semibold hover:bg-[var(--color-brand-strong)] transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-xs)] font-semibold hover:bg-[var(--btn-primary-bg-hover)] transition-colors"
               >
                 <Plus className="w-3 h-3" /> {t('onboarding.org.startWithGroup')}
               </button>
@@ -180,22 +180,22 @@ export default function OrgOnboarding() {
           ) : (
             <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)] p-8 text-center">
               <Building2 className="w-8 h-8 text-[var(--text-tertiary)] mx-auto mb-2" />
-              <p className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
+              <p className="text-[length:var(--text-sm)] text-[var(--text-tertiary)]">
                 {t('onboarding.org.pickEntity')}
               </p>
             </div>
           )}
 
           <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--color-brand-soft)] p-5">
-            <h3 className="text-[var(--text-sm)] font-semibold text-[var(--color-brand-strong)] mb-1">
+            <h3 className="text-[length:var(--text-sm)] font-semibold text-[var(--color-brand-strong)] mb-1">
               {t('onboarding.org.readyTitle')}
             </h3>
-            <p className="text-[var(--text-xs)] text-[var(--color-brand-strong)]/80 mb-3">
+            <p className="text-[length:var(--text-xs)] text-[var(--color-brand-strong)]/80 mb-3">
               {t('onboarding.org.readyBody')}
             </p>
             <button
               onClick={() => navigate('/admin/assignments')}
-              className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] transition-colors"
+              className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold hover:bg-[var(--btn-primary-bg-hover)] transition-colors"
             >
               {t('onboarding.org.openAssignments')} <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -209,7 +209,7 @@ export default function OrgOnboarding() {
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-4">
-      <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">{label}</div>
+      <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">{label}</div>
       <div className="text-[22px] font-bold tabular-nums text-[var(--text-primary)] mt-1">{value}</div>
     </div>
   )
@@ -222,15 +222,15 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
       <div className="w-14 h-14 mx-auto rounded-2xl bg-[var(--color-brand-soft)] flex items-center justify-center">
         <Landmark className="w-7 h-7 text-[var(--color-brand)]" />
       </div>
-      <h3 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)] mt-3">
+      <h3 className="font-display text-[length:var(--text-lg)] font-semibold text-[var(--text-primary)] mt-3">
         {t('onboarding.org.emptyTitle')}
       </h3>
-      <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1 max-w-sm mx-auto">
+      <p className="text-[length:var(--text-sm)] text-[var(--text-tertiary)] mt-1 max-w-sm mx-auto">
         {t('onboarding.org.emptyBody')}
       </p>
       <button
         onClick={onAdd}
-        className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)]"
+        className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold hover:bg-[var(--btn-primary-bg-hover)]"
       >
         <Plus className="w-4 h-4" /> {t('onboarding.org.addGroup')}
       </button>
@@ -301,8 +301,8 @@ function TreeNode(p: TreeNodeProps) {
         ) : (
           <>
             <div className="min-w-0 flex-1">
-              <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{entity.name}</div>
-              <div className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-2">
+              <div className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{entity.name}</div>
+              <div className="text-caption text-[var(--text-tertiary)] flex items-center gap-2">
                 <span className="uppercase tracking-wider font-semibold">{typeLabel(entity.type)}</span>
                 {entity.code && <span>· {entity.code}</span>}
                 {entity.country && <span>· {entity.country}</span>}
@@ -393,7 +393,7 @@ function AddRow({
         <select
           value={type}
           onChange={e => setType(e.target.value as EntityType)}
-          className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)]"
+          className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-xs)]"
         >
           {allowedTypes.map(ty => <option key={ty} value={ty}>{typeLabel(ty)}</option>)}
         </select>
@@ -403,13 +403,13 @@ function AddRow({
           onChange={e => setName(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && submit()}
           placeholder={t('onboarding.org.entityName')}
-          className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+          className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
         />
         <input
           value={code}
           onChange={e => setCode(e.target.value)}
           placeholder={t('onboarding.org.codeOptional')}
-          className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)] font-mono"
+          className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-xs)] font-mono"
         />
       </div>
       <div className="grid grid-cols-[1fr_140px_auto_auto] gap-2">
@@ -417,7 +417,7 @@ function AddRow({
           value={country}
           onChange={e => setCountry(e.target.value)}
           placeholder={t('onboarding.org.country')}
-          className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)]"
+          className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-xs)]"
         />
         {type === 'subsidiary' ? (
           <input
@@ -425,14 +425,14 @@ function AddRow({
             value={equity}
             onChange={e => setEquity(e.target.value)}
             placeholder={t('onboarding.org.equityPlaceholder')}
-            className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)]"
+            className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-xs)]"
           />
         ) : <div />}
         <button
           type="button"
           onClick={submit}
           disabled={!name.trim()}
-          className="px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--color-brand)] text-white text-[var(--text-xs)] font-semibold disabled:opacity-50 hover:bg-[var(--color-brand-strong)] inline-flex items-center gap-1"
+          className="px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-xs)] font-semibold disabled:opacity-50 hover:bg-[var(--btn-primary-bg-hover)] inline-flex items-center gap-1"
         >
           <Check className="w-3 h-3" /> {t('onboarding.welcome.step4.add')}
         </button>
@@ -475,14 +475,14 @@ function EditRow({
         value={name}
         onChange={e => setName(e.target.value)}
         onKeyDown={e => e.key === 'Enter' && submit()}
-        className="flex-1 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--color-brand)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+        className="flex-1 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--color-brand)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
       />
-      <input value={code} onChange={e => setCode(e.target.value)} placeholder={t('onboarding.org.code')} className="w-20 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[10px] font-mono" />
-      <input value={country} onChange={e => setCountry(e.target.value)} placeholder={t('onboarding.org.country')} className="w-24 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[10px]" />
+      <input value={code} onChange={e => setCode(e.target.value)} placeholder={t('onboarding.org.code')} className="w-20 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-caption font-mono" />
+      <input value={country} onChange={e => setCountry(e.target.value)} placeholder={t('onboarding.org.country')} className="w-24 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-caption" />
       {entity.type === 'subsidiary' && (
-        <input type="number" value={equity} onChange={e => setEquity(e.target.value)} placeholder={t('onboarding.org.eqShort')} className="w-16 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[10px]" />
+        <input type="number" value={equity} onChange={e => setEquity(e.target.value)} placeholder={t('onboarding.org.eqShort')} className="w-16 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-caption" />
       )}
-      <button onClick={e => { e.stopPropagation(); submit() }} className="w-6 h-6 rounded bg-[var(--color-brand)] text-white flex items-center justify-center">
+      <button onClick={e => { e.stopPropagation(); submit() }} className="w-6 h-6 rounded bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] flex items-center justify-center">
         <Check className="w-3 h-3" />
       </button>
       <button onClick={e => { e.stopPropagation(); onCancel() }} className="w-6 h-6 rounded text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] flex items-center justify-center">
@@ -537,13 +537,13 @@ function DetailPanel({
             <Icon className="w-5 h-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
+            <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">
               {typeLabel(entity.type)}
             </div>
-            <h3 className="font-display text-[var(--text-base)] font-bold text-[var(--text-primary)] truncate">{entity.name}</h3>
+            <h3 className="font-display text-[length:var(--text-base)] font-bold text-[var(--text-primary)] truncate">{entity.name}</h3>
           </div>
         </div>
-        <nav className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-1 flex-wrap">
+        <nav className="text-caption text-[var(--text-tertiary)] flex items-center gap-1 flex-wrap">
           {path.map((p, i) => (
             <span key={p.id} className={i === path.length - 1 ? 'font-semibold text-[var(--text-primary)]' : ''}>
               {p.name}{i < path.length - 1 && <span className="mx-1 text-[var(--text-tertiary)]">›</span>}
@@ -562,33 +562,33 @@ function DetailPanel({
 
         <div>
           <div className="flex items-center justify-between mb-2">
-            <h4 className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)] uppercase tracking-wider">
+            <h4 className="text-[length:var(--text-xs)] font-semibold text-[var(--text-primary)] uppercase tracking-wider">
               <Users className="w-3 h-3 inline -mt-0.5 mr-1" />
               {t('onboarding.org.members', { count: entityMembers.length })}
             </h4>
             {!addOpen && (
               <button
                 onClick={() => setAddOpen(true)}
-                className="text-[var(--text-xs)] font-semibold text-[var(--color-brand)] hover:underline inline-flex items-center gap-1"
+                className="text-[length:var(--text-xs)] font-semibold text-[var(--color-brand)] hover:underline inline-flex items-center gap-1"
               >
                 <Plus className="w-3 h-3" /> {t('onboarding.welcome.step4.add')}
               </button>
             )}
           </div>
           {entityMembers.length === 0 && !addOpen && (
-            <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] italic py-2">{t('onboarding.org.noMembers')}</div>
+            <div className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] italic py-2">{t('onboarding.org.noMembers')}</div>
           )}
           <ul className="space-y-1.5">
             {entityMembers.map(m => (
               <li key={m.id} className="flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)]">
-                <div className="w-7 h-7 rounded-full bg-[var(--color-brand)] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                <div className="w-7 h-7 rounded-full bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-caption font-bold flex items-center justify-center flex-shrink-0">
                   {m.name.slice(0, 2).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)] truncate">{m.name}</div>
-                  <div className="text-[10px] text-[var(--text-tertiary)] truncate">{m.email}</div>
+                  <div className="text-[length:var(--text-xs)] font-semibold text-[var(--text-primary)] truncate">{m.name}</div>
+                  <div className="text-caption text-[var(--text-tertiary)] truncate">{m.email}</div>
                 </div>
-                <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--color-brand)] bg-[var(--color-brand-soft)] px-1.5 py-0.5 rounded">
+                <span className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--color-brand)] bg-[var(--color-brand-soft)] px-1.5 py-0.5 rounded">
                   {ROLE_CATALOG[m.role].name.split(' ').map(w => w[0]).join('')}
                 </span>
                 <button
@@ -607,27 +607,27 @@ function DetailPanel({
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 placeholder={t('auth.register.fullName')}
-                className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
               />
               <input
                 type="email"
                 value={form.email}
                 onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                 placeholder={t('login.email')}
-                className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
               />
               <select
                 value={form.role}
                 onChange={e => setForm(f => ({ ...f, role: e.target.value as PlatformRole }))}
-                className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
               >
                 {Object.values(ROLE_CATALOG).map(r => (
                   <option key={r.slug} value={r.slug}>{t(`shell.roles.${r.slug}.name`, { defaultValue: r.name })}</option>
                 ))}
               </select>
               <div className="flex gap-2">
-                <button onClick={save} className="flex-1 px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--color-brand)] text-white text-[var(--text-xs)] font-semibold">{t('onboarding.org.addMember')}</button>
-                <button onClick={() => setAddOpen(false)} className="px-3 py-1.5 rounded-[var(--radius-sm)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-xs)]">{t('common.cancel')}</button>
+                <button onClick={save} className="flex-1 px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-xs)] font-semibold">{t('onboarding.org.addMember')}</button>
+                <button onClick={() => setAddOpen(false)} className="px-3 py-1.5 rounded-[var(--radius-sm)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] text-[length:var(--text-xs)]">{t('common.cancel')}</button>
               </div>
             </div>
           )}
@@ -641,7 +641,7 @@ function FrameworkScopeNote() {
   const { i18n: i18nInst } = useTranslation()
   const { active } = useFramework()
   return (
-    <p className="text-[var(--text-sm)] text-[var(--text-secondary)] max-w-2xl mt-1">
+    <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] max-w-2xl mt-1">
       <Trans
         i18nKey="onboarding.org.scopeNote"
         values={{ framework: frameworkName(active, i18nInst.language) }}
@@ -654,8 +654,8 @@ function FrameworkScopeNote() {
 function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] font-semibold">{label}</div>
-      <div className={`text-[var(--text-sm)] text-[var(--text-primary)] font-medium ${mono ? 'font-mono' : ''}`}>{value}</div>
+      <div className="text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] font-semibold">{label}</div>
+      <div className={`text-[length:var(--text-sm)] text-[var(--text-primary)] font-medium ${mono ? 'font-mono' : ''}`}>{value}</div>
     </div>
   )
 }

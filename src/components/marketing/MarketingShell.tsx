@@ -207,7 +207,7 @@ export default function MarketingShell({ children }: { children: ReactNode }) {
             {FOOTER_COLS.map((col) => (
               <div key={col.headingKey}>
                 <h4
-                  className="text-[11px] font-semibold uppercase tracking-[0.12em] mb-4"
+                  className="text-micro font-semibold uppercase tracking-[0.12em] mb-4"
                   style={{ color: 'rgba(255,255,255,0.5)' }}
                 >
                   {t(col.headingKey)}

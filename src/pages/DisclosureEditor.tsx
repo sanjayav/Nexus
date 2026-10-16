@@ -2,7 +2,7 @@ import { Component, useCallback, useEffect, useMemo, useRef, useState } from 're
 import type { ReactNode } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react'
+import { Loader2, AlertCircle, ArrowLeft, CalendarClock } from 'lucide-react'
 import {
   nexus,
   conceptMappings,
@@ -20,9 +20,8 @@ import DisclosureCellRail from '../components/disclosure-editor/DisclosureCellRa
 import MobileEditorShell from '../components/disclosure-editor/MobileEditorShell'
 import { RoomProvider, roomIdFor } from '../lib/liveblocks'
 import { useIsBelowLg } from '../lib/breakpoints'
-
-const ACTIVE_REPORTING_YEAR_ID = '11000000-0000-0000-0000-000000000026'
-const ACTIVE_YEAR = 2026
+import EmptyState from '../components/EmptyState'
+import { useActiveReportingYear, fetchActiveReportingYear } from '../lib/activeReportingYear'
 
 type LoadState =
   | { kind: 'loading' }
@@ -52,6 +51,12 @@ export default function DisclosureEditor() {
   const { t, i18n } = useTranslation()
 
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
+  // The org's own open reporting year (data_value mirror + publish target).
+  // With no open year the editor still saves assignments; the mirror and
+  // publish are skipped and a notice points to Reporting cycles.
+  const activeYear = useActiveReportingYear()
+  const reportingYearId = activeYear.kind === 'ready' ? activeYear.year.id : null
+  const reportingYear = activeYear.kind === 'ready' ? activeYear.year.year : new Date().getFullYear()
   const [readingMode, setReadingMode] = useState(false)
   const [linkedPeersByItem, setLinkedPeersByItem] = useState<Record<string, ConceptPeer[]>>({})
   const isBelowLg = useIsBelowLg()
@@ -220,11 +225,13 @@ export default function DisclosureEditor() {
           status: assignment.status === 'not_started' ? 'in_progress' : assignment.status,
         })
       }
-      if (newValue != null) {
+      // Awaiting the (cached) lookup avoids racing the hook on first edit.
+      const year = newValue != null ? await fetchActiveReportingYear() : null
+      if (newValue != null && year?.kind === 'ready') {
         try {
           await nexus.enterValue({
             question_id: item.id,
-            reporting_year_id: ACTIVE_REPORTING_YEAR_ID,
+            reporting_year_id: year.year.id,
             value: newValue,
             unit: item.unit ?? undefined,
             mode: 'Manual',
@@ -303,25 +310,25 @@ export default function DisclosureEditor() {
   }, [activeCellId, assignmentByItem])
 
   const handlePublish = useCallback(async () => {
-    if (!hasPermission(permissions, 'reports.publish')) return
+    if (!hasPermission(permissions, 'reports.publish') || !reportingYearId) return
     setPublishing(true)
     try {
-      await nexus.publish(ACTIVE_REPORTING_YEAR_ID)
+      await nexus.publish(reportingYearId)
       navigate('/reports')
     } catch (e) {
       console.warn('[disclosure-editor] publish failed', e)
     } finally {
       setPublishing(false)
     }
-  }, [permissions, navigate])
+  }, [permissions, navigate, reportingYearId])
 
   // ── Render ──────────────────────────────────────────────────
   if (!framework) {
     return (
       <div className="max-w-lg mx-auto mt-20 p-6 rounded-[var(--radius-lg)] border border-[var(--status-reject)]/20 bg-[var(--accent-red-light)]">
         <h3 className="font-semibold text-[var(--text-primary)] mb-1">{t('disclosureEditor.page.notFound')}</h3>
-        <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">{t('disclosureEditor.page.noMatch', { id: frameworkId })}</p>
-        <button onClick={() => navigate('/reports/templates')} className="mt-3 inline-flex items-center gap-1 text-[var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">
+        <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)]">{t('disclosureEditor.page.noMatch', { id: frameworkId })}</p>
+        <button onClick={() => navigate('/reports/templates')} className="mt-3 inline-flex items-center gap-1 text-[length:var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">
           <ArrowLeft className="w-3 h-3" /> {t('disclosureEditor.page.backToTemplates')}
         </button>
       </div>
@@ -343,8 +350,8 @@ export default function DisclosureEditor() {
           <AlertCircle className="w-5 h-5 text-[var(--status-reject)] flex-shrink-0 mt-0.5" />
           <div>
             <h3 className="font-semibold text-[var(--text-primary)]">{t('disclosureEditor.page.unableToLoad')}</h3>
-            <p className="text-[var(--text-sm)] text-[var(--text-secondary)] font-mono mt-1">{state.error}</p>
-            <button onClick={() => void load()} className="mt-3 text-[var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">{t('disclosureEditor.page.retry')}</button>
+            <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] font-mono mt-1">{state.error}</p>
+            <button onClick={() => void load()} className="mt-3 text-[length:var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">{t('disclosureEditor.page.retry')}</button>
           </div>
         </div>
       </div>
@@ -355,7 +362,7 @@ export default function DisclosureEditor() {
     return (
       <div className="max-w-lg mx-auto mt-20 p-6 rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] text-center">
         <h3 className="font-semibold text-[var(--text-primary)] mb-1">{t('disclosureEditor.page.emptyTitle')}</h3>
-        <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
+        <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)]">
           {t('disclosureEditor.page.emptyBody', { code: framework.code })}
         </p>
       </div>
@@ -392,7 +399,7 @@ export default function DisclosureEditor() {
     onWorkflowAction: handleWorkflowAction,
     workflowBusy,
     frameworkId,
-    reportingYear: ACTIVE_YEAR,
+    reportingYear,
     items: state.items,
     onOpenCell: setActiveCellId,
   }
@@ -402,7 +409,7 @@ export default function DisclosureEditor() {
       <DisclosureProgressBar
         frameworkName={(i18n.language?.startsWith('zh') && (framework as { nameZh?: string }).nameZh) || framework.name}
         frameworkCode={framework.code}
-        reportingYear={ACTIVE_YEAR}
+        reportingYear={reportingYear}
         workflowStatus={workflowStatus}
         completedCells={completedCells}
         totalCells={totalCells}
@@ -411,6 +418,19 @@ export default function DisclosureEditor() {
         onPublish={() => void handlePublish()}
         publishing={publishing}
       />
+
+      {activeYear.kind === 'none' && (
+        <div className="surface-paper mx-4 mt-3 sm:mx-6 lg:mx-8">
+          <EmptyState
+            density="compact"
+            icon={CalendarClock}
+            title={t('reportingYear.none.title')}
+            body={t('reportingYear.none.inlineBody')}
+            cta={{ label: t('reportingYear.none.cta'), onClick: () => navigate('/admin/periods') }}
+            secondaryCta={{ label: t('reportingYear.none.retry'), onClick: activeYear.reload }}
+          />
+        </div>
+      )}
 
       {/* Mobile: single-pane tabbed shell. Below lg the desktop three-pane
           row would overflow horizontally even with min-w-0 because the rail

@@ -47,7 +47,7 @@ export default function PricingTable({ tiers, compact = false }: PricingTablePro
               >
                 {featured && (
                   <span
-                    className="absolute -top-3 left-7 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                    className="absolute -top-3 left-7 px-2.5 py-1 rounded-full text-micro font-bold uppercase tracking-[0.06em]"
                     style={{
                       background: 'var(--accent-600)',
                       color: '#fff',
@@ -110,7 +110,7 @@ export default function PricingTable({ tiers, compact = false }: PricingTablePro
 
         {!compact && (
           <p
-            className="text-center text-[11.5px] mt-10"
+            className="text-center text-caption mt-10"
             style={{ color: 'var(--text-tertiary)' }}
           >
             {t('marketing.pricingTable.disclaimer')}

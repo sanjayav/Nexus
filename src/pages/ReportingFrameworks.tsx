@@ -165,8 +165,8 @@ export default function ReportingFrameworks() {
           <AlertCircle className="w-5 h-5 text-[var(--status-reject)] flex-shrink-0 mt-0.5" />
           <div>
             <h3 className="font-semibold text-[var(--text-primary)]">{t('frameworksPage.errors.title')}</h3>
-            <p className="text-[var(--text-sm)] text-[var(--text-secondary)] font-mono mt-1">{state.error}</p>
-            <button onClick={load} className="mt-3 text-[var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">{t('frameworksPage.errors.retry')}</button>
+            <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] font-mono mt-1">{state.error}</p>
+            <button onClick={load} className="mt-3 text-[length:var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">{t('frameworksPage.errors.retry')}</button>
           </div>
         </div>
       </div>
@@ -196,9 +196,9 @@ export default function ReportingFrameworks() {
               key={s}
               type="button"
               onClick={() => setScope(s)}
-              className={`px-3 py-1.5 rounded-[var(--radius-sm)] text-[var(--text-xs)] font-semibold transition-colors ${
+              className={`px-3 py-1.5 rounded-[var(--radius-sm)] text-[length:var(--text-xs)] font-semibold transition-colors ${
                 scope === s
-                  ? 'bg-[var(--color-brand)] text-white'
+                  ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)]'
                   : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
@@ -207,7 +207,7 @@ export default function ReportingFrameworks() {
           ))}
         </div>
 
-        <div className="flex items-center gap-2 text-[var(--text-xs)]">
+        <div className="flex items-center gap-2 text-[length:var(--text-xs)]">
           <span className="px-2.5 py-1 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
             <Trans i18nKey="frameworksPage.stats.items" count={stats.total} components={{ n: <span className="font-semibold text-[var(--text-primary)] tabular-nums" /> }} />
           </span>
@@ -230,14 +230,14 @@ export default function ReportingFrameworks() {
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder={t('frameworksPage.searchPlaceholder')}
-          className="w-full pl-10 pr-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none"
+          className="w-full pl-10 pr-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none"
         />
       </div>
 
       {/* Tree */}
       <div className="space-y-3">
         {tree.length === 0 && (
-          <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] p-10 text-center text-[var(--text-sm)] text-[var(--text-tertiary)]">
+          <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] p-10 text-center text-[length:var(--text-sm)] text-[var(--text-tertiary)]">
             {t('frameworksPage.noMatches', { query })}
           </div>
         )}
@@ -253,9 +253,9 @@ export default function ReportingFrameworks() {
               >
                 <div className="flex items-center gap-3">
                   {isCapOpen ? <ChevronDown className="w-4 h-4 text-[var(--text-tertiary)]" /> : <ChevronRight className="w-4 h-4 text-[var(--text-tertiary)]" />}
-                  <span className="font-display text-[var(--text-base)] font-semibold text-[var(--text-primary)]">{t(capitalLabelKey(cap.capital), { defaultValue: cap.capital })}</span>
+                  <span className="font-display text-[length:var(--text-base)] font-semibold text-[var(--text-primary)]">{t(capitalLabelKey(cap.capital), { defaultValue: cap.capital })}</span>
                 </div>
-                <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] tabular-nums">{t('frameworksPage.itemCount', { count: capCount })}</span>
+                <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] tabular-nums">{t('frameworksPage.itemCount', { count: capCount })}</span>
               </button>
 
               {isCapOpen && (
@@ -273,9 +273,9 @@ export default function ReportingFrameworks() {
                         >
                           <div className="flex items-center gap-2">
                             {isSubOpen ? <ChevronDown className="w-3 h-3 text-[var(--text-tertiary)]" /> : <ChevronRight className="w-3 h-3 text-[var(--text-tertiary)]" />}
-                            <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand)]">{t(subsectionLabelKey(sub.name), { defaultValue: sub.name })}</span>
+                            <span className="text-micro uppercase tracking-wider font-semibold text-[var(--color-brand)]">{t(subsectionLabelKey(sub.name), { defaultValue: sub.name })}</span>
                           </div>
-                          <span className="text-[10px] text-[var(--text-tertiary)] tabular-nums">{subCount}</span>
+                          <span className="text-caption text-[var(--text-tertiary)] tabular-nums">{subCount}</span>
                         </button>
 
                         {isSubOpen && (
@@ -292,8 +292,8 @@ export default function ReportingFrameworks() {
                                       className="w-full flex items-center gap-2 px-5 py-1.5 text-left hover:bg-[var(--bg-secondary)] transition-colors"
                                     >
                                       {isCodeOpen ? <ChevronDown className="w-3 h-3 text-[var(--text-tertiary)]" /> : <ChevronRight className="w-3 h-3 text-[var(--text-tertiary)]" />}
-                                      <span className="font-mono text-[10px] font-semibold text-[var(--text-tertiary)]">{codeGroup.code}</span>
-                                      <span className="text-[10px] text-[var(--text-tertiary)]">· {t('frameworksPage.rowCount', { count: codeGroup.items.length })}</span>
+                                      <span className="font-mono text-caption font-semibold text-[var(--text-tertiary)]">{codeGroup.code}</span>
+                                      <span className="text-caption text-[var(--text-tertiary)]">· {t('frameworksPage.rowCount', { count: codeGroup.items.length })}</span>
                                     </button>
                                   )}
                                   {(isCodeOpen || codeGroup.items.length === 1) && codeGroup.items.map(it => (
@@ -356,10 +356,10 @@ function LineItem({
     >
       <ModeIcon className="w-3.5 h-3.5 text-[var(--text-tertiary)] group-hover:text-[var(--color-brand)] flex-shrink-0" />
       <div className="min-w-0 flex-1">
-        <div className="text-[var(--text-xs)] font-medium text-[var(--text-primary)] truncate group-hover:text-[var(--color-brand-strong)]">
+        <div className="text-[length:var(--text-xs)] font-medium text-[var(--text-primary)] truncate group-hover:text-[var(--color-brand-strong)]">
           {itemLabel(item, i18n.language)}
         </div>
-        <div className="text-[10px] text-[var(--text-tertiary)]">
+        <div className="text-caption text-[var(--text-tertiary)]">
           {item.scope_split ? `${item.scope_split} · ` : ''}
           {item.unit ?? '—'}
           {item.target_fy2026 != null ? ` · ${t('frameworksPage.target', { value: item.target_fy2026 })}` : ''}
@@ -368,7 +368,7 @@ function LineItem({
 
       {/* FY2025 latest (from history) */}
       {latest != null && (
-        <span className="text-[10px] tabular-nums text-[var(--text-tertiary)] hidden md:inline-block" title="FY2025">
+        <span className="text-caption tabular-nums text-[var(--text-tertiary)] hidden md:inline-block" title="FY2025">
           '25 {formatValue(latest)}
         </span>
       )}
@@ -377,13 +377,13 @@ function LineItem({
       {dv ? (
         <StatusPill status={dv.status} value={dv.value} hash={dv.value_hash} />
       ) : (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-xs)] text-[9px] font-semibold uppercase tracking-wider bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-xs)] text-micro font-semibold uppercase tracking-[0.06em] bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">
           {t('frameworksPage.status.not_started')}
         </span>
       )}
 
       {/* Role badge */}
-      <span className="px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[var(--bg-secondary)] group-hover:bg-white text-[9px] font-semibold text-[var(--text-tertiary)] flex-shrink-0 inline-flex items-center gap-1 min-w-[36px] justify-center">
+      <span className="px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[var(--bg-secondary)] group-hover:bg-white text-caption font-semibold text-[var(--text-tertiary)] flex-shrink-0 inline-flex items-center gap-1 min-w-[36px] justify-center">
         {item.default_workflow_role === 'AUTO' && <Bot className="w-2.5 h-2.5" />}
         {item.default_workflow_role}
       </span>
@@ -405,13 +405,13 @@ function StatusPill({ status, value, hash }: { status: NexusDataValue['status'];
   }
   const c = map[status]
   return (
-    <span className="inline-flex items-center gap-1.5 text-[10px]">
+    <span className="inline-flex items-center gap-1.5 text-caption">
       {value != null && <span className="tabular-nums font-semibold text-[var(--text-primary)]">{formatValue(value)}</span>}
       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[var(--radius-xs)] font-semibold uppercase tracking-wider" style={{ background: c.bg, color: c.fg }}>
         <c.Icon className="w-2.5 h-2.5" />
         {t(`frameworksPage.status.${status}`, { defaultValue: c.label })}
       </span>
-      {hash && <span className="font-mono text-[9px] text-[var(--text-tertiary)] inline-flex items-center gap-0.5"><Hash className="w-2 h-2" />{truncateHash(hash)}</span>}
+      {hash && <span className="font-mono text-caption text-[var(--text-tertiary)] inline-flex items-center gap-0.5"><Hash className="w-2 h-2" />{truncateHash(hash)}</span>}
     </span>
   )
 }

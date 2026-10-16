@@ -15,8 +15,8 @@ type TargetKind = OrgTarget['kind']
 type TargetStatus = OrgTarget['status']
 
 const KIND_META: Record<TargetKind, { label: string; helper: string; accent: string }> = {
-  sbti_near_term: { label: 'SBTi near-term',  helper: '5–10 year reduction target validated by Science Based Targets initiative.', accent: '#1B6B7B' },
-  sbti_long_term: { label: 'SBTi long-term',  helper: '15+ year decarbonisation pathway aligned to 1.5°C.',                          accent: '#3B8A9B' },
+  sbti_near_term: { label: 'SBTi near-term',  helper: '5–10 year reduction target validated by Science Based Targets initiative.', accent: '#047857' },
+  sbti_long_term: { label: 'SBTi long-term',  helper: '15+ year decarbonisation pathway aligned to 1.5°C.',                          accent: '#059669' },
   net_zero:       { label: 'Net-zero',        helper: 'A long-horizon (typically 2040–2050) commitment to zero net emissions.',     accent: '#2E7D32' },
   custom:         { label: 'Custom target',   helper: 'Internal commitment that doesn\'t map to SBTi or net-zero categories.',      accent: '#7C5FB8' },
 }
@@ -175,7 +175,7 @@ export default function ClimateTargets() {
                   <div className="w-1 h-5 rounded-full" style={{ background: meta.accent }} />
                   <div className="flex-1">
                     <h2 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{kindLabel(t, kind)}</h2>
-                    <p className="text-[11.5px] text-[var(--text-tertiary)] leading-relaxed">{kindHelper(t, kind)}</p>
+                    <p className="text-caption text-[var(--text-tertiary)] leading-relaxed">{kindHelper(t, kind)}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -240,7 +240,7 @@ function TargetCard({ target, onEdit, onRemove }: { target: OrgTarget; onEdit: (
             <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.005em] truncate">{target.label}</h3>
             <Badge variant={status.badge}>{statusLabel(t, target.status)}</Badge>
           </div>
-          <div className="text-[11.5px] text-[var(--text-tertiary)] mt-1">{scopeLabel(t, target.scope_coverage)}</div>
+          <div className="text-caption text-[var(--text-tertiary)] mt-1">{scopeLabel(t, target.scope_coverage)}</div>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
           <button
@@ -267,13 +267,13 @@ function TargetCard({ target, onEdit, onRemove }: { target: OrgTarget; onEdit: (
       </div>
 
       {target.notes && (
-        <p className="text-[11.5px] text-[var(--text-secondary)] mt-3 leading-relaxed border-t border-[var(--border-subtle)] pt-3">
+        <p className="text-caption text-[var(--text-secondary)] mt-3 leading-relaxed border-t border-[var(--border-subtle)] pt-3">
           {target.notes}
         </p>
       )}
 
       {target.validated_by && (
-        <div className="mt-3 inline-flex items-center gap-1.5 text-[11px] text-[var(--status-ok)]">
+        <div className="mt-3 inline-flex items-center gap-1.5 text-caption text-[var(--status-ok)]">
           <ShieldCheck className="w-3 h-3" /> {t('climateTargets.card.validatedBy', { name: target.validated_by })}
         </div>
       )}
@@ -284,9 +284,9 @@ function TargetCard({ target, onEdit, onRemove }: { target: OrgTarget; onEdit: (
 function Stat({ label, primary, secondary, accent, highlight }: { label: string; primary: string; secondary: string; accent: string; highlight?: boolean }) {
   return (
     <div className="rounded-[8px] py-2.5 px-2" style={{ background: highlight ? `${accent}10` : 'var(--bg-secondary)' }}>
-      <div className="text-[9.5px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)]">{label}</div>
+      <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">{label}</div>
       <div className="font-display text-[16px] font-bold tabular-nums tracking-[-0.01em] mt-0.5" style={{ color: highlight ? accent : 'var(--text-primary)' }}>{primary}</div>
-      <div className="text-[10.5px] text-[var(--text-tertiary)] mt-0.5">{secondary}</div>
+      <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{secondary}</div>
     </div>
   )
 }
@@ -305,7 +305,7 @@ function Empty({ onAdd }: { onAdd: () => void }) {
             {t('climateTargets.empty.body')}
           </p>
         </div>
-        <button onClick={onAdd} className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[8px] bg-[var(--color-brand)] text-white text-[12.5px] font-semibold hover:bg-[var(--color-brand-strong)] cursor-pointer">
+        <button onClick={onAdd} className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[8px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[12.5px] font-semibold hover:bg-[var(--btn-primary-bg-hover)] cursor-pointer">
           <Plus className="w-3.5 h-3.5" /> {t('climateTargets.empty.addFirst')}
         </button>
       </div>
@@ -404,7 +404,7 @@ function TargetEditor({ initial, onCancel, onSave }: {
             </div>
             <div>
               <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{isEdit ? t('climateTargets.editor.editTitle') : t('climateTargets.editor.addTitle')}</h3>
-              <p className="text-[11.5px] text-[var(--text-tertiary)]">{t('climateTargets.editor.subtitle')}</p>
+              <p className="text-caption text-[var(--text-tertiary)]">{t('climateTargets.editor.subtitle')}</p>
             </div>
           </div>
           <button onClick={onCancel} className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer"><X className="w-4 h-4" /></button>
@@ -432,7 +432,7 @@ function TargetEditor({ initial, onCancel, onSave }: {
                       <div className="w-1 h-3 rounded-full" style={{ background: m.accent }} />
                       <span className="text-[12.5px] font-semibold text-[var(--text-primary)]">{kindLabel(t, k)}</span>
                     </div>
-                    <p className="text-[10.5px] text-[var(--text-tertiary)] leading-snug">{kindHelper(t, k)}</p>
+                    <p className="text-caption text-[var(--text-tertiary)] leading-snug">{kindHelper(t, k)}</p>
                   </button>
                 )
               })}
@@ -526,7 +526,7 @@ function TargetEditor({ initial, onCancel, onSave }: {
               />
               <span className="text-[12.5px] font-semibold text-[var(--text-secondary)]">%</span>
             </div>
-            <div className="text-[11px] text-[var(--text-tertiary)] mt-1.5">
+            <div className="text-caption text-[var(--text-tertiary)] mt-1.5">
               {t('climateTargets.editor.projection', {
                 year: form.target_year,
                 value: targetValue.toLocaleString(locale, { maximumFractionDigits: 1 }),
@@ -570,7 +570,7 @@ function TargetEditor({ initial, onCancel, onSave }: {
           {!valid && (
             <div className="flex items-start gap-2 p-3 rounded-[8px] bg-[var(--accent-amber-light)] border border-[rgba(230,168,23,0.3)]">
               <Info className="w-4 h-4 text-[var(--status-draft)] flex-shrink-0 mt-0.5" />
-              <div className="text-[11.5px] text-[var(--text-secondary)] leading-relaxed">
+              <div className="text-caption text-[var(--text-secondary)] leading-relaxed">
                 {t('climateTargets.editor.invalid')}
               </div>
             </div>
@@ -581,7 +581,7 @@ function TargetEditor({ initial, onCancel, onSave }: {
           <button onClick={onCancel} className="flex-1 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-[13px] font-semibold hover:bg-[var(--bg-secondary)] cursor-pointer">
             {t('common.cancel')}
           </button>
-          <button onClick={() => valid && onSave(form)} disabled={!valid} className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--color-brand)] text-white text-[13px] font-semibold hover:bg-[var(--color-brand-strong)] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+          <button onClick={() => valid && onSave(form)} disabled={!valid} className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[13px] font-semibold hover:bg-[var(--btn-primary-bg-hover)] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
             {isEdit ? <><Pencil className="w-3.5 h-3.5" /> {t('climateTargets.editor.saveChanges')}</> : <><Plus className="w-3.5 h-3.5" /> {t('climateTargets.editor.create')}</>}
           </button>
         </footer>
@@ -593,7 +593,7 @@ function TargetEditor({ initial, onCancel, onSave }: {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)] mb-1.5">{label}</div>
+      <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{label}</div>
       {children}
     </div>
   )

@@ -120,7 +120,7 @@ export default function SavedViewsBar<F>({ page, filters, onApply, onDefaultAppl
 
   return (
     <div className={`flex items-center flex-wrap gap-2 ${className ?? ''}`} role="region" aria-label={t('components.savedViews.region')}>
-      <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--text-tertiary)]">
+      <span className="inline-flex items-center gap-1.5 text-micro uppercase tracking-[0.06em] font-bold text-[var(--text-tertiary)]">
         <Bookmark className="w-3.5 h-3.5" /> {t('savedViews.label')}
       </span>
       <button
@@ -180,7 +180,7 @@ export default function SavedViewsBar<F>({ page, filters, onApply, onDefaultAppl
         <Plus className="w-3 h-3" /> {t('savedViews.saveAs')}
       </button>
       {error && (
-        <span className="text-[11px] text-[var(--accent-red)]">{error}</span>
+        <span className="text-caption text-[var(--accent-red)]">{error}</span>
       )}
       {dialogOpen && <SaveDialog onCancel={() => setDialogOpen(false)} onSave={handleSave} />}
     </div>

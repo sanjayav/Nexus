@@ -107,8 +107,8 @@ function BoardColumn({
       }`}
     >
       <div className="flex items-center justify-between mb-3 px-1">
-        <h3 className="label uppercase tracking-wider font-semibold text-[var(--text-secondary)] text-[11px]">{label}</h3>
-        <span className="text-[10px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">
+        <h3 className="label uppercase tracking-[0.06em] font-semibold text-[var(--text-secondary)] text-micro">{label}</h3>
+        <span className="text-caption font-semibold tabular-nums px-1.5 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">
           {items.length}
         </span>
       </div>
@@ -117,7 +117,7 @@ function BoardColumn({
           <DraggableCard key={a.id} a={a} entityById={entityById} onOpen={onOpen} />
         ))}
         {items.length === 0 && (
-          <div className="text-[10px] text-[var(--text-tertiary)] text-center py-6 italic">
+          <div className="text-caption text-[var(--text-tertiary)] text-center py-6 italic">
             {t('tasks.board.dropHere')}
           </div>
         )}
@@ -181,22 +181,22 @@ function BoardCard({
           <div className="flex items-center gap-1.5 mb-1 flex-wrap">
             {fw && (
               <span
-                className="text-[9px] font-bold uppercase tracking-wider px-1 py-0.5 rounded"
+                className="text-micro font-bold uppercase tracking-[0.06em] px-1 py-0.5 rounded"
                 style={{ background: `${fw.color}22`, color: fw.color }}
               >
                 {fw.code}
               </span>
             )}
-            <span className="text-[10px] font-bold text-[var(--color-brand)] tabular-nums">{a.gri_code}</span>
+            <span className="text-caption font-bold text-[var(--color-brand)] tabular-nums">{a.gri_code}</span>
           </div>
           <button
             type="button"
             onClick={() => onOpen?.(a.id)}
-            className="text-left text-[var(--text-sm)] font-semibold text-[var(--text-primary)] line-clamp-2 leading-snug hover:text-[var(--color-brand)] transition-colors"
+            className="text-left text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)] line-clamp-2 leading-snug hover:text-[var(--color-brand)] transition-colors"
           >
             {itemLabel(a, i18n.language)}
           </button>
-          <div className="flex items-center gap-2 mt-2 text-[10px] text-[var(--text-tertiary)] flex-wrap">
+          <div className="flex items-center gap-2 mt-2 text-caption text-[var(--text-tertiary)] flex-wrap">
             <span className="inline-flex items-center gap-1 truncate max-w-[120px]">
               <Factory className="w-3 h-3 flex-shrink-0" /> {entity?.name ?? t('tasks.board.unknown')}
             </span>

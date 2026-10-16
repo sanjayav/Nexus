@@ -101,14 +101,14 @@ export default function DisclosureTree({
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder={t('disclosureEditor.tree.search')}
-            className="w-full pl-7 pr-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none"
+            className="w-full pl-7 pr-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-xs)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none"
           />
         </div>
       </div>
 
       <nav className="flex-1 overflow-y-auto py-2">
         {filteredGroups.length === 0 && (
-          <div className="px-4 py-6 text-[10px] text-[var(--text-tertiary)] italic">
+          <div className="px-4 py-6 text-caption text-[var(--text-tertiary)] italic">
             {t('disclosureEditor.tree.noMatch', { query })}
           </div>
         )}
@@ -124,11 +124,11 @@ export default function DisclosureTree({
               >
                 <div className="flex items-center gap-1 min-w-0">
                   {collapsed ? <ChevronRight className="w-3 h-3 text-[var(--text-tertiary)]" /> : <ChevronDown className="w-3 h-3 text-[var(--text-tertiary)]" />}
-                  <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand)] truncate">
+                  <span className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--color-brand)] truncate">
                     {t(capitalLabelKey(group.section), { defaultValue: group.section })}
                   </span>
                 </div>
-                <span className="text-[9px] text-[var(--text-tertiary)] tabular-nums">{group.items.length}</span>
+                <span className="text-caption text-[var(--text-tertiary)] tabular-nums">{group.items.length}</span>
               </button>
 
               {!collapsed && (
@@ -152,11 +152,11 @@ export default function DisclosureTree({
                             <span aria-hidden className="absolute left-0 top-0 bottom-0 w-[3px] bg-[var(--color-brand)]" />
                           )}
                           {statusIcon(item.completed, item.total)}
-                          <span className="font-mono text-[10px] font-semibold text-[var(--text-tertiary)] flex-shrink-0">
+                          <span className="font-mono text-caption font-semibold text-[var(--text-tertiary)] flex-shrink-0">
                             {item.code}
                           </span>
-                          <span className="text-[11px] truncate flex-1">{t(subsectionLabelKey(item.label), { defaultValue: item.label }).replace(new RegExp(`^${item.code}\\s*[:·-]?\\s*`, 'i'), '')}</span>
-                          <span className="text-[9px] tabular-nums text-[var(--text-tertiary)] flex-shrink-0">
+                          <span className="text-caption truncate flex-1">{t(subsectionLabelKey(item.label), { defaultValue: item.label }).replace(new RegExp(`^${item.code}\\s*[:·-]?\\s*`, 'i'), '')}</span>
+                          <span className="text-caption tabular-nums text-[var(--text-tertiary)] flex-shrink-0">
                             {item.completed}/{item.total}
                           </span>
                         </button>
@@ -198,7 +198,7 @@ export default function DisclosureTree({
               aria-label={t('disclosureEditor.tree.contents')}
             >
               <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-subtle)]">
-                <span className="text-[11px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">{t('disclosureEditor.tree.contents')}</span>
+                <span className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">{t('disclosureEditor.tree.contents')}</span>
                 <button onClick={() => setDrawerOpen(false)} aria-label={t('common.close')} className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
                   <X className="w-3.5 h-3.5" />
                 </button>

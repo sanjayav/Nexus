@@ -37,7 +37,7 @@ export default function Table<T extends Record<string, any>>({
               <th
                 key={col.key}
                 className={`
-                  px-4 py-3 text-[var(--text-xs)] font-medium text-[var(--text-tertiary)]
+                  px-4 py-3 text-[length:var(--text-xs)] font-medium text-[var(--text-tertiary)]
                   uppercase tracking-wider ${alignClass(col.align)}
                 `}
                 style={{ width: col.width }}
@@ -50,7 +50,7 @@ export default function Table<T extends Record<string, any>>({
         <tbody>
           {data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-12 text-center text-[var(--text-tertiary)] text-[var(--text-sm)]">
+              <td colSpan={columns.length} className="px-4 py-12 text-center text-[var(--text-tertiary)] text-[length:var(--text-sm)]">
                 {emptyMessage ?? t('ui.noData')}
               </td>
             </tr>
@@ -62,13 +62,13 @@ export default function Table<T extends Record<string, any>>({
                 className={`
                   border-b border-[var(--border-subtle)]
                   ${onRowClick ? 'cursor-pointer hover:bg-[var(--bg-secondary)]' : ''}
-                  transition-colors duration-[var(--transition-fast)]
+                  transition-colors duration-micro
                 `}
               >
                 {columns.map((col) => (
                   <td
                     key={col.key}
-                    className={`px-4 py-3 text-[var(--text-sm)] text-[var(--text-primary)] ${alignClass(col.align)}`}
+                    className={`px-4 py-3 text-[length:var(--text-sm)] text-[var(--text-primary)] ${alignClass(col.align)}`}
                   >
                     {col.render ? col.render(row) : row[col.key]}
                   </td>

@@ -102,12 +102,12 @@ export default function CommentThread({ assignmentId }: CommentThreadProps) {
     <div className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3">
       {/* Header — title + unresolved count badge + filter */}
       <div className="flex items-center gap-2 mb-2">
-        <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
+        <div className="flex items-center gap-1.5 text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">
           <MessageSquare className="w-3 h-3" /> {t('components.comments.discussion')}
           {unresolvedCount > 0 && (
             <span
               data-testid="comment-unresolved-count"
-              className="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-[var(--color-brand-soft)] text-[var(--color-brand)]"
+              className="ml-1 px-1.5 py-0.5 rounded-full text-caption font-bold bg-[var(--color-brand-soft)] text-[var(--color-brand)]"
             >
               {t('components.comments.openCount', { count: unresolvedCount })}
             </span>
@@ -119,7 +119,7 @@ export default function CommentThread({ assignmentId }: CommentThreadProps) {
             aria-label={t('components.comments.filterAria')}
             value={filter}
             onChange={e => setFilter(e.target.value as FilterMode)}
-            className="text-[10px] bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-[4px] px-1.5 py-0.5 text-[var(--text-secondary)] focus:outline-none focus:border-[var(--color-brand)]"
+            className="text-caption bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-[4px] px-1.5 py-0.5 text-[var(--text-secondary)] focus:outline-none focus:border-[var(--color-brand)]"
           >
             <option value="all">{t('common.all')}</option>
             <option value="unresolved">{t('components.comments.filter.unresolved')}</option>
@@ -130,9 +130,9 @@ export default function CommentThread({ assignmentId }: CommentThreadProps) {
       </div>
 
       {loading ? (
-        <div className="py-3 text-center text-[10px] text-[var(--text-tertiary)]">{t('common.loading')}</div>
+        <div className="py-3 text-center text-caption text-[var(--text-tertiary)]">{t('common.loading')}</div>
       ) : visibleRoots.length === 0 ? (
-        <div className="py-2 text-[10px] text-[var(--text-tertiary)] italic">{t('components.comments.noMatch')}</div>
+        <div className="py-2 text-caption text-[var(--text-tertiary)] italic">{t('components.comments.noMatch')}</div>
       ) : (
         <ul className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
           {visibleRoots.map(c => {
@@ -161,7 +161,7 @@ export default function CommentThread({ assignmentId }: CommentThreadProps) {
       {tree.roots.some(c => c.resolved_at) && (
         <button
           onClick={() => setShowResolved(s => !s)}
-          className="mt-2 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] inline-flex items-center gap-1"
+          className="mt-2 text-caption text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] inline-flex items-center gap-1"
         >
           {showResolved ? t('components.comments.hideResolved') : t('components.comments.showResolved')}
         </button>
@@ -218,14 +218,14 @@ function CommentNode({
   // Collapsed (one-liner) presentation when resolved + user hasn't opted in.
   if (isResolved && !showResolvedReplies) {
     return (
-      <li className="flex items-center gap-2 text-[10px] text-[var(--text-tertiary)] py-1">
+      <li className="flex items-center gap-2 text-caption text-[var(--text-tertiary)] py-1">
         <Check className="w-3 h-3 text-emerald-500" />
         <span className="font-semibold">{comment.author_name}</span>
         <span className="truncate flex-1 italic">{comment.body}</span>
         <button
           onClick={handleResolveToggle}
           disabled={busy}
-          className="text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] inline-flex items-center gap-0.5"
+          className="text-caption text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] inline-flex items-center gap-0.5"
         >
           <RotateCcw className="w-3 h-3" /> {t('components.comments.reopen')}
         </button>
@@ -243,14 +243,14 @@ function CommentNode({
     >
       <CommentHeader comment={comment} />
       {isReviewRequest && (
-        <div className="mb-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-400/15 text-amber-600">
+        <div className="mb-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-micro font-bold uppercase tracking-[0.06em] bg-amber-400/15 text-amber-600">
           <AlertTriangle className="w-3 h-3" /> {t('components.comments.reviewRequested')}
         </div>
       )}
       <CommentBody body={comment.body} members={members} />
 
       {/* Action row */}
-      <div className="mt-1.5 flex items-center gap-2 text-[10px] text-[var(--text-tertiary)]">
+      <div className="mt-1.5 flex items-center gap-2 text-caption text-[var(--text-tertiary)]">
         <button
           type="button"
           onClick={isReplying ? onCancelReply : onReply}
@@ -310,16 +310,16 @@ function CommentHeader({ comment }: { comment: AssignmentComment }) {
   const { t, i18n } = useTranslation()
   return (
     <div className="flex items-center gap-2 mb-1">
-      <span className="w-5 h-5 rounded-full bg-[var(--color-brand)] text-white text-[9px] font-bold flex items-center justify-center flex-shrink-0">
+      <span className="w-5 h-5 rounded-full bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-caption font-bold flex items-center justify-center flex-shrink-0">
         {comment.author_name.slice(0, 2).toUpperCase()}
       </span>
-      <span className="text-[10px] font-semibold text-[var(--text-primary)]">{comment.author_name}</span>
+      <span className="text-caption font-semibold text-[var(--text-primary)]">{comment.author_name}</span>
       {comment.kind !== 'comment' && !comment.is_request_for_review && (
-        <span className="text-[8px] uppercase tracking-wider font-semibold text-[var(--color-brand)] bg-[var(--color-brand-soft)] px-1 py-0.5 rounded">
+        <span className="text-micro uppercase tracking-wider font-semibold text-[var(--color-brand)] bg-[var(--color-brand-soft)] px-1 py-0.5 rounded">
           {t(`components.comments.kinds.${comment.kind}`, { defaultValue: comment.kind.replace('_', ' ') })}
         </span>
       )}
-      <span className="ml-auto text-[9px] text-[var(--text-tertiary)]">
+      <span className="ml-auto text-caption text-[var(--text-tertiary)]">
         {new Date(comment.created_at).toLocaleString(i18n.language?.startsWith('zh') ? 'zh-CN' : undefined)}
       </span>
     </div>
@@ -332,7 +332,7 @@ function CommentBody({ body, members }: { body: string; members: OrgMember[] }) 
   // the member roster — fall back to the raw token if we can't match.
   const parts = useMemo(() => splitMentions(body, members), [body, members])
   return (
-    <div className="text-[11px] text-[var(--text-primary)] whitespace-pre-wrap leading-relaxed">
+    <div className="text-caption text-[var(--text-primary)] whitespace-pre-wrap leading-relaxed">
       {parts.map((p, i) =>
         p.kind === 'mention'
           ? <span key={i} className="text-emerald-400 font-medium">@{p.display}</span>
@@ -502,7 +502,7 @@ function ComposerForm({
             <AlertTriangle className="w-3 h-3" />
             {requestReview ? t('components.comments.reviewRequested') : t('components.comments.requestReview')}
           </button>
-          <span className="text-[9px] text-[var(--text-tertiary)] hidden sm:inline">{t('components.comments.submitHint')}</span>
+          <span className="text-caption text-[var(--text-tertiary)] hidden sm:inline">{t('components.comments.submitHint')}</span>
         </div>
       )}
 
@@ -516,13 +516,13 @@ function ComposerForm({
           disabled={posting}
           rows={compact ? 2 : 2}
           aria-label={compact ? t('components.comments.reply') : t('components.comments.writeAria')}
-          className="flex-1 px-2.5 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[11px] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none disabled:opacity-50 resize-none"
+          className="flex-1 px-2.5 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-caption focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none disabled:opacity-50 resize-none"
         />
         <button
           type="button"
           onClick={post}
           disabled={posting || !draft.trim()}
-          className="px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--color-brand)] text-white text-[11px] font-semibold disabled:opacity-50 inline-flex items-center gap-1 hover:bg-[var(--color-brand-strong)] self-start"
+          className="px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-caption font-semibold disabled:opacity-50 inline-flex items-center gap-1 hover:bg-[var(--btn-primary-bg-hover)] self-start"
           aria-label={t('components.comments.submitAria')}
         >
           {posting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
@@ -551,7 +551,7 @@ function ComposerForm({
               >
                 <AtSign className="w-3 h-3 text-[var(--text-tertiary)]" />
                 <span className="font-semibold">{c.name}</span>
-                <span className="text-[10px] text-[var(--text-tertiary)] truncate">{c.email}</span>
+                <span className="text-caption text-[var(--text-tertiary)] truncate">{c.email}</span>
               </button>
             ))}
           </div>

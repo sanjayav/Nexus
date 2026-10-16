@@ -258,7 +258,7 @@ export default function MyTasks() {
       )}
 
       {dayFilter && (
-        <div className="flex items-center gap-2 text-[var(--text-xs)]">
+        <div className="flex items-center gap-2 text-[length:var(--text-xs)]">
           <span className="text-[var(--text-tertiary)]">{t('tasks.page.filteredTo')}</span>
           <span className="px-2 py-0.5 rounded-full bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)] font-semibold tabular-nums">
             {dayFilter}

@@ -116,7 +116,7 @@ export default function ReportPublishing() {
     if (!period) return
     setPublishing(true); setPublishBanner(null)
     try {
-      const res = await orgStore.publishReport(period.id, assurance_request_id)
+      const res = await orgStore.publishReport(period.id, assurance_request_id, i18n.language)
       setPublishBanner({ verify_url: res.verify_url, sha256: res.pdf_sha256, version: res.version, is_draft: res.is_draft })
       await load()
     } catch (e) {
@@ -284,7 +284,7 @@ export default function ReportPublishing() {
                 className={`chip ${selectedPeriodId === p.id ? 'chip-active' : ''}`}
               >
                 {p.label}
-                <span className="text-[10px] text-[var(--text-quaternary)] uppercase tracking-[0.08em]">{t(`publishing.period.status.${p.status}`, { defaultValue: p.status })}</span>
+                <span className="text-micro text-[var(--text-quaternary)] uppercase tracking-[0.08em]">{t(`publishing.period.status.${p.status}`, { defaultValue: p.status })}</span>
               </button>
             ))
           )}
@@ -310,7 +310,7 @@ export default function ReportPublishing() {
                 </p>
                 <div className="mt-5 max-w-md">
                   <div className="flex items-baseline justify-between mb-2">
-                    <span className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)]">{t('publishing.readiness.coverage')}</span>
+                    <span className="text-micro uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)]">{t('publishing.readiness.coverage')}</span>
                     <span className="text-[14px] font-bold tabular-nums text-[var(--text-primary)]">{readiness.pct}%</span>
                   </div>
                   <div className="h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
@@ -320,7 +320,7 @@ export default function ReportPublishing() {
                         width: `${readiness.pct}%`,
                         background: readiness.pct === 100
                           ? 'linear-gradient(90deg, #10B981, #2E7D32)'
-                          : 'linear-gradient(90deg, #1B6B7B, #3B8A9B)',
+                          : 'linear-gradient(90deg, #047857, #059669)',
                       }}
                     />
                   </div>
@@ -360,7 +360,7 @@ export default function ReportPublishing() {
           <div className="surface-paper overflow-hidden">
             <table className="w-full text-[13px]">
               <thead>
-                <tr className="text-[10.5px] uppercase tracking-[0.1em] text-[var(--text-tertiary)] bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)]">
+                <tr className="text-micro uppercase tracking-[0.1em] text-[var(--text-tertiary)] bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)]">
                   <th className="text-left px-5 py-3 font-semibold">{t('publishing.history.colVersion')}</th>
                   <th className="text-left px-5 py-3 font-semibold">{t('publishing.history.colPeriod')}</th>
                   <th className="text-left px-5 py-3 font-semibold">{t('publishing.history.colAssurance')}</th>
@@ -503,7 +503,7 @@ function Tally({ label, value, accent }: { label: string; value: number; accent:
   const fg = accent === 'green' ? 'var(--status-ok)' : accent === 'blue' ? 'var(--status-pending)' : 'var(--status-draft)'
   return (
     <div className="px-3 py-2 rounded-[10px]" style={{ background: bg }}>
-      <div className="text-[10px] uppercase tracking-[0.12em] font-semibold" style={{ color: fg }}>{label}</div>
+      <div className="text-micro uppercase tracking-[0.12em] font-semibold" style={{ color: fg }}>{label}</div>
       <div className="text-[18px] font-bold tabular-nums tracking-[-0.01em]" style={{ color: fg }}>{value}</div>
     </div>
   )
@@ -517,10 +517,10 @@ function AssurancePill({ signed, pending }: { signed?: AssuranceRequest; pending
       <div className="px-4 py-3 rounded-[12px] border border-[var(--status-ok)]/30 bg-[var(--accent-green-light)]/60 min-w-[200px]">
         <div className="flex items-center gap-2">
           <BadgeCheck className="w-4 h-4 text-[var(--status-ok)]" />
-          <span className="text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--status-ok)]">{t('publishing.pill.assured')}</span>
+          <span className="text-micro uppercase tracking-[0.12em] font-bold text-[var(--status-ok)]">{t('publishing.pill.assured')}</span>
         </div>
         <div className="text-[13.5px] font-semibold text-[var(--text-primary)] mt-1.5 truncate">{signed.auditor_firm ?? signed.auditor_email}</div>
-        <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
+        <div className="text-caption text-[var(--text-tertiary)] mt-0.5">
           {signed.opinion_type === 'reasonable' ? t('publishing.pill.reasonable') : t('publishing.pill.limited')} · {signed.signed_at ? new Date(signed.signed_at).toLocaleDateString(locale) : ''}
         </div>
       </div>
@@ -531,10 +531,10 @@ function AssurancePill({ signed, pending }: { signed?: AssuranceRequest; pending
       <div className="px-4 py-3 rounded-[12px] border border-[var(--status-draft)]/30 bg-[var(--accent-amber-light)]/60 min-w-[200px]">
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-[var(--status-draft)]" />
-          <span className="text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--status-draft)]">{t('publishing.pill.pending')}</span>
+          <span className="text-micro uppercase tracking-[0.12em] font-bold text-[var(--status-draft)]">{t('publishing.pill.pending')}</span>
         </div>
         <div className="text-[13.5px] font-semibold text-[var(--text-primary)] mt-1.5 truncate">{pending.auditor_firm ?? pending.auditor_email}</div>
-        <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{t('publishing.pill.linkActive')}</div>
+        <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('publishing.pill.linkActive')}</div>
       </div>
     )
   }
@@ -542,10 +542,10 @@ function AssurancePill({ signed, pending }: { signed?: AssuranceRequest; pending
     <div className="px-4 py-3 rounded-[12px] border border-[var(--border-default)] bg-[var(--bg-secondary)] min-w-[200px]">
       <div className="flex items-center gap-2">
         <Shield className="w-4 h-4 text-[var(--text-tertiary)]" />
-        <span className="text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--text-tertiary)]">{t('publishing.pill.unaudited')}</span>
+        <span className="text-micro uppercase tracking-[0.12em] font-bold text-[var(--text-tertiary)]">{t('publishing.pill.unaudited')}</span>
       </div>
       <div className="text-[13.5px] font-semibold text-[var(--text-primary)] mt-1.5">{t('publishing.pill.noAssurance')}</div>
-      <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{t('publishing.pill.willPublishDraft')}</div>
+      <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('publishing.pill.willPublishDraft')}</div>
     </div>
   )
 }
@@ -578,7 +578,7 @@ function PublishBanner({ banner, onClose }: { banner: { verify_url: string; sha2
             SHA-256: <span className="font-mono">{banner.sha256.slice(0, 24)}…</span> {t('publishing.banner.anchored')}
           </div>
           <div className="flex items-center gap-2 mt-2">
-            <code className="font-mono text-[11px] text-[var(--color-brand-strong)] bg-[var(--bg-secondary)] px-2 py-1 rounded-[6px] border border-[var(--border-subtle)] truncate">{banner.verify_url}</code>
+            <code className="font-mono text-caption text-[var(--color-brand-strong)] bg-[var(--bg-secondary)] px-2 py-1 rounded-[6px] border border-[var(--border-subtle)] truncate">{banner.verify_url}</code>
             <button onClick={() => navigator.clipboard.writeText(banner.verify_url)} className="px-2 py-1 rounded-[6px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]">
               <Copy className="w-3.5 h-3.5" />
             </button>
@@ -611,13 +611,13 @@ function ArtifactCard({ report, onShare }: { report: PublishedReport; onShare: (
                 <span className="chip" style={{ background: 'var(--accent-green-light)', color: 'var(--status-ok)', borderColor: 'rgba(46,125,50,0.3)' }}>{t('publishing.artifact.assured')}</span>
               )}
             </div>
-            <div className="text-[11.5px] text-[var(--text-tertiary)]">{t('publishing.artifact.meta', { size: (report.pdf_size / 1024).toFixed(1), name: report.published_by_name })}</div>
-            <div className="text-[11px] text-[var(--text-tertiary)] mt-2 flex items-center gap-1.5 font-mono tabular-nums">
+            <div className="text-caption text-[var(--text-tertiary)]">{t('publishing.artifact.meta', { size: (report.pdf_size / 1024).toFixed(1), name: report.published_by_name })}</div>
+            <div className="text-caption text-[var(--text-tertiary)] mt-2 flex items-center gap-1.5 font-mono tabular-nums">
               <Hash className="w-3 h-3" />
               {report.pdf_sha256.slice(0, 24)}…{report.pdf_sha256.slice(-8)}
             </div>
             {report.anchor_tip_hash && (
-              <div className="text-[11px] text-[var(--status-ok)] mt-1.5 flex items-center gap-1.5">
+              <div className="text-caption text-[var(--status-ok)] mt-1.5 flex items-center gap-1.5">
                 <BadgeCheck className="w-3 h-3" />
                 {t('publishing.artifact.anchoredOn', { date: report.anchored_at ? new Date(report.anchored_at).toLocaleDateString(locale) : '—' })}
               </div>
@@ -656,7 +656,7 @@ function ReportRow({ report, i, onShare }: { report: PublishedReport; i: number;
       </td>
       <td className="px-5 py-3">
         <div className="text-[12.5px] text-[var(--text-primary)] font-medium">{report.period_label}</div>
-        <div className="text-[10.5px] text-[var(--text-tertiary)]">{t('publishing.history.fy', { year: report.period_year })}</div>
+        <div className="text-caption text-[var(--text-tertiary)]">{t('publishing.history.fy', { year: report.period_year })}</div>
       </td>
       <td className="px-5 py-3">
         {report.is_draft ? (
@@ -665,13 +665,13 @@ function ReportRow({ report, i, onShare }: { report: PublishedReport; i: number;
           <span className="chip" style={{ background: 'var(--accent-green-light)', color: 'var(--status-ok)' }}>{report.auditor_firm ?? t('publishing.history.signed')}</span>
         )}
       </td>
-      <td className="px-5 py-3 font-mono text-[11px] text-[var(--text-tertiary)] tabular-nums">
+      <td className="px-5 py-3 font-mono text-caption text-[var(--text-tertiary)] tabular-nums">
         {report.pdf_sha256.slice(0, 14)}…
         {report.anchor_tip_hash && <span className="ml-2 inline-flex items-center gap-0.5 text-[var(--status-ok)]"><BadgeCheck className="w-3 h-3" />{t('publishing.history.anchored')}</span>}
       </td>
-      <td className="px-5 py-3 text-[11.5px] text-[var(--text-secondary)]">
+      <td className="px-5 py-3 text-caption text-[var(--text-secondary)]">
         {new Date(report.published_at).toLocaleDateString(locale)}
-        <div className="text-[10.5px] text-[var(--text-tertiary)]">{report.published_by_name}</div>
+        <div className="text-caption text-[var(--text-tertiary)]">{report.published_by_name}</div>
       </td>
       <td className="px-5 py-3 text-right">
         <div className="inline-flex gap-1.5">
@@ -681,10 +681,10 @@ function ReportRow({ report, i, onShare }: { report: PublishedReport; i: number;
           <button onClick={() => orgStore.downloadReportPdf(report.id, `${report.framework_id}-v${report.version}.pdf`)} className="px-2 h-7 inline-flex items-center rounded-[6px] text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title={t('publishing.history.downloadPdf')}>
             <Download className="w-3.5 h-3.5" />
           </button>
-          <button onClick={() => orgStore.downloadReportDocx(report.id, `${report.framework_id}-v${report.version}.docx`)} className="px-2 h-7 inline-flex items-center rounded-[6px] text-[11px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title={t('publishing.history.downloadWord')}>
+          <button onClick={() => orgStore.downloadReportDocx(report.id, `${report.framework_id}-v${report.version}.docx`)} className="px-2 h-7 inline-flex items-center rounded-[6px] text-caption font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title={t('publishing.history.downloadWord')}>
             {t('publishing.artifact.word')}
           </button>
-          <button onClick={() => orgStore.downloadReportIxbrl(report.id, `${report.framework_id}-v${report.version}.xhtml`)} className="px-2 h-7 inline-flex items-center rounded-[6px] text-[11px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title={t('publishing.history.downloadIxbrl')}>
+          <button onClick={() => orgStore.downloadReportIxbrl(report.id, `${report.framework_id}-v${report.version}.xhtml`)} className="px-2 h-7 inline-flex items-center rounded-[6px] text-caption font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title={t('publishing.history.downloadIxbrl')}>
             iXBRL
           </button>
           <button onClick={() => onShare(report)} className="px-2 h-7 inline-flex items-center rounded-[6px] text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title={t('publishing.history.sharePublicly')}>
@@ -764,15 +764,15 @@ function AssuranceRow({ req, i, onChange }: { req: AssuranceRequest; i: number; 
             </div>
             {req.notes && <p className="text-[12.5px] text-[var(--text-secondary)] mt-2 leading-relaxed">{req.notes}</p>}
             {req.statement_sha256 && (
-              <div className="text-[11px] text-[var(--text-tertiary)] mt-2 font-mono">
+              <div className="text-caption text-[var(--text-tertiary)] mt-2 font-mono">
                 {t('publishing.assuranceRow.statementHash', { hash: req.statement_sha256.slice(0, 20) })}
               </div>
             )}
             {showLink && (
               <div className="mt-3 p-3 rounded-[8px] bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-                <div className="text-[11px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)] mb-1">{t('publishing.assuranceRow.linkCopied')}</div>
-                <code className="font-mono text-[11px] text-[var(--color-brand-strong)] break-all">{showLink}</code>
-                <div className="text-[10.5px] text-[var(--text-tertiary)] mt-1.5">{t('publishing.assuranceRow.linkHelp')}</div>
+                <div className="text-micro uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)] mb-1">{t('publishing.assuranceRow.linkCopied')}</div>
+                <code className="font-mono text-caption text-[var(--color-brand-strong)] break-all">{showLink}</code>
+                <div className="text-caption text-[var(--text-tertiary)] mt-1.5">{t('publishing.assuranceRow.linkHelp')}</div>
               </div>
             )}
           </div>
@@ -850,7 +850,7 @@ function RequestAssuranceModal({ period, onClose, onCreated }: { period: Reporti
           <Field label={t('publishing.modal.contactName')} placeholder={t('publishing.modal.contactNamePlaceholder')} value={name} onChange={setName} />
           <Field label={t('publishing.modal.contactEmail')} placeholder="partner@firm.com" value={email} onChange={setEmail} type="email" />
           <div>
-            <label className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{t('publishing.modal.level')}</label>
+            <label className="text-micro uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{t('publishing.modal.level')}</label>
             <div className="flex gap-1.5">
               {(['limited', 'reasonable'] as const).map(o => (
                 <button key={o} onClick={() => setOpinion(o)} className={`chip flex-1 justify-center ${opinion === o ? 'chip-active' : ''}`}>
@@ -877,7 +877,7 @@ function RequestAssuranceModal({ period, onClose, onCreated }: { period: Reporti
 function Field({ label, placeholder, value, onChange, type = 'text', as = 'input' }: { label: string; placeholder?: string; value: string; onChange: (v: string) => void; type?: string; as?: 'input' | 'textarea' }) {
   return (
     <label className="block">
-      <span className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{label}</span>
+      <span className="text-micro uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{label}</span>
       {as === 'textarea' ? (
         <textarea
           value={value}
@@ -979,7 +979,7 @@ function ShareDialog({ report, onClose }: { report: PublishedReport; onClose: ()
           <div className="space-y-3">
             <div className="text-[12.5px] text-[var(--text-primary)] font-semibold">{t('publishing.share.ready')}</div>
             <div className="flex items-center gap-1.5">
-              <code className="flex-1 font-mono text-[11.5px] text-[var(--color-brand-strong)] bg-[var(--bg-secondary)] px-2 py-2 rounded-[6px] border border-[var(--border-subtle)] truncate">
+              <code className="flex-1 font-mono text-caption text-[var(--color-brand-strong)] bg-[var(--bg-secondary)] px-2 py-2 rounded-[6px] border border-[var(--border-subtle)] truncate">
                 {result.url}
               </code>
               <button
@@ -991,12 +991,12 @@ function ShareDialog({ report, onClose }: { report: PublishedReport; onClose: ()
               </button>
             </div>
             {result.expires_at && (
-              <div className="text-[11.5px] text-[var(--text-tertiary)]">
+              <div className="text-caption text-[var(--text-tertiary)]">
                 {t('publishing.share.expiresOn', { date: new Date(result.expires_at).toLocaleString(locale) })}
               </div>
             )}
             {password && (
-              <div className="text-[11.5px] text-[var(--text-tertiary)]">
+              <div className="text-caption text-[var(--text-tertiary)]">
                 {t('publishing.share.passwordActive')}
               </div>
             )}
