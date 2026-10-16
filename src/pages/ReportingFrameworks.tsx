@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation, Trans } from 'react-i18next'
 import {
   AlertCircle, ChevronRight, ChevronDown, Search,
   PencilLine, Calculator, Plug, Bot, CheckCircle2, Clock, Hash,
@@ -10,7 +11,8 @@ import {
   type NexusDataValue,
   type NexusHistoricalPoint,
 } from '../lib/api'
-import { formatValue, truncateHash } from '../reports/spdTemplate'
+import { formatValue, truncateHash, capitalLabelKey, subsectionLabelKey } from '../reports/spdTemplate'
+import { itemLabel } from '../lib/itemLabel'
 import SetupGuard from '../components/SetupGuard'
 import { Button } from '../design-system'
 import { useFramework } from '../lib/frameworks'
@@ -53,6 +55,7 @@ type ScopeFilter = 'group' | 'jv'
  * FY2026 status chip + 4-year history on expand. Click any item → /data/entry/:id.
  */
 export default function ReportingFrameworks() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { active: framework } = useFramework()
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
@@ -76,7 +79,7 @@ export default function ReportingFrameworks() {
       for (const dv of approvalQ) currentByItem.set(dv.questionnaire_item_id, dv)
       setState({ kind: 'ready', items, currentByItem, historyByItem: new Map() })
     } catch (e) {
-      setState({ kind: 'error', error: e instanceof Error ? e.message : 'Failed to load' })
+      setState({ kind: 'error', error: e instanceof Error ? e.message : t('frameworksPage.errors.loadFailed') })
     }
   }
 
@@ -161,9 +164,9 @@ export default function ReportingFrameworks() {
         <div className="flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-[var(--status-reject)] flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="font-semibold text-[var(--text-primary)]">Unable to load questionnaire</h3>
+            <h3 className="font-semibold text-[var(--text-primary)]">{t('frameworksPage.errors.title')}</h3>
             <p className="text-[var(--text-sm)] text-[var(--text-secondary)] font-mono mt-1">{state.error}</p>
-            <button onClick={load} className="mt-3 text-[var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">Retry</button>
+            <button onClick={load} className="mt-3 text-[var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">{t('frameworksPage.errors.retry')}</button>
           </div>
         </div>
       </div>
@@ -174,13 +177,13 @@ export default function ReportingFrameworks() {
     <div className="page-container space-y-5 animate-fade-in">
       <PageHeader
         breadcrumbs={[
-          { label: 'Reports', to: '/reports' },
-          { label: 'GRI template' },
+          { label: t('frameworksPage.breadcrumbs.reports'), to: '/reports' },
+          { label: t('frameworksPage.breadcrumbs.template') },
         ]}
-        title={`GRI Report Template — FY${ACTIVE_YEAR}`}
+        title={t('frameworksPage.title', { year: ACTIVE_YEAR })}
         description={
           <>
-            <JargonTooltip term="GRI" iconOnly /> Full GRI inventory inherited from the published Sustainability Performance Data report — same hierarchy, same disclosures, same units. Click any row to enter, compute, or pull its FY{ACTIVE_YEAR} value.
+            <JargonTooltip term="GRI" iconOnly /> {t('frameworksPage.description', { year: ACTIVE_YEAR })}
           </>
         }
       />
@@ -199,23 +202,23 @@ export default function ReportingFrameworks() {
                   : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
-              {s === 'group' ? 'Demo Co' : 'JV Parallel'}
+              {s === 'group' ? t('frameworksPage.scope.group') : t('frameworksPage.scope.jv')}
             </button>
           ))}
         </div>
 
         <div className="flex items-center gap-2 text-[var(--text-xs)]">
           <span className="px-2.5 py-1 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
-            <span className="font-semibold text-[var(--text-primary)] tabular-nums">{stats.total}</span> items
+            <Trans i18nKey="frameworksPage.stats.items" count={stats.total} components={{ n: <span className="font-semibold text-[var(--text-primary)] tabular-nums" /> }} />
           </span>
           <span className="px-2.5 py-1 rounded-[var(--radius-sm)] bg-[var(--accent-green-light)] text-[var(--status-ok)]">
-            <span className="font-semibold tabular-nums">{stats.approved}</span> approved
+            <Trans i18nKey="frameworksPage.stats.approved" count={stats.approved} components={{ n: <span className="font-semibold tabular-nums" /> }} />
           </span>
           <span className="px-2.5 py-1 rounded-[var(--radius-sm)] bg-[var(--accent-blue-light)] text-[var(--status-pending)]">
-            <span className="font-semibold tabular-nums">{stats.pending}</span> in flight
+            <Trans i18nKey="frameworksPage.stats.inFlight" count={stats.pending} components={{ n: <span className="font-semibold tabular-nums" /> }} />
           </span>
           <span className="px-2.5 py-1 rounded-[var(--radius-sm)] bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">
-            <span className="font-semibold tabular-nums">{stats.notStarted}</span> not started
+            <Trans i18nKey="frameworksPage.stats.notStarted" count={stats.notStarted} components={{ n: <span className="font-semibold tabular-nums" /> }} />
           </span>
         </div>
       </div>
@@ -226,7 +229,7 @@ export default function ReportingFrameworks() {
         <input
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="Search GRI code, line item, or subsection…"
+          placeholder={t('frameworksPage.searchPlaceholder')}
           className="w-full pl-10 pr-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none"
         />
       </div>
@@ -235,7 +238,7 @@ export default function ReportingFrameworks() {
       <div className="space-y-3">
         {tree.length === 0 && (
           <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] p-10 text-center text-[var(--text-sm)] text-[var(--text-tertiary)]">
-            No matches for "{query}".
+            {t('frameworksPage.noMatches', { query })}
           </div>
         )}
         {tree.map(cap => {
@@ -250,9 +253,9 @@ export default function ReportingFrameworks() {
               >
                 <div className="flex items-center gap-3">
                   {isCapOpen ? <ChevronDown className="w-4 h-4 text-[var(--text-tertiary)]" /> : <ChevronRight className="w-4 h-4 text-[var(--text-tertiary)]" />}
-                  <span className="font-display text-[var(--text-base)] font-semibold text-[var(--text-primary)]">{cap.capital}</span>
+                  <span className="font-display text-[var(--text-base)] font-semibold text-[var(--text-primary)]">{t(capitalLabelKey(cap.capital), { defaultValue: cap.capital })}</span>
                 </div>
-                <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] tabular-nums">{capCount} items</span>
+                <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] tabular-nums">{t('frameworksPage.itemCount', { count: capCount })}</span>
               </button>
 
               {isCapOpen && (
@@ -270,7 +273,7 @@ export default function ReportingFrameworks() {
                         >
                           <div className="flex items-center gap-2">
                             {isSubOpen ? <ChevronDown className="w-3 h-3 text-[var(--text-tertiary)]" /> : <ChevronRight className="w-3 h-3 text-[var(--text-tertiary)]" />}
-                            <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand)]">{sub.name}</span>
+                            <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand)]">{t(subsectionLabelKey(sub.name), { defaultValue: sub.name })}</span>
                           </div>
                           <span className="text-[10px] text-[var(--text-tertiary)] tabular-nums">{subCount}</span>
                         </button>
@@ -290,7 +293,7 @@ export default function ReportingFrameworks() {
                                     >
                                       {isCodeOpen ? <ChevronDown className="w-3 h-3 text-[var(--text-tertiary)]" /> : <ChevronRight className="w-3 h-3 text-[var(--text-tertiary)]" />}
                                       <span className="font-mono text-[10px] font-semibold text-[var(--text-tertiary)]">{codeGroup.code}</span>
-                                      <span className="text-[10px] text-[var(--text-tertiary)]">· {codeGroup.items.length} rows</span>
+                                      <span className="text-[10px] text-[var(--text-tertiary)]">· {t('frameworksPage.rowCount', { count: codeGroup.items.length })}</span>
                                     </button>
                                   )}
                                   {(isCodeOpen || codeGroup.items.length === 1) && codeGroup.items.map(it => (
@@ -319,8 +322,8 @@ export default function ReportingFrameworks() {
       </div>
 
       <div className="flex items-center justify-end gap-2 pt-2">
-        <Button variant="secondary" size="sm" onClick={() => navigate('/reports/preview')}>View regenerated report</Button>
-        <Button variant="primary" size="sm" onClick={() => navigate('/reports')}>Publish Centre</Button>
+        <Button variant="secondary" size="sm" onClick={() => navigate('/reports/preview')}>{t('frameworksPage.actions.viewReport')}</Button>
+        <Button variant="primary" size="sm" onClick={() => navigate('/reports')}>{t('frameworksPage.actions.publishCentre')}</Button>
       </div>
     </div>
   )
@@ -335,6 +338,7 @@ function LineItem({
   onHover: () => void
   onOpen: () => void
 }) {
+  const { t, i18n } = useTranslation()
   const ModeIcon =
     item.entry_mode_default === 'Calculator' ? Calculator :
     item.entry_mode_default === 'Connector' ? Plug :
@@ -353,12 +357,12 @@ function LineItem({
       <ModeIcon className="w-3.5 h-3.5 text-[var(--text-tertiary)] group-hover:text-[var(--color-brand)] flex-shrink-0" />
       <div className="min-w-0 flex-1">
         <div className="text-[var(--text-xs)] font-medium text-[var(--text-primary)] truncate group-hover:text-[var(--color-brand-strong)]">
-          {item.line_item}
+          {itemLabel(item, i18n.language)}
         </div>
         <div className="text-[10px] text-[var(--text-tertiary)]">
           {item.scope_split ? `${item.scope_split} · ` : ''}
           {item.unit ?? '—'}
-          {item.target_fy2026 != null ? ` · target ${item.target_fy2026}` : ''}
+          {item.target_fy2026 != null ? ` · ${t('frameworksPage.target', { value: item.target_fy2026 })}` : ''}
         </div>
       </div>
 
@@ -374,7 +378,7 @@ function LineItem({
         <StatusPill status={dv.status} value={dv.value} hash={dv.value_hash} />
       ) : (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-xs)] text-[9px] font-semibold uppercase tracking-wider bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">
-          Not started
+          {t('frameworksPage.status.not_started')}
         </span>
       )}
 
@@ -388,6 +392,8 @@ function LineItem({
 }
 
 function StatusPill({ status, value, hash }: { status: NexusDataValue['status']; value: number | null; hash: string | null }) {
+  const { t } = useTranslation()
+  // `label` is the English fallback; the shown text is t(`frameworksPage.status.${status}`).
   const map: Record<NexusDataValue['status'], { label: string; bg: string; fg: string; Icon: typeof Clock }> = {
     not_started: { label: 'Not started', bg: 'var(--bg-tertiary)', fg: 'var(--text-tertiary)', Icon: Clock },
     draft:       { label: 'Draft', bg: 'var(--accent-amber-light)', fg: 'var(--status-draft)', Icon: Clock },
@@ -403,7 +409,7 @@ function StatusPill({ status, value, hash }: { status: NexusDataValue['status'];
       {value != null && <span className="tabular-nums font-semibold text-[var(--text-primary)]">{formatValue(value)}</span>}
       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[var(--radius-xs)] font-semibold uppercase tracking-wider" style={{ background: c.bg, color: c.fg }}>
         <c.Icon className="w-2.5 h-2.5" />
-        {c.label}
+        {t(`frameworksPage.status.${status}`, { defaultValue: c.label })}
       </span>
       {hash && <span className="font-mono text-[9px] text-[var(--text-tertiary)] inline-flex items-center gap-0.5"><Hash className="w-2 h-2" />{truncateHash(hash)}</span>}
     </span>

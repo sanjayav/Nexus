@@ -1,0 +1,63 @@
+{
+  "title": "设置",
+  "description": "此 Nexus 工作区的个人偏好设置。更改即时生效，并按用户保存。",
+  "themes": {
+    "demoFlat": { "label": "扁平演示主题", "description": "默认主题。青绿色品牌色、8px 网格、扁平界面，符合 WCAG 2.1 AA。" },
+    "glass": { "label": "玻璃质感 UI", "description": "Nexus 经典主题。柔和阴影、毛玻璃界面、圆角设计。" }
+  },
+  "frameworks": {
+    "heading": "报告模板",
+    "phase": "第一阶段",
+    "intro": "选择此工作区需遵循的报告框架。我们率先推出 {{name}}，其他框架将在通过验证后陆续开放。",
+    "currentlyActive": "当前启用",
+    "comingSoon": "即将推出",
+    "lineItems_one": "{{count}} 个条目",
+    "lineItems_other": "{{count}} 个条目",
+    "requestEarlyAccess": "申请抢先体验",
+    "on": "开",
+    "off": "关"
+  },
+  "theme": {
+    "heading": "主题",
+    "intro": "在扁平演示主题与 Nexus 经典玻璃质感 UI 之间切换。"
+  },
+  "display": {
+    "heading": "显示",
+    "intro": "调整外观与信息密度。浅色模式清爽如纸，适合白天使用；深色模式在夜间更护眼。“舒适”适合审阅，“紧凑”可让高阶用户在单屏内查看更多行。",
+    "appearance": "外观",
+    "appearanceHint": "浅色模式清爽如纸，适合白天工作。“自动”跟随操作系统设置，并在系统切换浅色/深色时同步切换。",
+    "density": "密度",
+    "densityHint": "立即应用于整个工作区。",
+    "densityAria": "显示密度",
+    "comfortable": "舒适",
+    "compact": "紧凑"
+  },
+  "reportingYear": {
+    "heading": "报告年度",
+    "active": "当前报告年度",
+    "inherits": "FY2026 — 沿用 FY2025 的结构",
+    "badge": "FY2026 · 进行中"
+  },
+  "export": {
+    "heading": "数据导出（GDPR）",
+    "body": "下载包含此工作区全部数据的可移植 ZIP 压缩包，涵盖用户、设施、活动数据、任务分配、数据值、工作流任务、通知、报告及审计日志。密码哈希、MFA 密钥以及 SCIM/API 令牌哈希绝不包含在内。",
+    "lastExport": "上次导出：{{date}}",
+    "none": "暂无导出记录。",
+    "building": "正在生成压缩包…",
+    "download": "下载数据导出"
+  },
+  "notifications": {
+    "heading": "通知偏好",
+    "intro": "选择您希望接收哪些与任务相关的邮件提醒。更改将自动保存。",
+    "loadFailed": "加载失败",
+    "saveFailed": "保存失败",
+    "assignment": { "label": "有新披露项分配给我时发送邮件", "description": "管理员向您分配 GRI/ESRS 条目时触发。" },
+    "review": { "label": "有提交内容需要我审核时发送邮件", "description": "下属提交的数据值等待您审批时触发。" },
+    "anomaly": { "label": "我负责范围内出现异常时发送邮件", "description": "异常检测引擎标记了您负责的数据值时触发。" },
+    "digest": "摘要频率",
+    "digestHint": "Nexus 将您的通知汇总为一封摘要邮件的频率。",
+    "digestAria": "摘要频率",
+    "digestOptions": { "none": "不发送", "daily": "每日", "weekly": "每周" },
+    "saved": "已于 {{time}} 保存"
+  }
+}

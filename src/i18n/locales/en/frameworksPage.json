@@ -1,0 +1,47 @@
+{
+  "breadcrumbs": {
+    "reports": "Reports",
+    "template": "GRI template"
+  },
+  "title": "GRI Report Template — FY{{year}}",
+  "description": "Full GRI inventory inherited from the published Sustainability Performance Data report — same hierarchy, same disclosures, same units. Click any row to enter, compute, or pull its FY{{year}} value.",
+  "errors": {
+    "title": "Unable to load questionnaire",
+    "retry": "Retry",
+    "loadFailed": "Failed to load"
+  },
+  "scope": {
+    "group": "Demo Co",
+    "jv": "JV Parallel"
+  },
+  "stats": {
+    "items_one": "<n>{{count}}</n> item",
+    "items_other": "<n>{{count}}</n> items",
+    "approved_one": "<n>{{count}}</n> approved",
+    "approved_other": "<n>{{count}}</n> approved",
+    "inFlight_one": "<n>{{count}}</n> in flight",
+    "inFlight_other": "<n>{{count}}</n> in flight",
+    "notStarted_one": "<n>{{count}}</n> not started",
+    "notStarted_other": "<n>{{count}}</n> not started"
+  },
+  "searchPlaceholder": "Search GRI code, line item, or subsection…",
+  "noMatches": "No matches for \"{{query}}\".",
+  "itemCount_one": "{{count}} item",
+  "itemCount_other": "{{count}} items",
+  "rowCount_one": "{{count}} row",
+  "rowCount_other": "{{count}} rows",
+  "target": "target {{value}}",
+  "status": {
+    "not_started": "Not started",
+    "draft": "Draft",
+    "submitted": "Submitted",
+    "reviewed": "Reviewed",
+    "approved": "Approved",
+    "published": "Published",
+    "rejected": "Rejected"
+  },
+  "actions": {
+    "viewReport": "View regenerated report",
+    "publishCentre": "Publish Centre"
+  }
+}

@@ -7,6 +7,8 @@ import { orgStore } from '../lib/orgStore'
 import { getActiveFrameworks } from '../lib/frameworks'
 import { ROLE_CATALOG, type PlatformRole } from '../lib/rbac'
 import JargonTooltip from '../components/JargonTooltip'
+import { useTranslation } from 'react-i18next'
+import { frameworkName } from '../components/FrameworkBadge'
 
 /**
  * First-run onboarding wizard at `/welcome`. Five compact steps that bootstrap
@@ -21,6 +23,7 @@ import JargonTooltip from '../components/JargonTooltip'
  * field-level errors → block submit until valid).
  */
 
+/** English labels; rendered via `onboarding.welcome.steps.s<i>`. */
 const STEPS = ['Welcome', 'First facility', 'Frameworks', 'Invite teammates', 'All set'] as const
 type StepIdx = 0 | 1 | 2 | 3 | 4
 
@@ -62,22 +65,31 @@ type FacilityData = z.infer<typeof facilitySchema>
 type Invite = { email: string; role: PlatformRole }
 
 // ── Country list (compact) ─────────────────────────────────
-function useCountries(): string[] {
+/**
+ * Country options. `value` stays the English name (what gets stored);
+ * `label` is localised for display when the UI language isn't English.
+ */
+function useCountries(language: string): Array<{ value: string; label: string }> {
   return useMemo(() => {
+    const plain = (names: string[]) => names.map(n => ({ value: n, label: n }))
     try {
       if (typeof Intl === 'undefined' || !(Intl as unknown as { supportedValuesOf?: (k: string) => string[] }).supportedValuesOf) {
-        return ['United Kingdom', 'United States', 'Germany', 'France', 'Spain', 'Italy', 'Netherlands', 'Sweden', 'Thailand', 'India', 'Singapore']
+        return plain(['United Kingdom', 'United States', 'Germany', 'France', 'Spain', 'Italy', 'Netherlands', 'Sweden', 'Thailand', 'India', 'Singapore'])
       }
       const codes = (Intl as unknown as { supportedValuesOf: (k: string) => string[] }).supportedValuesOf('region')
       const dn = new Intl.DisplayNames(['en'], { type: 'region' })
-      return codes
-        .map(c => dn.of(c))
-        .filter((n): n is string => !!n && /^[A-Z]/.test(n))
-        .sort()
+      const locale = language.startsWith('zh') ? 'zh-CN' : language.startsWith('th') ? 'th' : 'en'
+      const dnLocal = new Intl.DisplayNames([locale], { type: 'region' })
+      const rows = codes
+        .map(c => ({ value: dn.of(c), label: dnLocal.of(c) }))
+        .filter((r): r is { value: string; label: string } => !!r.value && !!r.label && /^[A-Z]/.test(r.value))
+      return locale === 'en'
+        ? rows.sort((a, b) => (a.value < b.value ? -1 : a.value > b.value ? 1 : 0))
+        : rows.sort((a, b) => a.label.localeCompare(b.label, locale))
     } catch {
-      return ['United Kingdom', 'United States', 'Germany', 'Thailand', 'India']
+      return plain(['United Kingdom', 'United States', 'Germany', 'Thailand', 'India'])
     }
-  }, [])
+  }, [language])
 }
 
 // ── Component ───────────────────────────────────────────────
@@ -90,6 +102,7 @@ export function isWelcomeDone(orgId: string | null): boolean {
 }
 
 export default function WelcomeWizard() {
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { user } = useAuth()
   const orgId = (user as unknown as { org_id?: string | null } | null)?.org_id ?? null
@@ -120,7 +133,7 @@ export default function WelcomeWizard() {
   // Step 5 — submission + completion
   const [submitting, setSubmitting] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
-  const countries = useCountries()
+  const countries = useCountries(i18n.language ?? 'en')
 
   const validate = <T,>(parse: () => T, setErr: (e: Record<string, string>) => void): T | null => {
     try {
@@ -134,7 +147,7 @@ export default function WelcomeWizard() {
           ?? []
         for (const iss of issues) {
           const k = String(iss.path[0] ?? '_')
-          out[k] = iss.message
+          out[k] = t(`onboarding.welcome.errors.${k}`, { defaultValue: iss.message })
         }
         setErr(out)
       }
@@ -194,7 +207,7 @@ export default function WelcomeWizard() {
       try { localStorage.setItem(doneKey(orgId), '1') } catch { /* ignore */ }
       navigate('/dashboard', { replace: true })
     } catch (e) {
-      setServerError(e instanceof Error ? e.message : 'Could not save workspace setup.')
+      setServerError(e instanceof Error ? e.message : t('onboarding.welcome.saveFailed'))
       setSubmitting(false)
     }
   }
@@ -219,11 +232,11 @@ export default function WelcomeWizard() {
     <div className="max-w-[760px] mx-auto animate-fade-in">
       <header className="mb-6">
         <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
-          <Sparkles className="w-3 h-3" /> Welcome to Nexus
+          <Sparkles className="w-3 h-3" /> {t('components.tour.steps.welcome.title')}
         </div>
-        <h1 className="font-display text-[28px] font-bold text-[var(--text-primary)] mt-1">Let's set up your workspace</h1>
+        <h1 className="font-display text-[28px] font-bold text-[var(--text-primary)] mt-1">{t('onboarding.welcome.title')}</h1>
         <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1">
-          Five quick steps. Anything you don't have yet, you can fill in later.
+          {t('onboarding.welcome.subtitle')}
         </p>
       </header>
 
@@ -268,13 +281,13 @@ export default function WelcomeWizard() {
                   const issues = (e as unknown as { issues?: { message: string }[] }).issues
                     ?? (e as unknown as { errors?: { message: string }[] }).errors
                     ?? []
-                  setInviteError(issues[0]?.message ?? 'Invalid invite.')
+                  setInviteError(issues[0] ? t('auth.register.errors.email') : t('onboarding.welcome.invalidInvite'))
                 }
                 return
               }
-              if (invites.length >= 3) { setInviteError('You can invite up to 3 teammates here — add more later from Users & Roles.'); return }
+              if (invites.length >= 3) { setInviteError(t('onboarding.welcome.inviteLimit')); return }
               if (invites.some(i => i.email.toLowerCase() === inviteDraft.email.toLowerCase())) {
-                setInviteError('That email is already on the list.'); return
+                setInviteError(t('onboarding.welcome.inviteDuplicate')); return
               }
               setInvites(arr => [...arr, { email: inviteDraft.email, role: inviteDraft.role }])
               setInviteDraft({ email: '', role: 'data_contributor' })
@@ -302,7 +315,7 @@ export default function WelcomeWizard() {
             onClick={back}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-md)] text-[var(--text-sm)] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" /> Back
+            <ArrowLeft className="w-4 h-4" /> {t('common.back')}
           </button>
         ) : <span />}
         <div className="flex items-center gap-2">
@@ -310,14 +323,14 @@ export default function WelcomeWizard() {
             onClick={skip}
             className="px-3 py-2 text-[var(--text-xs)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
           >
-            Skip for now
+            {t('onboarding.welcome.skip')}
           </button>
           {step < 4 ? (
             <button
               onClick={next}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] transition-colors"
             >
-              Continue <ArrowRight className="w-4 h-4" />
+              {t('onboarding.welcome.continue')} <ArrowRight className="w-4 h-4" />
             </button>
           ) : (
             <button
@@ -326,7 +339,7 @@ export default function WelcomeWizard() {
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-50 transition-colors"
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-              Go to dashboard
+              {t('onboarding.welcome.goToDashboard')}
             </button>
           )}
         </div>
@@ -336,6 +349,7 @@ export default function WelcomeWizard() {
 }
 
 function ProgressBar({ step }: { step: StepIdx }) {
+  const { t } = useTranslation()
   return (
     <ol className="flex items-center gap-2 text-[11px]">
       {STEPS.map((label, i) => {
@@ -352,7 +366,7 @@ function ProgressBar({ step }: { step: StepIdx }) {
             >
               {done ? <Check className="w-3 h-3" /> : i + 1}
             </div>
-            <span className={`truncate ${active ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-tertiary)]'}`}>{label}</span>
+            <span className={`truncate ${active ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-tertiary)]'}`}>{t(`onboarding.welcome.steps.s${i}`, { defaultValue: label })}</span>
             {i < STEPS.length - 1 && <div className="flex-1 h-px bg-[var(--border-subtle)] mx-1" />}
           </li>
         )
@@ -367,14 +381,15 @@ function Step1({
 }: {
   value: WelcomeData
   errors: Partial<Record<keyof WelcomeData, string>>
-  countries: string[]
+  countries: Array<{ value: string; label: string }>
   onChange: (v: WelcomeData) => void
 }) {
+  const { t } = useTranslation()
   return (
     <>
-      <SectionHeading icon={Building2} title="Tell us about your organisation" />
+      <SectionHeading icon={Building2} title={t('onboarding.welcome.step1.title')} />
       <div className="grid grid-cols-2 gap-4 mt-4">
-        <Field label="Workspace name" error={errors.workspaceName} id="wn">
+        <Field label={t('onboarding.welcome.step1.workspaceName')} error={errors.workspaceName} id="wn">
           <input
             id="wn"
             autoFocus
@@ -382,11 +397,11 @@ function Step1({
             onChange={e => onChange({ ...value, workspaceName: e.target.value })}
             aria-invalid={!!errors.workspaceName}
             aria-describedby={errors.workspaceName ? 'wn-err' : undefined}
-            placeholder="Acme Sustainability"
+            placeholder={t('auth.register.workspacePlaceholder')}
             className={inputCls(!!errors.workspaceName)}
           />
         </Field>
-        <Field label="Industry (GICS sector)" error={errors.industry} id="ind">
+        <Field label={t('onboarding.welcome.step1.industry')} error={errors.industry} id="ind">
           <select
             id="ind"
             value={value.industry}
@@ -395,11 +410,11 @@ function Step1({
             aria-describedby={errors.industry ? 'ind-err' : undefined}
             className={inputCls(!!errors.industry)}
           >
-            <option value="">Pick a sector…</option>
-            {GICS_SECTORS.map(s => <option key={s} value={s}>{s}</option>)}
+            <option value="">{t('onboarding.welcome.step1.pickSector')}</option>
+            {GICS_SECTORS.map(s => <option key={s} value={s}>{t(`onboarding.gics.${s}`, { defaultValue: s })}</option>)}
           </select>
         </Field>
-        <Field label="Country" error={errors.country} id="cty">
+        <Field label={t('onboarding.welcome.step1.country')} error={errors.country} id="cty">
           <select
             id="cty"
             value={value.country}
@@ -408,8 +423,8 @@ function Step1({
             aria-describedby={errors.country ? 'cty-err' : undefined}
             className={inputCls(!!errors.country)}
           >
-            <option value="">Pick a country…</option>
-            {countries.map(c => <option key={c} value={c}>{c}</option>)}
+            <option value="">{t('onboarding.welcome.step1.pickCountry')}</option>
+            {countries.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
         </Field>
       </div>
@@ -425,50 +440,51 @@ function Step2({
   errors: Partial<Record<keyof FacilityData, string>>
   onChange: (v: FacilityData) => void
 }) {
+  const { t } = useTranslation()
   return (
     <>
-      <SectionHeading icon={Factory} title="Add your first facility" />
+      <SectionHeading icon={Factory} title={t('onboarding.welcome.step2.title')} />
       <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1">
-        You'll be able to add the rest of your tree from the dashboard.
+        {t('onboarding.welcome.step2.body')}
       </p>
       <div className="grid grid-cols-2 gap-4 mt-4">
-        <Field label="Facility name" error={errors.name} id="fn">
+        <Field label={t('onboarding.welcome.step2.name')} error={errors.name} id="fn">
           <input
             id="fn"
             autoFocus
             value={value.name}
             onChange={e => onChange({ ...value, name: e.target.value })}
             aria-invalid={!!errors.name}
-            placeholder="Map Ta Phut refinery"
+            placeholder={t('onboarding.welcome.step2.namePlaceholder')}
             className={inputCls(!!errors.name)}
           />
         </Field>
-        <Field label="Location" error={errors.location} id="loc">
+        <Field label={t('onboarding.welcome.step2.location')} error={errors.location} id="loc">
           <input
             id="loc"
             value={value.location}
             onChange={e => onChange({ ...value, location: e.target.value })}
             aria-invalid={!!errors.location}
-            placeholder="Rayong, Thailand"
+            placeholder={t('onboarding.welcome.step2.locationPlaceholder')}
             className={inputCls(!!errors.location)}
           />
         </Field>
-        <Field label="Type" id="ft">
+        <Field label={t('onboarding.welcome.step2.type')} id="ft">
           <select
             id="ft"
             value={value.type}
             onChange={e => onChange({ ...value, type: e.target.value as FacilityData['type'] })}
             className={inputCls(false)}
           >
-            {FACILITY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            {FACILITY_TYPES.map(ft => <option key={ft.value} value={ft.value}>{t(`onboarding.welcome.facilityTypes.${ft.value}`, { defaultValue: ft.label })}</option>)}
           </select>
         </Field>
-        <Field label="Production volume (optional)" hint="Annual tonnes, units, MWh…" id="pv">
+        <Field label={t('onboarding.welcome.step2.volume')} hint={t('onboarding.welcome.step2.volumeHint')} id="pv">
           <input
             id="pv"
             value={value.productionVolume ?? ''}
             onChange={e => onChange({ ...value, productionVolume: e.target.value })}
-            placeholder="e.g. 4.2 Mt/yr"
+            placeholder={t('onboarding.welcome.step2.volumePlaceholder')}
             className={inputCls(false)}
           />
         </Field>
@@ -479,14 +495,15 @@ function Step2({
 
 // ── Step 3 ─────────────────────────────────────────────────
 function Step3({ picked, onToggle }: { picked: Set<string>; onToggle: (id: string) => void }) {
+  const { t, i18n } = useTranslation()
   const frameworks = getActiveFrameworks()
   return (
     <>
-      <SectionHeading icon={Library} title="Pick the frameworks you report against" />
+      <SectionHeading icon={Library} title={t('onboarding.welcome.step3.title')} />
       <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1">
-        We've pre-selected a sensible starter set —{' '}
-        <JargonTooltip term="GRI" />, <JargonTooltip term="ESRS E1" />, <JargonTooltip term="TCFD" />.
-        Tweak as needed; you can change this anytime from Settings.
+        {t('onboarding.welcome.step3.preselected')}{' '}
+        <JargonTooltip term="GRI" />{t('onboarding.welcome.listSep')}<JargonTooltip term="ESRS E1" />{t('onboarding.welcome.listSep')}<JargonTooltip term="TCFD" />{t('onboarding.welcome.step3.endSentence')}
+        {t('onboarding.welcome.step3.tweak')}
       </p>
       <ul className="mt-4 grid grid-cols-2 gap-2">
         {frameworks.map(f => {
@@ -510,11 +527,11 @@ function Step3({ picked, onToggle }: { picked: Set<string>; onToggle: (id: strin
                     <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{f.code}</span>
                     {recommended && (
                       <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-[var(--color-brand)]/20 text-[var(--color-brand-strong)] font-semibold">
-                        Recommended
+                        {t('onboarding.welcome.step3.recommended')}
                       </span>
                     )}
                   </div>
-                  <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5 line-clamp-2">{f.name}</div>
+                  <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5 line-clamp-2">{frameworkName(f, i18n.language)}</div>
                 </div>
               </label>
             </li>
@@ -536,11 +553,12 @@ function Step4({
   onAdd: () => void
   onRemove: (i: number) => void
 }) {
+  const { t } = useTranslation()
   return (
     <>
-      <SectionHeading icon={Users} title="Invite up to 3 teammates" />
+      <SectionHeading icon={Users} title={t('onboarding.welcome.step4.title')} />
       <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1">
-        Optional. You can invite the rest of your team from Users & Roles after setup.
+        {t('onboarding.welcome.step4.body')}
       </p>
       <div className="mt-4 grid grid-cols-[1fr_180px_auto] gap-2">
         <div className="relative">
@@ -564,7 +582,7 @@ function Step4({
           className="h-10 px-3 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
         >
           {Object.values(ROLE_CATALOG).map(r => (
-            <option key={r.slug} value={r.slug}>{r.name}</option>
+            <option key={r.slug} value={r.slug}>{t(`shell.roles.${r.slug}.name`, { defaultValue: r.name })}</option>
           ))}
         </select>
         <button
@@ -573,7 +591,7 @@ function Step4({
           disabled={!draft.email}
           className="px-4 h-10 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-50 transition-colors"
         >
-          Add
+          {t('onboarding.welcome.step4.add')}
         </button>
       </div>
       {draftError && (
@@ -586,11 +604,11 @@ function Step4({
               <Mail className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
               <span className="text-[var(--text-sm)] text-[var(--text-primary)] truncate flex-1">{inv.email}</span>
               <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand)] bg-[var(--color-brand-soft)] px-1.5 py-0.5 rounded">
-                {ROLE_CATALOG[inv.role].name}
+                {t(`shell.roles.${inv.role}.name`, { defaultValue: ROLE_CATALOG[inv.role].name })}
               </span>
               <button
                 onClick={() => onRemove(i)}
-                aria-label={`Remove ${inv.email}`}
+                aria-label={t('onboarding.welcome.step4.remove', { email: inv.email })}
                 className="w-6 h-6 rounded text-[var(--text-tertiary)] hover:text-[var(--status-reject)] hover:bg-[var(--accent-red-light)] flex items-center justify-center"
               >
                 <X className="w-3 h-3" />
@@ -615,23 +633,24 @@ function Step5({
   onFinish: () => void
   submitting: boolean
 }) {
+  const { t } = useTranslation()
   const frameworks = getActiveFrameworks().filter(f => picked.has(f.id))
   return (
     <>
-      <SectionHeading icon={Globe} title="You're all set" />
+      <SectionHeading icon={Globe} title={t('onboarding.welcome.step5.title')} />
       <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1">
-        Here's what we'll save when you finish.
+        {t('onboarding.welcome.step5.body')}
       </p>
       <div className="mt-4 space-y-3">
-        <Summary label="Workspace" value={workspaceName || 'Not set'} />
-        <Summary label="First facility" value={facility.name ? `${facility.name} · ${facility.location}` : 'Not set'} />
+        <Summary label={t('onboarding.welcome.step5.workspace')} value={workspaceName || t('onboarding.welcome.step5.notSet')} />
+        <Summary label={t('onboarding.welcome.step5.facility')} value={facility.name ? `${facility.name} · ${facility.location}` : t('onboarding.welcome.step5.notSet')} />
         <Summary
-          label="Frameworks"
-          value={frameworks.length ? frameworks.map(f => f.code).join(', ') : 'None selected'}
+          label={t('onboarding.welcome.step5.frameworks')}
+          value={frameworks.length ? frameworks.map(f => f.code).join(', ') : t('onboarding.welcome.step5.noneSelected')}
         />
         <Summary
-          label="Invites"
-          value={invites.length ? `${invites.length} teammate${invites.length === 1 ? '' : 's'}` : 'None'}
+          label={t('onboarding.welcome.step5.invites')}
+          value={invites.length ? t('onboarding.welcome.step5.teammates', { count: invites.length }) : t('onboarding.welcome.step5.none')}
         />
       </div>
       {serverError && (
@@ -645,7 +664,7 @@ function Step5({
         className="mt-5 inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-50 transition-colors"
       >
         {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-        Go to dashboard
+        {t('onboarding.welcome.goToDashboard')}
       </button>
     </>
   )

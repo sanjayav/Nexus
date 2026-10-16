@@ -1,0 +1,298 @@
+{
+  "page": {
+    "failedToLoad": "Failed to load",
+    "errorTitle": "Unable to load calculators",
+    "retry": "Retry",
+    "breadcrumbData": "Data",
+    "title": "Calculators",
+    "description": "Typed calculators wired to specific GRI line items. Each calculator's inputs, formula and methodology match how the published SPD derives that cell.",
+    "searchPlaceholder": "Search calculators or GRI codes…",
+    "summaryCalculators": "calculators covering",
+    "summaryLineItems": "line items",
+    "noMatch": "No calculators matching \"{{query}}\".",
+    "lineItemCount_one": "{{count}} line item",
+    "lineItemCount_other": "{{count}} line items",
+    "methodology": "Methodology: {{notes}}",
+    "listSeparator": "; ",
+    "coverageGap_one": "Coverage gap — {{count}} items",
+    "coverageGap_other": "Coverage gap — {{count}} items",
+    "coverageGapNote": "— marked as Calculator mode in the seed but no typed formula registered yet.",
+    "andMore_one": "…and {{count}} more",
+    "andMore_other": "…and {{count}} more",
+    "openGriTree": "Open GRI tree",
+    "dataEntry": "Data entry"
+  },
+  "placeholderExample": "e.g. {{value}}",
+  "units": {
+    "hours": "hours",
+    "millionTonsCO2e": "Million tons CO2e",
+    "millionTons": "Million tons",
+    "baht": "Baht",
+    "tons": "Tons",
+    "megaLitres": "Mega litres",
+    "millionM": "Million m³",
+    "millionBaht": "Million baht",
+    "years": "years",
+    "kgco2eUSDInvested": "kgCO2e/USD invested"
+  },
+  "footnotes": {
+    "ipcc2006": "IPCC 2006",
+    "wriGHGProtocol": "WRI GHG Protocol",
+    "iso14064": "ISO 14064",
+    "operationalControlApproach": "Operational control approach",
+    "locationBasedMarketBasedPerGHG": "Location-based + market-based per GHG Protocol Scope 2 Guidance",
+    "thailandGridEFTGOEGAT": "Thailand grid EF: TGO / EGAT",
+    "perGRI4039RateNormalised": "Per GRI 403-9 — rate normalised to 1,000,000 hours worked",
+    "iloOSHMSConvention": "ILO OSH-MS convention",
+    "gri4011NewHireAnd": "GRI 401-1 — new hire and turnover rates",
+    "gri4013ReturnToWork": "GRI 401-3 return-to-work retention",
+    "gri4052RatioOfBasic": "GRI 405-2 — ratio of basic salary and remuneration of women to men",
+    "gri221CEOCompensationRatio": "GRI 2-21 — CEO compensation ratio",
+    "gri4051GenderAndAge": "GRI 405-1 — gender and age diversity",
+    "gri3023EnergyIntensityRatio": "GRI 302-3 — energy intensity ratio",
+    "perMillionTonProductionIntensity": "Per-million-ton-production intensity",
+    "gri3033WaterRecycledAnd": "GRI 303-3 — water recycled and reused",
+    "gri3035WaterConsumptionPer": "GRI 303-5 — water consumption per unit of production",
+    "gri3064WasteDivertedFrom": "GRI 306-4 — waste diverted from disposal",
+    "gri2011HumanCapitalROI": "GRI 201-1 — Human Capital ROI"
+  },
+  "registry": {
+    "scope-1-fuel": {
+      "title": "Scope 1 — Fuel combustion",
+      "description": "Compute direct GHG emissions from stationary or mobile combustion. Emission = Activity × EF × GWP.",
+      "inputs": {
+        "fuel": {
+          "label": "Fuel type",
+          "hint": "Selects the emission factor",
+          "options": {
+            "natural-gas": {
+              "label": "Natural gas",
+              "note": "IPCC 2006 — 56.1 tCO2e/TJ"
+            },
+            "fuel-gas": {
+              "label": "Fuel gas (refinery)",
+              "note": "IPCC 2006 — 57.6 tCO2e/TJ"
+            },
+            "fuel-oil": {
+              "label": "Fuel oil",
+              "note": "IPCC 2006 — 77.4 tCO2e/TJ"
+            },
+            "diesel": {
+              "label": "Diesel",
+              "note": "IPCC 2006 — 74.1 tCO2e/TJ"
+            },
+            "lpg": {
+              "label": "LPG",
+              "note": "IPCC 2006 — 63.1 tCO2e/TJ"
+            },
+            "naphtha": {
+              "label": "Naphtha",
+              "note": "IPCC 2006 — 73.3 tCO2e/TJ"
+            }
+          }
+        },
+        "activity": {
+          "label": "Activity data",
+          "hint": "Energy content of fuel consumed"
+        },
+        "gwp": {
+          "label": "GWP",
+          "hint": "IPCC AR6 default 1 for CO2e factors"
+        }
+      }
+    },
+    "scope-2-electricity": {
+      "title": "Scope 2 — Purchased electricity",
+      "description": "Compute indirect emissions from purchased electricity. Emission = kWh × Grid EF.",
+      "inputs": {
+        "grid": {
+          "label": "Grid / procurement method",
+          "options": {
+            "th-location": {
+              "label": "Thailand — location-based",
+              "note": "TGO 2024 — 0.487 kgCO2/kWh"
+            },
+            "th-market": {
+              "label": "Thailand — market-based (residual)",
+              "note": "TGO 2024 market residual mix"
+            },
+            "rec-backed": {
+              "label": "REC-backed renewable",
+              "note": "Zero emissions with valid I-REC"
+            },
+            "ppa-solar": {
+              "label": "Corporate PPA — solar",
+              "note": "Lifecycle EF after PPA"
+            }
+          }
+        },
+        "mwh": {
+          "label": "Consumption",
+          "hint": "Metered purchased electricity"
+        }
+      }
+    },
+    "ghg-intensity": {
+      "title": "GHG intensity",
+      "description": "(Scope 1 + Scope 2) ÷ Production volume.",
+      "inputs": {
+        "scope1": {
+          "label": "Scope 1 emissions"
+        },
+        "scope2": {
+          "label": "Scope 2 emissions"
+        },
+        "production": {
+          "label": "Production volume"
+        }
+      }
+    },
+    "injury-rate": {
+      "title": "Injury rate (per million manhours)",
+      "description": "Standard H&S rate = (Cases × 1,000,000) ÷ Manhours worked.",
+      "inputs": {
+        "cases": {
+          "label": "Recordable cases"
+        },
+        "manhours": {
+          "label": "Manhours worked"
+        }
+      }
+    },
+    "workforce-rate": {
+      "title": "Workforce rate",
+      "description": "(Events ÷ Total employees) × 100.",
+      "inputs": {
+        "events": {
+          "label": "Events (hires or leavers)"
+        },
+        "total": {
+          "label": "Total employees"
+        }
+      }
+    },
+    "retention-rate": {
+      "title": "Parental leave return rate",
+      "description": "Employees still employed 12 months after return ÷ Employees returning × 100.",
+      "inputs": {
+        "retained": {
+          "label": "Employees still employed (12 months)"
+        },
+        "returned": {
+          "label": "Employees returned from leave"
+        }
+      }
+    },
+    "pay-gap": {
+      "title": "Gender pay gap",
+      "description": "(Average female ÷ Average male) × 100. < 100% = women paid less.",
+      "inputs": {
+        "female": {
+          "label": "Average female pay"
+        },
+        "male": {
+          "label": "Average male pay"
+        }
+      }
+    },
+    "ceo-pay-ratio": {
+      "title": "CEO pay ratio",
+      "description": "Total CEO compensation ÷ median (or mean) employee compensation.",
+      "inputs": {
+        "ceo": {
+          "label": "Total CEO compensation"
+        },
+        "employee": {
+          "label": "Median (or mean) employee compensation"
+        }
+      }
+    },
+    "diversity-pct": {
+      "title": "Diversity percentage",
+      "description": "(Segment count ÷ Total) × 100.",
+      "inputs": {
+        "segment": {
+          "label": "Segment count (e.g. women)"
+        },
+        "total": {
+          "label": "Total group"
+        }
+      }
+    },
+    "energy-intensity": {
+      "title": "Energy intensity",
+      "description": "Total energy consumed ÷ Production volume.",
+      "inputs": {
+        "energy": {
+          "label": "Total energy consumed"
+        },
+        "production": {
+          "label": "Production volume"
+        }
+      }
+    },
+    "emission-intensity": {
+      "title": "Emission intensity",
+      "description": "Pollutant mass ÷ Production volume.",
+      "inputs": {
+        "mass": {
+          "label": "Pollutant mass"
+        },
+        "production": {
+          "label": "Production volume"
+        }
+      }
+    },
+    "water-recycled-pct": {
+      "title": "Recycled water share",
+      "description": "(Water recycled ÷ Total water withdrawal) × 100.",
+      "inputs": {
+        "recycled": {
+          "label": "Water recycled"
+        },
+        "withdrawn": {
+          "label": "Total water withdrawal"
+        }
+      }
+    },
+    "water-intensity": {
+      "title": "Water consumption intensity",
+      "description": "Net fresh water ÷ Production volume.",
+      "inputs": {
+        "water": {
+          "label": "Net fresh water consumption"
+        },
+        "production": {
+          "label": "Production volume"
+        }
+      }
+    },
+    "hazardous-recycled-pct": {
+      "title": "% hazardous waste recycled",
+      "description": "(Hazardous diverted ÷ Hazardous generated) × 100.",
+      "inputs": {
+        "diverted": {
+          "label": "Hazardous waste diverted"
+        },
+        "generated": {
+          "label": "Hazardous waste generated"
+        }
+      }
+    },
+    "hc-roi": {
+      "title": "Human Capital ROI",
+      "description": "(Revenue − (Operating expenses − Employee expenses)) ÷ Employee expenses.",
+      "inputs": {
+        "revenue": {
+          "label": "Total revenue"
+        },
+        "opex": {
+          "label": "Total operating expenses"
+        },
+        "empex": {
+          "label": "Total employee-related expense"
+        }
+      }
+    }
+  }
+}

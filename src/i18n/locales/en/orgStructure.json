@@ -1,0 +1,140 @@
+{
+  "breadcrumb": "Organisation",
+  "title": "Organisation Structure",
+  "description": "Corporate hierarchy, facilities, and emission source registrations.",
+  "actions": {
+    "addGroup": "Add Group",
+    "addFacility": "Add Facility"
+  },
+  "kpi": {
+    "businessGroups": "Business Groups",
+    "subsidiaries": "Subsidiaries",
+    "facilities": "Facilities",
+    "countries": "Countries",
+    "emissionSources": "Emission Sources"
+  },
+  "company": {
+    "sector": "Petrochemicals & Refining",
+    "boundary": "Operational Control",
+    "baseYear": "Base year {{year}}",
+    "reportingPeriod": "FY 2025"
+  },
+  "tabs": {
+    "hierarchy": "Hierarchy",
+    "facilities": "Facilities",
+    "sources": "Emission Sources"
+  },
+  "counts": {
+    "subsidiary_one": "{{count}} subsidiary",
+    "subsidiary_other": "{{count}} subsidiaries",
+    "facility_one": "{{count}} facility",
+    "facility_other": "{{count}} facilities",
+    "sources": "{{n}} sources",
+    "staff": "{{value}} staff",
+    "equity": "{{value}}% equity",
+    "site_one": "{{count}} site",
+    "site_other": "{{count}} sites"
+  },
+  "legend": {
+    "businessGroup": "Business Group",
+    "subsidiary": "Subsidiary",
+    "facility": "Facility"
+  },
+  "search": {
+    "placeholder": "Search facilities...",
+    "noMatch": "No facilities match your search."
+  },
+  "scopes": {
+    "s1": "Scope 1 — Direct",
+    "s1Types": "Stationary, mobile, process, fugitive",
+    "s2": "Scope 2 — Indirect",
+    "s2Types": "Purchased electricity, heat, steam",
+    "s3": "Scope 3 — Value Chain",
+    "s3Types": "Upstream & downstream activities"
+  },
+  "routing": {
+    "title": "Calculator Routing",
+    "desc": "Each source is auto-routed to the correct GHG Protocol calculator"
+  },
+  "sourcesByFacility": "Sources by Facility",
+  "listSeparator": ", ",
+  "facilityType": {
+    "manufacturing": "Manufacturing",
+    "refinery": "Refinery",
+    "office": "Office",
+    "warehouse": "Warehouse",
+    "jointVenture": "Joint Venture",
+    "laboratory": "Laboratory",
+    "dataCentre": "Data Centre"
+  },
+  "status": {
+    "operational": "Operational",
+    "planned": "Planned",
+    "decommissioned": "Decommissioned"
+  },
+  "groupNames": {
+    "chemicals": "Chemicals",
+    "polymers": "Polymers",
+    "greenChemicals": "Green Chemicals"
+  },
+  "sourceNames": {
+    "boilersFurnaces": "Boilers & Furnaces",
+    "flareSystems": "Flare Systems",
+    "processVenting": "Process Venting",
+    "gridElectricity": "Grid Electricity",
+    "companyVehicles": "Company Vehicles",
+    "crackingFurnaces": "Cracking Furnaces",
+    "coolingTowers": "Cooling Towers",
+    "purchasedSteam": "Purchased Steam",
+    "refrigerationUnits": "Refrigeration Units",
+    "extruderHeaters": "Extruder Heaters",
+    "pelletDryers": "Pellet Dryers",
+    "reactorFurnaces": "Reactor Furnaces",
+    "processEmissions": "Process Emissions",
+    "fleetVehicles": "Fleet Vehicles",
+    "labEquipmentGas": "Lab Equipment (Gas)"
+  },
+  "addGroupModal": {
+    "title": "Add Business Group",
+    "groupName": "Group Name",
+    "groupNamePlaceholder": "e.g. Performance Materials",
+    "description": "Description",
+    "descriptionPlaceholder": "Business segment description",
+    "accentColour": "Accent Colour",
+    "submit": "Create Group"
+  },
+  "colours": {
+    "teal": "Teal",
+    "blue": "Blue",
+    "purple": "Purple",
+    "amber": "Amber",
+    "green": "Green"
+  },
+  "addFacilityModal": {
+    "title": "Add Facility",
+    "facilityName": "Facility Name",
+    "facilityNamePlaceholder": "e.g. Osaka Distribution Centre",
+    "businessGroup": "Business Group",
+    "facilityType": "Facility Type",
+    "country": "Country",
+    "countryPlaceholder": "e.g. Japan",
+    "countryCode": "Country Code",
+    "countryCodePlaceholder": "e.g. JP",
+    "gridSubregion": "Grid Subregion",
+    "gridSubregionPlaceholder": "e.g. JP-Kansai",
+    "headcount": "Headcount",
+    "submit": "Create Facility"
+  },
+  "facilityModal": {
+    "country": "Country",
+    "gridRegion": "Grid Region",
+    "gridEf": "Grid EF",
+    "headcount": "Headcount",
+    "emissionSources": "Emission Sources",
+    "facilityType": "Facility Type",
+    "registeredSources": "Registered Emission Sources",
+    "callout": " — location-based EF: {{ef}} kgCO₂e/kWh (IEA {{period}}). Market-based factors from supplier contracts are managed separately.",
+    "addSource": "Add Source",
+    "decommission": "Decommission"
+  }
+}

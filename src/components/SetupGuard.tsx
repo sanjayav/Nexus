@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Database, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { setup } from '../lib/api'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Shown when a Nexus-live page finds the backend returned an empty tree/queue —
@@ -8,14 +9,15 @@ import { setup } from '../lib/api'
  * One click runs POST /api/setup (idempotent, ON CONFLICT DO NOTHING) and reloads.
  */
 export default function SetupGuard({
-  title = 'Live data not found',
-  message = 'This screen reads directly from the Nexus backend. The database appears empty — run the idempotent setup to provision tables and seed FY2022–FY2025 historical values.',
+  title,
+  message,
   onReady,
 }: {
   title?: string
   message?: string
   onReady?: () => void
 }) {
+  const { t } = useTranslation()
   const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
 
@@ -28,7 +30,7 @@ export default function SetupGuard({
       if (onReady) setTimeout(onReady, 600)
       else setTimeout(() => window.location.reload(), 600)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unknown error')
+      setError(e instanceof Error ? e.message : t('components.unknownError'))
       setStatus('error')
     }
   }
@@ -45,12 +47,12 @@ export default function SetupGuard({
         </div>
 
         <h2 className="font-display text-[var(--text-xl)] font-semibold text-[var(--text-primary)] mb-2">
-          {status === 'done' ? 'Setup complete' : status === 'error' ? 'Setup failed' : title}
+          {status === 'done' ? t('components.setupGuard.complete') : status === 'error' ? t('components.setupGuard.failed') : (title ?? t('components.setupGuard.title'))}
         </h2>
         <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mb-6 leading-relaxed">
-          {status === 'done' ? 'Reloading with live data…'
+          {status === 'done' ? t('components.setupGuard.reloading')
             : status === 'error' ? error
-            : message}
+            : (message ?? t('components.setupGuard.message'))}
         </p>
 
         {status !== 'done' && (
@@ -61,15 +63,15 @@ export default function SetupGuard({
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-60 transition-colors"
           >
             {status === 'running'
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Initializing…</>
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('components.setupGuard.initializing')}</>
               : status === 'error'
-              ? <>Retry initialization</>
-              : <><Database className="w-4 h-4" /> Initialize database</>}
+              ? <>{t('components.setupGuard.retry')}</>
+              : <><Database className="w-4 h-4" /> {t('components.setupGuard.initialize')}</>}
           </button>
         )}
 
         <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-5">
-          Idempotent. Creates tables if missing, seeds demo SPD data, safe to run multiple times.
+          {t('components.setupGuard.footnote')}
         </p>
       </div>
     </div>

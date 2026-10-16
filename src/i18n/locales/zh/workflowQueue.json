@@ -1,0 +1,59 @@
+{
+  "review": {
+    "title": "审核队列",
+    "subtitle": "子公司负责人在数据提交至集团负责人之前，逐项审核各工厂提交的数据。",
+    "reject": "退回工厂修改",
+    "pass": "提交批准"
+  },
+  "approval": {
+    "title": "批准队列",
+    "subtitle": "可持续发展官批准已审核的数据。已批准的指标项将纳入集团汇总和 GRI 报告。",
+    "reject": "驳回",
+    "pass": "批准"
+  },
+  "errors": {
+    "update": "无法更新：{{message}}",
+    "needComment": "请填写简短备注，说明退回修改的原因。"
+  },
+  "switchToApproval": "切换到批准队列",
+  "switchToReview": "切换到审核队列",
+  "stats": {
+    "waitingReview": "待审核",
+    "waitingApproval": "待批准",
+    "alreadyReviewed": "已审核"
+  },
+  "queueCount": "队列 · {{count}}",
+  "mode": {
+    "Manual": "手动",
+    "Calculator": "计算器",
+    "Connector": "连接器"
+  },
+  "pickRow": "请从左侧选择一行",
+  "empty": {
+    "title": "队列为空",
+    "review": "没有等待负责人审核的工厂提交。",
+    "approval": "没有等待可持续发展官批准的事项。",
+    "viewRollup": "查看集团汇总"
+  },
+  "detail": {
+    "entity": "报告实体",
+    "submittedBy": "提交人",
+    "due": "截止日期",
+    "modeUsed": "填报方式",
+    "narrative_other": "已提交的叙述性披露（{{count}} 个字符）",
+    "noNarrative": "未提交叙述性内容。",
+    "value": "已提交数值",
+    "evidence_other": "已附证据（{{count}}）",
+    "note": "填报人备注",
+    "commentLabel": "备注（驳回时必填）",
+    "commentPlaceholderReview": "给负责人的备注（可选），退回修改时必填。",
+    "commentPlaceholderApproval": "可选，驳回时必填。"
+  },
+  "variance": {
+    "large": "较 FY{{year}}（{{prior}}）同比变动 {{delta}}%，请在批准前核实。",
+    "normal": "较 FY{{year}} 同比变动 {{delta}}% — 处于预期范围内。",
+    "noPrior": "无上一年度数值记录，无法进行差异检查。",
+    "noUnit": "该数值未标注单位，请在批准前与提交人确认。",
+    "title": "数据质量检查"
+  }
+}

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { orgStore, type AssignmentComment, type OrgMember } from '../lib/orgStore'
 import { useAuth } from '../auth/AuthContext'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Threaded comments on an assignment — Workiva-grade.
@@ -34,6 +35,7 @@ type FilterMode = 'all' | 'unresolved' | 'mine' | 'review'
 const MENTION_PATTERN = /(?:^|\s)@([\w.+-]*)$/
 
 export default function CommentThread({ assignmentId }: CommentThreadProps) {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const [comments, setComments] = useState<AssignmentComment[]>([])
   const [members, setMembers] = useState<OrgMember[]>([])
@@ -101,36 +103,36 @@ export default function CommentThread({ assignmentId }: CommentThreadProps) {
       {/* Header — title + unresolved count badge + filter */}
       <div className="flex items-center gap-2 mb-2">
         <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
-          <MessageSquare className="w-3 h-3" /> Discussion
+          <MessageSquare className="w-3 h-3" /> {t('components.comments.discussion')}
           {unresolvedCount > 0 && (
             <span
               data-testid="comment-unresolved-count"
               className="ml-1 px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-[var(--color-brand-soft)] text-[var(--color-brand)]"
             >
-              {unresolvedCount} open
+              {t('components.comments.openCount', { count: unresolvedCount })}
             </span>
           )}
         </div>
         <div className="ml-auto flex items-center gap-1">
           <Filter className="w-3 h-3 text-[var(--text-tertiary)]" aria-hidden />
           <select
-            aria-label="Filter comments"
+            aria-label={t('components.comments.filterAria')}
             value={filter}
             onChange={e => setFilter(e.target.value as FilterMode)}
             className="text-[10px] bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded-[4px] px-1.5 py-0.5 text-[var(--text-secondary)] focus:outline-none focus:border-[var(--color-brand)]"
           >
-            <option value="all">All</option>
-            <option value="unresolved">Unresolved</option>
-            <option value="mine">Mentioning me</option>
-            <option value="review">Review requests</option>
+            <option value="all">{t('common.all')}</option>
+            <option value="unresolved">{t('components.comments.filter.unresolved')}</option>
+            <option value="mine">{t('components.comments.filter.mine')}</option>
+            <option value="review">{t('components.comments.filter.review')}</option>
           </select>
         </div>
       </div>
 
       {loading ? (
-        <div className="py-3 text-center text-[10px] text-[var(--text-tertiary)]">Loading…</div>
+        <div className="py-3 text-center text-[10px] text-[var(--text-tertiary)]">{t('common.loading')}</div>
       ) : visibleRoots.length === 0 ? (
-        <div className="py-2 text-[10px] text-[var(--text-tertiary)] italic">No comments match this filter. Start a thread below.</div>
+        <div className="py-2 text-[10px] text-[var(--text-tertiary)] italic">{t('components.comments.noMatch')}</div>
       ) : (
         <ul className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
           {visibleRoots.map(c => {
@@ -161,7 +163,7 @@ export default function CommentThread({ assignmentId }: CommentThreadProps) {
           onClick={() => setShowResolved(s => !s)}
           className="mt-2 text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] inline-flex items-center gap-1"
         >
-          {showResolved ? 'Hide resolved' : 'Show resolved'}
+          {showResolved ? t('components.comments.hideResolved') : t('components.comments.showResolved')}
         </button>
       )}
 
@@ -193,6 +195,7 @@ function CommentNode({
   onChange: () => void
   showResolvedReplies: boolean
 }) {
+  const { t } = useTranslation()
   const [busy, setBusy] = useState(false)
   const isResolved = !!comment.resolved_at
   const isReviewRequest = !!comment.is_request_for_review
@@ -207,7 +210,7 @@ function CommentNode({
       else await orgStore.resolveComment(comment.id)
       onChange()
     } catch (e) {
-      alert(`Could not update: ${e instanceof Error ? e.message : e}`)
+      alert(t('components.comments.couldNotUpdate', { error: e instanceof Error ? e.message : String(e) }))
     }
     setBusy(false)
   }
@@ -224,7 +227,7 @@ function CommentNode({
           disabled={busy}
           className="text-[10px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] inline-flex items-center gap-0.5"
         >
-          <RotateCcw className="w-3 h-3" /> Reopen
+          <RotateCcw className="w-3 h-3" /> {t('components.comments.reopen')}
         </button>
       </li>
     )
@@ -241,7 +244,7 @@ function CommentNode({
       <CommentHeader comment={comment} />
       {isReviewRequest && (
         <div className="mb-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-400/15 text-amber-600">
-          <AlertTriangle className="w-3 h-3" /> Review requested
+          <AlertTriangle className="w-3 h-3" /> {t('components.comments.reviewRequested')}
         </div>
       )}
       <CommentBody body={comment.body} members={members} />
@@ -252,9 +255,9 @@ function CommentNode({
           type="button"
           onClick={isReplying ? onCancelReply : onReply}
           className="inline-flex items-center gap-0.5 hover:text-[var(--text-secondary)]"
-          aria-label={isReplying ? 'Cancel reply' : 'Reply'}
+          aria-label={isReplying ? t('components.comments.cancelReply') : t('components.comments.reply')}
         >
-          <ReplyIcon className="w-3 h-3" /> {isReplying ? 'Cancel' : 'Reply'}
+          <ReplyIcon className="w-3 h-3" /> {isReplying ? t('common.cancel') : t('components.comments.reply')}
         </button>
         <button
           type="button"
@@ -263,7 +266,7 @@ function CommentNode({
           className={`inline-flex items-center gap-0.5 hover:text-[var(--text-secondary)] ${canResolve ? '' : 'opacity-70'}`}
         >
           {isResolved ? <RotateCcw className="w-3 h-3" /> : <Check className="w-3 h-3" />}
-          {isResolved ? 'Reopen' : 'Resolve'}
+          {isResolved ? t('components.comments.reopen') : t('components.comments.resolve')}
         </button>
       </div>
 
@@ -304,6 +307,7 @@ function CommentNode({
 }
 
 function CommentHeader({ comment }: { comment: AssignmentComment }) {
+  const { t, i18n } = useTranslation()
   return (
     <div className="flex items-center gap-2 mb-1">
       <span className="w-5 h-5 rounded-full bg-[var(--color-brand)] text-white text-[9px] font-bold flex items-center justify-center flex-shrink-0">
@@ -312,11 +316,11 @@ function CommentHeader({ comment }: { comment: AssignmentComment }) {
       <span className="text-[10px] font-semibold text-[var(--text-primary)]">{comment.author_name}</span>
       {comment.kind !== 'comment' && !comment.is_request_for_review && (
         <span className="text-[8px] uppercase tracking-wider font-semibold text-[var(--color-brand)] bg-[var(--color-brand-soft)] px-1 py-0.5 rounded">
-          {comment.kind.replace('_', ' ')}
+          {t(`components.comments.kinds.${comment.kind}`, { defaultValue: comment.kind.replace('_', ' ') })}
         </span>
       )}
       <span className="ml-auto text-[9px] text-[var(--text-tertiary)]">
-        {new Date(comment.created_at).toLocaleString()}
+        {new Date(comment.created_at).toLocaleString(i18n.language?.startsWith('zh') ? 'zh-CN' : undefined)}
       </span>
     </div>
   )
@@ -370,6 +374,7 @@ function ComposerForm({
   compact?: boolean
   onPosted: () => void
 }) {
+  const { t } = useTranslation()
   const [draft, setDraft] = useState('')
   const [mentionedEmails, setMentionedEmails] = useState<Set<string>>(new Set())
   const [requestReview, setRequestReview] = useState(false)
@@ -457,7 +462,7 @@ function ComposerForm({
       setRequestReview(false)
       onPosted()
     } catch (e) {
-      alert(`Could not post: ${e instanceof Error ? e.message : e}`)
+      alert(t('components.comments.couldNotPost', { error: e instanceof Error ? e.message : String(e) }))
     }
     setPosting(false)
   }
@@ -495,9 +500,9 @@ function ComposerForm({
             aria-pressed={requestReview}
           >
             <AlertTriangle className="w-3 h-3" />
-            {requestReview ? 'Review requested' : 'Request for review'}
+            {requestReview ? t('components.comments.reviewRequested') : t('components.comments.requestReview')}
           </button>
-          <span className="text-[9px] text-[var(--text-tertiary)] hidden sm:inline">⌘+Enter to submit</span>
+          <span className="text-[9px] text-[var(--text-tertiary)] hidden sm:inline">{t('components.comments.submitHint')}</span>
         </div>
       )}
 
@@ -507,10 +512,10 @@ function ComposerForm({
           value={draft}
           onChange={e => handleChange(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder={compact ? 'Reply…' : 'Write a comment — type @ to mention someone'}
+          placeholder={compact ? t('components.comments.replyPlaceholder') : t('components.comments.placeholder')}
           disabled={posting}
           rows={compact ? 2 : 2}
-          aria-label={compact ? 'Reply' : 'Write a comment'}
+          aria-label={compact ? t('components.comments.reply') : t('components.comments.writeAria')}
           className="flex-1 px-2.5 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[11px] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none disabled:opacity-50 resize-none"
         />
         <button
@@ -518,7 +523,7 @@ function ComposerForm({
           onClick={post}
           disabled={posting || !draft.trim()}
           className="px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--color-brand)] text-white text-[11px] font-semibold disabled:opacity-50 inline-flex items-center gap-1 hover:bg-[var(--color-brand-strong)] self-start"
-          aria-label="Submit comment"
+          aria-label={t('components.comments.submitAria')}
         >
           {posting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
         </button>
@@ -527,7 +532,7 @@ function ComposerForm({
         {mentionQuery != null && candidates.length > 0 && (
           <div
             role="listbox"
-            aria-label="Mention suggestions"
+            aria-label={t('components.comments.mentionSuggestions')}
             className="absolute left-0 right-12 top-full mt-1 z-20 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-[var(--radius-sm)] shadow-lg overflow-hidden"
           >
             {candidates.map((c, idx) => (

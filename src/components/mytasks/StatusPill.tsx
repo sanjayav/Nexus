@@ -1,13 +1,15 @@
+import { useTranslation } from 'react-i18next'
 import type { QuestionAssignment } from '../../lib/orgStore'
 
 export function StatusPill({ status }: { status: QuestionAssignment['status'] }) {
+  const { t } = useTranslation()
   const map = {
-    not_started: { label: 'To do',     bg: 'var(--bg-tertiary)',         fg: 'var(--text-tertiary)',  dot: false },
-    in_progress: { label: 'Draft',     bg: 'var(--accent-amber-light)',  fg: 'var(--status-draft)',   dot: false },
-    submitted:   { label: 'Submitted', bg: 'var(--accent-blue-light)',   fg: 'var(--status-pending)', dot: true  },
-    reviewed:    { label: 'Reviewed',  bg: 'var(--accent-blue-light)',   fg: 'var(--status-pending)', dot: true  },
-    approved:    { label: 'Approved',  bg: 'var(--accent-green-light)',  fg: 'var(--status-ok)',      dot: false },
-    rejected:    { label: 'Rejected',  bg: 'var(--accent-red-light)',    fg: 'var(--status-reject)',  dot: false },
+    not_started: { label: 'tasks.pill.todo',     bg: 'var(--bg-tertiary)',         fg: 'var(--text-tertiary)',  dot: false },
+    in_progress: { label: 'tasks.pill.draft',     bg: 'var(--accent-amber-light)',  fg: 'var(--status-draft)',   dot: false },
+    submitted:   { label: 'tasks.pill.submitted', bg: 'var(--accent-blue-light)',   fg: 'var(--status-pending)', dot: true  },
+    reviewed:    { label: 'tasks.pill.reviewed',  bg: 'var(--accent-blue-light)',   fg: 'var(--status-pending)', dot: true  },
+    approved:    { label: 'tasks.pill.approved',  bg: 'var(--accent-green-light)',  fg: 'var(--status-ok)',      dot: false },
+    rejected:    { label: 'tasks.pill.rejected',  bg: 'var(--accent-red-light)',    fg: 'var(--status-reject)',  dot: false },
   }[status]
   return (
     <span
@@ -15,7 +17,7 @@ export function StatusPill({ status }: { status: QuestionAssignment['status'] })
       style={{ background: map.bg, color: map.fg }}
     >
       {map.dot && <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: map.fg }} />}
-      {map.label}
+      {t(map.label)}
     </span>
   )
 }

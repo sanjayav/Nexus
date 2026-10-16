@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import {
   Download, Send, Loader2, CheckCircle2, AlertCircle,
@@ -22,7 +23,17 @@ import { computeEmissionsTotals, valueForAssignment, type EmissionsTotals } from
 
 type View = 'loading' | 'ready' | 'error'
 
+/** Locale for date/number display: zh-CN when Chinese, otherwise the
+ *  browser default (unchanged English behaviour). */
+function useDisplayLocale(): string | undefined {
+  const { i18n } = useTranslation()
+  return i18n.language?.startsWith('zh') ? 'zh-CN' : undefined
+}
+
 export default function ReportPublishing() {
+  const { t, i18n } = useTranslation()
+  const locale = useDisplayLocale()
+  const isZh = i18n.language?.startsWith('zh') ?? false
   const { data: orgData, loading: orgLoading, reload: reloadOrgData } = useOrgData()
   const { active: framework } = useFramework()
   const [state, setState] = useState<View>('loading')
@@ -57,7 +68,7 @@ export default function ReportPublishing() {
       }
       setState('ready')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load')
+      setError(e instanceof Error ? e.message : t('publishing.errors.loadFailed'))
       setState('error')
     }
   }
@@ -109,7 +120,7 @@ export default function ReportPublishing() {
       setPublishBanner({ verify_url: res.verify_url, sha256: res.pdf_sha256, version: res.version, is_draft: res.is_draft })
       await load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Publish failed')
+      setError(e instanceof Error ? e.message : t('publishing.errors.publishFailed'))
     } finally {
       setPublishing(false)
     }
@@ -163,7 +174,7 @@ export default function ReportPublishing() {
         await handlePublish(signedAssurance[0]?.id)
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Import failed')
+      setError(e instanceof Error ? e.message : t('publishing.errors.importFailed'))
     } finally {
       setImporting(false)
     }
@@ -185,23 +196,26 @@ export default function ReportPublishing() {
     return (
       <EmptyState
         icon={<AlertCircle className="w-7 h-7" />}
-        title="Unable to load publish centre"
+        title={t('publishing.errors.unableToLoad')}
         description={error ?? ''}
-        actions={<Button variant="secondary" onClick={load}>Retry</Button>}
+        actions={<Button variant="secondary" onClick={load}>{t('publishing.retry')}</Button>}
       />
     )
   }
+
+  const fz = framework as { nameZh?: string }
+  const frameworkName = (isZh && fz.nameZh) || framework.name
 
   return (
     <div className="page-container space-y-8">
       <PageHeader
         breadcrumbs={[
-          { label: 'Reports', to: '/reports' },
-          { label: 'Publish Centre' },
+          { label: t('publishing.breadcrumbReports'), to: '/reports' },
+          { label: t('publishing.title') },
         ]}
-        eyebrow="Reports"
-        title="Publish Centre"
-        subtitle="Generate an auditor-grade PDF, anchor its hash to a public timestamp, and track the assurance workflow."
+        eyebrow={t('publishing.eyebrow')}
+        title={t('publishing.title')}
+        subtitle={t('publishing.subtitle')}
         actions={
           <>
             {period && (
@@ -212,7 +226,7 @@ export default function ReportPublishing() {
                 onClick={() => { setAutoPublishAfterImport(false); setImportModalOpen(true) }}
                 disabled={importing || publishing}
               >
-                {importing ? 'Importing…' : 'Import from Excel'}
+                {importing ? t('publishing.actions.importing') : t('publishing.actions.importFromExcel')}
               </Button>
             )}
             {period && (
@@ -222,7 +236,7 @@ export default function ReportPublishing() {
                 icon={<ShieldCheck className="w-4 h-4" />}
                 onClick={() => setAssuranceModalOpen(true)}
               >
-                Request assurance
+                {t('publishing.actions.requestAssurance')}
               </Button>
             )}
             <Button
@@ -232,7 +246,7 @@ export default function ReportPublishing() {
               onClick={() => handlePublish(signedAssurance[0]?.id)}
               disabled={!period || !readiness.canPublish || publishing}
             >
-              {publishing ? 'Publishing…' : latestForPeriod ? 'Re-publish' : 'Publish report'}
+              {publishing ? t('publishing.actions.publishing') : latestForPeriod ? t('publishing.actions.republish') : t('publishing.actions.publishReport')}
             </Button>
           </>
         }
@@ -258,10 +272,10 @@ export default function ReportPublishing() {
 
       {/* Period picker */}
       <section>
-        <SectionHeader kicker="Scope" title="Reporting period" subtitle={`${framework.name} — pick a period to publish.`} />
+        <SectionHeader kicker={t('publishing.period.kicker')} title={t('publishing.period.title')} subtitle={t('publishing.period.subtitle', { framework: frameworkName })} />
         <div className="flex flex-wrap gap-2">
           {periods.length === 0 ? (
-            <div className="text-[13px] text-[var(--text-tertiary)]">No periods set up. Create one in Admin → Reporting cycles.</div>
+            <div className="text-[13px] text-[var(--text-tertiary)]">{t('publishing.period.none')}</div>
           ) : (
             periods.map(p => (
               <button
@@ -270,7 +284,7 @@ export default function ReportPublishing() {
                 className={`chip ${selectedPeriodId === p.id ? 'chip-active' : ''}`}
               >
                 {p.label}
-                <span className="text-[10px] text-[var(--text-quaternary)] uppercase tracking-[0.08em]">{p.status}</span>
+                <span className="text-[10px] text-[var(--text-quaternary)] uppercase tracking-[0.08em]">{t(`publishing.period.status.${p.status}`, { defaultValue: p.status })}</span>
               </button>
             ))
           )}
@@ -283,20 +297,20 @@ export default function ReportPublishing() {
           <motion.div {...popIn(0)} className="surface-hero p-8">
             <div className="flex items-start justify-between gap-6 flex-wrap">
               <div className="flex-1 min-w-0">
-                <div className="kicker mb-2">Readiness · {period.label}</div>
+                <div className="kicker mb-2">{t('publishing.readiness.kicker', { period: period.label })}</div>
                 <h2 className="text-display text-[28px] text-[var(--text-primary)]">
-                  {readiness.total === 0 ? 'No disclosures assigned yet' : readiness.approved === readiness.total ? 'Ready to publish' : `${readiness.approved} of ${readiness.total} disclosures approved`}
+                  {readiness.total === 0 ? t('publishing.readiness.noneAssigned') : readiness.approved === readiness.total ? t('publishing.readiness.ready') : t('publishing.readiness.approvedOf', { approved: readiness.approved, total: readiness.total })}
                 </h2>
                 <p className="text-[13.5px] text-[var(--text-secondary)] mt-2 max-w-xl leading-relaxed">
-                  The PDF is generated server-side and each page includes verification on the footer. The cover carries a QR code and a{' '}
-                  <JargonTooltip term="SHA-256">A 256-bit cryptographic fingerprint of the PDF. Any change to the file — even a single character — produces a different hash, so recipients can prove the file hasn't been altered.</JargonTooltip>
-                  {' '}hash anchored to a{' '}
-                  <JargonTooltip term="public timestamp calendar">An external service (OpenTimestamps) that records the hash on the Bitcoin blockchain at a specific moment, providing a tamper-evident proof that the report existed in this exact form on a given date — without trusting Nexus or any single party.</JargonTooltip>
-                  {' '}— any recipient can confirm the file hasn't been modified.
+                  {t('publishing.readiness.body1')}
+                  <JargonTooltip term={t('publishing.readiness.shaTerm')}>{t('publishing.readiness.shaDef')}</JargonTooltip>
+                  {t('publishing.readiness.body2')}
+                  <JargonTooltip term={t('publishing.readiness.calendarTerm')}>{t('publishing.readiness.calendarDef')}</JargonTooltip>
+                  {t('publishing.readiness.body3')}
                 </p>
                 <div className="mt-5 max-w-md">
                   <div className="flex items-baseline justify-between mb-2">
-                    <span className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)]">Coverage</span>
+                    <span className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)]">{t('publishing.readiness.coverage')}</span>
                     <span className="text-[14px] font-bold tabular-nums text-[var(--text-primary)]">{readiness.pct}%</span>
                   </div>
                   <div className="h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
@@ -312,9 +326,9 @@ export default function ReportPublishing() {
                   </div>
                 </div>
                 <div className="flex gap-2 mt-5 flex-wrap">
-                  <Tally label="Approved" value={readiness.approved} accent="green" />
-                  <Tally label="In review" value={readiness.inFlight} accent="blue" />
-                  <Tally label="Open" value={readiness.open} accent="amber" />
+                  <Tally label={t('publishing.readiness.approved')} value={readiness.approved} accent="green" />
+                  <Tally label={t('publishing.readiness.inReview')} value={readiness.inFlight} accent="blue" />
+                  <Tally label={t('publishing.readiness.open')} value={readiness.open} accent="amber" />
                 </div>
               </div>
 
@@ -328,31 +342,31 @@ export default function ReportPublishing() {
       {/* Latest artifact for this period */}
       {latestForPeriod && (
         <section>
-          <SectionHeader kicker="Latest artifact" title={`Version ${latestForPeriod.version}`} subtitle={`Published ${new Date(latestForPeriod.published_at).toLocaleString()}. Hash anchored to OpenTimestamps.`} />
+          <SectionHeader kicker={t('publishing.latest.kicker')} title={t('publishing.latest.title', { version: latestForPeriod.version })} subtitle={t('publishing.latest.subtitle', { date: new Date(latestForPeriod.published_at).toLocaleString(locale) })} />
           <ArtifactCard report={latestForPeriod} onShare={setShareDialogReport} />
         </section>
       )}
 
       {/* Publish history */}
       <section>
-        <SectionHeader kicker="Archive" title="Publish history" subtitle="Every prior version is retained, hashed, and externally timestamped." />
+        <SectionHeader kicker={t('publishing.history.kicker')} title={t('publishing.history.title')} subtitle={t('publishing.history.subtitle')} />
         {reports.length === 0 ? (
           <EmptyState
             icon={<FileText className="w-7 h-7" />}
-            title="No reports published yet"
-            description="Approve at least one disclosure in this framework, then hit Publish."
+            title={t('publishing.history.emptyTitle')}
+            description={t('publishing.history.emptyDesc')}
           />
         ) : (
           <div className="surface-paper overflow-hidden">
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="text-[10.5px] uppercase tracking-[0.1em] text-[var(--text-tertiary)] bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)]">
-                  <th className="text-left px-5 py-3 font-semibold">Version</th>
-                  <th className="text-left px-5 py-3 font-semibold">Period</th>
-                  <th className="text-left px-5 py-3 font-semibold">Assurance</th>
-                  <th className="text-left px-5 py-3 font-semibold">Hash</th>
-                  <th className="text-left px-5 py-3 font-semibold">Published</th>
-                  <th className="text-right px-5 py-3 font-semibold">Actions</th>
+                  <th className="text-left px-5 py-3 font-semibold">{t('publishing.history.colVersion')}</th>
+                  <th className="text-left px-5 py-3 font-semibold">{t('publishing.history.colPeriod')}</th>
+                  <th className="text-left px-5 py-3 font-semibold">{t('publishing.history.colAssurance')}</th>
+                  <th className="text-left px-5 py-3 font-semibold">{t('publishing.history.colHash')}</th>
+                  <th className="text-left px-5 py-3 font-semibold">{t('publishing.history.colPublished')}</th>
+                  <th className="text-right px-5 py-3 font-semibold">{t('publishing.history.colActions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-subtle)]">
@@ -367,13 +381,13 @@ export default function ReportPublishing() {
       {period && (
         <section>
           <SectionHeader
-            kicker="Assurance"
-            title="Independent assurance workflow"
+            kicker={t('publishing.assurance.kicker')}
+            title={t('publishing.assurance.title')}
             subtitle={(
               <>
-                Send a signed upload link to your audit partner. Once they submit an{' '}
-                <JargonTooltip term="ISAE 3000">International Standard on Assurance Engagements 3000 — the global standard auditors follow when assuring non-financial information like sustainability data. "Limited" assurance is a moderate level; "Reasonable" is the highest, equivalent to a financial audit.</JargonTooltip>
-                {' '}opinion, the draft watermark lifts on the next publish.
+                {t('publishing.assurance.subtitle1')}
+                <JargonTooltip term={t('publishing.assurance.isaeTerm')}>{t('publishing.assurance.isaeDef')}</JargonTooltip>
+                {t('publishing.assurance.subtitle2')}
               </>
             )}
           />
@@ -381,9 +395,9 @@ export default function ReportPublishing() {
             <EmptyState
               size="sm"
               icon={<Shield className="w-6 h-6" />}
-              title="No assurance requests yet"
-              description="Request assurance from a third-party firm. The platform sends them a private upload link — they don't need a login."
-              actions={<Button variant="brand" size="md" icon={<ShieldCheck className="w-4 h-4" />} onClick={() => setAssuranceModalOpen(true)}>Request assurance</Button>}
+              title={t('publishing.assurance.emptyTitle')}
+              description={t('publishing.assurance.emptyDesc')}
+              actions={<Button variant="brand" size="md" icon={<ShieldCheck className="w-4 h-4" />} onClick={() => setAssuranceModalOpen(true)}>{t('publishing.actions.requestAssurance')}</Button>}
             />
           ) : (
             <div className="space-y-3">
@@ -419,6 +433,8 @@ function ImportResultBanner({ result, onClose, onPublish, publishing }: {
   onPublish: () => void
   publishing: boolean
 }) {
+  const { t } = useTranslation()
+  const locale = useDisplayLocale()
   const { totals, updated, failed } = result
   const success = updated > 0
   return (
@@ -442,24 +458,24 @@ function ImportResultBanner({ result, onClose, onPublish, publishing }: {
         <div className="flex-1 min-w-0">
           <div className="text-[14.5px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">
             {success
-              ? `${totals.rows} rows imported · ${updated} disclosure${updated === 1 ? '' : 's'} auto-populated and approved`
-              : `Import processed but no matching disclosures were updated`}
+              ? t('publishing.import.successHeadline', { rows: totals.rows, count: updated })
+              : t('publishing.import.noMatch')}
           </div>
           <div className="text-[12px] text-[var(--text-secondary)] mt-1 leading-snug">
-            Computed totals:{' '}
+            {t('publishing.import.computedTotals')}{' '}
             <strong>
-              <JargonTooltip term="Scope 1">Direct GHG emissions from sources the company owns or controls — e.g. fuel combusted on-site, company vehicles, refrigerant leaks. GHG Protocol category.</JargonTooltip>
+              <JargonTooltip term={t('publishing.import.scope1Term')}>{t('publishing.import.scope1Def')}</JargonTooltip>
             </strong>{' '}
-            {totals.scope1.toLocaleString()} ·{' '}
+            {totals.scope1.toLocaleString(locale)} ·{' '}
             <strong>
-              <JargonTooltip term="Scope 2">Indirect GHG emissions from purchased electricity, steam, heating, or cooling. Reported two ways: location-based (grid average) and market-based (contract-specific).</JargonTooltip>
+              <JargonTooltip term={t('publishing.import.scope2Term')}>{t('publishing.import.scope2Def')}</JargonTooltip>
             </strong>{' '}
-            {totals.scope2.toLocaleString()} ·{' '}
+            {totals.scope2.toLocaleString(locale)} ·{' '}
             <strong>
-              <JargonTooltip term="Scope 3">All other indirect emissions across the value chain — split into 15 categories: purchased goods, capital goods, transportation, business travel, employee commuting, use of sold products, end-of-life treatment, investments, etc.</JargonTooltip>
+              <JargonTooltip term={t('publishing.import.scope3Term')}>{t('publishing.import.scope3Def')}</JargonTooltip>
             </strong>{' '}
-            {totals.scope3.toLocaleString()} tCO₂e
-            {failed > 0 && <span className="text-[var(--status-reject)]"> · {failed} update(s) failed</span>}
+            {totals.scope3.toLocaleString(locale)} tCO₂e
+            {failed > 0 && <span className="text-[var(--status-reject)]"> · {t('publishing.import.updatesFailed', { count: failed })}</span>}
           </div>
           {success && (
             <div className="mt-3">
@@ -470,7 +486,7 @@ function ImportResultBanner({ result, onClose, onPublish, publishing }: {
                 onClick={onPublish}
                 disabled={publishing}
               >
-                {publishing ? 'Publishing…' : 'Publish report now'}
+                {publishing ? t('publishing.actions.publishing') : t('publishing.actions.publishReportNow')}
               </Button>
             </div>
           )}
@@ -494,16 +510,18 @@ function Tally({ label, value, accent }: { label: string; value: number; accent:
 }
 
 function AssurancePill({ signed, pending }: { signed?: AssuranceRequest; pending?: AssuranceRequest }) {
+  const { t } = useTranslation()
+  const locale = useDisplayLocale()
   if (signed) {
     return (
       <div className="px-4 py-3 rounded-[12px] border border-[var(--status-ok)]/30 bg-[var(--accent-green-light)]/60 min-w-[200px]">
         <div className="flex items-center gap-2">
           <BadgeCheck className="w-4 h-4 text-[var(--status-ok)]" />
-          <span className="text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--status-ok)]">Assured</span>
+          <span className="text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--status-ok)]">{t('publishing.pill.assured')}</span>
         </div>
         <div className="text-[13.5px] font-semibold text-[var(--text-primary)] mt-1.5 truncate">{signed.auditor_firm ?? signed.auditor_email}</div>
         <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">
-          {signed.opinion_type === 'reasonable' ? 'Reasonable assurance' : 'Limited assurance'} · {signed.signed_at ? new Date(signed.signed_at).toLocaleDateString() : ''}
+          {signed.opinion_type === 'reasonable' ? t('publishing.pill.reasonable') : t('publishing.pill.limited')} · {signed.signed_at ? new Date(signed.signed_at).toLocaleDateString(locale) : ''}
         </div>
       </div>
     )
@@ -513,10 +531,10 @@ function AssurancePill({ signed, pending }: { signed?: AssuranceRequest; pending
       <div className="px-4 py-3 rounded-[12px] border border-[var(--status-draft)]/30 bg-[var(--accent-amber-light)]/60 min-w-[200px]">
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-[var(--status-draft)]" />
-          <span className="text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--status-draft)]">Assurance pending</span>
+          <span className="text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--status-draft)]">{t('publishing.pill.pending')}</span>
         </div>
         <div className="text-[13.5px] font-semibold text-[var(--text-primary)] mt-1.5 truncate">{pending.auditor_firm ?? pending.auditor_email}</div>
-        <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">Upload link active</div>
+        <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{t('publishing.pill.linkActive')}</div>
       </div>
     )
   }
@@ -524,15 +542,16 @@ function AssurancePill({ signed, pending }: { signed?: AssuranceRequest; pending
     <div className="px-4 py-3 rounded-[12px] border border-[var(--border-default)] bg-[var(--bg-secondary)] min-w-[200px]">
       <div className="flex items-center gap-2">
         <Shield className="w-4 h-4 text-[var(--text-tertiary)]" />
-        <span className="text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--text-tertiary)]">Unaudited</span>
+        <span className="text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--text-tertiary)]">{t('publishing.pill.unaudited')}</span>
       </div>
-      <div className="text-[13.5px] font-semibold text-[var(--text-primary)] mt-1.5">No assurance</div>
-      <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">Will publish as "DRAFT"</div>
+      <div className="text-[13.5px] font-semibold text-[var(--text-primary)] mt-1.5">{t('publishing.pill.noAssurance')}</div>
+      <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{t('publishing.pill.willPublishDraft')}</div>
     </div>
   )
 }
 
 function PublishBanner({ banner, onClose }: { banner: { verify_url: string; sha256: string; version: number; is_draft: boolean }; onClose: () => void }) {
+  const { t } = useTranslation()
   return (
     <motion.div
       {...popIn(0)}
@@ -553,10 +572,10 @@ function PublishBanner({ banner, onClose }: { banner: { verify_url: string; sha2
         </div>
         <div className="flex-1 min-w-0">
           <div className="text-[14.5px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">
-            Version {banner.version} published {banner.is_draft ? 'as unaudited draft' : 'with assurance'}
+            {banner.is_draft ? t('publishing.banner.publishedDraft', { version: banner.version }) : t('publishing.banner.publishedAssured', { version: banner.version })}
           </div>
           <div className="text-[12px] text-[var(--text-secondary)] mt-1 leading-snug">
-            SHA-256: <span className="font-mono">{banner.sha256.slice(0, 24)}…</span> — anchored to OpenTimestamps. Verify URL:
+            SHA-256: <span className="font-mono">{banner.sha256.slice(0, 24)}…</span> {t('publishing.banner.anchored')}
           </div>
           <div className="flex items-center gap-2 mt-2">
             <code className="font-mono text-[11px] text-[var(--color-brand-strong)] bg-[var(--bg-secondary)] px-2 py-1 rounded-[6px] border border-[var(--border-subtle)] truncate">{banner.verify_url}</code>
@@ -574,6 +593,8 @@ function PublishBanner({ banner, onClose }: { banner: { verify_url: string; sha2
 }
 
 function ArtifactCard({ report, onShare }: { report: PublishedReport; onShare: (r: PublishedReport) => void }) {
+  const { t } = useTranslation()
+  const locale = useDisplayLocale()
   return (
     <motion.div {...popIn(0)} className="surface-paper p-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -583,14 +604,14 @@ function ArtifactCard({ report, onShare }: { report: PublishedReport; onShare: (
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[13px] font-semibold text-[var(--text-primary)]">Version {report.version} · {report.framework_id.toUpperCase()}</span>
+              <span className="text-[13px] font-semibold text-[var(--text-primary)]">{t('publishing.artifact.version', { version: report.version, framework: report.framework_id.toUpperCase() })}</span>
               {report.is_draft ? (
-                <span className="chip" style={{ background: 'var(--accent-amber-light)', color: 'var(--status-draft)', borderColor: 'rgba(230,168,23,0.3)' }}>DRAFT</span>
+                <span className="chip" style={{ background: 'var(--accent-amber-light)', color: 'var(--status-draft)', borderColor: 'rgba(230,168,23,0.3)' }}>{t('publishing.artifact.draft')}</span>
               ) : (
-                <span className="chip" style={{ background: 'var(--accent-green-light)', color: 'var(--status-ok)', borderColor: 'rgba(46,125,50,0.3)' }}>ASSURED</span>
+                <span className="chip" style={{ background: 'var(--accent-green-light)', color: 'var(--status-ok)', borderColor: 'rgba(46,125,50,0.3)' }}>{t('publishing.artifact.assured')}</span>
               )}
             </div>
-            <div className="text-[11.5px] text-[var(--text-tertiary)]">{(report.pdf_size / 1024).toFixed(1)} KB · published by {report.published_by_name}</div>
+            <div className="text-[11.5px] text-[var(--text-tertiary)]">{t('publishing.artifact.meta', { size: (report.pdf_size / 1024).toFixed(1), name: report.published_by_name })}</div>
             <div className="text-[11px] text-[var(--text-tertiary)] mt-2 flex items-center gap-1.5 font-mono tabular-nums">
               <Hash className="w-3 h-3" />
               {report.pdf_sha256.slice(0, 24)}…{report.pdf_sha256.slice(-8)}
@@ -598,26 +619,26 @@ function ArtifactCard({ report, onShare }: { report: PublishedReport; onShare: (
             {report.anchor_tip_hash && (
               <div className="text-[11px] text-[var(--status-ok)] mt-1.5 flex items-center gap-1.5">
                 <BadgeCheck className="w-3 h-3" />
-                Anchored to OpenTimestamps on {report.anchored_at ? new Date(report.anchored_at).toLocaleDateString() : '—'}
+                {t('publishing.artifact.anchoredOn', { date: report.anchored_at ? new Date(report.anchored_at).toLocaleDateString(locale) : '—' })}
               </div>
             )}
           </div>
         </div>
         <div className="flex gap-2 flex-shrink-0">
           <Button variant="secondary" size="md" icon={<ExternalLink className="w-4 h-4" />} onClick={() => window.open(`/verify/${report.verification_token}`, '_blank')}>
-            Verify
+            {t('publishing.artifact.verify')}
           </Button>
-          <Button variant="secondary" size="md" icon={<Download className="w-4 h-4" />} onClick={() => orgStore.downloadReportIxbrl(report.id, `${report.framework_id}-${report.period_label.replace(/\s+/g, '')}-v${report.version}.xhtml`)} title="Download iXBRL (ESRS) — XHTML with embedded inline XBRL tags">
+          <Button variant="secondary" size="md" icon={<Download className="w-4 h-4" />} onClick={() => orgStore.downloadReportIxbrl(report.id, `${report.framework_id}-${report.period_label.replace(/\s+/g, '')}-v${report.version}.xhtml`)} title={t('publishing.artifact.ixbrlTitle')}>
             iXBRL
           </Button>
-          <Button variant="secondary" size="md" icon={<Download className="w-4 h-4" />} onClick={() => orgStore.downloadReportDocx(report.id, `${report.framework_id}-${report.period_label.replace(/\s+/g, '')}-v${report.version}.docx`)} title="Download editable Word (.docx)">
-            Word
+          <Button variant="secondary" size="md" icon={<Download className="w-4 h-4" />} onClick={() => orgStore.downloadReportDocx(report.id, `${report.framework_id}-${report.period_label.replace(/\s+/g, '')}-v${report.version}.docx`)} title={t('publishing.artifact.wordTitle')}>
+            {t('publishing.artifact.word')}
           </Button>
-          <Button variant="secondary" size="md" icon={<Share2 className="w-4 h-4" />} onClick={() => onShare(report)} title="Create a public share link">
-            Share publicly
+          <Button variant="secondary" size="md" icon={<Share2 className="w-4 h-4" />} onClick={() => onShare(report)} title={t('publishing.artifact.shareTitle')}>
+            {t('publishing.artifact.sharePublicly')}
           </Button>
           <Button variant="brand" size="md" icon={<Download className="w-4 h-4" />} onClick={() => orgStore.downloadReportPdf(report.id, `${report.framework_id}-${report.period_label.replace(/\s+/g, '')}-v${report.version}.pdf`)}>
-            Download
+            {t('publishing.artifact.download')}
           </Button>
         </div>
       </div>
@@ -626,6 +647,8 @@ function ArtifactCard({ report, onShare }: { report: PublishedReport; onShare: (
 }
 
 function ReportRow({ report, i, onShare }: { report: PublishedReport; i: number; onShare: (r: PublishedReport) => void }) {
+  const { t } = useTranslation()
+  const locale = useDisplayLocale()
   return (
     <motion.tr {...slideInLeft(i)} className="hover:bg-[var(--bg-secondary)]">
       <td className="px-5 py-3">
@@ -633,38 +656,38 @@ function ReportRow({ report, i, onShare }: { report: PublishedReport; i: number;
       </td>
       <td className="px-5 py-3">
         <div className="text-[12.5px] text-[var(--text-primary)] font-medium">{report.period_label}</div>
-        <div className="text-[10.5px] text-[var(--text-tertiary)]">FY {report.period_year}</div>
+        <div className="text-[10.5px] text-[var(--text-tertiary)]">{t('publishing.history.fy', { year: report.period_year })}</div>
       </td>
       <td className="px-5 py-3">
         {report.is_draft ? (
-          <span className="chip" style={{ background: 'var(--accent-amber-light)', color: 'var(--status-draft)' }}>DRAFT</span>
+          <span className="chip" style={{ background: 'var(--accent-amber-light)', color: 'var(--status-draft)' }}>{t('publishing.artifact.draft')}</span>
         ) : (
-          <span className="chip" style={{ background: 'var(--accent-green-light)', color: 'var(--status-ok)' }}>{report.auditor_firm ?? 'Signed'}</span>
+          <span className="chip" style={{ background: 'var(--accent-green-light)', color: 'var(--status-ok)' }}>{report.auditor_firm ?? t('publishing.history.signed')}</span>
         )}
       </td>
       <td className="px-5 py-3 font-mono text-[11px] text-[var(--text-tertiary)] tabular-nums">
         {report.pdf_sha256.slice(0, 14)}…
-        {report.anchor_tip_hash && <span className="ml-2 inline-flex items-center gap-0.5 text-[var(--status-ok)]"><BadgeCheck className="w-3 h-3" />anchored</span>}
+        {report.anchor_tip_hash && <span className="ml-2 inline-flex items-center gap-0.5 text-[var(--status-ok)]"><BadgeCheck className="w-3 h-3" />{t('publishing.history.anchored')}</span>}
       </td>
       <td className="px-5 py-3 text-[11.5px] text-[var(--text-secondary)]">
-        {new Date(report.published_at).toLocaleDateString()}
+        {new Date(report.published_at).toLocaleDateString(locale)}
         <div className="text-[10.5px] text-[var(--text-tertiary)]">{report.published_by_name}</div>
       </td>
       <td className="px-5 py-3 text-right">
         <div className="inline-flex gap-1.5">
-          <a href={`/verify/${report.verification_token}`} target="_blank" rel="noreferrer" className="px-2 h-7 inline-flex items-center rounded-[6px] text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title="Public verification page">
+          <a href={`/verify/${report.verification_token}`} target="_blank" rel="noreferrer" className="px-2 h-7 inline-flex items-center rounded-[6px] text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title={t('publishing.history.publicVerification')}>
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
-          <button onClick={() => orgStore.downloadReportPdf(report.id, `${report.framework_id}-v${report.version}.pdf`)} className="px-2 h-7 inline-flex items-center rounded-[6px] text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title="Download PDF">
+          <button onClick={() => orgStore.downloadReportPdf(report.id, `${report.framework_id}-v${report.version}.pdf`)} className="px-2 h-7 inline-flex items-center rounded-[6px] text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title={t('publishing.history.downloadPdf')}>
             <Download className="w-3.5 h-3.5" />
           </button>
-          <button onClick={() => orgStore.downloadReportDocx(report.id, `${report.framework_id}-v${report.version}.docx`)} className="px-2 h-7 inline-flex items-center rounded-[6px] text-[11px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title="Download Word (.docx)">
-            Word
+          <button onClick={() => orgStore.downloadReportDocx(report.id, `${report.framework_id}-v${report.version}.docx`)} className="px-2 h-7 inline-flex items-center rounded-[6px] text-[11px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title={t('publishing.history.downloadWord')}>
+            {t('publishing.artifact.word')}
           </button>
-          <button onClick={() => orgStore.downloadReportIxbrl(report.id, `${report.framework_id}-v${report.version}.xhtml`)} className="px-2 h-7 inline-flex items-center rounded-[6px] text-[11px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title="Download iXBRL (ESRS)">
+          <button onClick={() => orgStore.downloadReportIxbrl(report.id, `${report.framework_id}-v${report.version}.xhtml`)} className="px-2 h-7 inline-flex items-center rounded-[6px] text-[11px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title={t('publishing.history.downloadIxbrl')}>
             iXBRL
           </button>
-          <button onClick={() => onShare(report)} className="px-2 h-7 inline-flex items-center rounded-[6px] text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title="Share publicly">
+          <button onClick={() => onShare(report)} className="px-2 h-7 inline-flex items-center rounded-[6px] text-[12px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]" title={t('publishing.history.sharePublicly')}>
             <Share2 className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -674,6 +697,8 @@ function ReportRow({ report, i, onShare }: { report: PublishedReport; i: number;
 }
 
 function AssuranceRow({ req, i, onChange }: { req: AssuranceRequest; i: number; onChange: () => void }) {
+  const { t } = useTranslation()
+  const locale = useDisplayLocale()
   const [busy, setBusy] = useState(false)
   const [showLink, setShowLink] = useState<string | null>(null)
 
@@ -685,14 +710,14 @@ function AssuranceRow({ req, i, onChange }: { req: AssuranceRequest; i: number; 
       await navigator.clipboard.writeText(url)
       setShowLink(url)
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Unable to get link')
+      alert(e instanceof Error ? e.message : t('publishing.errors.unableToGetLink'))
     } finally {
       setBusy(false)
     }
   }
 
   const rotateLink = async () => {
-    if (!confirm('Rotate the upload link? The previous one will stop working immediately.')) return
+    if (!confirm(t('publishing.assuranceRow.confirmRotate'))) return
     setBusy(true)
     try {
       const { upload_token } = await orgStore.rotateAssuranceToken(req.id)
@@ -705,7 +730,7 @@ function AssuranceRow({ req, i, onChange }: { req: AssuranceRequest; i: number; 
   }
 
   const withdraw = async () => {
-    if (!confirm('Withdraw this assurance request?')) return
+    if (!confirm(t('publishing.assuranceRow.confirmWithdraw'))) return
     setBusy(true)
     try {
       await orgStore.withdrawAssurance(req.id)
@@ -730,24 +755,24 @@ function AssuranceRow({ req, i, onChange }: { req: AssuranceRequest; i: number; 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[14px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{req.auditor_firm ?? req.auditor_name ?? req.auditor_email}</span>
-              <span className="chip" style={{ background: statusColor.bg, color: statusColor.fg, textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '10px' }}>{req.status}</span>
-              {req.opinion_type && <span className="chip">{req.opinion_type === 'reasonable' ? 'Reasonable' : 'Limited'}</span>}
+              <span className="chip" style={{ background: statusColor.bg, color: statusColor.fg, textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: '10px' }}>{t(`publishing.assuranceRow.status.${req.status}`, { defaultValue: req.status })}</span>
+              {req.opinion_type && <span className="chip">{req.opinion_type === 'reasonable' ? t('publishing.assuranceRow.reasonable') : t('publishing.assuranceRow.limited')}</span>}
             </div>
             <div className="text-[12px] text-[var(--text-tertiary)] mt-1">
-              {req.auditor_email} · requested {new Date(req.requested_at).toLocaleDateString()}
-              {req.signed_at && <> · signed {new Date(req.signed_at).toLocaleDateString()} by {req.signed_by}</>}
+              {t('publishing.assuranceRow.requested', { email: req.auditor_email, date: new Date(req.requested_at).toLocaleDateString(locale) })}
+              {req.signed_at && <>{t('publishing.assuranceRow.signedBy', { date: new Date(req.signed_at).toLocaleDateString(locale), name: req.signed_by })}</>}
             </div>
             {req.notes && <p className="text-[12.5px] text-[var(--text-secondary)] mt-2 leading-relaxed">{req.notes}</p>}
             {req.statement_sha256 && (
               <div className="text-[11px] text-[var(--text-tertiary)] mt-2 font-mono">
-                statement sha-256: {req.statement_sha256.slice(0, 20)}…
+                {t('publishing.assuranceRow.statementHash', { hash: req.statement_sha256.slice(0, 20) })}
               </div>
             )}
             {showLink && (
               <div className="mt-3 p-3 rounded-[8px] bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-                <div className="text-[11px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)] mb-1">Upload link (copied)</div>
+                <div className="text-[11px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)] mb-1">{t('publishing.assuranceRow.linkCopied')}</div>
                 <code className="font-mono text-[11px] text-[var(--color-brand-strong)] break-all">{showLink}</code>
-                <div className="text-[10.5px] text-[var(--text-tertiary)] mt-1.5">Send this to the auditor. They can upload the signed statement without a platform login.</div>
+                <div className="text-[10.5px] text-[var(--text-tertiary)] mt-1.5">{t('publishing.assuranceRow.linkHelp')}</div>
               </div>
             )}
           </div>
@@ -755,9 +780,9 @@ function AssuranceRow({ req, i, onChange }: { req: AssuranceRequest; i: number; 
 
         {req.status === 'pending' && (
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            <Button size="sm" variant="secondary" icon={<Copy className="w-3.5 h-3.5" />} onClick={copyUploadLink} disabled={busy}>Copy upload link</Button>
-            <Button size="sm" variant="ghost" icon={<RotateCw className="w-3.5 h-3.5" />} onClick={rotateLink} disabled={busy}>Rotate</Button>
-            <Button size="sm" variant="ghost" icon={<X className="w-3.5 h-3.5" />} onClick={withdraw} disabled={busy}>Withdraw</Button>
+            <Button size="sm" variant="secondary" icon={<Copy className="w-3.5 h-3.5" />} onClick={copyUploadLink} disabled={busy}>{t('publishing.assuranceRow.copyLink')}</Button>
+            <Button size="sm" variant="ghost" icon={<RotateCw className="w-3.5 h-3.5" />} onClick={rotateLink} disabled={busy}>{t('publishing.assuranceRow.rotate')}</Button>
+            <Button size="sm" variant="ghost" icon={<X className="w-3.5 h-3.5" />} onClick={withdraw} disabled={busy}>{t('publishing.assuranceRow.withdraw')}</Button>
           </div>
         )}
       </div>
@@ -766,6 +791,7 @@ function AssuranceRow({ req, i, onChange }: { req: AssuranceRequest; i: number; 
 }
 
 function RequestAssuranceModal({ period, onClose, onCreated }: { period: ReportingPeriod; onClose: () => void; onCreated: () => void }) {
+  const { t } = useTranslation()
   const [firm, setFirm] = useState('')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -776,7 +802,7 @@ function RequestAssuranceModal({ period, onClose, onCreated }: { period: Reporti
   const [error, setError] = useState<string | null>(null)
 
   const submit = async () => {
-    if (!email) { setError('Auditor email is required'); return }
+    if (!email) { setError(t('publishing.errors.auditorEmailRequired')); return }
     setSubmitting(true); setError(null)
     try {
       await orgStore.requestAssurance({
@@ -790,7 +816,7 @@ function RequestAssuranceModal({ period, onClose, onCreated }: { period: Reporti
       })
       onCreated()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed')
+      setError(e instanceof Error ? e.message : t('publishing.errors.failed'))
     } finally {
       setSubmitting(false)
     }
@@ -807,8 +833,8 @@ function RequestAssuranceModal({ period, onClose, onCreated }: { period: Reporti
       >
         <div className="flex items-center justify-between mb-4">
           <div>
-            <span className="kicker">New request</span>
-            <h2 className="text-display text-[22px] text-[var(--text-primary)] mt-0.5">Request independent assurance</h2>
+            <span className="kicker">{t('publishing.modal.kicker')}</span>
+            <h2 className="text-display text-[22px] text-[var(--text-primary)] mt-0.5">{t('publishing.modal.title')}</h2>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)]">
             <X className="w-4 h-4" />
@@ -816,32 +842,32 @@ function RequestAssuranceModal({ period, onClose, onCreated }: { period: Reporti
         </div>
 
         <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed mb-4">
-          A one-shot upload link will be generated. Copy it and send it to your auditor. They can submit their signed statement without a platform login; the statement is hashed and embedded in the next published version of the report for {period.label}.
+          {t('publishing.modal.intro', { period: period.label })}
         </p>
 
         <div className="space-y-3">
-          <Field label="Auditor firm" placeholder="e.g. LRQA Group, Deloitte" value={firm} onChange={setFirm} />
-          <Field label="Contact name" placeholder="Partner / signing auditor" value={name} onChange={setName} />
-          <Field label="Contact email*" placeholder="partner@firm.com" value={email} onChange={setEmail} type="email" />
+          <Field label={t('publishing.modal.firm')} placeholder={t('publishing.modal.firmPlaceholder')} value={firm} onChange={setFirm} />
+          <Field label={t('publishing.modal.contactName')} placeholder={t('publishing.modal.contactNamePlaceholder')} value={name} onChange={setName} />
+          <Field label={t('publishing.modal.contactEmail')} placeholder="partner@firm.com" value={email} onChange={setEmail} type="email" />
           <div>
-            <label className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">Level of assurance</label>
+            <label className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{t('publishing.modal.level')}</label>
             <div className="flex gap-1.5">
               {(['limited', 'reasonable'] as const).map(o => (
                 <button key={o} onClick={() => setOpinion(o)} className={`chip flex-1 justify-center ${opinion === o ? 'chip-active' : ''}`}>
-                  {o === 'limited' ? 'Limited' : 'Reasonable'}
+                  {o === 'limited' ? t('publishing.modal.limited') : t('publishing.modal.reasonable')}
                 </button>
               ))}
             </div>
           </div>
-          <Field label="Standard" placeholder="ISAE 3000 (Revised)" value={isae} onChange={setIsae} />
-          <Field label="Notes (optional)" placeholder="Scope, deadline, special instructions…" value={notes} onChange={setNotes} as="textarea" />
+          <Field label={t('publishing.modal.standard')} placeholder="ISAE 3000 (Revised)" value={isae} onChange={setIsae} />
+          <Field label={t('publishing.modal.notes')} placeholder={t('publishing.modal.notesPlaceholder')} value={notes} onChange={setNotes} as="textarea" />
         </div>
 
         {error && <div className="mt-4 p-3 rounded-[8px] bg-[var(--accent-red-light)] text-[var(--status-reject)] text-[12.5px] font-medium">{error}</div>}
 
         <div className="mt-6 flex items-center justify-end gap-2">
-          <Button variant="secondary" size="md" onClick={onClose}>Cancel</Button>
-          <Button variant="brand" size="md" icon={<ShieldCheck className="w-4 h-4" />} onClick={submit} loading={submitting}>Create request</Button>
+          <Button variant="secondary" size="md" onClick={onClose}>{t('publishing.modal.cancel')}</Button>
+          <Button variant="brand" size="md" icon={<ShieldCheck className="w-4 h-4" />} onClick={submit} loading={submitting}>{t('publishing.modal.create')}</Button>
         </div>
       </motion.div>
     </div>
@@ -879,6 +905,8 @@ function Field({ label, placeholder, value, onChange, type = 'text', as = 'input
  * password back to the client (server stores a bcrypt hash only).
  */
 function ShareDialog({ report, onClose }: { report: PublishedReport; onClose: () => void }) {
+  const { t } = useTranslation()
+  const locale = useDisplayLocale()
   const [expiresInDays, setExpiresInDays] = useState<number>(30)
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
@@ -897,29 +925,28 @@ function ShareDialog({ report, onClose }: { report: PublishedReport; onClose: ()
       const fullUrl = `${window.location.origin}${r.url}`
       setResult({ token: r.token, url: fullUrl, expires_at: r.expires_at })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create share link')
+      setError(e instanceof Error ? e.message : t('publishing.errors.shareFailed'))
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label="Share report publicly">
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label={t('publishing.share.title')}>
       <div className="surface-paper p-6 w-full max-w-lg space-y-4">
         <header className="flex items-center justify-between">
-          <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)]">Share report publicly</h3>
-          <button type="button" onClick={onClose} className="p-1 rounded hover:bg-[var(--bg-tertiary)]" aria-label="Close">
+          <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)]">{t('publishing.share.title')}</h3>
+          <button type="button" onClick={onClose} className="p-1 rounded hover:bg-[var(--bg-tertiary)]" aria-label={t('publishing.share.close')}>
             <X className="w-4 h-4" />
           </button>
         </header>
         <p className="text-[12.5px] text-[var(--text-secondary)]">
-          Generate a token-protected, read-only URL anyone with the link can view. No login required.
-          The link can be revoked at any time from the audit log.
+          {t('publishing.share.intro')}
         </p>
         {!result && (
           <>
             <label className="block">
-              <span className="text-[12px] font-semibold text-[var(--text-secondary)]">Expires after (days, 0 = never)</span>
+              <span className="text-[12px] font-semibold text-[var(--text-secondary)]">{t('publishing.share.expires')}</span>
               <input
                 type="number"
                 min={0}
@@ -930,27 +957,27 @@ function ShareDialog({ report, onClose }: { report: PublishedReport; onClose: ()
               />
             </label>
             <label className="block">
-              <span className="text-[12px] font-semibold text-[var(--text-secondary)]">Optional password</span>
+              <span className="text-[12px] font-semibold text-[var(--text-secondary)]">{t('publishing.share.password')}</span>
               <input
                 type="text"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Leave blank for no password"
+                placeholder={t('publishing.share.passwordPlaceholder')}
                 className="mt-1 w-full px-3 py-2 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] text-[14px]"
               />
             </label>
             {error && <div className="text-[12px] text-[var(--accent-red)]">{error}</div>}
             <footer className="flex items-center justify-end gap-2 pt-2">
-              <button type="button" onClick={onClose} className="chip">Cancel</button>
+              <button type="button" onClick={onClose} className="chip">{t('publishing.share.cancel')}</button>
               <button type="button" onClick={generate} disabled={busy} className="chip chip-active">
-                {busy ? 'Generating…' : 'Generate share link'}
+                {busy ? t('publishing.share.generating') : t('publishing.share.generate')}
               </button>
             </footer>
           </>
         )}
         {result && (
           <div className="space-y-3">
-            <div className="text-[12.5px] text-[var(--text-primary)] font-semibold">Share link ready</div>
+            <div className="text-[12.5px] text-[var(--text-primary)] font-semibold">{t('publishing.share.ready')}</div>
             <div className="flex items-center gap-1.5">
               <code className="flex-1 font-mono text-[11.5px] text-[var(--color-brand-strong)] bg-[var(--bg-secondary)] px-2 py-2 rounded-[6px] border border-[var(--border-subtle)] truncate">
                 {result.url}
@@ -960,21 +987,22 @@ function ShareDialog({ report, onClose }: { report: PublishedReport; onClose: ()
                 onClick={() => navigator.clipboard.writeText(result.url)}
                 className="chip inline-flex items-center gap-1"
               >
-                <Copy className="w-3 h-3" /> Copy
+                <Copy className="w-3 h-3" /> {t('publishing.share.copy')}
               </button>
             </div>
             {result.expires_at && (
               <div className="text-[11.5px] text-[var(--text-tertiary)]">
-                Expires {new Date(result.expires_at).toLocaleString()}
+                {t('publishing.share.expiresOn', { date: new Date(result.expires_at).toLocaleString(locale) })}
               </div>
             )}
             {password && (
               <div className="text-[11.5px] text-[var(--text-tertiary)]">
-                Password protection active. Share the password through a separate channel.
+                {t('publishing.share.passwordActive')}
               </div>
             )}
             <footer className="flex items-center justify-end gap-2 pt-2">
-              <button type="button" onClick={onClose} className="chip chip-active">Done</button>
+              <button type="button" onClick={onClose} className="chip chip-active">{t('publishing.share.done')}</button>
+
             </footer>
           </div>
         )}

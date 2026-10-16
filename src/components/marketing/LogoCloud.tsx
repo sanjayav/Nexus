@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 /**
  * LogoCloud — a row of grayscale "alpha customer" placeholders.
  * Honest framing: these are example/demo companies until real logos land.
@@ -13,6 +15,7 @@ const LOGOS = [
 ]
 
 export default function LogoCloud() {
+  const { t } = useTranslation()
   return (
     <section
       className="py-16 border-t border-b"
@@ -26,7 +29,7 @@ export default function LogoCloud() {
           className="text-center text-[12px] font-semibold uppercase tracking-[0.15em] mb-8"
           style={{ color: 'var(--text-tertiary)' }}
         >
-          Trusted by sustainability teams at
+          {t('marketing.logoCloud.heading')}
         </p>
         <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-5">
           {LOGOS.map((name) => (

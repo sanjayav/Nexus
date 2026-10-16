@@ -72,6 +72,7 @@ export interface QuestionAssignment {
   questionId: string
   gri_code: string
   line_item: string
+  line_item_zh?: string | null
   entityId: string
   assigneeId: string | null
   assigneeName: string
@@ -155,6 +156,7 @@ export interface ContentIndexRow {
   id: string
   gri_code: string
   line_item: string
+  line_item_zh?: string | null
   section: string
   subsection: string
   unit: string | null
@@ -210,6 +212,7 @@ interface AssignmentWire {
   question_id: string
   gri_code: string
   line_item: string
+  line_item_zh?: string | null
   unit: string | null
   entity_id: string
   assignee_email: string
@@ -239,6 +242,7 @@ function mapAssignment(a: AssignmentWire): QuestionAssignment {
     questionId: a.question_id,
     gri_code: a.gri_code,
     line_item: a.line_item,
+    line_item_zh: a.line_item_zh ?? null,
     unit: a.unit,
     entityId: a.entity_id,
     assigneeEmail: a.assignee_email,
@@ -870,6 +874,7 @@ export type AnomalyStatusValue = 'open' | 'investigating' | 'resolved' | 'dismis
 export interface DisclosureStandard {
   gri_code: string
   line_item: string
+  line_item_zh?: string | null
   section: string | null
   subsection: string | null
   unit: string | null
@@ -896,6 +901,7 @@ export interface Anomaly {
   entity_name: string
   gri_code: string
   line_item: string
+  line_item_zh?: string | null
   anomaly_type: AnomalyType
   severity: AnomalySeverity
   headline: string
@@ -929,6 +935,7 @@ export interface HistoricalReference {
     id: string
     gri_code: string
     line_item: string
+    line_item_zh?: string | null
     unit: string | null
     section: string | null
     subsection: string | null

@@ -1,0 +1,163 @@
+{
+  "page": {
+    "failedToLoad": "加载框架失败",
+    "saveFailed": "保存失败",
+    "notFound": "未找到框架",
+    "noMatch": "没有与“{{id}}”匹配的框架。",
+    "backToTemplates": "返回模板",
+    "unableToLoad": "无法加载披露项",
+    "retry": "重试",
+    "emptyTitle": "暂无披露项",
+    "emptyBody": "{{code}} 的问卷为空，请运行种子数据脚本进行填充。",
+    "unknownUser": "未知"
+  },
+  "progress": {
+    "status": {
+      "draft": "草稿",
+      "inReview": "审核中",
+      "published": "已发布"
+    },
+    "noPermission": "您没有发布报告的权限",
+    "remaining_other": "仍有 {{count}} 个单元格需要填写数值",
+    "publishing": "正在发布…",
+    "publishReport": "发布报告",
+    "publish": "发布",
+    "of": "/",
+    "cellsComplete": "个单元格已完成",
+    "toEdit": "切换到编辑模式",
+    "toReading": "切换到阅读模式",
+    "edit": "编辑",
+    "reading": "阅读",
+    "othersAria_other": "此房间内还有 {{count}} 位编辑者",
+    "user": "用户",
+    "moreInRoom_other": "此房间内另有 {{count}} 人"
+  },
+  "tree": {
+    "search": "搜索披露项…",
+    "noMatch": "没有与“{{query}}”匹配的披露项。",
+    "openContents": "打开目录",
+    "contents": "目录",
+    "aria": "披露项目录树"
+  },
+  "document": {
+    "empty": "该框架下暂无披露项。",
+    "valueFor": "{{item}} 的数值",
+    "updated": "更新于 {{time}}",
+    "saving": "正在保存…",
+    "saved": "已保存",
+    "alsoAppears": "同时出现在 {{list}}",
+    "listSep": "、",
+    "isHere": "{{name}} 正在此处",
+    "moreHere_other": "此处另有 {{count}} 人"
+  },
+  "rel": {
+    "seconds_other": "{{count}} 秒前",
+    "minutes_other": "{{count}} 分钟前",
+    "hours_other": "{{count}} 小时前",
+    "days_other": "{{count}} 天前"
+  },
+  "scope": {
+    "Scope 1": "范围一",
+    "Scope 2": "范围二",
+    "Scope 3": "范围三"
+  },
+  "rail": {
+    "aria": "单元格详情",
+    "emptyGap": "切换到文档或选择一项披露，以使用差距分析上下文。",
+    "empty": "选择一项披露以查看数据事实详情、评论和审计历史。",
+    "commentsEmpty": "填写数值后即可发起讨论。",
+    "tabCell": "单元格",
+    "tabComments": "评论",
+    "tabGap": "差距分析",
+    "uploadFailed": "上传失败",
+    "submitForReview": "提交审核",
+    "approve": "批准",
+    "reject": "驳回",
+    "metadata": "元数据",
+    "assignedTo": "指派给",
+    "lastUpdated": "最近更新",
+    "due": "截止日期",
+    "noAssignment": "此单元格尚未指派。",
+    "evidence": "证据",
+    "evidenceEmpty": "填写数值后即可附加证据。",
+    "noFiles": "未附加文件。",
+    "attachEvidence": "附加证据",
+    "aiPipeline": "AI 提取流程",
+    "extract": "从证据中提取",
+    "audit": "审计",
+    "noAudit": "暂无审计事件。",
+    "system": "系统",
+    "dragDrop": "将文件拖放到此处，或",
+    "uploading": "正在上传…",
+    "chooseFile": "选择文件",
+    "recentFiles": "最近文件"
+  },
+  "fact": {
+    "addFailed": "添加脚注失败",
+    "deleteFailed": "删除失败",
+    "overrideFailed": "覆盖失败",
+    "periodFy": "期间 FY{{year}}",
+    "scope": {
+      "scope_1": "范围一",
+      "scope_2": "范围二",
+      "scope_3": "范围三"
+    },
+    "jv": "合资企业",
+    "group": "集团",
+    "concept": "概念",
+    "dimensions": "维度",
+    "fiscalPeriod": "财务期间",
+    "sourceValue": "源数值",
+    "footnotes": "XBRL 脚注",
+    "footnotesEmpty": "填写数值后即可附加 XBRL 脚注。",
+    "noFootnotes": "暂无脚注。",
+    "deleteFootnote": "删除脚注",
+    "footnotePlaceholder": "添加新脚注…",
+    "adding": "正在添加…",
+    "applyFootnote": "添加新脚注",
+    "otherLocations": "其他数据事实位置",
+    "notLinked": "未关联任何其他框架。",
+    "overridden": "已本地覆盖",
+    "overrideTitle": "将此数值标记为本地覆盖 — 后续传播将跳过该值。",
+    "overrideLocally": "本地覆盖"
+  },
+  "gap": {
+    "prompts": {
+      "allGaps": "显示该框架的所有差距。",
+      "limitedAssurance": "有限保证鉴证需要哪些内容？",
+      "prioritise": "我应该优先处理哪些披露项？",
+      "quality": "我有哪些数据质量问题？"
+    },
+    "failed": "差距分析失败",
+    "copyMissing": "缺失（{{count}}）：",
+    "copyNextSteps": "后续步骤：",
+    "intro": "可就框架完整性提出任何问题。回答基于您的问卷和当前数据。",
+    "questionLabel": "问题",
+    "placeholder": "FY{{year}} 我还缺少哪些 {{framework}} 数据点？",
+    "analyse": "分析",
+    "copySummary": "复制摘要",
+    "copy": "复制",
+    "regenerateTitle": "重新分析（跳过缓存）",
+    "regenerate": "重新生成",
+    "tryThese": "试试以下问题",
+    "summary": "摘要",
+    "cached": "已缓存",
+    "missing": "缺失（{{count}}）",
+    "effort": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    },
+    "owner": "负责人：{{role}}",
+    "open": "打开",
+    "qualityIssues": "质量问题",
+    "nextSteps": "建议的后续步骤"
+  },
+  "mobile": {
+    "tabsAria": "披露编辑器分区",
+    "sections": "章节",
+    "document": "文档",
+    "details": "详情",
+    "backToDocument": "返回文档"
+  }
+}

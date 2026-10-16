@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bell, CheckCheck, Inbox } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import i18n from '../i18n'
 import { orgStore, type Notification } from '../lib/orgStore'
 import { SPRING } from './motion'
 
@@ -11,6 +13,7 @@ import { SPRING } from './motion'
  * read is one click; individual notifications mark-read on navigate.
  */
 export default function NotificationsBell() {
+  const { t } = useTranslation()
   const [unread, setUnread] = useState(0)
   const [open, setOpen] = useState(false)
   const [notes, setNotes] = useState<Notification[]>([])
@@ -77,8 +80,8 @@ export default function NotificationsBell() {
     const onClick = (e: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) setOpen(false)
     }
-    const t = setTimeout(() => document.addEventListener('click', onClick), 0)
-    return () => { clearTimeout(t); document.removeEventListener('click', onClick) }
+    const timer = setTimeout(() => document.addEventListener('click', onClick), 0)
+    return () => { clearTimeout(timer); document.removeEventListener('click', onClick) }
   }, [open])
 
   // Close on Escape + Up/Down arrow row navigation + Enter to open. WCAG 2.1.2.
@@ -118,11 +121,11 @@ export default function NotificationsBell() {
     <div className="relative">
       <button
         onClick={() => open ? setOpen(false) : openPanel()}
-        aria-label={`Notifications, ${unread} unread`}
+        aria-label={t('components.notifications.ariaUnread', { count: unread })}
         aria-haspopup="dialog"
         aria-expanded={open}
         className="relative w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)] transition-all cursor-pointer"
-        title="Notifications"
+        title={t('components.notifications.title')}
       >
         <Bell className="w-4 h-4" />
         {unread > 0 && (
@@ -150,23 +153,23 @@ export default function NotificationsBell() {
           >
             <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] flex items-center justify-between">
               <div>
-                <h3 id="notifications-heading" className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">Notifications</h3>
-                <p className="text-[10px] text-[var(--text-tertiary)]">{unread} unread</p>
+                <h3 id="notifications-heading" className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('components.notifications.title')}</h3>
+                <p className="text-[10px] text-[var(--text-tertiary)]">{t('components.notifications.unread', { count: unread })}</p>
               </div>
               {unread > 0 && (
                 <button onClick={markAll} className="text-[10px] font-semibold text-[var(--color-brand)] hover:underline inline-flex items-center gap-1">
-                  <CheckCheck className="w-3 h-3" /> Mark all read
+                  <CheckCheck className="w-3 h-3" /> {t('components.notifications.markAllRead')}
                 </button>
               )}
             </div>
 
             {loading ? (
-              <div className="py-8 text-center text-[var(--text-xs)] text-[var(--text-tertiary)]">Loading…</div>
+              <div className="py-8 text-center text-[var(--text-xs)] text-[var(--text-tertiary)]">{t('common.loading')}</div>
             ) : notes.length === 0 ? (
               <div className="py-10 text-center">
                 <Inbox className="w-8 h-8 mx-auto text-[var(--text-tertiary)] mb-1" />
-                <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">Nothing yet</div>
-                <div className="text-[10px] text-[var(--text-tertiary)] mt-0.5">Assignments, reviews and approvals show up here.</div>
+                <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('components.notifications.emptyTitle')}</div>
+                <div className="text-[10px] text-[var(--text-tertiary)] mt-0.5">{t('components.notifications.emptyBody')}</div>
               </div>
             ) : (
               <>
@@ -181,13 +184,13 @@ export default function NotificationsBell() {
                       >
                         <div className="flex items-center gap-2 mb-1">
                           <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${!n.read_at ? 'bg-[var(--color-brand)]' : 'bg-transparent'}`} />
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand)]">{n.kind.replace(/_/g, ' ')}</span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand)]">{notificationKindLabel(n.kind)}</span>
                           <span className="ml-auto text-[9px] text-[var(--text-tertiary)]">{relativeTime(n.created_at)}</span>
                           {!n.read_at && (
                             <button
                               onClick={(e) => markOne(n.id, e)}
                               className="text-[9px] font-semibold text-[var(--color-brand)] hover:underline"
-                            >Mark read</button>
+                            >{t('components.notifications.markRead')}</button>
                           )}
                         </div>
                         <div className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)]">{n.subject}</div>
@@ -200,7 +203,7 @@ export default function NotificationsBell() {
                   <button
                     onClick={() => { setOpen(false); navigate('/inbox') }}
                     className="text-[10px] font-semibold text-[var(--color-brand)] hover:underline"
-                  >View all notifications</button>
+                  >{t('components.notifications.viewAll')}</button>
                 </div>
               </>
             )}
@@ -211,14 +214,25 @@ export default function NotificationsBell() {
   )
 }
 
+/** Localised label for a notification `kind` (falls back to the humanised slug). */
+export function notificationKindLabel(kind: string): string {
+  return i18n.t(`components.notifications.kinds.${kind}`, { defaultValue: kind.replace(/_/g, ' ') })
+}
+
+/** BCP-47 locale for Intl formatting in the current UI language (undefined = browser default). */
+export function uiLocale(): string | undefined {
+  const lng = i18n.language ?? 'en'
+  return lng.startsWith('zh') ? 'zh-CN' : lng.startsWith('th') ? 'th-TH' : undefined
+}
+
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m`
+  if (mins < 1) return i18n.t('components.time.justNow')
+  if (mins < 60) return i18n.t('components.time.minutesShort', { count: mins })
   const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h`
+  if (hrs < 24) return i18n.t('components.time.hoursShort', { count: hrs })
   const days = Math.floor(hrs / 24)
-  if (days < 7) return `${days}d`
-  return new Date(iso).toLocaleDateString()
+  if (days < 7) return i18n.t('components.time.daysShort', { count: days })
+  return new Date(iso).toLocaleDateString(uiLocale())
 }

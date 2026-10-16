@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { KeyRound, Copy, Check, Trash2, AlertTriangle, Plus, ChevronDown, ChevronUp, Shield } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
 import { SkeletonTable } from '../components/Skeleton'
@@ -6,9 +7,14 @@ import EmptyState from '../components/EmptyState'
 import { Card, Button, Badge } from '../design-system'
 import { scim, type ScimToken, type ScimTokenCreated } from '../lib/api'
 
+// Role slugs are API values; display labels come from scim.roles.<slug>.
 const ROLE_OPTIONS = ['viewer', 'analyst', 'team-lead', 'auditor']
 
 export default function ScimTokens() {
+  const { t, i18n } = useTranslation()
+  // Keep the browser-default locale for English; switch only for zh.
+  const dateLocale = i18n.language?.startsWith('zh') ? 'zh-CN' : undefined
+  const roleLabel = (slug: string) => t(`scim.roles.${slug}`, { defaultValue: slug })
   const [tokens, setTokens] = useState<ScimToken[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -26,10 +32,12 @@ export default function ScimTokens() {
       const list = await scim.list()
       setTokens(list)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load SCIM tokens')
+      setError(e instanceof Error ? e.message : i18n.t('scim.errors.load'))
     } finally {
       setLoading(false)
     }
+    // i18n.t (not t) so a language switch doesn't refetch the list.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => { void load() }, [load])
@@ -42,7 +50,7 @@ export default function ScimTokens() {
       setCreated(result)
       await load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create SCIM token')
+      setError(e instanceof Error ? e.message : t('scim.errors.create'))
     } finally {
       setCreating(false)
     }
@@ -60,13 +68,13 @@ export default function ScimTokens() {
   }
 
   const handleRevoke = async (id: string) => {
-    if (!window.confirm('Revoke this token? Any IdP using it will lose access immediately.')) return
+    if (!window.confirm(t('scim.confirmRevoke'))) return
     setRevoking(id)
     try {
       await scim.revoke(id)
       await load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to revoke token')
+      setError(e instanceof Error ? e.message : t('scim.errors.revoke'))
     } finally {
       setRevoking(null)
     }
@@ -79,12 +87,12 @@ export default function ScimTokens() {
     <div className="page-container">
       <PageHeader
         breadcrumbs={[
-          { label: 'Admin' },
-          { label: 'SCIM tokens' },
+          { label: t('scim.breadcrumbAdmin') },
+          { label: t('scim.breadcrumb') },
         ]}
-        eyebrow="Admin · Identity"
-        title="SCIM provisioning"
-        subtitle="Issue a SCIM 2.0 bearer token so an identity provider (Azure AD, Okta, OneLogin) can sync users into this workspace automatically."
+        eyebrow={t('scim.eyebrow')}
+        title={t('scim.title')}
+        subtitle={t('scim.subtitle')}
       />
 
       {error && (
@@ -101,13 +109,13 @@ export default function ScimTokens() {
           <div className="flex items-start gap-3 mb-3">
             <AlertTriangle className="w-5 h-5 text-[var(--accent-amber)] flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <div className="font-semibold text-[var(--text-primary)] text-[14px]">Token generated</div>
+              <div className="font-semibold text-[var(--text-primary)] text-[14px]">{t('scim.reveal.title')}</div>
               <div className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">
-                This is the only time you will see this token. Copy it now and paste it into your IdP. We store only a hash.
+                {t('scim.reveal.body')}
               </div>
             </div>
             <button onClick={() => setCreated(null)} className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
-              Dismiss
+              {t('scim.reveal.dismiss')}
             </button>
           </div>
           <div className="flex gap-2">
@@ -115,7 +123,7 @@ export default function ScimTokens() {
               {created.token}
             </code>
             <Button variant="secondary" size="md" onClick={handleCopy} icon={copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}>
-              {copied ? 'Copied' : 'Copy'}
+              {copied ? t('scim.reveal.copied') : t('scim.reveal.copy')}
             </Button>
           </div>
         </Card>
@@ -124,21 +132,21 @@ export default function ScimTokens() {
       <Card variant="paper" className="mb-5">
         <div className="flex items-center justify-between gap-4 mb-4">
           <div>
-            <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">Generate a new SCIM token</h3>
+            <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">{t('scim.generate.heading')}</h3>
             <p className="text-[12.5px] text-[var(--text-secondary)] mt-1">
-              New users provisioned via this token get the role you choose here by default.
+              {t('scim.generate.intro')}
             </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-3 items-end">
           <div className="min-w-[200px]">
-            <label className="block text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">Default role</label>
+            <label className="block text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('scim.generate.defaultRole')}</label>
             <select
               value={defaultRole}
               onChange={e => setDefaultRole(e.target.value)}
               className="w-full h-9 px-3 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13px] text-[var(--text-primary)]"
             >
-              {ROLE_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+              {ROLE_OPTIONS.map(r => <option key={r} value={r}>{roleLabel(r)}</option>)}
             </select>
           </div>
           <Button
@@ -147,7 +155,7 @@ export default function ScimTokens() {
             loading={creating}
             icon={<Plus className="w-4 h-4" />}
           >
-            Generate token
+            {t('scim.generate.button')}
           </Button>
         </div>
       </Card>
@@ -158,38 +166,38 @@ export default function ScimTokens() {
           className="flex items-center justify-between w-full text-left"
         >
           <div>
-            <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">IdP setup instructions</h3>
-            <p className="text-[12.5px] text-[var(--text-secondary)] mt-1">SCIM 2.0 base URL and configuration for Azure AD, Okta, and OneLogin.</p>
+            <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">{t('scim.setup.heading')}</h3>
+            <p className="text-[12.5px] text-[var(--text-secondary)] mt-1">{t('scim.setup.intro')}</p>
           </div>
           {showSetup ? <ChevronUp className="w-4 h-4 text-[var(--text-tertiary)]" /> : <ChevronDown className="w-4 h-4 text-[var(--text-tertiary)]" />}
         </button>
         {showSetup && (
           <div className="mt-4 space-y-3 text-[12.5px] text-[var(--text-secondary)]">
             <div>
-              <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">SCIM Base URL</div>
+              <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('scim.setup.baseUrl')}</div>
               <code className="block px-3 py-2 rounded-md bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[12px] font-mono text-[var(--text-primary)]">
                 {scimBaseUrl}
               </code>
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">Authentication</div>
-              <div>Bearer token (paste the value shown when generating).</div>
+              <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('scim.setup.authentication')}</div>
+              <div>{t('scim.setup.authBody')}</div>
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">Supported endpoints</div>
+              <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('scim.setup.endpoints')}</div>
               <ul className="list-disc pl-5 space-y-0.5">
                 <li><code className="font-mono">GET /ServiceProviderConfig</code> · <code className="font-mono">GET /ResourceTypes</code> · <code className="font-mono">GET /Schemas</code></li>
-                <li><code className="font-mono">GET, POST /Users</code> (filter by <code className="font-mono">userName eq</code> / <code className="font-mono">externalId eq</code>)</li>
-                <li><code className="font-mono">GET, PUT, PATCH, DELETE /Users/{'{id}'}</code> (DELETE soft-deactivates the user)</li>
+                <li><code className="font-mono">GET, POST /Users</code> {t('scim.setup.filterBy')} <code className="font-mono">userName eq</code> / <code className="font-mono">externalId eq</code>{t('scim.setup.filterClose')}</li>
+                <li><code className="font-mono">GET, PUT, PATCH, DELETE /Users/{'{id}'}</code> {t('scim.setup.softDelete')}</li>
               </ul>
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">Azure AD</div>
-              <div>Enterprise applications → your app → Provisioning. Set "Tenant URL" to the base URL above and paste the token into "Secret Token". Test connection then start provisioning.</div>
+              <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('scim.setup.azureTitle')}</div>
+              <div>{t('scim.setup.azureBody')}</div>
             </div>
             <div>
-              <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">Okta</div>
-              <div>Application → Provisioning → Integration. Enable API integration, paste the base URL into "SCIM connector base URL" and the token under "OAuth Bearer Token".</div>
+              <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('scim.setup.oktaTitle')}</div>
+              <div>{t('scim.setup.oktaBody')}</div>
             </div>
           </div>
         )}
@@ -198,7 +206,7 @@ export default function ScimTokens() {
       <Card variant="paper">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-[14px] font-semibold text-[var(--text-primary)] flex items-center gap-2">
-            <KeyRound className="w-4 h-4" /> Active tokens
+            <KeyRound className="w-4 h-4" /> {t('scim.table.heading')}
           </h3>
           <Badge variant="gray">{tokens.length}</Badge>
         </div>
@@ -207,8 +215,8 @@ export default function ScimTokens() {
         ) : tokens.length === 0 ? (
           <EmptyState
             icon={Shield}
-            title="No SCIM tokens yet"
-            body="Generate a bearer token above and paste it into your IdP (Azure AD, Okta, Google Workspace) to start auto-provisioning users."
+            title={t('scim.table.emptyTitle')}
+            body={t('scim.table.emptyBody')}
             density="compact"
           />
         ) : (
@@ -216,38 +224,38 @@ export default function ScimTokens() {
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="text-left text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] border-b border-[var(--border-default)]">
-                  <th className="py-2 pr-3">Prefix</th>
-                  <th className="py-2 pr-3">Default role</th>
-                  <th className="py-2 pr-3">Status</th>
-                  <th className="py-2 pr-3">Last used</th>
-                  <th className="py-2 pr-3">Created</th>
-                  <th className="py-2 pr-3 text-right">Actions</th>
+                  <th className="py-2 pr-3">{t('scim.table.prefix')}</th>
+                  <th className="py-2 pr-3">{t('scim.table.defaultRole')}</th>
+                  <th className="py-2 pr-3">{t('scim.table.status')}</th>
+                  <th className="py-2 pr-3">{t('scim.table.lastUsed')}</th>
+                  <th className="py-2 pr-3">{t('scim.table.created')}</th>
+                  <th className="py-2 pr-3 text-right">{t('scim.table.actions')}</th>
                 </tr>
               </thead>
               <tbody>
-                {tokens.map(t => (
-                  <tr key={t.id} className="border-b border-[var(--border-subtle)]">
-                    <td className="py-2.5 pr-3 font-mono text-[12px] text-[var(--text-primary)]">{t.prefix}…</td>
-                    <td className="py-2.5 pr-3 text-[var(--text-primary)]">{t.defaultRoleSlug}</td>
+                {tokens.map(tok => (
+                  <tr key={tok.id} className="border-b border-[var(--border-subtle)]">
+                    <td className="py-2.5 pr-3 font-mono text-[12px] text-[var(--text-primary)]">{tok.prefix}…</td>
+                    <td className="py-2.5 pr-3 text-[var(--text-primary)]">{roleLabel(tok.defaultRoleSlug)}</td>
                     <td className="py-2.5 pr-3">
-                      {t.isActive
-                        ? <Badge variant="green">active</Badge>
-                        : <Badge variant="gray">revoked</Badge>}
+                      {tok.isActive
+                        ? <Badge variant="green">{t('scim.table.active')}</Badge>
+                        : <Badge variant="gray">{t('scim.table.revoked')}</Badge>}
                     </td>
                     <td className="py-2.5 pr-3 text-[var(--text-secondary)]">
-                      {t.lastUsedAt ? new Date(t.lastUsedAt).toLocaleString() : 'never'}
+                      {tok.lastUsedAt ? new Date(tok.lastUsedAt).toLocaleString(dateLocale) : t('scim.table.never')}
                     </td>
-                    <td className="py-2.5 pr-3 text-[var(--text-secondary)]">{new Date(t.createdAt).toLocaleDateString()}</td>
+                    <td className="py-2.5 pr-3 text-[var(--text-secondary)]">{new Date(tok.createdAt).toLocaleDateString(dateLocale)}</td>
                     <td className="py-2.5 pr-3 text-right">
-                      {t.isActive && (
+                      {tok.isActive && (
                         <Button
                           size="xs"
                           variant="danger"
                           icon={<Trash2 className="w-3.5 h-3.5" />}
-                          loading={revoking === t.id}
-                          onClick={() => handleRevoke(t.id)}
+                          loading={revoking === tok.id}
+                          onClick={() => handleRevoke(tok.id)}
                         >
-                          Revoke
+                          {t('scim.table.revoke')}
                         </Button>
                       )}
                     </td>

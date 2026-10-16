@@ -1,6 +1,17 @@
 import { useState } from 'react'
 import { ChevronDown, Check, Clock, BookMarked } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { FRAMEWORKS, useFramework, type Framework } from '../lib/frameworks'
+
+/** Localised framework name — uses the optional `nameZh` when the UI is Chinese. */
+export function frameworkName(fw: { name: string; nameZh?: string }, language: string | undefined): string {
+  return language?.startsWith('zh') && fw.nameZh ? fw.nameZh : fw.name
+}
+
+/** Localised framework description — uses the optional `descriptionZh` when the UI is Chinese. */
+export function frameworkDescription(fw: { description: string; descriptionZh?: string }, language: string | undefined): string {
+  return language?.startsWith('zh') && fw.descriptionZh ? fw.descriptionZh : fw.description
+}
 
 /**
  * Inline chip showing the currently-active framework. Phase 1: locked to
@@ -36,6 +47,7 @@ export function FrameworkBadge({
  * sees the roadmap and the admin knows what's coming.
  */
 export function FrameworkSelector({ size = 'md' }: { size?: 'sm' | 'md' }) {
+  const { t, i18n } = useTranslation()
   const { active, setActive, enabled } = useFramework()
   const [open, setOpen] = useState(false)
 
@@ -51,7 +63,7 @@ export function FrameworkSelector({ size = 'md' }: { size?: 'sm' | 'md' }) {
         <BookMarked className="w-3.5 h-3.5" style={{ color: active.color }} />
         <span className="font-semibold text-[var(--text-primary)]">{active.code}</span>
         <span className="text-[var(--text-tertiary)]">·</span>
-        <span className="text-[var(--text-secondary)] font-medium truncate max-w-[160px]">{active.name.replace(active.code + ': ', '')}</span>
+        <span className="text-[var(--text-secondary)] font-medium truncate max-w-[160px]">{frameworkName(active, i18n.language).replace(active.code + ': ', '')}</span>
         <ChevronDown className="w-3 h-3 text-[var(--text-tertiary)]" />
       </button>
 
@@ -60,8 +72,8 @@ export function FrameworkSelector({ size = 'md' }: { size?: 'sm' | 'md' }) {
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute top-full left-0 mt-1.5 w-[380px] rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-lg z-50 overflow-hidden">
             <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] flex items-center justify-between">
-              <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">Reporting framework</span>
-              <span className="text-[10px] text-[var(--text-tertiary)]">Phase 1 · GRI only</span>
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">{t('components.framework.reportingFramework')}</span>
+              <span className="text-[10px] text-[var(--text-tertiary)]">{t('components.framework.phase1')}</span>
             </div>
             <ul className="max-h-[400px] overflow-y-auto py-1">
               {FRAMEWORKS.map(f => {
@@ -100,6 +112,7 @@ function FrameworkRow({
   canPick: boolean
   onPick: () => void
 }) {
+  const { t, i18n } = useTranslation()
   const locked = !canPick
   return (
     <li>
@@ -119,25 +132,25 @@ function FrameworkRow({
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)]">{framework.name}</span>
+            <span className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)]">{frameworkName(framework, i18n.language)}</span>
             {framework.status === 'active' && enabled && (
-              <span className="text-[8px] font-bold uppercase tracking-wider text-[var(--status-ok)] bg-[var(--accent-green-light)] px-1.5 py-0.5 rounded">On</span>
+              <span className="text-[8px] font-bold uppercase tracking-wider text-[var(--status-ok)] bg-[var(--accent-green-light)] px-1.5 py-0.5 rounded">{t('components.framework.on')}</span>
             )}
             {framework.status === 'active' && !enabled && (
-              <span className="text-[8px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded">Off</span>
+              <span className="text-[8px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded">{t('components.framework.off')}</span>
             )}
             {framework.status === 'coming_soon' && (
               <span className="text-[8px] font-bold uppercase tracking-wider text-[var(--status-pending)] bg-[var(--accent-blue-light)] px-1.5 py-0.5 rounded inline-flex items-center gap-0.5">
-                <Clock className="w-2 h-2" /> Soon
+                <Clock className="w-2 h-2" /> {t('components.framework.soon')}
               </span>
             )}
           </div>
-          <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5 line-clamp-2">{framework.description}</p>
+          <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5 line-clamp-2">{frameworkDescription(framework, i18n.language)}</p>
           <div className="flex items-center gap-1 mt-1 text-[9px] text-[var(--text-tertiary)]">
             <span>{framework.body}</span>
             <span>·</span>
             <span>v{framework.version}</span>
-            {framework.questionCount != null && <><span>·</span><span>{framework.questionCount} items</span></>}
+            {framework.questionCount != null && <><span>·</span><span>{t('components.framework.items', { count: framework.questionCount })}</span></>}
           </div>
         </div>
         {active && <Check className="w-4 h-4 text-[var(--color-brand)] flex-shrink-0 mt-0.5" />}

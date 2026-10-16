@@ -1,0 +1,32 @@
+{
+  "eyebrow": "集团汇总",
+  "title": "工厂数据 · 集团累计总量",
+  "intro": "每个工厂填报自身数据；子公司按股权比例汇总其下属工厂，集团再汇总各子公司。最终批准的集团数值将直接进入 GRI 报告。",
+  "searchPlaceholder": "查找 GRI 披露项……",
+  "hasPlantData": "已有工厂数据",
+  "unit": "单位：{{unit}}",
+  "groupTotal": "集团总量",
+  "chips": {
+    "approved": "已批准",
+    "inReview": "审核中",
+    "outstanding": "待填报"
+  },
+  "approvedOf": "已批准 {{approved}}/{{assigned}}",
+  "readyForReport": "可纳入报告",
+  "pickQuestion": "选择一个问题以查看其汇总",
+  "pickHint": "请在左侧列表中选择一个 GRI 披露项。",
+  "fullyApproved": {
+    "title": "该披露项已全部批准",
+    "body": "汇总后的集团数值将直接填入下一份 GRI 报告。",
+    "cta": "前往报告"
+  },
+  "entityType": {
+    "group": "集团",
+    "business_unit": "业务单元",
+    "subsidiary": "子公司",
+    "plant": "工厂",
+    "office": "办公室"
+  },
+  "equity": "持股 {{equity}}%",
+  "noData": "暂无数据"
+}

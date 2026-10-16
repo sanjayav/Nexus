@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Calculator, Info, Loader2, Save, CheckCircle2, Sparkles, ChevronDown, ChevronRight, Lock } from 'lucide-react'
 import {
   SCOPE3_CALCULATORS,
@@ -8,6 +9,7 @@ import {
   type Scope3Method,
   type Scope3MethodResult,
 } from '../calculators/scope3'
+import { localizeScope3, localizeCalcNote, localizeUnit, scope3OptionLabel } from '../calculators/labels'
 import { facilities as facilitiesApi, ai, isUnconfiguredError, type ApiFacility, type AiEfMatchResponse, type AiEfRow } from '../lib/api'
 import { useIntegrationStatus } from '../lib/integrations'
 import { orgStore } from '../lib/orgStore'
@@ -16,6 +18,7 @@ import PageHeader from '../components/PageHeader'
 import { Stagger, StaggerItem } from '../components/MotionPrimitives'
 
 export default function Scope3CalculatorsPage() {
+  const { t } = useTranslation()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const selected = useMemo(
     () => SCOPE3_CALCULATORS.find(c => c.id === selectedId) ?? null,
@@ -26,23 +29,21 @@ export default function Scope3CalculatorsPage() {
     <div className="page-container animate-fade-in">
       <PageHeader
         breadcrumbs={[
-          { label: 'Data', to: '/data' },
-          { label: 'Scope 3 calculators' },
+          { label: t('scope3.page.breadcrumbData'), to: '/data' },
+          { label: t('scope3.page.title') },
         ]}
-        eyebrow="Scope 3 · GHG Protocol"
-        title="Scope 3 calculators"
+        eyebrow={t('scope3.page.eyebrow')}
+        title={t('scope3.page.title')}
         description={
           <>
-            Pick a category, choose a method (supplier-specific &gt; activity-based &gt; spend-based), enter inputs.
-            Results are tCO2e with <JargonTooltip term="GHG" iconOnly /> emission-factor citations. Spend-based factors are illustrative averages until
-            USEEIO v2.0 / EXIOBASE is wired in.
+            {t('scope3.page.descriptionBefore')} <JargonTooltip term="GHG" iconOnly /> {t('scope3.page.descriptionAfter')}
           </>
         }
       />
 
       <div className="grid grid-cols-12 gap-4">
         <aside className="col-span-4 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-3">
-          <h3 className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-2 px-2">Categories 1–15</h3>
+          <h3 className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-2 px-2">{t('scope3.page.categoriesHeading')}</h3>
           <Stagger>
             <ul className="space-y-1">
               {SCOPE3_CALCULATORS.map(c => (
@@ -58,10 +59,10 @@ export default function Scope3CalculatorsPage() {
                       ].join(' ')}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-medium">Cat {c.category}</span>
-                        <span className="text-[10px] text-[var(--text-tertiary)]">{c.methods.length} methods</span>
+                        <span className="font-medium">{t('scope3.page.catLabel', { n: c.category })}</span>
+                        <span className="text-[10px] text-[var(--text-tertiary)]">{t('scope3.page.methodsCount', { count: c.methods.length })}</span>
                       </div>
-                      <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{c.shortName}</div>
+                      <div className="text-[11px] text-[var(--text-tertiary)] mt-0.5">{localizeScope3(t, c).shortName}</div>
                     </button>
                   </li>
                 </StaggerItem>
@@ -76,7 +77,7 @@ export default function Scope3CalculatorsPage() {
           ) : (
             <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-10 text-center text-[var(--text-secondary)]">
               <Info className="w-6 h-6 mx-auto mb-2 text-[var(--text-tertiary)]" />
-              Select a Scope 3 category on the left to begin.
+              {t('scope3.page.selectPrompt')}
             </div>
           )}
         </main>
@@ -86,6 +87,9 @@ export default function Scope3CalculatorsPage() {
 }
 
 function CalculatorPanel({ calculator }: { calculator: Scope3Calculator }) {
+  const { t } = useTranslation()
+  // Display-only copy — the original `calculator`/`method` are what get persisted.
+  const lc = localizeScope3(t, calculator)
   const [methodId, setMethodId] = useState(calculator.methods[0]?.id ?? '')
   const method = calculator.methods.find(m => m.id === methodId) ?? calculator.methods[0]
   const [values, setValues] = useState<Record<string, string>>({})
@@ -125,20 +129,20 @@ function CalculatorPanel({ calculator }: { calculator: Scope3Calculator }) {
     <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-5">
       <div className="mb-4">
         <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
-          Cat {calculator.category} · {calculator.shortName}
+          {t('scope3.page.catLabel', { n: calculator.category })} · {lc.shortName}
         </div>
-        <h2 className="font-display text-[22px] font-bold text-[var(--text-primary)] mt-0.5">{calculator.name}</h2>
-        <p className="text-[var(--text-xs)] text-[var(--text-secondary)] mt-1">{calculator.description}</p>
+        <h2 className="font-display text-[22px] font-bold text-[var(--text-primary)] mt-0.5">{lc.name}</h2>
+        <p className="text-[var(--text-xs)] text-[var(--text-secondary)] mt-1">{lc.description}</p>
       </div>
 
       <div className="mb-4">
-        <label className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Method</label>
+        <label className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.method')}</label>
         <select
           value={methodId}
           onChange={e => onMethodChange(e.target.value)}
           className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
         >
-          {calculator.methods
+          {lc.methods
             .slice()
             .sort((a, b) => a.priority - b.priority)
             .map(m => (
@@ -147,7 +151,7 @@ function CalculatorPanel({ calculator }: { calculator: Scope3Calculator }) {
         </select>
       </div>
 
-      <MethodInputs method={method} values={values} onChange={setValues} />
+      <MethodInputs method={lc.methods.find(m => m.id === method?.id)} values={values} onChange={setValues} />
 
       {method?.id === 'spend_based' && (
         <VendorAiMatcher
@@ -160,8 +164,8 @@ function CalculatorPanel({ calculator }: { calculator: Scope3Calculator }) {
       <div className="flex items-center justify-between mt-5 pt-4 border-t border-[var(--border-subtle)]">
         <span className="text-[11px] text-[var(--text-tertiary)]">
           {savedId
-            ? <>Saved as activity data. <Link to="/data" className="text-[var(--color-brand)] hover:underline">View in data ingestion</Link>.</>
-            : 'Compute, then save the result to activity_data as a draft.'}
+            ? <>{t('scope3.page.savedAsActivity')} <Link to="/data" className="text-[var(--color-brand)] hover:underline">{t('scope3.page.viewInIngestion')}</Link>{t('scope3.page.sentenceEnd')}</>
+            : t('scope3.page.computeHint')}
         </span>
         <div className="flex items-center gap-2">
           {result && (
@@ -170,7 +174,7 @@ function CalculatorPanel({ calculator }: { calculator: Scope3Calculator }) {
               className="px-3 py-2 rounded-[var(--radius-md)] border border-[var(--color-brand)] text-[var(--color-brand)] text-[var(--text-sm)] font-semibold inline-flex items-center gap-1.5 hover:bg-[var(--color-brand)]/10"
             >
               <Save className="w-3.5 h-3.5" />
-              Save to activity data
+              {t('scope3.page.saveToActivity')}
             </button>
           )}
           <button
@@ -179,7 +183,7 @@ function CalculatorPanel({ calculator }: { calculator: Scope3Calculator }) {
             className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold disabled:opacity-50 inline-flex items-center gap-1.5"
           >
             {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Calculator className="w-3.5 h-3.5" />}
-            Compute
+            {t('scope3.page.compute')}
           </button>
         </div>
       </div>
@@ -215,6 +219,7 @@ function MethodInputs({
   values: Record<string, string>
   onChange: (v: Record<string, string>) => void
 }) {
+  const { t } = useTranslation()
   if (!method) return null
   const set = (key: string, v: string) => onChange({ ...values, [key]: v })
 
@@ -225,7 +230,7 @@ function MethodInputs({
         return (
           <label key={inp.key} className="block">
             <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">
-              {inp.label}{inp.unit ? ` (${inp.unit})` : ''}{inp.required ? ' *' : ''}
+              {inp.label}{inp.unit ? ` (${localizeUnit(t, inp.unit)})` : ''}{inp.required ? ' *' : ''}
             </span>
             {inp.type === 'select' ? (
               <select
@@ -233,9 +238,9 @@ function MethodInputs({
                 onChange={e => set(inp.key, e.target.value)}
                 className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
               >
-                <option value="">— select —</option>
+                <option value="">{t('scope3.page.selectPlaceholder')}</option>
                 {(inp.options ?? []).map(o => (
-                  <option key={o} value={o}>{o}</option>
+                  <option key={o} value={o}>{scope3OptionLabel(t, o)}</option>
                 ))}
               </select>
             ) : (
@@ -255,13 +260,14 @@ function MethodInputs({
 }
 
 function ResultPanel({ result, savedId }: { result: Scope3MethodResult; savedId: string | null }) {
+  const { t } = useTranslation()
   return (
     <div className="mt-4 p-4 rounded-[var(--radius-md)] bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
       <div className="flex items-center justify-between">
-        <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">Result</div>
+        <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">{t('scope3.page.result')}</div>
         {savedId && (
           <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[var(--status-ok)]">
-            <CheckCircle2 className="w-3 h-3" /> Saved as draft
+            <CheckCircle2 className="w-3 h-3" /> {t('scope3.page.savedAsDraft')}
           </span>
         )}
       </div>
@@ -270,21 +276,21 @@ function ResultPanel({ result, savedId }: { result: Scope3MethodResult; savedId:
       </div>
       {result.ef_used && (
         <div className="mt-2 text-[11px] text-[var(--text-secondary)]">
-          <strong>EF used:</strong> {result.ef_used.co2e_per_unit} {result.ef_used.unit ?? ''}
+          <strong>{t('scope3.page.efUsed')}</strong> {result.ef_used.co2e_per_unit} {result.ef_used.unit ?? ''}
           {result.ef_used.source ? ` · ${result.ef_used.source}` : ''}
           {result.ef_used.region ? ` · ${result.ef_used.region}` : ''}
         </div>
       )}
       {result.breakdown && (
         <details className="mt-2">
-          <summary className="text-[11px] text-[var(--text-tertiary)] cursor-pointer">Breakdown</summary>
+          <summary className="text-[11px] text-[var(--text-tertiary)] cursor-pointer">{t('scope3.page.breakdown')}</summary>
           <pre className="mt-1 text-[10px] font-mono text-[var(--text-secondary)] bg-[var(--bg-primary)] p-2 rounded overflow-auto">
             {JSON.stringify(result.breakdown, null, 2)}
           </pre>
         </details>
       )}
       {result.notes && (
-        <div className="mt-2 text-[10px] text-[var(--text-tertiary)] italic">{result.notes}</div>
+        <div className="mt-2 text-[10px] text-[var(--text-tertiary)] italic">{localizeCalcNote(t, result.notes)}</div>
       )}
     </div>
   )
@@ -305,6 +311,7 @@ function SaveModal({
   onClose: () => void
   onSaved: (id: string) => void
 }) {
+  const { t } = useTranslation()
   const [facilityList, setFacilityList] = useState<ApiFacility[]>([])
   const [facilityId, setFacilityId] = useState<string>('')
   const now = new Date()
@@ -325,7 +332,7 @@ function SaveModal({
   }, [])
 
   const save = async () => {
-    if (!facilityId) { setErr('Pick a facility first'); return }
+    if (!facilityId) { setErr(t('scope3.page.pickFacility')); return }
     setSaving(true)
     setErr(null)
     try {
@@ -365,22 +372,22 @@ function SaveModal({
         className="bg-[var(--bg-primary)] rounded-[var(--radius-lg)] border border-[var(--border-default)] w-full max-w-md p-5 shadow-xl"
         onClick={e => e.stopPropagation()}
       >
-        <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">Persist calculator result</div>
-        <h3 className="font-display text-[20px] font-bold text-[var(--text-primary)]">Save to activity data</h3>
+        <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">{t('scope3.page.persistEyebrow')}</div>
+        <h3 className="font-display text-[20px] font-bold text-[var(--text-primary)]">{t('scope3.page.saveToActivity')}</h3>
         <p className="text-[var(--text-xs)] text-[var(--text-secondary)] mt-1 mb-4">
-          Creates one draft row in <code className="font-mono">activity_data</code> tagged with the calculator (
-          <code className="font-mono">{calculator.id}</code> · <code className="font-mono">{method.id}</code>).
+          {t('scope3.page.modalDescBefore')} <code className="font-mono">activity_data</code> {t('scope3.page.modalDescMiddle')}
+          <code className="font-mono">{calculator.id}</code> · <code className="font-mono">{method.id}</code>{t('scope3.page.modalDescAfter')}
         </p>
 
         <div className="space-y-3">
           <label className="block">
-            <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Facility *</span>
+            <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.facility')} *</span>
             <select
               value={facilityId}
               onChange={e => setFacilityId(e.target.value)}
               className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
             >
-              {facilityList.length === 0 && <option value="">No active facilities</option>}
+              {facilityList.length === 0 && <option value="">{t('scope3.page.noFacilities')}</option>}
               {facilityList.map(f => (
                 <option key={f.id} value={f.id}>{f.name}{f.code ? ` (${f.code})` : ''}</option>
               ))}
@@ -389,7 +396,7 @@ function SaveModal({
 
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Year</span>
+              <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.year')}</span>
               <input
                 type="number"
                 value={year}
@@ -400,7 +407,7 @@ function SaveModal({
               />
             </label>
             <label className="block">
-              <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Month</span>
+              <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.month')}</span>
               <select
                 value={month}
                 onChange={e => setMonth(Number(e.target.value))}
@@ -414,13 +421,13 @@ function SaveModal({
           </div>
 
           <label className="block">
-            <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Notes</span>
+            <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.notes')}</span>
             <textarea
               rows={2}
               value={notes}
               onChange={e => setNotes(e.target.value)}
               className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
-              placeholder="Optional context for reviewers"
+              placeholder={t('scope3.page.notesPlaceholder')}
             />
           </label>
         </div>
@@ -433,7 +440,7 @@ function SaveModal({
 
         <div className="mt-5 flex items-center justify-end gap-2">
           <button onClick={onClose} className="px-3 py-2 rounded-[var(--radius-md)] text-[var(--text-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             onClick={save}
@@ -441,7 +448,7 @@ function SaveModal({
             className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold disabled:opacity-50 inline-flex items-center gap-1.5"
           >
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-            Save draft
+            {t('scope3.page.saveDraft')}
           </button>
         </div>
       </div>
@@ -467,6 +474,7 @@ function VendorAiMatcher({
   values: Record<string, string>
   onChange: (v: Record<string, string>) => void
 }) {
+  const { t } = useTranslation()
   const [vendor, setVendor] = useState(values.vendor_name ?? '')
   const [region, setRegion] = useState<string>('GLOBAL')
   const [loading, setLoading] = useState(false)
@@ -498,7 +506,7 @@ function VendorAiMatcher({
   const spendCategoryHint = String(values.sector ?? values.material ?? values.travel_class ?? '')
 
   const run = async () => {
-    if (!vendor.trim()) { setError('Enter a vendor name first'); return }
+    if (!vendor.trim()) { setError(t('scope3.page.enterVendor')); return }
     setLoading(true); setError(null); setMatch(null); setAppliedEfId(null); setUnconfiguredFromCall(false)
     try {
       const res = await ai.matchEf({
@@ -544,28 +552,28 @@ function VendorAiMatcher({
     <div className="mt-4 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-3">
       <div className="flex items-center gap-2 mb-2">
         <Sparkles className="w-3.5 h-3.5 text-[var(--color-brand)]" />
-        <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">AI emission-factor matcher</span>
+        <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">{t('scope3.page.aiMatcherTitle')}</span>
       </div>
       <div className="grid grid-cols-12 gap-2 items-end">
         <label className="col-span-6 block">
-          <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Vendor name</span>
+          <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.vendorName')}</span>
           <input
             type="text"
             value={vendor}
             onChange={e => setVendor(e.target.value)}
-            placeholder="e.g. Acme Steel Co."
+            placeholder={t('scope3.page.vendorPlaceholder')}
             className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
           />
         </label>
         <label className="col-span-3 block">
-          <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Region</span>
+          <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('scope3.page.region')}</span>
           <select
             value={region}
             onChange={e => setRegion(e.target.value)}
             className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
           >
             {['GLOBAL','UK','US','EU','IN','CN','JP','AU','CA','DE','FR'].map(r => (
-              <option key={r} value={r}>{r}</option>
+              <option key={r} value={r}>{scope3OptionLabel(t, r)}</option>
             ))}
           </select>
         </label>
@@ -574,14 +582,14 @@ function VendorAiMatcher({
             type="button"
             onClick={run}
             disabled={loading || !vendor.trim() || unconfigured || integrations.loading}
-            title={unconfigured ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : undefined}
-            aria-label={unconfigured ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : 'Suggest emission factor with AI'}
+            title={unconfigured ? t('scope3.page.aiNotConfiguredTitle') : undefined}
+            aria-label={unconfigured ? t('scope3.page.aiNotConfiguredTitle') : t('scope3.page.suggestAria')}
             className="w-full px-3 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
           >
             {loading
               ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
               : unconfigured ? <Lock className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
-            {unconfigured ? 'AI unavailable' : 'Suggest EF with AI'}
+            {unconfigured ? t('scope3.page.aiUnavailable') : t('scope3.page.suggestEf')}
           </button>
         </div>
       </div>
@@ -595,8 +603,8 @@ function VendorAiMatcher({
         <div className="mt-2 p-2 rounded-[var(--radius-md)] bg-amber-400/5 border border-amber-400/30 text-[var(--text-xs)] text-amber-300 flex items-start gap-2">
           <Lock className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
           <span>
-            AI emission-factor suggestions are not configured in this environment.
-            Ask an admin to set <code className="font-mono">ANTHROPIC_API_KEY</code> on the server.
+            {t('scope3.page.aiBannerLine')}
+            {' '}{t('scope3.page.aiBannerAskBefore')} <code className="font-mono">ANTHROPIC_API_KEY</code> {t('scope3.page.aiBannerAskAfter')}
           </span>
         </div>
       )}
@@ -607,7 +615,7 @@ function VendorAiMatcher({
             ef={match.ef}
             confidence={match.confidence}
             reasoning={match.reasoning}
-            badge="Top match"
+            badge={t('scope3.page.topMatch')}
             applied={appliedEfId === match.ef.id}
             onUse={() => useEf(match.ef, match.id)}
           />
@@ -619,7 +627,7 @@ function VendorAiMatcher({
                 className="inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
               >
                 {altsOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                {match.alternates.length} alternate{match.alternates.length === 1 ? '' : 's'}
+                {t('scope3.page.alternates', { count: match.alternates.length })}
               </button>
               {altsOpen && (
                 <div className="mt-2 space-y-2">
@@ -629,7 +637,7 @@ function VendorAiMatcher({
                       ef={alt.ef}
                       confidence={alt.confidence}
                       reasoning={alt.reasoning}
-                      badge={`Alt ${i + 1}`}
+                      badge={t('scope3.page.altN', { n: i + 1 })}
                       applied={appliedEfId === alt.ef.id}
                       onUse={() => useEf(alt.ef, match.id)}
                     />
@@ -657,6 +665,7 @@ function EfMatchCard({
   applied: boolean
   onUse: () => void
 }) {
+  const { t } = useTranslation()
   const pct = Math.round(confidence * 100)
   const tone = pct >= 80 ? 'bg-emerald-500/15 text-emerald-300' : pct >= 50 ? 'bg-amber-500/15 text-amber-300' : 'bg-red-500/15 text-red-300'
   return (
@@ -682,7 +691,7 @@ function EfMatchCard({
             applied ? 'bg-emerald-500/15 text-emerald-300' : 'border border-[var(--color-brand)] text-[var(--color-brand)] hover:bg-[var(--color-brand)]/10',
           ].join(' ')}
         >
-          {applied ? <><CheckCircle2 className="w-3 h-3" /> Applied</> : 'Use this EF'}
+          {applied ? <><CheckCircle2 className="w-3 h-3" /> {t('scope3.page.applied')}</> : t('scope3.page.useThisEf')}
         </button>
       </div>
     </div>

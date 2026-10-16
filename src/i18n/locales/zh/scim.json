@@ -1,0 +1,62 @@
+{
+  "breadcrumbAdmin": "管理",
+  "breadcrumb": "SCIM 令牌",
+  "eyebrow": "管理 · 身份",
+  "title": "SCIM 用户预配",
+  "subtitle": "签发 SCIM 2.0 Bearer 令牌，让身份提供商（Azure AD、Okta、OneLogin）自动将用户同步到此工作区。",
+  "errors": {
+    "load": "加载 SCIM 令牌失败",
+    "create": "创建 SCIM 令牌失败",
+    "revoke": "吊销令牌失败"
+  },
+  "confirmRevoke": "确定吊销此令牌吗？所有使用该令牌的身份提供商将立即失去访问权限。",
+  "reveal": {
+    "title": "令牌已生成",
+    "body": "此令牌仅显示这一次。请立即复制并粘贴到您的身份提供商中。我们仅存储其哈希值。",
+    "dismiss": "关闭",
+    "copied": "已复制",
+    "copy": "复制"
+  },
+  "generate": {
+    "heading": "生成新的 SCIM 令牌",
+    "intro": "通过此令牌预配的新用户将默认获得您在此处选择的角色。",
+    "defaultRole": "默认角色",
+    "button": "生成令牌"
+  },
+  "roles": {
+    "viewer": "查看者",
+    "analyst": "分析师",
+    "team-lead": "团队负责人",
+    "auditor": "审计员"
+  },
+  "setup": {
+    "heading": "身份提供商配置说明",
+    "intro": "适用于 Azure AD、Okta 和 OneLogin 的 SCIM 2.0 基础 URL 及配置。",
+    "baseUrl": "SCIM 基础 URL",
+    "authentication": "身份验证",
+    "authBody": "Bearer 令牌（粘贴生成时显示的值）。",
+    "endpoints": "支持的端点",
+    "filterBy": "（可按",
+    "filterClose": " 筛选）",
+    "softDelete": "（DELETE 为软停用用户）",
+    "azureTitle": "Azure AD",
+    "azureBody": "企业应用程序 → 您的应用 → 预配。将“Tenant URL”（租户 URL）设为上方的基础 URL，并将令牌粘贴到“Secret Token”（机密令牌）中。测试连接后即可开始预配。",
+    "oktaTitle": "Okta",
+    "oktaBody": "Application → Provisioning → Integration。启用 API 集成，将基础 URL 粘贴到“SCIM connector base URL”，并将令牌填入“OAuth Bearer Token”。"
+  },
+  "table": {
+    "heading": "有效令牌",
+    "emptyTitle": "暂无 SCIM 令牌",
+    "emptyBody": "在上方生成 Bearer 令牌，并粘贴到您的身份提供商（Azure AD、Okta、Google Workspace）中，即可开始自动预配用户。",
+    "prefix": "前缀",
+    "defaultRole": "默认角色",
+    "status": "状态",
+    "lastUsed": "最近使用",
+    "created": "创建时间",
+    "actions": "操作",
+    "active": "有效",
+    "revoked": "已吊销",
+    "never": "从未",
+    "revoke": "吊销"
+  }
+}

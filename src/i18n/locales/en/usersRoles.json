@@ -1,0 +1,196 @@
+{
+  "breadcrumbAdmin": "Admin",
+  "title": "Users & Roles",
+  "eyebrow": "Admin",
+  "description": "Each user has one role. Roles bundle a set of permissions across the app. Click any role to see exactly what it can do.",
+  "addUser": "Add user",
+  "demoBanner": {
+    "strong": "Demo mode",
+    "text": " — changes won't persist. Connect a Neon Postgres to make this real.",
+    "connect": "Connect database"
+  },
+  "kpi": {
+    "teamMembers": "Team members",
+    "active": "Active",
+    "ofTotal": "of {{total}}",
+    "rolesDefined": "Roles defined"
+  },
+  "users": {
+    "heading": "Team members",
+    "searchPlaceholder": "Search name, email, role…",
+    "colUser": "User",
+    "colRole": "Role",
+    "colLastSeen": "Last seen",
+    "colActions": "Actions",
+    "inactive": "Inactive",
+    "viewRolePermissions": "View role permissions",
+    "noRole": "No role",
+    "never": "Never",
+    "changeRole": "Change role",
+    "deactivateUser": "Deactivate user",
+    "reactivateUser": "Reactivate user",
+    "deactivate": "Deactivate",
+    "reactivate": "Reactivate"
+  },
+  "empty": {
+    "noMatchTitle": "No users match that search",
+    "noUsersTitle": "No team members yet",
+    "noMatchBody": "Try a different keyword, or clear the search to see everyone.",
+    "noUsersBody": "Add your first team member and assign them a role. They'll get an email to log in.",
+    "clearSearch": "Clear search",
+    "addFirst": "Add the first user"
+  },
+  "switcher": {
+    "heading": "Switch role · demo",
+    "intro": "One-click sign-in as any role to preview their experience. Lands you on that role's home page.",
+    "footnote": "Each click signs you out and back in as that user. Useful for showing a customer the same workflow from different perspectives."
+  },
+  "roles": {
+    "heading": "Roles",
+    "intro": "Click any role to see its permissions. Custom roles can be edited or deleted; system roles are read-only.",
+    "newRole": "New role",
+    "userCount_one": "{{count}} user",
+    "userCount_other": "{{count}} users",
+    "permissionCount_one": "{{count}} permission",
+    "permissionCount_other": "{{count}} permissions",
+    "viewDetails": "{{perms}} · view details →",
+    "editDescriptionSystem": "Edit description (system role)",
+    "editRole": "Edit role",
+    "deleteRole": "Delete role",
+    "systemNotEditable": "System role · not editable"
+  },
+  "roleEditor": {
+    "editTitle": "Edit role",
+    "createTitle": "Create role",
+    "systemNote": "System role — only description is editable.",
+    "displayName": "Display name",
+    "displayNamePlaceholder": "e.g. Plant Sustainability Lead",
+    "slug": "Slug (URL-safe id)",
+    "slugPlaceholder": "e.g. plant-lead",
+    "description": "Description",
+    "descriptionPlaceholder": "Plain-English description of what this role can do.",
+    "permissions": "Permissions",
+    "cancel": "Cancel",
+    "saveChanges": "Save changes",
+    "createRole": "Create role"
+  },
+  "addUserModal": {
+    "title": "Add team member",
+    "subtitle": "They'll receive a temporary password to log in with.",
+    "fullName": "Full name",
+    "fullNamePlaceholder": "e.g. Sarah Chen",
+    "workEmail": "Work email",
+    "initialPassword": "Initial password",
+    "passwordPlaceholder": "Minimum 6 characters",
+    "moreCharsNeeded_one": "{{count}} more character needed",
+    "moreCharsNeeded_other": "{{count}} more characters needed",
+    "passwordHint": "They can change it after first login.",
+    "role": "Role",
+    "cancel": "Cancel",
+    "addUser": "Add user"
+  },
+  "editRoleModal": {
+    "title": "Change role",
+    "cancel": "Cancel",
+    "saveChange": "Save change"
+  },
+  "roleDetail": {
+    "close": "Close"
+  },
+  "dbSetup": {
+    "title": "Connect Postgres",
+    "subtitle": "Persist users, roles, and audit trail",
+    "bodySet": "Set ",
+    "bodyAnd": " and ",
+    "bodyRest": " in your Vercel project, then click below to create tables and seed demo data.",
+    "note": "Once connected, every change you make on this page persists. Until then, it's a sandbox.",
+    "cancel": "Cancel",
+    "settingUp": "Setting up…",
+    "runSetup": "Run setup"
+  },
+  "toast": {
+    "dbConnected": "Database connected — tables created and seeded",
+    "setupFailed": "Setup failed: {{message}}",
+    "unknownError": "Unknown error",
+    "failed": "Failed: {{message}}",
+    "userAdded": "{{name}} added",
+    "userAddedDemo": "{{name}} added (demo)",
+    "roleUpdated": "Role updated",
+    "roleUpdatedDemo": "Role updated (demo)",
+    "quickLoginDisabled": "Quick-login is disabled — VITE_DEMO_PASSWORD not set in this build",
+    "signInFailed": "Could not sign in as {{email}}. Has the user been seeded?",
+    "roleCreated": "{{name}} created",
+    "roleCreatedDemo": "{{name}} created (demo)",
+    "systemRoleDelete": "System roles cannot be deleted",
+    "confirmDeleteRole": "Delete role \"{{name}}\"? Users with only this role will lose access.",
+    "roleRemoved": "{{name}} removed",
+    "roleRemovedDemo": "{{name}} removed (demo)",
+    "userReactivated": "{{name}} reactivated",
+    "userDeactivated": "{{name}} deactivated",
+    "userReactivatedDemo": "{{name}} reactivated (demo)",
+    "userDeactivatedDemo": "{{name}} deactivated (demo)"
+  },
+  "relative": {
+    "justNow": "just now",
+    "minAgo": "{{count}} min ago",
+    "hrAgo": "{{count}} hr ago",
+    "dayAgo_one": "{{count}} day ago",
+    "dayAgo_other": "{{count}} days ago"
+  },
+  "platformRoles": {
+    "platform_admin": "Platform Admin",
+    "group_sustainability_officer": "Group Sustainability Officer",
+    "subsidiary_lead": "Subsidiary Lead",
+    "plant_manager": "Plant Manager",
+    "data_contributor": "Data Contributor",
+    "narrative_owner": "Narrative Owner",
+    "auditor": "Auditor"
+  },
+  "systemRoles": {
+    "admin": {
+      "name": "Platform Admin",
+      "description": "Full access — manages users, org, and all modules."
+    },
+    "team-lead": {
+      "name": "Team Lead",
+      "description": "Reviews and approves data submissions, manages a subsidiary or plant."
+    },
+    "analyst": {
+      "name": "Analyst",
+      "description": "Enters data, runs calculators, drafts reports — does not approve."
+    },
+    "auditor": {
+      "name": "Auditor",
+      "description": "Read-only access to published data and the audit trail. Cannot edit anything."
+    },
+    "viewer": {
+      "name": "Viewer",
+      "description": "Read-only access to dashboards and reports. The lightest-touch role."
+    }
+  },
+  "permResources": {
+    "dashboard": "dashboard",
+    "data": "data",
+    "reports": "reports",
+    "workflow": "workflow",
+    "admin": "admin",
+    "audit": "audit"
+  },
+  "permActions": {
+    "view": "view",
+    "upload": "upload",
+    "approve": "approve",
+    "create": "create",
+    "publish": "publish",
+    "users": "users",
+    "roles": "roles"
+  },
+  "permDescriptions": {
+    "dashboard": { "view": "View dashboard" },
+    "data": { "view": "View data", "upload": "Upload data", "approve": "Approve data" },
+    "reports": { "view": "View reports", "create": "Create reports", "publish": "Publish reports" },
+    "workflow": { "view": "View workflow", "approve": "Approve workflow" },
+    "admin": { "users": "Manage users", "roles": "Manage roles" },
+    "audit": { "view": "View audit trail" }
+  }
+}

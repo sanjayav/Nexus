@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { itemLabel } from '../lib/itemLabel'
 import {
   useReactTable,
   getCoreRowModel,
@@ -50,13 +52,14 @@ interface RowSaveState {
   timeoutId?: ReturnType<typeof setTimeout>
 }
 
+/** i18n keys for each status — render with `t(STATUS_LABEL[s])`. */
 const STATUS_LABEL: Record<StatusKey, string> = {
-  not_started: 'Not started',
-  in_progress: 'In progress',
-  submitted: 'Submitted',
-  reviewed: 'Reviewed',
-  approved: 'Approved',
-  rejected: 'Rejected',
+  not_started: 'workflowStatus.status.not_started',
+  in_progress: 'workflowStatus.status.in_progress',
+  submitted: 'workflowStatus.status.submitted',
+  reviewed: 'workflowStatus.status.reviewed',
+  approved: 'workflowStatus.status.approved',
+  rejected: 'workflowStatus.status.rejected',
 }
 
 const STATUS_CLASS: Record<StatusKey, string> = {
@@ -70,23 +73,24 @@ const STATUS_CLASS: Record<StatusKey, string> = {
 
 const ACTIVE_REPORTING_YEAR_ID = '11000000-0000-0000-0000-000000000026'
 
-/** Pre-canned formula recipes for the Help popover. */
+/** Pre-canned formula recipes for the Help popover. `description` is an i18n key. */
 const FORMULA_EXAMPLES: Array<{ formula: string; description: string }> = [
-  { formula: '=SUM(D2:D5)',               description: 'Total of Scope 1 sources' },
-  { formula: '=AVERAGE(D2:D10)',          description: 'Mean of a range' },
-  { formula: '=COUNTIF(E2:E50, "approved")', description: 'Count of approved rows' },
-  { formula: '=SUMIF(A2:A50, "GRI 305-1", D2:D50)', description: 'Conditional sum by code' },
-  { formula: '=D5/D10*100',               description: 'Percentage' },
-  { formula: '=IF(D5>1000, "high", "ok")', description: 'Conditional label' },
-  { formula: '=ROUND(D5*0.4044, 2)',      description: 'Unit conversion + rounding' },
-  { formula: "='gri'!D5",                 description: 'Cross-framework reference (sheet tab)' },
-  { formula: '=TODAY()',                  description: 'Today’s date (stamped at save)' },
+  { formula: '=SUM(D2:D5)',               description: 'dataEntry.sheet.examples.sum' },
+  { formula: '=AVERAGE(D2:D10)',          description: 'dataEntry.sheet.examples.average' },
+  { formula: '=COUNTIF(E2:E50, "approved")', description: 'dataEntry.sheet.examples.countif' },
+  { formula: '=SUMIF(A2:A50, "GRI 305-1", D2:D50)', description: 'dataEntry.sheet.examples.sumif' },
+  { formula: '=D5/D10*100',               description: 'dataEntry.sheet.examples.percentage' },
+  { formula: '=IF(D5>1000, "high", "ok")', description: 'dataEntry.sheet.examples.if' },
+  { formula: '=ROUND(D5*0.4044, 2)',      description: 'dataEntry.sheet.examples.round' },
+  { formula: "='gri'!D5",                 description: 'dataEntry.sheet.examples.crossRef' },
+  { formula: '=TODAY()',                  description: 'dataEntry.sheet.examples.today' },
 ]
 
 export default function DataEntrySpreadsheet() {
   const { user } = useAuth()
   const { active: framework } = useFramework()
   const navigate = useNavigate()
+  const { t, i18n } = useTranslation()
 
   const [assignments, setAssignments] = useState<QuestionAssignment[]>([])
   const [entities, setEntities] = useState<OrgEntity[]>([])
@@ -128,10 +132,10 @@ export default function DataEntrySpreadsheet() {
       // Don't blank the grid — surface a banner so the user understands why
       // the rows they were editing aren't visible. Toast fires once per load
       // so background refreshes don't spam.
-      const msg = e instanceof Error ? e.message : 'Could not load assignments'
+      const msg = e instanceof Error ? e.message : t('dataEntry.sheet.loadFailed')
       console.warn('[spreadsheet] refresh failed', e)
       if (loadWarning !== msg) {
-        showWarning('Could not load assignments — try refreshing the page')
+        showWarning(t('dataEntry.sheet.loadFailedToast'))
       }
       setLoadWarning(msg)
     }
@@ -155,10 +159,10 @@ export default function DataEntrySpreadsheet() {
       if (frameworkFilter !== 'all' && a.framework_id !== frameworkFilter) return false
       if (statusFilter !== 'all' && a.status !== statusFilter) return false
       if (entityFilter !== 'all' && a.entityId !== entityFilter) return false
-      if (q && !a.line_item.toLowerCase().includes(q) && !a.gri_code.toLowerCase().includes(q)) return false
+      if (q && !a.line_item.toLowerCase().includes(q) && !itemLabel(a, i18n.language).toLowerCase().includes(q) && !a.gri_code.toLowerCase().includes(q)) return false
       return true
     })
-  }, [assignments, search, statusFilter, frameworkFilter, entityFilter])
+  }, [assignments, search, statusFilter, frameworkFilter, entityFilter, i18n.language])
 
   // ── Formula engine lifecycle ──────────────────────────────────────
   //
@@ -290,14 +294,14 @@ export default function DataEntrySpreadsheet() {
         return m
       })
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Save failed'
+      const msg = e instanceof Error ? e.message : t('dataEntry.entry.saveFailed')
       setRowSaves(prev => {
         const m = new Map(prev)
         m.set(a.id, { state: 'error', error: msg })
         return m
       })
     }
-  }, [])
+  }, [t])
 
   // Parse the user's raw input (formula or number) and dispatch to saveCell.
   // Called from both the in-cell editor and the formula bar.
@@ -354,10 +358,10 @@ export default function DataEntrySpreadsheet() {
         return m
       })
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Save failed'
+      const msg = e instanceof Error ? e.message : t('dataEntry.entry.saveFailed')
       setRowSaves(prev => { const m = new Map(prev); m.set(a.id, { state: 'error', error: msg }); return m })
     }
-  }, [])
+  }, [t])
 
   const toggleSelect = (id: string, checked: boolean) => {
     setSelected(s => {
@@ -383,7 +387,7 @@ export default function DataEntrySpreadsheet() {
       header: () => (
         <input
           type="checkbox"
-          aria-label="Select all visible rows"
+          aria-label={t('dataEntry.sheet.selectAll')}
           onChange={e => selectAllVisible(e.target.checked)}
           checked={filtered.length > 0 && filtered.every(a => selected.has(a.id))}
         />
@@ -391,7 +395,7 @@ export default function DataEntrySpreadsheet() {
       cell: ({ row }) => (
         <input
           type="checkbox"
-          aria-label={`Select ${row.original.gri_code}`}
+          aria-label={t('dataEntry.sheet.selectRow', { code: row.original.gri_code })}
           checked={selected.has(row.original.id)}
           onChange={e => toggleSelect(row.original.id, e.target.checked)}
         />
@@ -399,33 +403,33 @@ export default function DataEntrySpreadsheet() {
       size: 40,
     },
     helper.accessor('gri_code', {
-      header: 'Code',
+      header: t('dataEntry.sheet.col.code'),
       cell: info => (
         <span className="font-mono text-[11px] text-[var(--text-secondary)]">{info.getValue()}</span>
       ),
       size: 110,
     }),
     helper.accessor('line_item', {
-      header: 'Disclosure',
+      header: t('dataEntry.sheet.col.disclosure'),
       cell: info => (
         <div className="flex items-center gap-2 min-w-0">
-          <span className="truncate text-[12px] text-[var(--text-primary)]">{info.getValue()}</span>
+          <span className="truncate text-[12px] text-[var(--text-primary)]">{itemLabel(info.row.original, i18n.language) || info.getValue()}</span>
           {/* Linked-data indicator — appears when the assignment is linked
               via concept_mappings. The flag is populated lazily, see effect below. */}
           {info.row.original.is_overdue ? (
-            <span className="px-1.5 h-5 inline-flex items-center rounded text-[10px] font-semibold bg-rose-100 text-rose-700">overdue</span>
+            <span className="px-1.5 h-5 inline-flex items-center rounded text-[10px] font-semibold bg-rose-100 text-rose-700">{t('dataEntry.sheet.overdue')}</span>
           ) : null}
         </div>
       ),
       size: 300,
     }),
     helper.accessor('unit', {
-      header: 'Unit',
+      header: t('dataEntry.entry.unit'),
       cell: info => <span className="text-[11px] text-[var(--text-tertiary)]">{info.getValue() ?? '—'}</span>,
       size: 80,
     }),
     helper.accessor('value', {
-      header: 'Value',
+      header: t('dataEntry.sheet.col.value'),
       cell: info => {
         const a = info.row.original
         const { raw, computed } = cellStateOf(a.id)
@@ -433,7 +437,7 @@ export default function DataEntrySpreadsheet() {
         const saveState: CellSaveState = !rs
           ? { state: 'idle' }
           : rs.state === 'error'
-            ? { state: 'error', message: rs.error ?? 'Save failed' }
+            ? { state: 'error', message: rs.error ?? t('dataEntry.entry.saveFailed') }
             : rs.state === 'saved'
               ? { state: 'saved' }
               : rs.state === 'saving'
@@ -454,7 +458,7 @@ export default function DataEntrySpreadsheet() {
       size: 180,
     }),
     helper.accessor('status', {
-      header: 'Status',
+      header: t('common.status'),
       cell: info => (
         <StatusPill
           assignment={info.row.original}
@@ -465,7 +469,7 @@ export default function DataEntrySpreadsheet() {
     }),
     {
       id: 'assignee',
-      header: 'Assignee',
+      header: t('dataEntry.sheet.col.assignee'),
       cell: ({ row }) => (
         <div className="flex flex-col min-w-0">
           <span className="text-[12px] text-[var(--text-primary)] truncate">{row.original.assigneeName || '—'}</span>
@@ -475,12 +479,12 @@ export default function DataEntrySpreadsheet() {
       size: 180,
     },
     helper.accessor('last_updated', {
-      header: 'Updated',
+      header: t('dataEntry.sheet.col.updated'),
       cell: info => {
         const ts = info.getValue()
         if (!ts) return <span className="text-[10px] text-[var(--text-tertiary)]">—</span>
         const d = new Date(ts)
-        return <span className="text-[10px] text-[var(--text-tertiary)] tabular-nums">{d.toLocaleDateString()}</span>
+        return <span className="text-[10px] text-[var(--text-tertiary)] tabular-nums">{d.toLocaleDateString(i18n.language?.startsWith('zh') ? 'zh-CN' : undefined)}</span>
       },
       size: 90,
     }),
@@ -493,12 +497,12 @@ export default function DataEntrySpreadsheet() {
           onClick={() => navigate(`/data/entry/${row.original.questionId}`)}
           className="text-[10px] font-semibold text-[var(--color-brand)] hover:underline"
         >
-          Open
+          {t('dataEntry.evidence.open')}
         </button>
       ),
       size: 60,
     },
-  ], [filtered, selected, rowSaves, entityById, cellStateOf, commitCellRaw, activeCellId, transitionStatus, navigate, helper])
+  ], [filtered, selected, rowSaves, entityById, cellStateOf, commitCellRaw, activeCellId, transitionStatus, navigate, helper, t, i18n.language])
 
   const table = useReactTable({
     data: filtered,
@@ -510,10 +514,10 @@ export default function DataEntrySpreadsheet() {
   const savingCount = Array.from(rowSaves.values()).filter(v => v.state === 'saving').length
   const errorCount  = Array.from(rowSaves.values()).filter(v => v.state === 'error').length
   const saveLabel = savingCount > 0
-    ? `Saving ${savingCount}…`
+    ? t('dataEntry.sheet.savingN', { count: savingCount })
     : errorCount > 0
-      ? `${errorCount} unsaved`
-      : 'All changes saved'
+      ? t('dataEntry.sheet.unsaved', { count: errorCount })
+      : t('dataEntry.sheet.allSaved')
 
   const bulkSubmit = async () => {
     if (selected.size === 0) return
@@ -577,21 +581,20 @@ export default function DataEntrySpreadsheet() {
     return (
       <div className="flex items-center justify-center h-[400px] gap-2 text-[var(--text-tertiary)]">
         <Loader2 className="w-4 h-4 animate-spin" />
-        Loading assignments…
+        {t('dataEntry.sheet.loading')}
       </div>
     )
   }
 
-  const frameworks = [{ id: 'all', code: 'All' }, ...getActiveFrameworks().map(f => ({ id: f.id, code: f.code }))]
+  const frameworks = [{ id: 'all', code: t('common.all') }, ...getActiveFrameworks().map(f => ({ id: f.id, code: f.code }))]
 
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-display text-[24px] text-[var(--text-primary)] leading-[1.1]">Data entry spreadsheet</h1>
+          <h1 className="text-display text-[24px] text-[var(--text-primary)] leading-[1.1]">{t('dataEntry.sheet.title')}</h1>
           <p className="text-[12px] text-[var(--text-tertiary)] mt-1 max-w-xl">
-            Bulk-edit values across every assigned disclosure. Tab to advance, Enter to save and move down,
-            Esc to revert. Approved values propagate to every linked framework automatically.
+            {t('dataEntry.sheet.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -608,7 +611,7 @@ export default function DataEntrySpreadsheet() {
           className="flex items-start gap-2 px-3 py-2 rounded-[8px] bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[12px]"
         >
           <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-          <span>Could not load latest assignments — showing the last successful load. {loadWarning}</span>
+          <span>{t('dataEntry.sheet.loadBanner')} {loadWarning}</span>
         </div>
       )}
 
@@ -618,7 +621,7 @@ export default function DataEntrySpreadsheet() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-tertiary)]" />
           <input
             type="text"
-            placeholder="Search disclosures…"
+            placeholder={t('dataEntry.sheet.search')}
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 h-9 rounded-[8px] border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[12px] focus:border-[var(--color-brand)] outline-none"
@@ -628,7 +631,7 @@ export default function DataEntrySpreadsheet() {
           value={frameworkFilter}
           onChange={e => setFrameworkFilter(e.target.value)}
           className="h-9 px-3 rounded-[8px] border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[12px]"
-          aria-label="Framework filter"
+          aria-label={t('dataEntry.sheet.frameworkFilter')}
         >
           {frameworks.map(f => <option key={f.id} value={f.id}>{f.code}</option>)}
         </select>
@@ -636,38 +639,38 @@ export default function DataEntrySpreadsheet() {
           value={entityFilter}
           onChange={e => setEntityFilter(e.target.value)}
           className="h-9 px-3 rounded-[8px] border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[12px]"
-          aria-label="Entity filter"
+          aria-label={t('dataEntry.sheet.entityFilter')}
         >
-          <option value="all">All entities</option>
+          <option value="all">{t('dataEntry.sheet.allEntities')}</option>
           {entities.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
         </select>
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value as 'all' | StatusKey)}
           className="h-9 px-3 rounded-[8px] border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[12px]"
-          aria-label="Status filter"
+          aria-label={t('dataEntry.sheet.statusFilter')}
         >
-          <option value="all">All statuses</option>
+          <option value="all">{t('dataEntry.sheet.allStatuses')}</option>
           {(Object.keys(STATUS_LABEL) as StatusKey[]).map(s => (
-            <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+            <option key={s} value={s}>{t(STATUS_LABEL[s])}</option>
           ))}
         </select>
         <div className="ml-auto text-[11px] text-[var(--text-tertiary)] tabular-nums">
-          {filtered.length} rows · {selected.size} selected
+          {t('dataEntry.sheet.rowsSelected', { rows: filtered.length, selected: selected.size })}
         </div>
       </div>
 
       {/* Bulk actions */}
       {selected.size > 0 && (
         <div className="surface-paper p-3 flex items-center gap-2 flex-wrap">
-          <span className="text-[11px] text-[var(--text-tertiary)] mr-2">{selected.size} selected</span>
+          <span className="text-[11px] text-[var(--text-tertiary)] mr-2">{t('dataEntry.sheet.nSelected', { count: selected.size })}</span>
           <button
             type="button"
             onClick={bulkSubmit}
             disabled={bulkBusy}
             className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[7px] bg-[var(--color-brand)] text-white text-[11px] font-semibold disabled:opacity-50"
           >
-            <Send className="w-3 h-3" /> Submit selected
+            <Send className="w-3 h-3" /> {t('dataEntry.sheet.submitSelected')}
           </button>
           <button
             type="button"
@@ -675,21 +678,21 @@ export default function DataEntrySpreadsheet() {
             disabled={bulkBusy}
             className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[7px] bg-emerald-600 text-white text-[11px] font-semibold disabled:opacity-50"
           >
-            <ShieldCheck className="w-3 h-3" /> Approve selected
+            <ShieldCheck className="w-3 h-3" /> {t('dataEntry.sheet.approveSelected')}
           </button>
           <button
             type="button"
             onClick={exportSelectedCsv}
             className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[7px] border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-[11px] font-semibold"
           >
-            <Download className="w-3 h-3" /> Export CSV
+            <Download className="w-3 h-3" /> {t('dataEntry.sheet.exportCsv')}
           </button>
           <button
             type="button"
             onClick={() => setSelected(new Set())}
             className="ml-2 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
           >
-            Clear
+            {t('dataEntry.sheet.clear')}
           </button>
         </div>
       )}
@@ -721,15 +724,15 @@ export default function DataEntrySpreadsheet() {
       {showFormulaHelp && (
         <div
           role="dialog"
-          aria-label="Formula examples"
+          aria-label={t('dataEntry.sheet.formulaExamples')}
           className="surface-paper p-3 border border-[var(--border-subtle)] rounded-[8px]"
         >
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-[12px] font-semibold text-[var(--text-primary)]">Formula examples</h2>
+            <h2 className="text-[12px] font-semibold text-[var(--text-primary)]">{t('dataEntry.sheet.formulaExamples')}</h2>
             <button
               type="button"
               onClick={() => setShowFormulaHelp(false)}
-              aria-label="Close formula help"
+              aria-label={t('dataEntry.sheet.closeHelp')}
               className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
             >
               <X className="w-3.5 h-3.5" />
@@ -739,12 +742,12 @@ export default function DataEntrySpreadsheet() {
             {FORMULA_EXAMPLES.map(ex => (
               <li key={ex.formula} className="flex flex-col">
                 <code className="font-mono text-[var(--color-brand)]">{ex.formula}</code>
-                <span className="text-[var(--text-tertiary)]">{ex.description}</span>
+                <span className="text-[var(--text-tertiary)]">{t(ex.description)}</span>
               </li>
             ))}
           </ul>
           <p className="mt-2 text-[10px] text-[var(--text-tertiary)]">
-            Powered by HyperFormula. See docs/FORMULAS.md for the full reference.
+            {t('dataEntry.sheet.poweredBy')}
           </p>
         </div>
       )}
@@ -772,7 +775,7 @@ export default function DataEntrySpreadsheet() {
               {table.getRowModel().rows.length === 0 ? (
                 <tr>
                   <td colSpan={columns.length} className="text-center py-10 text-[12px] text-[var(--text-tertiary)]">
-                    No rows match the current filters.
+                    {t('dataEntry.sheet.noRows')}
                   </td>
                 </tr>
               ) : (
@@ -796,8 +799,10 @@ export default function DataEntrySpreadsheet() {
       </div>
 
       <p className="text-[10px] text-[var(--text-tertiary)] px-1">
-        {getFramework(frameworkFilter)?.name ?? 'Cross-framework'} · {filtered.length} rows. Virtualization is disabled
-        at this scale — re-enable when the grid exceeds ~500 visible rows.
+        {t('dataEntry.sheet.footer', {
+          framework: (() => { const fw = getFramework(frameworkFilter); return fw ? ((i18n.language?.startsWith('zh') && (fw as { nameZh?: string }).nameZh) || fw.name) : t('dataEntry.sheet.crossFramework') })(),
+          count: filtered.length,
+        })}
       </p>
     </div>
   )
@@ -813,6 +818,7 @@ function StatusPill({
   assignment: QuestionAssignment
   onTransition: (a: QuestionAssignment, next: StatusKey) => void
 }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const wrap = useRef<HTMLDivElement>(null)
 
@@ -844,7 +850,7 @@ function StatusPill({
         disabled={options.length === 0}
         className={`inline-flex items-center px-2 h-6 rounded-full text-[10px] font-semibold ${STATUS_CLASS[assignment.status]} ${options.length === 0 ? 'cursor-default' : 'cursor-pointer hover:opacity-80'}`}
       >
-        {STATUS_LABEL[assignment.status]}
+        {t(STATUS_LABEL[assignment.status])}
       </button>
       {open && options.length > 0 && (
         <div className="absolute left-0 top-7 z-20 surface-paper p-1 min-w-[140px] shadow-lg">
@@ -855,7 +861,7 @@ function StatusPill({
               onClick={() => { setOpen(false); onTransition(assignment, next) }}
               className="block w-full text-left px-2 h-7 rounded-[5px] text-[11px] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
             >
-              → {STATUS_LABEL[next]}
+              → {t(STATUS_LABEL[next])}
             </button>
           ))}
         </div>

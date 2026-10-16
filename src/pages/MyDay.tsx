@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import {
   ArrowRight, Calendar as CalendarIcon, CheckCircle2, Clock,
   AlertTriangle, Inbox, ShieldCheck, Activity as ActivityIcon, Sparkles,
@@ -10,6 +12,7 @@ import { orgStore, type QuestionAssignment } from '../lib/orgStore'
 import { auditLog, type AuditExplorerEntry } from '../lib/api'
 import { FadeIn, Stagger, StaggerItem } from '../components/MotionPrimitives'
 import { Skeleton, SkeletonText } from '../components/Skeleton'
+import { itemLabel } from '../lib/itemLabel'
 import {
   EmptyTasksIllustration,
   EmptyInboxIllustration,
@@ -24,7 +27,8 @@ export default function MyDay() {
   const { user } = useAuth()
   const { active: framework } = useFramework()
   const navigate = useNavigate()
-  const firstName = user?.name?.split(' ')[0] || 'there'
+  const { t } = useTranslation()
+  const firstName = user?.name?.split(' ')[0] || t('myDay.there')
 
   const [mine, setMine] = useState<QuestionAssignment[] | null>(null)
   const [all, setAll] = useState<QuestionAssignment[] | null>(null)
@@ -55,15 +59,15 @@ export default function MyDay() {
       if (cancelled) return
       const nextWarnings: { mine?: string; all?: string; activity?: string; anomalies?: string; hash?: string } = {}
       if (mineRes.status === 'fulfilled') setMine(mineRes.value.filter(a => a.framework_id === framework.id))
-      else { setMine([]); nextWarnings.mine = errMsg(mineRes.reason, 'Could not load your tasks') }
+      else { setMine([]); nextWarnings.mine = errMsg(mineRes.reason, t('myDay.warn.mine')) }
       if (allRes.status === 'fulfilled') setAll(allRes.value.filter(a => a.framework_id === framework.id))
-      else { setAll([]); nextWarnings.all = errMsg(allRes.reason, 'Could not load review queue') }
+      else { setAll([]); nextWarnings.all = errMsg(allRes.reason, t('myDay.warn.all')) }
       if (activityRes.status === 'fulfilled') setActivity(activityRes.value.rows)
-      else { setActivity([]); nextWarnings.activity = errMsg(activityRes.reason, 'Could not load activity') }
+      else { setActivity([]); nextWarnings.activity = errMsg(activityRes.reason, t('myDay.warn.activity')) }
       if (anomaliesRes.status === 'fulfilled') setCriticalAnomalies(anomaliesRes.value.summary?.critical ?? 0)
-      else { setCriticalAnomalies(0); nextWarnings.anomalies = errMsg(anomaliesRes.reason, 'Could not load anomaly count') }
+      else { setCriticalAnomalies(0); nextWarnings.anomalies = errMsg(anomaliesRes.reason, t('myDay.warn.anomalies')) }
       if (hashRes.status === 'fulfilled' && hashRes.value) setHashOk(!!hashRes.value.verified)
-      else { setHashOk(null); if (hashRes.status === 'rejected') nextWarnings.hash = errMsg(hashRes.reason, 'Could not verify chain') }
+      else { setHashOk(null); if (hashRes.status === 'rejected') nextWarnings.hash = errMsg(hashRes.reason, t('myDay.warn.hash')) }
       setWarnings(nextWarnings)
     })()
     return () => { cancelled = true }
@@ -72,9 +76,9 @@ export default function MyDay() {
   const now = Date.now()
   const greeting = (() => {
     const h = new Date().getHours()
-    if (h < 12) return 'Good morning'
-    if (h < 18) return 'Good afternoon'
-    return 'Good evening'
+    if (h < 12) return t('myDay.greeting.morning')
+    if (h < 18) return t('myDay.greeting.afternoon')
+    return t('myDay.greeting.evening')
   })()
 
   const dueToday = useMemo(() => {
@@ -113,13 +117,13 @@ export default function MyDay() {
       ? Math.max(0, Math.floor((now - new Date(suggested.due_date).getTime()) / (1000 * 60 * 60 * 24)))
       : 0
     if (overdueDays > 0) {
-      return `This ${suggested.gri_code ?? 'disclosure'} is required for ${framework.code} compliance and is overdue by ${overdueDays} day${overdueDays === 1 ? '' : 's'}.`
+      return t('myDay.suggested.overdue', { code: suggested.gri_code ?? t('myDay.suggested.disclosure'), framework: framework.code, count: overdueDays })
     }
     if (suggested.status === 'rejected') {
-      return `This ${suggested.gri_code ?? 'disclosure'} was returned for revision — close the loop to keep the cycle moving.`
+      return t('myDay.suggested.rejected', { code: suggested.gri_code ?? t('myDay.suggested.disclosure') })
     }
-    return `Highest-impact open item in your queue — start here to unblock downstream reviewers.`
-  }, [suggested, framework.code, now])
+    return t('myDay.suggested.default')
+  }, [suggested, framework.code, now, t])
 
   const kpi = useMemo(() => {
     if (!all) return { open: 0, approvedThisWeek: 0 }
@@ -142,8 +146,8 @@ export default function MyDay() {
     const elapsed = d.getTime() - qStart.getTime()
     const pct = Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)))
     const daysLeft = Math.max(0, Math.ceil((qEnd.getTime() - d.getTime()) / (1000 * 60 * 60 * 24)))
-    return { pct, daysLeft, label: `Q${q + 1} reporting period` }
-  }, [])
+    return { pct, daysLeft, label: t('myDay.quarterLabel', { q: q + 1 }) }
+  }, [t])
 
   return (
     <div className="space-y-10 max-w-6xl mx-auto py-2">
@@ -151,14 +155,14 @@ export default function MyDay() {
       <FadeIn>
         <header className="space-y-3">
           <h1 className="h-display text-[var(--text-primary)]">
-            {greeting}, {firstName}
+            {t('myDay.greetingLine', { greeting, name: firstName })}
           </h1>
           <div className="flex items-center gap-3 text-[13px] text-[var(--text-tertiary)]">
             <CalendarIcon className="w-3.5 h-3.5" />
             <span>
               <strong className="font-semibold text-[var(--text-secondary)]">{quarterStatus.label}</strong>
               <span className="mx-2">·</span>
-              <span>{quarterStatus.daysLeft} days remaining</span>
+              <span>{t('myDay.daysRemaining', { count: quarterStatus.daysLeft })}</span>
             </span>
           </div>
           {/* Quarter progress bar */}
@@ -166,7 +170,7 @@ export default function MyDay() {
             <div
               className="h-full bg-gradient-to-r from-[var(--color-brand)] to-[var(--color-brand-strong)] transition-all duration-500"
               style={{ width: `${quarterStatus.pct}%` }}
-              aria-label={`${quarterStatus.pct}% of period elapsed`}
+              aria-label={t('myDay.periodElapsed', { pct: quarterStatus.pct })}
             />
           </div>
         </header>
@@ -208,19 +212,19 @@ export default function MyDay() {
       <div className="border-t border-b border-[var(--border-subtle)] py-4">
         <section
           className="grid grid-cols-2 md:grid-cols-4 gap-4"
-          aria-label="At-a-glance metrics"
+          aria-label={t('myDay.kpi.aria')}
         >
-          <Kpi label="Open assignments" value={loading ? '—' : String(kpi.open)} />
-          <Kpi label="Approved this week" value={loading ? '—' : String(kpi.approvedThisWeek)} />
+          <Kpi label={t('myDay.kpi.open')} value={loading ? '—' : String(kpi.open)} />
+          <Kpi label={t('myDay.kpi.approvedWeek')} value={loading ? '—' : String(kpi.approvedThisWeek)} />
           <Kpi
-            label="Critical anomalies"
+            label={t('myDay.kpi.critical')}
             value={criticalAnomalies == null ? '—' : criticalAnomalies > 0 ? String(criticalAnomalies) : '0'}
             tone={criticalAnomalies && criticalAnomalies > 0 ? 'warn' : 'ok'}
             icon={<AlertTriangle className="w-3.5 h-3.5" />}
           />
           <Kpi
-            label="Hash chain"
-            value={hashOk == null ? '—' : hashOk ? '✓ Verified' : 'Broken'}
+            label={t('myDay.kpi.hashChain')}
+            value={hashOk == null ? '—' : hashOk ? t('myDay.kpi.verified') : t('myDay.kpi.broken')}
             tone={hashOk === false ? 'warn' : 'ok'}
             icon={<ShieldCheck className="w-3.5 h-3.5" />}
           />
@@ -238,14 +242,14 @@ export default function MyDay() {
           <div className="flex items-center gap-2">
             <ActivityIcon className="w-4 h-4 text-[var(--text-tertiary)]" />
             <h2 className="font-display text-[16px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">
-              Recent activity
+              {t('myDay.recentActivity')}
             </h2>
           </div>
           <button
             onClick={() => navigate('/admin/audit')}
             className="text-[12px] font-semibold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] inline-flex items-center gap-1"
           >
-            View all <ArrowRight className="w-3 h-3" />
+            {t('myDay.viewAll')} <ArrowRight className="w-3 h-3" />
           </button>
         </div>
         <ActivityFeed loading={activity === null} entries={activity ?? []} />
@@ -321,28 +325,29 @@ function DueTodayCard({
   now: number
   warning?: string
 }) {
-  if (loading) return <HeroCardSkeleton eyebrow="Due today" />
+  const { t, i18n } = useTranslation()
+  if (loading) return <HeroCardSkeleton eyebrow={t('myDay.dueToday.eyebrow')} />
   if (items.length === 0) {
     return (
-      <HeroCard eyebrow="Due today" tone="ok">
+      <HeroCard eyebrow={t('myDay.dueToday.eyebrow')} tone="ok">
         {warning && <WarningChip text={warning} />}
         <div className="flex flex-col items-center text-center py-2">
           <EmptyTasksIllustration className="w-24 h-24 text-[var(--color-brand)] opacity-80 mb-3" />
           <h2 className="font-display text-[18px] font-semibold tracking-[-0.012em] text-[var(--text-primary)] leading-snug mb-1">
-            {warning ? 'No tasks shown' : 'Nothing due today'}
+            {warning ? t('myDay.dueToday.noneShown') : t('myDay.dueToday.nothing')}
           </h2>
           <p className="text-[12.5px] text-[var(--text-tertiary)]">
-            {warning ? 'Try refreshing the page.' : 'Quiet day — get ahead or take a breath.'}
+            {warning ? t('myDay.dueToday.tryRefresh') : t('myDay.dueToday.quiet')}
           </p>
         </div>
       </HeroCard>
     )
   }
   return (
-    <HeroCard eyebrow="Due today" tone="attention">
+    <HeroCard eyebrow={t('myDay.dueToday.eyebrow')} tone="attention">
       {warning && <WarningChip text={warning} />}
       <h2 className="font-display text-[19px] font-semibold tracking-[-0.012em] text-[var(--text-primary)] leading-snug mb-5">
-        {items.length} disclosure{items.length === 1 ? '' : 's'} need values
+        {t('myDay.dueToday.needValues', { count: items.length })}
       </h2>
       <ul className="space-y-3 flex-1">
         {items.slice(0, 4).map(a => {
@@ -352,13 +357,13 @@ function DueTodayCard({
               <div className="min-w-0 flex-1">
                 <div className="text-[var(--text-primary)] font-medium truncate">
                   <span className="font-mono text-[11.5px] text-[var(--text-tertiary)] mr-1.5">{a.gri_code}</span>
-                  {a.line_item}
+                  {itemLabel(a, i18n.language)}
                 </div>
                 <div className="text-[11.5px] text-[var(--text-tertiary)] mt-0.5">
                   {overdue ? (
-                    <span className="text-[var(--status-reject)]">Overdue · {a.due_date && relativeDays(a.due_date)}</span>
+                    <span className="text-[var(--status-reject)]">{t('myDay.dueToday.overdue')} · {a.due_date && relativeDays(a.due_date, t)}</span>
                   ) : (
-                    <span>Due {a.due_date ? new Date(a.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'soon'}</span>
+                    <span>{t('myDay.dueToday.due', { date: a.due_date ? new Date(a.due_date).toLocaleDateString(i18n.language?.startsWith('zh') ? 'zh-CN' : undefined, { month: 'short', day: 'numeric' }) : t('myDay.dueToday.soon') })}</span>
                   )}
                 </div>
               </div>
@@ -375,7 +380,7 @@ function DueTodayCard({
           }}
           className="text-[12.5px] font-semibold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] inline-flex items-center gap-1.5"
         >
-          Start the next <ArrowRight className="w-3 h-3" />
+          {t('myDay.dueToday.startNext')} <ArrowRight className="w-3 h-3" />
         </button>
       </CardFooter>
     </HeroCard>
@@ -390,28 +395,29 @@ function ReviewQueueCard({
   onOpen: () => void
   warning?: string
 }) {
-  if (loading) return <HeroCardSkeleton eyebrow="Review queue" />
+  const { t, i18n } = useTranslation()
+  if (loading) return <HeroCardSkeleton eyebrow={t('myDay.review.eyebrow')} />
   if (items.length === 0) {
     return (
-      <HeroCard eyebrow="Review queue" tone="ok">
+      <HeroCard eyebrow={t('myDay.review.eyebrow')} tone="ok">
         {warning && <WarningChip text={warning} />}
         <div className="flex flex-col items-center text-center py-2">
           <EmptyInboxIllustration className="w-24 h-24 text-[var(--color-brand)] opacity-80 mb-3" />
           <h2 className="font-display text-[18px] font-semibold tracking-[-0.012em] text-[var(--text-primary)] leading-snug mb-1">
-            Nothing to review
+            {t('myDay.review.nothing')}
           </h2>
           <p className="text-[12.5px] text-[var(--text-tertiary)]">
-            Inbox zero — reviewers can rest.
+            {t('myDay.review.inboxZero')}
           </p>
         </div>
       </HeroCard>
     )
   }
   return (
-    <HeroCard eyebrow="Review queue" tone="attention">
+    <HeroCard eyebrow={t('myDay.review.eyebrow')} tone="attention">
       {warning && <WarningChip text={warning} />}
       <h2 className="font-display text-[19px] font-semibold tracking-[-0.012em] text-[var(--text-primary)] leading-snug mb-5">
-        {items.length} submission{items.length === 1 ? '' : 's'} awaiting review
+        {t('myDay.review.awaiting', { count: items.length })}
       </h2>
       <ul className="space-y-3 flex-1">
         {items.slice(0, 5).map(a => (
@@ -420,10 +426,10 @@ function ReviewQueueCard({
             <div className="min-w-0 flex-1">
               <div className="text-[var(--text-primary)] font-medium truncate">
                 <span className="font-mono text-[11.5px] text-[var(--text-tertiary)] mr-1.5">{a.gri_code}</span>
-                {a.line_item}
+                {itemLabel(a, i18n.language)}
               </div>
               <div className="text-[11.5px] text-[var(--text-tertiary)] mt-0.5 truncate">
-                {a.assigneeName ?? 'Unassigned'}
+                {a.assigneeName ?? t('myDay.review.unassigned')}
               </div>
             </div>
           </li>
@@ -434,7 +440,7 @@ function ReviewQueueCard({
           onClick={onOpen}
           className="text-[12.5px] font-semibold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] inline-flex items-center gap-1.5"
         >
-          Open queue <ArrowRight className="w-3 h-3" />
+          {t('myDay.review.openQueue')} <ArrowRight className="w-3 h-3" />
         </button>
       </CardFooter>
     </HeroCard>
@@ -450,29 +456,30 @@ function SuggestedNextCard({
   onOpen: () => void
   warning?: string
 }) {
-  if (loading) return <HeroCardSkeleton eyebrow="Suggested next" />
+  const { t, i18n } = useTranslation()
+  if (loading) return <HeroCardSkeleton eyebrow={t('myDay.suggested.eyebrow')} />
   if (!item) {
     return (
-      <HeroCard eyebrow="Suggested next" tone="ok">
+      <HeroCard eyebrow={t('myDay.suggested.eyebrow')} tone="ok">
         {warning && <WarningChip text={warning} />}
         <div className="flex flex-col items-center text-center py-2">
           <div className="w-14 h-14 rounded-full bg-[var(--color-brand-soft)] flex items-center justify-center mb-3">
             <Sparkles className="w-6 h-6 text-[var(--color-brand)]" />
           </div>
           <h2 className="font-display text-[18px] font-semibold tracking-[-0.012em] text-[var(--text-primary)] leading-snug mb-1">
-            You're caught up
+            {t('myDay.suggested.caughtUp')}
           </h2>
           <p className="text-[12.5px] text-[var(--text-tertiary)]">
-            Nothing stale on your plate. Time to celebrate.
+            {t('myDay.suggested.nothingStale')}
           </p>
         </div>
       </HeroCard>
     )
   }
   return (
-    <HeroCard eyebrow="Suggested next">
+    <HeroCard eyebrow={t('myDay.suggested.eyebrow')}>
       <h2 className="font-display text-[18px] font-semibold tracking-[-0.012em] text-[var(--text-primary)] leading-snug mb-1.5 line-clamp-2">
-        {item.line_item}
+        {itemLabel(item, i18n.language)}
       </h2>
       <div className="font-mono text-[11.5px] text-[var(--text-tertiary)] mb-4">{item.gri_code}</div>
       <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed flex-1">
@@ -483,7 +490,7 @@ function SuggestedNextCard({
           onClick={onOpen}
           className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-[8px] bg-[var(--color-brand)] text-white text-[13px] font-semibold hover:bg-[var(--color-brand-strong)] transition-colors"
         >
-          Open in editor <ArrowRight className="w-3.5 h-3.5" />
+          {t('myDay.suggested.openInEditor')} <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
     </HeroCard>
@@ -528,6 +535,7 @@ function ActivityFeed({
   loading: boolean
   entries: AuditExplorerEntry[]
 }) {
+  const { t, i18n } = useTranslation()
   if (loading) {
     return (
       <ul className="divide-y divide-[var(--border-subtle)] border border-[var(--border-subtle)] rounded-[12px] overflow-hidden bg-[var(--bg-primary)]">
@@ -542,7 +550,7 @@ function ActivityFeed({
   if (entries.length === 0) {
     return (
       <div className="text-[13px] text-[var(--text-tertiary)] py-6 leading-relaxed">
-        No activity in the last few days.
+        {t('myDay.activity.none')}
       </div>
     )
   }
@@ -552,14 +560,14 @@ function ActivityFeed({
         <StaggerItem key={e.id}>
           <div className="px-5 py-3.5 flex items-baseline gap-4 text-[13px]">
               <span className="text-[11.5px] text-[var(--text-tertiary)] tabular-nums flex-shrink-0 w-[88px]">
-                {relativeShort(e.created_at)}
+                {relativeShort(e.created_at, t, i18n.language)}
               </span>
               <ActorBadge name={e.user_name ?? e.user_email ?? null} />
               <span className="text-[var(--text-secondary)] flex-1 truncate leading-snug">
                 <strong className="font-semibold text-[var(--text-primary)]">
-                  {e.user_name ?? e.user_email ?? 'System'}
+                  {e.user_name ?? e.user_email ?? t('myDay.activity.system')}
                 </strong>{' '}
-                <span className="text-[var(--text-tertiary)]">{humanAction(e.action)}</span>{' '}
+                <span className="text-[var(--text-tertiary)]">{humanAction(e.action, t)}</span>{' '}
                 {e.resource_type && (
                   <span className="text-[var(--text-tertiary)]">{e.resource_type.replace(/_/g, ' ')}</span>
                 )}
@@ -588,36 +596,36 @@ function ActorBadge({ name }: { name: string | null }) {
 
 // ─── Helpers ────────────────────────────────────────────────
 
-function relativeDays(iso: string): string {
+function relativeDays(iso: string, t: TFunction): string {
   const diff = Date.now() - new Date(iso).getTime()
   const days = Math.round(diff / (1000 * 60 * 60 * 24))
-  if (days === 0) return 'today'
-  if (days === 1) return '1d ago'
-  if (days === -1) return 'tomorrow'
-  if (days < 0) return `in ${Math.abs(days)}d`
-  return `${days}d ago`
+  if (days === 0) return t('myDay.rel.today')
+  if (days === 1) return t('myDay.rel.daysAgo', { count: 1 })
+  if (days === -1) return t('myDay.rel.tomorrow')
+  if (days < 0) return t('myDay.rel.inDays', { count: Math.abs(days) })
+  return t('myDay.rel.daysAgo', { count: days })
 }
 
-function relativeShort(iso: string): string {
+function relativeShort(iso: string, t: TFunction, language?: string): string {
   const diff = Date.now() - new Date(iso).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins} min${mins === 1 ? '' : 's'} ago`
+  if (mins < 1) return t('myDay.rel.justNow')
+  if (mins < 60) return t('myDay.rel.minsAgo', { count: mins })
   const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs} hr${hrs === 1 ? '' : 's'} ago`
+  if (hrs < 24) return t('myDay.rel.hrsAgo', { count: hrs })
   const days = Math.floor(hrs / 24)
-  if (days < 7) return `${days}d ago`
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  if (days < 7) return t('myDay.rel.daysAgo', { count: days })
+  return new Date(iso).toLocaleDateString(language?.startsWith('zh') ? 'zh-CN' : undefined, { month: 'short', day: 'numeric' })
 }
 
-function humanAction(a: string): string {
-  if (a.endsWith('.create')) return 'created'
-  if (a.endsWith('.update')) return 'updated'
-  if (a.endsWith('.delete')) return 'deleted'
-  if (a.endsWith('.login')) return 'signed in'
-  if (a.endsWith('.approve')) return 'approved'
-  if (a.endsWith('.reject')) return 'rejected'
-  if (a.endsWith('.submit')) return 'submitted'
+function humanAction(a: string, t: TFunction): string {
+  if (a.endsWith('.create')) return t('myDay.action.created')
+  if (a.endsWith('.update')) return t('myDay.action.updated')
+  if (a.endsWith('.delete')) return t('myDay.action.deleted')
+  if (a.endsWith('.login')) return t('myDay.action.signedIn')
+  if (a.endsWith('.approve')) return t('myDay.action.approved')
+  if (a.endsWith('.reject')) return t('myDay.action.rejected')
+  if (a.endsWith('.submit')) return t('myDay.action.submitted')
   return a.replace(/[._]/g, ' ')
 }
 

@@ -1,0 +1,28 @@
+{
+  "status": {
+    "draft": "Draft",
+    "inReview": "In Review",
+    "approved": "Approved"
+  },
+  "role": {
+    "facilityMgr": "Facility Mgr"
+  },
+  "toastSubmitted": "Question submitted for review",
+  "crumbReports": "Reports",
+  "crumbSelf": "Framework questions",
+  "title": "Framework Questions",
+  "description": "Regulatory framework questionnaires with role-based assignment. Manage CDP, TCFD, GRI, and CSRD disclosures from a unified workspace.",
+  "openInEditor": "Open in editor",
+  "editorCta": "Edit, review and publish {{framework}} disclosures in one document-centric workspace — left tree, middle document, right detail rail.",
+  "open": "Open",
+  "stats": {
+    "total": "Total Questions"
+  },
+  "filters": "Filters",
+  "statusLabel": "Status:",
+  "roleLabel": "Role:",
+  "questionCount_one": "{{count}} question",
+  "questionCount_other": "{{count}} questions",
+  "submitForReview": "Submit for Review",
+  "noMatch": "No questions match the current filters."
+}

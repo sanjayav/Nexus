@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { Download, Filter, ChevronLeft, ChevronRight, ChevronDown, AlertTriangle, Loader2, ShieldCheck } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import { Card, Button } from '../design-system'
@@ -24,10 +25,10 @@ const KNOWN_ACTIONS = [
 ]
 const KNOWN_RESOURCE_TYPES = ['user', 'role', 'assignment', 'organisation', 'report']
 
-function formatTimestamp(s: string): string {
+function formatTimestamp(s: string, locale?: string): string {
   try {
     const d = new Date(s)
-    return d.toLocaleString(undefined, {
+    return d.toLocaleString(locale, {
       year: 'numeric', month: 'short', day: '2-digit',
       hour: '2-digit', minute: '2-digit', second: '2-digit',
     })
@@ -50,6 +51,9 @@ function targetFor(row: AuditExplorerEntry): string {
 }
 
 export default function AuditLog() {
+  const { t, i18n } = useTranslation()
+  // Keep the browser default for English; switch explicitly for zh / th.
+  const locale = i18n.language?.startsWith('zh') ? 'zh-CN' : i18n.language?.startsWith('th') ? 'th-TH' : undefined
   const [rows, setRows] = useState<AuditExplorerEntry[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -85,11 +89,11 @@ export default function AuditLog() {
       setRows(res.rows)
       setTotal(res.total)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load audit log')
+      setError(e instanceof Error ? e.message : i18n.t('auditLogPage.errors.load'))
     } finally {
       setLoading(false)
     }
-  }, [params])
+  }, [params, i18n])
 
   useEffect(() => { void load() }, [load])
   useEffect(() => {
@@ -128,7 +132,7 @@ export default function AuditLog() {
       a.remove()
       URL.revokeObjectURL(url)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Export failed')
+      setError(e instanceof Error ? e.message : t('auditLogPage.errors.export'))
     } finally {
       setExporting(false)
     }
@@ -150,14 +154,14 @@ export default function AuditLog() {
     <div className="page-container space-y-6">
       <PageHeader
         breadcrumbs={[
-          { label: 'Admin' },
-          { label: 'Activity History' },
+          { label: t('nav.admin') },
+          { label: t('auditLogPage.title') },
         ]}
-        title="Activity History"
-        description="Immutable record of authentication, role, assignment and configuration events. Use the filters below to narrow the view; export filtered results as CSV for evidence packs."
+        title={t('auditLogPage.title')}
+        description={t('auditLogPage.description')}
         actions={
           <Button variant="secondary" icon={exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} onClick={handleExport} disabled={exporting}>
-            {exporting ? 'Exporting…' : 'Export CSV'}
+            {exporting ? t('auditLogPage.exporting') : t('auditLogPage.exportCsv')}
           </Button>
         }
       />
@@ -177,11 +181,11 @@ export default function AuditLog() {
 
       <Card>
         <div className="p-4 border-b border-[var(--border-subtle)] flex items-center gap-2 text-[var(--text-sm)] font-medium text-[var(--text-primary)]">
-          <Filter className="w-4 h-4" /> Filters
+          <Filter className="w-4 h-4" /> {t('auditLogPage.filters.title')}
         </div>
         <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <label className="block text-[var(--text-xs)] text-[var(--text-tertiary)]">
-            From
+            {t('auditLogPage.filters.from')}
             <input
               type="datetime-local"
               value={from}
@@ -190,7 +194,7 @@ export default function AuditLog() {
             />
           </label>
           <label className="block text-[var(--text-xs)] text-[var(--text-tertiary)]">
-            To
+            {t('auditLogPage.filters.to')}
             <input
               type="datetime-local"
               value={to}
@@ -199,28 +203,28 @@ export default function AuditLog() {
             />
           </label>
           <label className="block text-[var(--text-xs)] text-[var(--text-tertiary)]">
-            Actor
+            {t('auditLogPage.filters.actor')}
             <select
               value={actorId}
               onChange={e => { setOffset(0); setActorId(e.target.value) }}
               className="mt-1 w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-sm)] text-[var(--text-primary)]"
             >
-              <option value="">Anyone</option>
+              <option value="">{t('auditLogPage.filters.anyone')}</option>
               {users.map(u => (
                 <option key={u.id} value={u.id}>{u.name || u.email}</option>
               ))}
             </select>
           </label>
           <div className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-            <div>Results</div>
+            <div>{t('auditLogPage.filters.results')}</div>
             <div className="mt-1 px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-sm)] text-[var(--text-primary)]">
-              {loading ? 'Loading…' : `${total.toLocaleString()} event${total === 1 ? '' : 's'}`}
+              {loading ? t('auditLogPage.filters.loading') : t('auditLogPage.filters.events', { count: total, formattedCount: total.toLocaleString(locale) })}
             </div>
           </div>
         </div>
         <div className="px-4 pb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] mb-1.5">Action type</div>
+            <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] mb-1.5">{t('auditLogPage.filters.actionType')}</div>
             <div className="flex flex-wrap gap-1.5">
               {KNOWN_ACTIONS.map(a => (
                 <button
@@ -237,7 +241,7 @@ export default function AuditLog() {
             </div>
           </div>
           <div>
-            <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] mb-1.5">Resource type</div>
+            <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] mb-1.5">{t('auditLogPage.filters.resourceType')}</div>
             <div className="flex flex-wrap gap-1.5">
               {KNOWN_RESOURCE_TYPES.map(a => (
                 <button
@@ -260,7 +264,7 @@ export default function AuditLog() {
             onClick={clearFilters}
             className="text-[var(--text-xs)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
           >
-            Clear all filters
+            {t('auditLogPage.filters.clearAll')}
           </button>
         </div>
       </Card>
@@ -277,13 +281,13 @@ export default function AuditLog() {
           <table className="w-full text-[var(--text-sm)]">
             <thead className="bg-[var(--bg-secondary)] text-[var(--text-xs)] uppercase tracking-wide text-[var(--text-tertiary)]">
               <tr>
-                <th className="px-4 py-3 text-left">Timestamp</th>
-                <th className="px-4 py-3 text-left">Actor</th>
-                <th className="px-4 py-3 text-left">Action</th>
-                <th className="px-4 py-3 text-left">Resource</th>
-                <th className="px-4 py-3 text-left">Target</th>
-                <th className="px-4 py-3 text-left">IP</th>
-                <th className="px-4 py-3 text-right">Details</th>
+                <th className="px-4 py-3 text-left">{t('auditLogPage.table.timestamp')}</th>
+                <th className="px-4 py-3 text-left">{t('auditLogPage.table.actor')}</th>
+                <th className="px-4 py-3 text-left">{t('auditLogPage.table.action')}</th>
+                <th className="px-4 py-3 text-left">{t('auditLogPage.table.resource')}</th>
+                <th className="px-4 py-3 text-left">{t('auditLogPage.table.target')}</th>
+                <th className="px-4 py-3 text-left">{t('auditLogPage.table.ip')}</th>
+                <th className="px-4 py-3 text-right">{t('auditLogPage.table.details')}</th>
               </tr>
             </thead>
             <tbody>
@@ -295,8 +299,8 @@ export default function AuditLog() {
                 <tr><td colSpan={7} className="px-4 py-0 text-[var(--text-tertiary)]">
                   <EmptyState
                     icon={ShieldCheck}
-                    title="No audit events match"
-                    body="Try widening your date range or clearing filters. Every change in the workspace is recorded here for assurance."
+                    title={t('auditLogPage.empty.title')}
+                    body={t('auditLogPage.empty.body')}
                     density="compact"
                   />
                 </td></tr>
@@ -307,8 +311,8 @@ export default function AuditLog() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.18, delay: Math.min(idx, 14) * 0.02 }}
                     className="border-t border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">
-                    <td className="px-4 py-3 text-[var(--text-secondary)] whitespace-nowrap">{formatTimestamp(r.created_at)}</td>
-                    <td className="px-4 py-3 text-[var(--text-primary)]">{r.user_name ?? r.user_email ?? <span className="text-[var(--text-tertiary)]">system</span>}</td>
+                    <td className="px-4 py-3 text-[var(--text-secondary)] whitespace-nowrap">{formatTimestamp(r.created_at, locale)}</td>
+                    <td className="px-4 py-3 text-[var(--text-primary)]">{r.user_name ?? r.user_email ?? <span className="text-[var(--text-tertiary)]">{t('auditLogPage.table.system')}</span>}</td>
                     <td className="px-4 py-3"><code className="text-[var(--text-xs)] px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-primary)]">{r.action}</code></td>
                     <td className="px-4 py-3 text-[var(--text-secondary)]">{r.resource_type}</td>
                     <td className="px-4 py-3 text-[var(--text-secondary)] max-w-[260px] truncate" title={targetFor(r)}>{targetFor(r)}</td>
@@ -320,7 +324,7 @@ export default function AuditLog() {
                         className="inline-flex items-center gap-1 text-[var(--text-xs)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                       >
                         <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expanded.has(r.id) ? 'rotate-180' : ''}`} />
-                        {expanded.has(r.id) ? 'Hide' : 'Show'}
+                        {expanded.has(r.id) ? t('auditLogPage.table.hide') : t('auditLogPage.table.show')}
                       </button>
                     </td>
                   </motion.tr>
@@ -337,7 +341,7 @@ export default function AuditLog() {
           </table>
         </div>
         <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--border-subtle)] text-[var(--text-xs)] text-[var(--text-tertiary)]">
-          <span>Page {page} of {totalPages}</span>
+          <span>{t('auditLogPage.pagination.pageOf', { page, total: totalPages })}</span>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -345,7 +349,7 @@ export default function AuditLog() {
               disabled={offset === 0 || loading}
               className="inline-flex items-center gap-1 px-2 py-1 rounded border border-[var(--border-subtle)] disabled:opacity-50 hover:bg-[var(--bg-tertiary)]"
             >
-              <ChevronLeft className="w-3.5 h-3.5" /> Prev
+              <ChevronLeft className="w-3.5 h-3.5" /> {t('auditLogPage.pagination.prev')}
             </button>
             <button
               type="button"
@@ -353,7 +357,7 @@ export default function AuditLog() {
               disabled={offset + PAGE_SIZE >= total || loading}
               className="inline-flex items-center gap-1 px-2 py-1 rounded border border-[var(--border-subtle)] disabled:opacity-50 hover:bg-[var(--bg-tertiary)]"
             >
-              Next <ChevronRight className="w-3.5 h-3.5" />
+              {t('auditLogPage.pagination.next')} <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>

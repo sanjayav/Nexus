@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, ArrowRight, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * ProductTour — a one-time, 4-step onboarding tour that shows the very first
@@ -26,6 +27,8 @@ import { Sparkles, ArrowRight, X } from 'lucide-react'
 const TOUR_KEY_PREFIX = 'aeiforo_tour_completed_'
 
 export type TourStep = {
+  /** Optional i18n id — title/body resolve from `components.tour.steps.<key>.*`. */
+  key?: string
   /** Optional data-tour selector. Centred modal when omitted. */
   target?: string
   title: string
@@ -36,24 +39,28 @@ export type TourStep = {
 
 const STEPS: TourStep[] = [
   {
+    key: 'welcome',
     title: 'Welcome to Nexus',
     body: 'Your single workspace for collecting ESG data, drafting framework reports, and publishing assured disclosures. Take a quick tour to see where everything lives.',
     placement: 'center',
   },
   {
     target: 'sidebar-home',
+    key: 'day',
     title: 'This is your day',
     body: 'Open assignments, review queue, and the next best action — all on one screen. Start here every morning.',
     placement: 'right',
   },
   {
     target: 'sidebar-templates',
+    key: 'frameworks',
     title: 'Frameworks become documents',
     body: "Pick a framework, open the editor, and fill it in like a document. Values link automatically across every report.",
     placement: 'right',
   },
   {
     target: 'topbar-search',
+    key: 'search',
     title: 'Cmd+K opens anything',
     body: 'Press ⌘K to jump to any page, run an action, or find a framework. ⌘N adds something new.',
     placement: 'bottom',
@@ -68,6 +75,7 @@ interface ProductTourProps {
 }
 
 export default function ProductTour({ userId, steps = STEPS }: ProductTourProps) {
+  const { t } = useTranslation()
   const storageKey = TOUR_KEY_PREFIX + userId
   const [active, setActive] = useState(false)
   const [stepIdx, setStepIdx] = useState(0)
@@ -125,6 +133,8 @@ export default function ProductTour({ userId, steps = STEPS }: ProductTourProps)
   }
 
   const cardPos = computeCardPosition(rect, step?.placement ?? 'center')
+  const title = step.key ? t(`components.tour.steps.${step.key}.title`, { defaultValue: step.title }) : step.title
+  const body = step.key ? t(`components.tour.steps.${step.key}.body`, { defaultValue: step.body }) : step.body
 
   return createPortal(
     <AnimatePresence>
@@ -137,7 +147,7 @@ export default function ProductTour({ userId, steps = STEPS }: ProductTourProps)
         className="fixed inset-0 z-[2000] pointer-events-none"
         aria-modal="true"
         role="dialog"
-        aria-label={step.title}
+        aria-label={title}
       >
         {/* Backdrop — translucent veil. Pointer events stay off so the
             page underneath remains usable; only the card itself is
@@ -176,22 +186,22 @@ export default function ProductTour({ userId, steps = STEPS }: ProductTourProps)
           <div className="flex items-start justify-between gap-3 mb-2">
             <div className="flex items-center gap-2 text-[var(--color-brand)]">
               <Sparkles className="w-4 h-4" />
-              <span className="text-[11px] font-semibold uppercase tracking-wider">Quick tour</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider">{t('components.tour.quickTour')}</span>
             </div>
             <button
               type="button"
               onClick={complete}
-              aria-label="Skip tour"
+              aria-label={t('components.tour.skip')}
               className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
           <h3 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)] leading-snug">
-            {step.title}
+            {title}
           </h3>
           <p className="mt-2 text-[var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
-            {step.body}
+            {body}
           </p>
           <div className="mt-5 flex items-center justify-between">
             <button
@@ -199,7 +209,7 @@ export default function ProductTour({ userId, steps = STEPS }: ProductTourProps)
               onClick={complete}
               className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
             >
-              Skip tour
+              {t('components.tour.skip')}
             </button>
             <div className="flex items-center gap-3">
               <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] tabular-nums">
@@ -210,7 +220,7 @@ export default function ProductTour({ userId, steps = STEPS }: ProductTourProps)
                 onClick={next}
                 className="inline-flex items-center gap-1.5 px-3 h-8 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] transition-colors"
               >
-                {isLast ? 'Start using Nexus' : 'Next'}
+                {isLast ? t('components.tour.start') : t('common.next')}
                 {!isLast && <ArrowRight className="w-3.5 h-3.5" />}
               </button>
             </div>

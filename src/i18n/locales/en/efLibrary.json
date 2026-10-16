@@ -1,0 +1,114 @@
+{
+  "breadcrumb": {
+    "data": "Data",
+    "current": "Emission factors"
+  },
+  "title": "Emission factors",
+  "description": {
+    "prefix": "Live factors from DEFRA 2024, EPA 2024,",
+    "suffix": "IPCC 2006 / AR5, IEA 2024 — versioned, region-tagged."
+  },
+  "actions": {
+    "export": "Export",
+    "import": "Import",
+    "addFactor": "Add Factor"
+  },
+  "kpi": {
+    "total": "Total Factors",
+    "active": "Active",
+    "deprecated": "Deprecated",
+    "sources": "Data Sources"
+  },
+  "tabs": {
+    "all": "All Factors"
+  },
+  "scope": {
+    "1": "Scope 1",
+    "2": "Scope 2",
+    "3": "Scope 3"
+  },
+  "status": {
+    "active": "active",
+    "deprecated": "deprecated"
+  },
+  "search": {
+    "placeholder": "Search factors by name, category, source, or unit..."
+  },
+  "filters": {
+    "allSources": "All Sources",
+    "allCategories": "All Categories",
+    "allRegions": "All Regions",
+    "showDeprecated": "Show deprecated",
+    "results": "results"
+  },
+  "loadError": {
+    "message": "Couldn't load emission factors: {{error}}.",
+    "hintBefore": "Try running",
+    "hintAfter": "first to seed the table.",
+    "failed": "Failed to load: {{status}}",
+    "unknown": "Unknown error"
+  },
+  "empty": {
+    "title": "No emission factors found",
+    "body": "Try adjusting your search or filter criteria."
+  },
+  "references": {
+    "ipcc": {
+      "name": "IPCC 2006 Guidelines",
+      "desc": "Default factors for stationary & mobile combustion. Tier 1 methodology."
+    },
+    "defra": {
+      "name": "DEFRA 2024",
+      "desc": "UK Government conversion factors for GHG reporting. Updated annually."
+    },
+    "iea": {
+      "name": "IEA 2024",
+      "desc": "International Energy Agency country grid emission factors."
+    }
+  },
+  "confirmDelete": "Delete emission factor \"{{name}}\"? Historical activity data referencing it is preserved; the factor will no longer appear in the library.",
+  "toast": {
+    "removed": "Emission factor removed",
+    "added": "Emission factor added",
+    "deleteFailed": "Could not delete",
+    "saveFailed": "Could not save"
+  },
+  "modal": {
+    "title": "Add Emission Factor",
+    "factorName": "Factor Name",
+    "factorNamePlaceholder": "e.g. Natural gas (industrial)",
+    "category": "Category",
+    "categoryPlaceholder": "e.g. stationary_combustion",
+    "scope": "Scope",
+    "value": "Value (kg CO2e / unit)",
+    "unit": "Unit",
+    "unitPlaceholder": "e.g. kgCO2e/kWh",
+    "source": "Source",
+    "version": "Version",
+    "region": "Region",
+    "validFrom": "Valid from",
+    "saving": "Saving…",
+    "submit": "Add Factor"
+  },
+  "row": {
+    "copy": "Copy value",
+    "edit": "Edit",
+    "delete": "Delete (soft — historical data preserved)",
+    "value": "Value",
+    "source": "Source",
+    "region": "Region",
+    "validFrom": "Valid From",
+    "status": "Status"
+  },
+  "vendor": {
+    "title": "Find by vendor (AI)",
+    "hint": "Type a supplier name — Claude picks the best factor.",
+    "placeholder": "e.g. United Airlines, Office Depot, AWS",
+    "unavailable": "AI unavailable",
+    "suggest": "Suggest EF",
+    "unconfiguredBefore": "Sign in to AI to get suggestions. Set",
+    "unconfiguredAfter": "on the server to enable.",
+    "topMatch": "Top match",
+    "alt": "Alt {{n}}"
+  }
+}

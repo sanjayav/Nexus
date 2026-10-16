@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { RotateCcw, AlertTriangle, X, Loader2, CheckCircle2 } from 'lucide-react'
+import { Trans, useTranslation } from 'react-i18next'
 import { orgStore } from '../lib/orgStore'
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
  * Confirmation requires typing "RESET" because this is destructive.
  */
 export default function ResetWorkspaceButton({ onReset, variant = 'subtle' }: Props) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [confirmText, setConfirmText] = useState('')
   const [busy, setBusy] = useState(false)
@@ -46,7 +48,7 @@ export default function ResetWorkspaceButton({ onReset, variant = 'subtle' }: Pr
         onReset()
       }, 800)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Reset failed')
+      setError(e instanceof Error ? e.message : t('components.reset.failed'))
     } finally {
       setBusy(false)
     }
@@ -62,9 +64,9 @@ export default function ResetWorkspaceButton({ onReset, variant = 'subtle' }: Pr
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className={triggerClass} title="Wipe workspace data — keeps users + login">
+      <button onClick={() => setOpen(true)} className={triggerClass} title={t('components.reset.triggerTitle')}>
         <RotateCcw className="w-3.5 h-3.5" />
-        Reset workspace
+        {t('components.reset.trigger')}
       </button>
 
       {open && (
@@ -79,10 +81,10 @@ export default function ResetWorkspaceButton({ onReset, variant = 'subtle' }: Pr
                 <div className="w-9 h-9 rounded-[10px] flex items-center justify-center" style={{ background: 'var(--accent-red-light)', color: 'var(--status-reject)' }}>
                   <AlertTriangle className="w-4 h-4" />
                 </div>
-                <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">Reset workspace?</h3>
+                <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{t('components.reset.title')}</h3>
               </div>
               {!busy && (
-                <button onClick={reset} aria-label="Close reset workspace dialog" title="Close" className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer">
+                <button onClick={reset} aria-label={t('components.reset.closeAria')} title={t('common.close')} className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer">
                   <X className="w-4 h-4" />
                 </button>
               )}
@@ -91,14 +93,14 @@ export default function ResetWorkspaceButton({ onReset, variant = 'subtle' }: Pr
             {!done && (
               <div className="p-5 space-y-3">
                 <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed">
-                  This permanently removes <strong className="text-[var(--text-primary)]">all entities, members, climate targets, material topics, reporting periods, assignments, assurance requests, and published reports</strong> in this workspace.
+                  <Trans i18nKey="components.reset.body" components={{ b: <strong className="text-[var(--text-primary)]" /> }} />
                 </p>
                 <p className="text-[12px] text-[var(--text-tertiary)] leading-relaxed">
-                  Preserved: your login, users + roles, the GRI questionnaire catalogue, and the audit trail.
+                  {t('components.reset.preserved')}
                 </p>
                 <div className="p-3 rounded-[8px] bg-[var(--accent-red-light)] border border-[rgba(220,38,38,0.3)]">
                   <p className="text-[11.5px] text-[var(--status-reject)] font-medium">
-                    Type <strong className="font-mono">RESET</strong> below to confirm.
+                    <Trans i18nKey="components.reset.typeToConfirm" components={{ b: <strong className="font-mono" /> }} />
                   </p>
                   <input
                     type="text"
@@ -119,14 +121,14 @@ export default function ResetWorkspaceButton({ onReset, variant = 'subtle' }: Pr
             {done && (
               <div className="p-5 flex items-center gap-3">
                 <CheckCircle2 className="w-5 h-5 text-[var(--status-ok)]" />
-                <span className="text-[13px] font-semibold text-[var(--status-ok)]">Workspace reset. Reloading…</span>
+                <span className="text-[13px] font-semibold text-[var(--status-ok)]">{t('components.reset.done')}</span>
               </div>
             )}
 
             {!done && (
               <footer className="flex items-center gap-2 p-5 border-t border-[var(--border-subtle)]">
                 <button onClick={reset} disabled={busy} className="flex-1 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-[13px] font-semibold hover:bg-[var(--bg-secondary)] cursor-pointer disabled:opacity-60">
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleReset}
@@ -134,8 +136,8 @@ export default function ResetWorkspaceButton({ onReset, variant = 'subtle' }: Pr
                   className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--status-reject)] text-white text-[13px] font-semibold hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
                   {busy
-                    ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Resetting…</>
-                    : <><RotateCcw className="w-3.5 h-3.5" /> Reset everything</>}
+                    ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('components.reset.resetting')}</>
+                    : <><RotateCcw className="w-3.5 h-3.5" /> {t('components.reset.everything')}</>}
                 </button>
               </footer>
             )}

@@ -1,0 +1,48 @@
+{
+  "loading": "Loading published report…",
+  "unavailable": "Report no longer available.",
+  "print": "Print",
+  "assured": "Assured",
+  "reportTitle": "{{org}} sustainability report",
+  "meta": "Period: {{period}} ({{year}}) · Framework: {{framework}} · Published {{date}}",
+  "quantitative": "Quantitative disclosures",
+  "narrative": "Narrative disclosures",
+  "show": "Show",
+  "hide": "Hide",
+  "password": {
+    "title": "Password protected",
+    "body": "This report is password protected. Please enter the password provided by the sender.",
+    "placeholder": "Password",
+    "submit": "View report"
+  },
+  "errors": {
+    "title": "Unable to load report",
+    "invalidPassword": "Invalid password",
+    "loadFailed": "Failed to load report"
+  },
+  "table": {
+    "code": "Code",
+    "lineItem": "Line item",
+    "value": "Value",
+    "unit": "Unit"
+  },
+  "anchored": {
+    "title": "Blockchain anchored",
+    "body": "This report's content hash is anchored to Bitcoin via OpenTimestamps."
+  },
+  "opinion": {
+    "limited": "limited",
+    "reasonable": "reasonable"
+  },
+  "footer": {
+    "generated": "Generated {{date}}",
+    "lastVerified": " · last verified {{date}}",
+    "assuredBy": "Assured by {{firm}} — signed by {{signer}} on {{date}}",
+    "auditor": "auditor",
+    "opinionOpen": " ({{opinion}} assurance",
+    "isaeClose": ", {{reference}})",
+    "close": ")",
+    "publishedBy": "Published by {{name}} · SHA-256 {{hash}}…",
+    "poweredBy": "Powered by Aeiforo"
+  }
+}

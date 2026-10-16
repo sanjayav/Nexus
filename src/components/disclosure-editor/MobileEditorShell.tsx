@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronLeft, FolderTree, FileText, Info } from 'lucide-react'
 import DisclosureTree, { type DisclosureTreeProps } from './DisclosureTree'
 import DisclosureDocument, { type DisclosureDocumentProps } from './DisclosureDocument'
@@ -37,6 +38,7 @@ interface MobileEditorShellProps {
 }
 
 export default function MobileEditorShell({ treeProps, documentProps, railProps, showDetails }: MobileEditorShellProps) {
+  const { t } = useTranslation()
   const [tab, setTab] = useState<MobileTab>('document')
 
   // When the active cell changes (and details are available) auto-switch to
@@ -69,27 +71,27 @@ export default function MobileEditorShell({ treeProps, documentProps, railProps,
       {/* Tab strip */}
       <div
         role="tablist"
-        aria-label="Disclosure editor sections"
+        aria-label={t('disclosureEditor.mobile.tabsAria')}
         className="flex items-stretch border-b border-[var(--border-subtle)] bg-[var(--bg-primary)] sticky top-0 z-20"
       >
         <TabButton
           active={tab === 'sections'}
           onClick={() => setTab('sections')}
           icon={<FolderTree className="w-4 h-4" />}
-          label="Sections"
+          label={t('disclosureEditor.mobile.sections')}
         />
         <TabButton
           active={tab === 'document'}
           onClick={() => setTab('document')}
           icon={<FileText className="w-4 h-4" />}
-          label="Document"
+          label={t('disclosureEditor.mobile.document')}
         />
         {showDetails && (
           <TabButton
             active={tab === 'details'}
             onClick={() => setTab('details')}
             icon={<Info className="w-4 h-4" />}
-            label="Details"
+            label={t('disclosureEditor.mobile.details')}
             disabled={!activeCellId}
           />
         )}
@@ -114,9 +116,9 @@ export default function MobileEditorShell({ treeProps, documentProps, railProps,
                 type="button"
                 onClick={() => setTab('document')}
                 className="inline-flex items-center gap-1 h-11 px-3 -ml-1 rounded-[8px] text-[13px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                aria-label="Back to document"
+                aria-label={t('disclosureEditor.mobile.backToDocument')}
               >
-                <ChevronLeft className="w-4 h-4" /> Back
+                <ChevronLeft className="w-4 h-4" /> {t('common.back')}
               </button>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto">

@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import type { ReactNode } from 'react'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
+import { itemLabel } from '../../lib/itemLabel'
 import { Check, Loader2, AlertCircle, Link2 } from 'lucide-react'
 import type { NexusQuestionnaireItem, ConceptPeer } from '../../lib/api'
 import type { QuestionAssignment } from '../../lib/orgStore'
-import { formatValue } from '../../reports/spdTemplate'
+import { formatValue, capitalLabelKey, subsectionLabelKey } from '../../reports/spdTemplate'
 import { useAuth } from '../../auth/AuthContext'
 import { hasPermission } from '../../lib/rbac'
 import { getFramework } from '../../lib/frameworks'
@@ -80,6 +83,7 @@ export default function DisclosureDocument({
   registerSectionAnchor,
   linkedPeersByItem,
 }: DisclosureDocumentProps) {
+  const { t } = useTranslation()
   const grouped = useMemo(() => groupItems(items), [items])
   const orderedCellIds = useMemo(() => items.map(it => it.id), [items])
 
@@ -113,7 +117,7 @@ export default function DisclosureDocument({
       <div className={`mx-auto ${readingMode ? 'max-w-page-prose py-16 px-8' : 'max-w-[800px] py-10 px-6 md:px-12'}`}>
         {grouped.length === 0 && (
           <div className="text-center py-20 text-[var(--text-sm)] text-[var(--text-tertiary)]">
-            No disclosures in this framework yet.
+            {t('disclosureEditor.document.empty')}
           </div>
         )}
         {grouped.map((group, gi) => (
@@ -126,10 +130,10 @@ export default function DisclosureDocument({
           >
             <header className="mb-6 pb-2 border-b border-[var(--border-subtle)]">
               <div className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[var(--color-brand)] mb-1">
-                {group.section}
+                {t(capitalLabelKey(group.section), { defaultValue: group.section })}
               </div>
               <h2 className={`font-display font-semibold text-[var(--text-primary)] ${readingMode ? 'text-[28px] leading-snug' : 'text-[var(--text-xl)]'}`}>
-                {group.subsection}
+                {t(subsectionLabelKey(group.subsection), { defaultValue: group.subsection })}
               </h2>
             </header>
 
@@ -174,6 +178,8 @@ interface DisclosureLineProps {
 
 function DisclosureLine({ item, state, isActive, readingMode, canEdit, onFocus, onSave, onAdvance, linkedPeers, remoteEditors }: DisclosureLineProps) {
   const { user, permissions } = useAuth()
+  const { t, i18n } = useTranslation()
+  const label = itemLabel(item, i18n.language)
   const assignment = state?.assignment ?? null
   const value = assignment?.value ?? null
   const status = assignment?.status ?? 'not_started'
@@ -229,11 +235,11 @@ function DisclosureLine({ item, state, isActive, readingMode, canEdit, onFocus, 
 
       <div className="mb-1.5">
         <div className={`font-medium text-[var(--text-primary)] ${readingMode ? 'text-[17px] leading-relaxed' : 'text-[var(--text-base)]'}`}>
-          {item.line_item}
+          {label}
         </div>
         <div className="text-[10px] font-mono text-[var(--text-tertiary)] mt-0.5">
           {item.gri_code}
-          {item.scope_split ? ` · ${item.scope_split}` : ''}
+          {item.scope_split ? ` · ${t(`disclosureEditor.scope.${item.scope_split}`, { defaultValue: item.scope_split })}` : ''}
           {item.unit ? ` · ${item.unit}` : ''}
         </div>
       </div>
@@ -244,7 +250,7 @@ function DisclosureLine({ item, state, isActive, readingMode, canEdit, onFocus, 
             // Reading mode — typeset inline as flowing prose, not as a button.
             <span
               className="inline-flex items-baseline gap-2"
-              aria-label={`Value for ${item.line_item}`}
+              aria-label={t('disclosureEditor.document.valueFor', { item: label })}
             >
               <span className="tabular-nums font-semibold text-[var(--text-primary)] text-[18px]">
                 {value != null ? formatValue(value) : '—'}
@@ -269,7 +275,7 @@ function DisclosureLine({ item, state, isActive, readingMode, canEdit, onFocus, 
               className={`inline-flex items-baseline gap-2 px-3 py-2 rounded-[var(--radius-md)] border text-left transition-all min-w-[180px] ${cellClasses} ${
                 !allowEdit ? 'cursor-default' : 'cursor-text'
               } bg-[var(--bg-primary)]`}
-              aria-label={`Value for ${item.line_item}`}
+              aria-label={t('disclosureEditor.document.valueFor', { item: label })}
             >
               <span className="tabular-nums font-semibold text-[var(--text-primary)] text-[var(--text-lg)]">
                 {value != null ? formatValue(value) : '—'}
@@ -302,7 +308,7 @@ function DisclosureLine({ item, state, isActive, readingMode, canEdit, onFocus, 
 
         {assignment?.last_updated && (
           <span className="text-[10px] text-[var(--text-tertiary)]">
-            Updated {relativeTime(assignment.last_updated)}
+            {t('disclosureEditor.document.updated', { time: relativeTime(assignment.last_updated, t) })}
           </span>
         )}
         {assignment?.assigneeName && (
@@ -310,14 +316,14 @@ function DisclosureLine({ item, state, isActive, readingMode, canEdit, onFocus, 
         )}
 
         {state?.saveState === 'saving' && (
-          <span className="inline-flex items-center gap-1 text-[10px] text-[var(--text-tertiary)]"><Loader2 className="w-3 h-3 animate-spin" /> Saving…</span>
+          <span className="inline-flex items-center gap-1 text-[10px] text-[var(--text-tertiary)]"><Loader2 className="w-3 h-3 animate-spin" /> {t('disclosureEditor.document.saving')}</span>
         )}
         {state?.saveState === 'saved' && (
-          <span className="inline-flex items-center gap-1 text-[10px] text-[var(--status-ok)]"><Check className="w-3 h-3" /> Saved</span>
+          <span className="inline-flex items-center gap-1 text-[10px] text-[var(--status-ok)]"><Check className="w-3 h-3" /> {t('disclosureEditor.document.saved')}</span>
         )}
         {state?.saveState === 'error' && (
           <span className="inline-flex items-center gap-1 text-[10px] text-[var(--status-reject)]" title={state.errorMessage ?? undefined}>
-            <AlertCircle className="w-3 h-3" /> Save failed
+            <AlertCircle className="w-3 h-3" /> {t('disclosureEditor.page.saveFailed')}
           </span>
         )}
       </div>
@@ -331,9 +337,10 @@ function DisclosureLine({ item, state, isActive, readingMode, canEdit, onFocus, 
  * the peers (framework code · disclosure code).
  */
 function LinkedBadge({ peers }: { peers: ConceptPeer[] }) {
+  const { t } = useTranslation()
   if (!peers.length) return null
   // Group by framework so "GRI 305-1 · GRI 305-2" collapses for the badge title.
-  const tooltip = `Also appears in ${peers.map(p => `${frameworkLabel(p.framework_id)} ${p.gri_code ?? ''}`.trim()).join(', ')}`
+  const tooltip = t('disclosureEditor.document.alsoAppears', { list: peers.map(p => `${frameworkLabel(p.framework_id)} ${p.gri_code ?? ''}`.trim()).join(t('disclosureEditor.document.listSep')) })
   return (
     <span
       className="ml-1 inline-flex items-center gap-0.5 px-1.5 h-4 rounded-full bg-[var(--color-brand-soft)] text-[var(--color-brand)] text-[10px] font-semibold tabular-nums cursor-help"
@@ -351,41 +358,42 @@ function frameworkLabel(id: string): string {
 }
 
 function StatusChip({ status, readingMode = false }: { status: QuestionAssignment['status']; readingMode?: boolean }) {
+  const { t } = useTranslation()
   const map: Record<QuestionAssignment['status'], { label: string; cls: string }> = {
-    not_started: { label: 'Not started', cls: 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]' },
-    in_progress: { label: 'Draft', cls: 'bg-[var(--accent-amber-light)] text-[var(--status-draft)]' },
-    submitted: { label: 'Submitted', cls: 'bg-[var(--accent-blue-light)] text-[var(--status-pending)]' },
-    reviewed: { label: 'Reviewed', cls: 'bg-[var(--accent-blue-light)] text-[var(--status-pending)]' },
-    approved: { label: 'Approved', cls: 'bg-[var(--accent-green-light)] text-[var(--status-ok)]' },
-    rejected: { label: 'Rejected', cls: 'bg-[var(--accent-red-light)] text-[var(--status-reject)]' },
+    not_started: { label: 'workflowStatus.status.not_started', cls: 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]' },
+    in_progress: { label: 'workflowStatus.status.draft', cls: 'bg-[var(--accent-amber-light)] text-[var(--status-draft)]' },
+    submitted: { label: 'workflowStatus.status.submitted', cls: 'bg-[var(--accent-blue-light)] text-[var(--status-pending)]' },
+    reviewed: { label: 'workflowStatus.status.reviewed', cls: 'bg-[var(--accent-blue-light)] text-[var(--status-pending)]' },
+    approved: { label: 'workflowStatus.status.approved', cls: 'bg-[var(--accent-green-light)] text-[var(--status-ok)]' },
+    rejected: { label: 'workflowStatus.status.rejected', cls: 'bg-[var(--accent-red-light)] text-[var(--status-reject)]' },
   }
   const m = map[status]
   // Reading mode — quieter, grayer, smaller.
   if (readingMode) {
     return (
       <span className="inline-flex items-center px-1.5 h-4 rounded-[var(--radius-xs)] text-[9px] font-normal text-[var(--text-tertiary)] bg-transparent border border-[var(--border-subtle)] no-print-status">
-        {m.label}
+        {t(m.label)}
       </span>
     )
   }
   return (
     <span className={`inline-flex items-center px-1.5 h-4 rounded-[var(--radius-xs)] text-[9px] font-semibold uppercase tracking-wider ${m.cls}`}>
-      {m.label}
+      {t(m.label)}
     </span>
   )
 }
 
-function relativeTime(iso: string): string {
+function relativeTime(iso: string, t: TFunction): string {
   try {
     const then = new Date(iso).getTime()
     const diffSec = Math.max(1, Math.round((Date.now() - then) / 1000))
-    if (diffSec < 60) return `${diffSec}s ago`
+    if (diffSec < 60) return t('disclosureEditor.rel.seconds', { count: diffSec })
     const m = Math.round(diffSec / 60)
-    if (m < 60) return `${m}m ago`
+    if (m < 60) return t('disclosureEditor.rel.minutes', { count: m })
     const h = Math.round(m / 60)
-    if (h < 24) return `${h}h ago`
+    if (h < 24) return t('disclosureEditor.rel.hours', { count: h })
     const d = Math.round(h / 24)
-    return `${d}d ago`
+    return t('disclosureEditor.rel.days', { count: d })
   } catch { return iso }
 }
 
@@ -444,6 +452,7 @@ function CellRemoteEditors({ cellId }: { cellId: string }) {
 
 function CellRemoteEditorsInner({ cellId }: { cellId: string }) {
   const others = useOthers()
+  const { t } = useTranslation()
   const here = others.filter(o => o.presence?.activeCellId === cellId)
   if (here.length === 0) return null
   const visible = here.slice(0, 3)
@@ -451,14 +460,14 @@ function CellRemoteEditorsInner({ cellId }: { cellId: string }) {
   return (
     <div className="flex -space-x-1.5 items-center">
       {visible.map(({ connectionId, info, presence }) => {
-        const name = info?.name ?? 'User'
+        const name = info?.name ?? t('disclosureEditor.progress.user')
         const color = presence?.color || info?.color || '#10B981'
         return (
           <div
             key={connectionId}
             className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white border-2 border-[var(--bg-primary)] shadow-sm"
             style={{ background: color }}
-            title={`${name} is here${info?.email ? ` (${info.email})` : ''}`}
+            title={t('disclosureEditor.document.isHere', { name }) + (info?.email ? ` (${info.email})` : '')}
           >
             {name.slice(0, 1).toUpperCase()}
           </div>
@@ -467,7 +476,7 @@ function CellRemoteEditorsInner({ cellId }: { cellId: string }) {
       {overflow > 0 && (
         <div
           className="w-5 h-5 rounded-full bg-[var(--bg-tertiary)] text-[9px] font-semibold text-[var(--text-secondary)] flex items-center justify-center border-2 border-[var(--bg-primary)] tabular-nums"
-          title={`${overflow} more here`}
+          title={t('disclosureEditor.document.moreHere', { count: overflow })}
         >
           +{overflow}
         </div>

@@ -14,6 +14,7 @@
  */
 import type { ReactNode } from 'react'
 import { Lock } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useIntegrationStatus } from '../lib/integrations'
 
 export type IntegrationKey = 'ai' | 'email' | 'sso' | 'realtime'
@@ -48,6 +49,7 @@ export function IntegrationGatedButton({
   loadingChildren,
   disabled,
 }: Props) {
+  const { t } = useTranslation()
   const status = useIntegrationStatus()
 
   if (status.loading) {
@@ -65,8 +67,8 @@ export function IntegrationGatedButton({
         type={type}
         className={disabledClassName}
         disabled
-        title={LABELS[integration]}
-        aria-label={LABELS[integration]}
+        title={t(`components.integration.${integration}`, { defaultValue: LABELS[integration] })}
+        aria-label={t(`components.integration.${integration}`, { defaultValue: LABELS[integration] })}
         data-integration-gated={integration}
       >
         <Lock className="w-3.5 h-3.5" />

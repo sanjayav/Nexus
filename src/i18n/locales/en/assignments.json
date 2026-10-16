@@ -1,0 +1,131 @@
+{
+  "errors": {
+    "create": "Could not create assignment: {{message}}",
+    "remove": "Could not remove: {{message}}"
+  },
+  "confirmRemove": "Remove this assignment?",
+  "crumbData": "Data",
+  "title": "Values",
+  "description": "Each {{framework}} disclosure goes to the person closest to the data — controlled by <rbac></rbac>. Assignees see it in <b>Tasks</b> next time they sign in.",
+  "bulkAssign": "Bulk assign",
+  "newAssignment": "New assignment",
+  "frameworkDisclosures": "{{framework}} disclosures",
+  "stats": {
+    "total": "Total",
+    "approved": "Approved",
+    "inReview": "In review",
+    "notStarted": "Not started"
+  },
+  "searchPlaceholder": "Search by GRI code, line item, or assignee…",
+  "allStatuses": "All statuses",
+  "allEntities": "All entities",
+  "view": {
+    "list": "List",
+    "kanban": "Kanban",
+    "tree": "Tree",
+    "network": "Network"
+  },
+  "empty": {
+    "noneTitle": "No assignments yet",
+    "noResults": "No results match these filters",
+    "noneBody": "Click \"Bulk assign\" to distribute disclosures to your team, or create them one at a time.",
+    "noResultsBody": "Clear filters above or pick a different framework / status.",
+    "create": "Create assignment"
+  },
+  "table": {
+    "lineItem": "GRI · Line item",
+    "entity": "Plant / entity",
+    "assignee": "Assignee",
+    "mode": "Mode",
+    "due": "Due",
+    "status": "Status"
+  },
+  "mode": {
+    "Manual": "Manual",
+    "Calculator": "Calculator",
+    "Connector": "Connector",
+    "usedTitle": "Used to record this value",
+    "allowedTitle": "Allowed"
+  },
+  "remove": "Remove",
+  "drawer": {
+    "step1": "Pick a GRI question",
+    "step2": "What kind of answer does this disclosure need?",
+    "numeric": "Numeric",
+    "numericDesc": "A value with a unit (e.g. tCO₂e, MWh)",
+    "narrative": "Narrative",
+    "narrativeDesc": "Long-form text (GRI 2/3 management approach)",
+    "step3": "Which plant / entity does this data come from?",
+    "selectEntity": "Select entity…",
+    "step4": "Who should answer it?",
+    "pickEntityFirst": "Pick an entity first.",
+    "step5": "How can they answer it?",
+    "modesHint": "Tick every method the assignee is allowed to use. They pick one at answer time.",
+    "noCalculator": "no calculator",
+    "tabSwitcher": "Assignee will see a tab switcher to choose between {{modes}}.",
+    "step6": "Deadline (optional)"
+  },
+  "picker": {
+    "change": "Change question",
+    "search": "Search GRI code or line item…",
+    "noMatches": "No matches",
+    "noMembers": "No members on this entity yet. Add one in <b>Onboarding</b> first.",
+    "selectAssignee": "Select assignee…"
+  },
+  "kanban": {
+    "emptyLane": "No assignments in this lane"
+  },
+  "counts": {
+    "approved_one": "{{count}} approved",
+    "approved_other": "{{count}} approved",
+    "inReview_one": "{{count}} in review",
+    "inReview_other": "{{count}} in review",
+    "review_one": "{{count}} review",
+    "review_other": "{{count}} review",
+    "open_one": "{{count}} open",
+    "open_other": "{{count}} open",
+    "rejected_one": "{{count}} rejected",
+    "rejected_other": "{{count}} rejected"
+  },
+  "entityType": {
+    "group": "Group",
+    "business_unit": "Business unit",
+    "subsidiary": "Subsidiary",
+    "plant": "Plant",
+    "office": "Office"
+  },
+  "network": {
+    "empty": "No entity tree to graph yet.",
+    "nodesLinks": "{{nodes}} nodes · {{links}} links",
+    "bu": "BU",
+    "orgRoot": "Org root",
+    "hoverHint": "Hover a node for detail."
+  },
+  "bulk": {
+    "pickAssignee": "Pick an assignee",
+    "capError": "Narrow the filter — bulk-assign is capped at 500 items.",
+    "eyebrow": "Setup helper",
+    "title": "Bulk-assign questionnaire items",
+    "intro": "Hand entire sections to one person with a single click. Existing assignments are skipped (no overwrites). Cap: 500 items per call.",
+    "done": "Done",
+    "result_one": "Created <b>{{count}}</b> assignment; skipped {{skipped}} existing. A summary notification was sent to the assignee.",
+    "result_other": "Created <b>{{count}}</b> assignments; skipped {{skipped}} existing. A summary notification was sent to the assignee.",
+    "entity": "Entity (optional — defaults to root)",
+    "orgRoot": "— org root —",
+    "assignee": "Assignee *",
+    "pickPerson": "— pick a person —",
+    "dueDate": "Due date",
+    "sections_one": "Sections (leave empty for the whole framework — {{count}} item)",
+    "sections_other": "Sections (leave empty for the whole framework — {{count}} items)",
+    "noSections": "No sections in the loaded questionnaire.",
+    "reviewer": "Reviewer email (optional)",
+    "approver": "Approver email (optional)",
+    "matched_one": "<b>{{count}}</b> item matched.",
+    "matched_other": "<b>{{count}}</b> items matched.",
+    "capHint": " Cap is 500/call — narrow the section filter.",
+    "assign": "Assign"
+  },
+  "tree": {
+    "empty": "No entity tree yet — run Onboarding first."
+  }
+}

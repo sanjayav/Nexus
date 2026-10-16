@@ -1,0 +1,50 @@
+{
+  "breadcrumbAdmin": "Admin",
+  "breadcrumb": "API keys",
+  "eyebrow": "Admin · Integrations",
+  "title": "API keys",
+  "subtitle": "Issue programmatic tokens for CI pipelines, BI tools, and ERP push connectors. Scopes follow the same permission model as user roles.",
+  "generateKey": "Generate key",
+  "errors": {
+    "load": "Failed to load API keys",
+    "nameRequired": "Name is required",
+    "pickScope": "Pick at least one scope",
+    "create": "Failed to create API key",
+    "revoke": "Failed to revoke key"
+  },
+  "confirmRevoke": "Revoke this key? Any client using it will lose access immediately.",
+  "reveal": {
+    "warning": "Copy this token now — it will not be shown again. We store only a SHA-256 hash.",
+    "dismiss": "Dismiss",
+    "copied": "Copied",
+    "copy": "Copy",
+    "scopes": "Scopes: {{scopes}}"
+  },
+  "table": {
+    "heading": "Active keys",
+    "emptyTitle": "No API keys yet",
+    "emptyBody": "Generate a token above to start pushing data programmatically. Scope each key to the minimum permissions it needs.",
+    "name": "Name",
+    "prefix": "Prefix",
+    "scopes": "Scopes",
+    "expires": "Expires",
+    "lastUsed": "Last used",
+    "status": "Status",
+    "actions": "Actions",
+    "never": "never",
+    "active": "active",
+    "revoked": "revoked",
+    "revoke": "Revoke"
+  },
+  "modal": {
+    "title": "Generate API key",
+    "close": "Close",
+    "name": "Name",
+    "namePlaceholder": "e.g. CI pipeline push",
+    "scopes": "Scopes",
+    "expiresIn": "Expires in (days)",
+    "expiresPlaceholder": "leave blank = never",
+    "cancel": "Cancel",
+    "generate": "Generate"
+  }
+}

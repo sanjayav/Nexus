@@ -3,6 +3,7 @@ import {
   Activity, CheckCircle2, XCircle, AlertTriangle, Database, Mail,
   Shield, Sparkles, Bug, Globe2,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import PageHeader from '../components/PageHeader'
 import { SkeletonCard } from '../components/Skeleton'
 import { Card, Badge } from '../design-system'
@@ -17,6 +18,7 @@ interface IntegrationCardProps {
 }
 
 function IntegrationCard({ name, icon: Icon, configured, provider, setupGuide }: IntegrationCardProps) {
+  const { t } = useTranslation()
   return (
     <Card variant="paper" className="h-full">
       <div className="flex items-start justify-between gap-3">
@@ -29,20 +31,20 @@ function IntegrationCard({ name, icon: Icon, configured, provider, setupGuide }:
           <div>
             <div className="text-[13.5px] font-semibold text-[var(--text-primary)]">{name}</div>
             <div className="text-[12px] text-[var(--text-secondary)] mt-0.5">
-              {configured ? (provider ?? 'configured') : 'not configured'}
+              {configured ? (provider ?? t('systemStatus.integration.configured')) : t('systemStatus.integration.notConfigured')}
             </div>
           </div>
         </div>
         {configured
-          ? <Badge variant="green">ready</Badge>
-          : <Badge variant="gray">missing</Badge>}
+          ? <Badge variant="green">{t('systemStatus.integration.ready')}</Badge>
+          : <Badge variant="gray">{t('systemStatus.integration.missing')}</Badge>}
       </div>
       {!configured && (
         <a
           href={setupGuide}
           className="mt-3 inline-flex items-center gap-1 text-[12px] text-[var(--accent-blue)] hover:underline"
         >
-          Setup guide →
+          {t('systemStatus.integration.setupGuide')}
         </a>
       )}
     </Card>
@@ -50,6 +52,9 @@ function IntegrationCard({ name, icon: Icon, configured, provider, setupGuide }:
 }
 
 export default function SystemStatus() {
+  const { t, i18n } = useTranslation()
+  // Keep the browser default for English; switch explicitly for zh / th.
+  const locale = i18n.language?.startsWith('zh') ? 'zh-CN' : i18n.language?.startsWith('th') ? 'th-TH' : undefined
   const [health, setHealth] = useState<HealthResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -62,11 +67,11 @@ export default function SystemStatus() {
       setError(null)
       setLastPolled(new Date())
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to reach /api/health')
+      setError(e instanceof Error ? e.message : i18n.t('systemStatus.errors.unreachable'))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [i18n])
 
   useEffect(() => {
     void poll()
@@ -80,12 +85,12 @@ export default function SystemStatus() {
     <div className="page-container">
       <PageHeader
         breadcrumbs={[
-          { label: 'Admin' },
-          { label: 'System status' },
+          { label: t('nav.admin') },
+          { label: t('systemStatus.title') },
         ]}
-        eyebrow="Admin · System"
-        title="System status"
-        subtitle="Live health of the deployment and which integrations are wired up. Polls every 30s."
+        eyebrow={t('systemStatus.eyebrow')}
+        title={t('systemStatus.title')}
+        subtitle={t('systemStatus.subtitle')}
       />
 
       {loading && !health ? (
@@ -120,12 +125,12 @@ export default function SystemStatus() {
                 <div className={`text-[15px] font-semibold ${
                   allOk ? 'text-[var(--accent-green)]' : 'text-[var(--accent-red)]'
                 }`}>
-                  {allOk ? 'All systems operational' : 'Degraded'}
+                  {allOk ? t('systemStatus.banner.allOk') : t('systemStatus.banner.degraded')}
                 </div>
                 <div className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">
                   {lastPolled
-                    ? `Last checked ${lastPolled.toLocaleTimeString()}`
-                    : 'Probing…'}
+                    ? t('systemStatus.banner.lastChecked', { time: lastPolled.toLocaleTimeString(locale) })
+                    : t('systemStatus.banner.probing')}
                 </div>
               </div>
               <Activity className="w-5 h-5 text-[var(--text-tertiary)]" />
@@ -146,18 +151,18 @@ export default function SystemStatus() {
                   </div>
                   <div>
                     <div className="text-[14px] font-semibold text-[var(--text-primary)]">
-                      Database (Neon Postgres)
+                      {t('systemStatus.db.title')}
                     </div>
                     <div className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">
                       {health.db.ok
-                        ? `SELECT 1 returned in ${health.db.latencyMs ?? '?'}ms`
-                        : health.db.error ?? 'unavailable'}
+                        ? t('systemStatus.db.latency', { ms: health.db.latencyMs ?? '?' })
+                        : health.db.error ?? t('systemStatus.db.unavailable')}
                     </div>
                   </div>
                 </div>
                 {health.db.ok
-                  ? <Badge variant="green">healthy</Badge>
-                  : <Badge variant="red">down</Badge>}
+                  ? <Badge variant="green">{t('systemStatus.db.healthy')}</Badge>
+                  : <Badge variant="red">{t('systemStatus.db.down')}</Badge>}
               </div>
             </Card>
           </div>
@@ -165,40 +170,40 @@ export default function SystemStatus() {
           {/* Integration grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
             <IntegrationCard
-              name="Transactional email"
+              name={t('systemStatus.integrations.email')}
               icon={Mail}
               configured={health.integrations.email.configured}
               provider={health.integrations.email.provider}
               setupGuide="#setup/email"
             />
             <IntegrationCard
-              name="Single sign-on (SAML)"
+              name={t('systemStatus.integrations.sso')}
               icon={Shield}
               configured={health.integrations.sso.configured}
               provider={health.integrations.sso.provider}
               setupGuide="#setup/sso"
             />
             <IntegrationCard
-              name="AI drafting"
+              name={t('systemStatus.integrations.ai')}
               icon={Sparkles}
               configured={health.integrations.ai.configured}
               provider={health.integrations.ai.provider}
               setupGuide="#setup/ai"
             />
             <IntegrationCard
-              name="Error monitoring"
+              name={t('systemStatus.integrations.sentry')}
               icon={Bug}
               configured={health.integrations.sentry.configured}
               setupGuide="#setup/sentry"
             />
             <IntegrationCard
-              name="EU data residency"
+              name={t('systemStatus.integrations.euRegion')}
               icon={Globe2}
               configured={health.integrations.euRegion.configured}
               setupGuide="#setup/eu-region"
             />
             <IntegrationCard
-              name="APAC data residency"
+              name={t('systemStatus.integrations.apacRegion')}
               icon={Globe2}
               configured={health.integrations.apacRegion.configured}
               setupGuide="#setup/apac-region"
@@ -209,13 +214,13 @@ export default function SystemStatus() {
           <Card variant="paper">
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px] text-[var(--text-tertiary)]">
               <div>
-                Version <span className="font-mono text-[var(--text-secondary)]">{health.version}</span>
+                {t('systemStatus.footer.version')} <span className="font-mono text-[var(--text-secondary)]">{health.version}</span>
               </div>
               <div>
-                Region <span className="font-mono text-[var(--text-secondary)]">{health.region}</span>
+                {t('systemStatus.footer.region')} <span className="font-mono text-[var(--text-secondary)]">{health.region}</span>
               </div>
               <div>
-                Probed at <span className="font-mono text-[var(--text-secondary)]">{new Date(health.timestamp).toLocaleString()}</span>
+                {t('systemStatus.footer.probedAt')} <span className="font-mono text-[var(--text-secondary)]">{new Date(health.timestamp).toLocaleString(locale)}</span>
               </div>
             </div>
           </Card>

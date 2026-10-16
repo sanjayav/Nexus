@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { itemLabel } from '../lib/itemLabel'
 import {
   Loader2, ArrowLeft, Shield, X, AlertCircle, Hash, CheckCircle2, Eye, Clock, LinkIcon,
 } from 'lucide-react'
@@ -15,6 +17,8 @@ import {
   formatValue,
   truncateHash,
   type TemplateSection,
+  capitalLabelKey,
+  subsectionLabelKey,
 } from '../reports/spdTemplate'
 import SetupGuard from '../components/SetupGuard'
 import { Button } from '../design-system'
@@ -46,6 +50,7 @@ type PanelState =
  */
 export default function AuditorView() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
   const [panel, setPanel] = useState<PanelState>(null)
 
@@ -70,7 +75,7 @@ export default function AuditorView() {
 
       setState({ kind: 'ready', items, historyByItem, currentByItem })
     } catch (e) {
-      setState({ kind: 'error', error: e instanceof Error ? e.message : 'Failed to load' })
+      setState({ kind: 'error', error: e instanceof Error ? e.message : t('auditor.view.failedToLoad') })
     }
   }
 
@@ -82,7 +87,7 @@ export default function AuditorView() {
       const trail = await nexus.trail(dv.id)
       setPanel({ kind: 'ready', dv, item, trail })
     } catch (e) {
-      setPanel({ kind: 'error', dv, item, error: e instanceof Error ? e.message : 'Failed' })
+      setPanel({ kind: 'error', dv, item, error: e instanceof Error ? e.message : t('auditor.view.failed') })
     }
   }
 
@@ -110,9 +115,9 @@ export default function AuditorView() {
         <div className="flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-[var(--status-reject)] flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="font-semibold text-[var(--text-primary)] mb-1">Unable to load Auditor View</h3>
+            <h3 className="font-semibold text-[var(--text-primary)] mb-1">{t('auditor.view.unableToLoad')}</h3>
             <p className="text-[var(--text-sm)] text-[var(--text-secondary)] font-mono">{state.error}</p>
-            <button onClick={load} className="mt-3 text-[var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">Retry</button>
+            <button onClick={load} className="mt-3 text-[var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">{t('auditor.view.retry')}</button>
           </div>
         </div>
       </div>
@@ -127,14 +132,14 @@ export default function AuditorView() {
           onClick={() => navigate('/reports')}
           className="inline-flex items-center gap-2 text-[var(--text-sm)] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Publish Centre
+          <ArrowLeft className="w-4 h-4" /> {t('auditor.view.back')}
         </button>
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[var(--radius-sm)] bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)] text-[var(--text-xs)] font-semibold">
-            <Shield className="w-3 h-3" /> Auditor access · read-only
+            <Shield className="w-3 h-3" /> {t('auditor.view.readOnly')}
           </span>
           <Button variant="secondary" size="sm" icon={<Eye className="w-3.5 h-3.5" />} onClick={() => navigate('/reports/preview')}>
-            PDF preview
+            {t('auditor.view.pdfPreview')}
           </Button>
         </div>
       </div>
@@ -144,16 +149,16 @@ export default function AuditorView() {
         <article className="bg-white text-[var(--text-primary)] rounded-[var(--radius-md)] border border-[var(--border-subtle)]">
           <header className="px-8 py-6 border-b border-[var(--border-subtle)]">
             <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--color-brand)] font-semibold mb-1">
-              Auditor View · Sustainability Performance Data
+              {t('auditor.view.eyebrow')}
             </div>
             <h1 className="font-display text-[var(--text-2xl)] font-bold">Demo Co — FY{ACTIVE_YEAR}</h1>
             <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1">
-              Click any value chip to drill into evidence, calculator inputs, and the full hash-chained audit trail.
+              {t('auditor.view.intro')}
             </p>
           </header>
 
           <TrailDocumentBlock heading="Demo Co" sections={groupSections} onOpen={openTrail} />
-          {jvSections.length > 0 && <TrailDocumentBlock heading="Joint Ventures — Parallel Scope" sections={jvSections} onOpen={openTrail} />}
+          {jvSections.length > 0 && <TrailDocumentBlock heading={t('auditor.view.jvHeading')} sections={jvSections} onOpen={openTrail} />}
         </article>
 
         {/* Side panel */}
@@ -166,11 +171,10 @@ export default function AuditorView() {
                 <Shield className="w-6 h-6 text-[var(--color-brand)]" />
               </div>
               <h3 className="font-display text-[var(--text-base)] font-semibold text-[var(--text-primary)] mb-1">
-                Drill from any value
+                {t('auditor.view.drillTitle')}
               </h3>
               <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] leading-relaxed">
-                Click a value chip to reveal its evidence, submission, review, approval,
-                and publish events — each with actor, timestamp, and hash link.
+                {t('auditor.view.drillBody')}
               </p>
             </div>
           )}
@@ -187,6 +191,7 @@ function TrailDocumentBlock({
   sections: TemplateSection[]
   onOpen: (dv: NexusDataValue, item: NexusQuestionnaireItem) => void
 }) {
+  const { t, i18n } = useTranslation()
   return (
     <section>
       <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--color-brand)] px-8 pt-6 pb-2">
@@ -195,12 +200,12 @@ function TrailDocumentBlock({
       {sections.map(sec => (
         <div key={sec.capital} className="px-8 py-4">
           <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mb-3 pb-1 border-b-2 border-[var(--color-brand)]">
-            {sec.capital}
+            {t(capitalLabelKey(sec.capital), { defaultValue: sec.capital })}
           </h3>
           {sec.subsections.map(sub => (
             <div key={sub.name} className="mb-5">
               <h4 className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand)] mb-2">
-                {sub.name}
+                {t(subsectionLabelKey(sub.name), { defaultValue: sub.name })}
               </h4>
               <div className="space-y-1.5">
                 {sub.rows.map(row => {
@@ -208,7 +213,7 @@ function TrailDocumentBlock({
                   return (
                     <div key={row.item.id} className="flex items-center justify-between gap-3 text-[var(--text-xs)] py-1">
                       <div className="min-w-0 flex-1">
-                        <div className="text-[var(--text-primary)] font-medium truncate">{row.item.line_item}</div>
+                        <div className="text-[var(--text-primary)] font-medium truncate">{itemLabel(row.item, i18n.language)}</div>
                         <div className="text-[10px] text-[var(--text-tertiary)]">
                           {row.item.gri_code}
                           {row.item.scope_split ? ` · ${row.item.scope_split}` : ''}
@@ -240,6 +245,8 @@ function TrailDocumentBlock({
 }
 
 function TrailPanel({ panel, onClose }: { panel: Exclude<PanelState, null>; onClose: () => void }) {
+  const { t, i18n } = useTranslation()
+  const locale = i18n.language?.startsWith('zh') ? 'zh-CN' : undefined
   return (
     <>
       <header className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-start justify-between gap-3">
@@ -248,14 +255,15 @@ function TrailPanel({ panel, onClose }: { panel: Exclude<PanelState, null>; onCl
             {panel.item.gri_code}
           </div>
           <h3 className="font-display text-[var(--text-sm)] font-semibold text-[var(--text-primary)] leading-snug">
-            {panel.item.line_item}
+            {itemLabel(panel.item, i18n.language)}
           </h3>
           <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5">
-            {panel.item.section} · {panel.item.subsection}
+            {t(capitalLabelKey(panel.item.section), { defaultValue: panel.item.section })} · {t(subsectionLabelKey(panel.item.subsection), { defaultValue: panel.item.subsection })}
           </p>
         </div>
         <button
           onClick={onClose}
+          aria-label={t('common.close')}
           className="w-7 h-7 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
         >
           <X className="w-4 h-4" />
@@ -278,7 +286,7 @@ function TrailPanel({ panel, onClose }: { panel: Exclude<PanelState, null>; onCl
           <Hash className="w-3 h-3" />
           <span className="font-mono">{truncateHash(panel.dv.value_hash, 10, 8)}</span>
           <span>·</span>
-          <span>mode: {panel.dv.entry_mode ?? '—'}</span>
+          <span>{t('auditor.view.mode', { mode: panel.dv.entry_mode ? t(`auditor.entryMode.${panel.dv.entry_mode}`, { defaultValue: panel.dv.entry_mode }) : '—' })}</span>
         </div>
       </div>
 
@@ -295,7 +303,7 @@ function TrailPanel({ panel, onClose }: { panel: Exclude<PanelState, null>; onCl
         {panel.kind === 'ready' && (
           <ol className="p-5 space-y-4">
             {panel.trail.length === 0 && (
-              <li className="text-[var(--text-xs)] text-[var(--text-tertiary)] italic">No events yet.</li>
+              <li className="text-[var(--text-xs)] text-[var(--text-tertiary)] italic">{t('auditor.view.noEvents')}</li>
             )}
             {panel.trail.map((ev, idx) => (
               <li key={ev.id} className="relative pl-6">
@@ -305,19 +313,19 @@ function TrailPanel({ panel, onClose }: { panel: Exclude<PanelState, null>; onCl
                 <EventDot type={ev.event_type} />
                 <div className="text-[var(--text-xs)]">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="font-semibold text-[var(--text-primary)] capitalize">{ev.event_type}</span>
+                    <span className="font-semibold text-[var(--text-primary)] capitalize">{t(`auditor.event.${ev.event_type}`, { defaultValue: ev.event_type })}</span>
                     {ev.actor_workflow_role && (
                       <span className="px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)] text-[9px] font-semibold uppercase">
-                        {ev.actor_workflow_role}
+                        {t(`workflowStatus.role.${ev.actor_workflow_role}`, { defaultValue: ev.actor_workflow_role })}
                       </span>
                     )}
                   </div>
                   <div className="text-[var(--text-tertiary)]">
-                    {ev.actor_name ?? ev.actor_email ?? 'System'}
+                    {ev.actor_name ?? ev.actor_email ?? t('auditor.view.system')}
                     {ev.actor_platform_role ? ` · ${ev.actor_platform_role}` : ''}
                   </div>
                   <div className="text-[10px] text-[var(--text-tertiary)] mt-0.5">
-                    {new Date(ev.timestamp).toLocaleString()}
+                    {new Date(ev.timestamp).toLocaleString(locale)}
                   </div>
                   {ev.comment && (
                     <div className="mt-1.5 p-2 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] italic">
@@ -326,9 +334,9 @@ function TrailPanel({ panel, onClose }: { panel: Exclude<PanelState, null>; onCl
                   )}
                   <div className="flex items-center gap-1.5 mt-1.5 text-[10px] font-mono text-[var(--text-tertiary)]">
                     <LinkIcon className="w-2.5 h-2.5" />
-                    <span>prev {truncateHash(ev.previous_hash)}</span>
+                    <span>{t('auditor.view.prevHash', { hash: truncateHash(ev.previous_hash) })}</span>
                     <span>→</span>
-                    <span>new {truncateHash(ev.new_hash)}</span>
+                    <span>{t('auditor.view.newHash', { hash: truncateHash(ev.new_hash) })}</span>
                   </div>
                 </div>
               </li>
@@ -341,19 +349,20 @@ function TrailPanel({ panel, onClose }: { panel: Exclude<PanelState, null>; onCl
 }
 
 function StatusPill({ status }: { status: NexusDataValue['status'] }) {
+  const { t } = useTranslation()
   const map: Record<NexusDataValue['status'], { label: string; bg: string; fg: string }> = {
-    not_started: { label: 'Not started', bg: 'var(--bg-tertiary)', fg: 'var(--text-tertiary)' },
-    draft:       { label: 'Draft', bg: 'var(--accent-amber-light)', fg: 'var(--status-draft)' },
-    submitted:   { label: 'Submitted', bg: 'var(--accent-blue-light)', fg: 'var(--status-pending)' },
-    reviewed:    { label: 'Reviewed', bg: 'var(--accent-blue-light)', fg: 'var(--status-pending)' },
-    approved:    { label: 'Approved', bg: 'var(--accent-green-light)', fg: 'var(--status-ok)' },
-    published:   { label: 'Published', bg: 'var(--accent-green-light)', fg: 'var(--status-ok)' },
-    rejected:    { label: 'Rejected', bg: 'var(--accent-red-light)', fg: 'var(--status-reject)' },
+    not_started: { label: 'workflowStatus.status.not_started', bg: 'var(--bg-tertiary)', fg: 'var(--text-tertiary)' },
+    draft:       { label: 'workflowStatus.status.draft', bg: 'var(--accent-amber-light)', fg: 'var(--status-draft)' },
+    submitted:   { label: 'workflowStatus.status.submitted', bg: 'var(--accent-blue-light)', fg: 'var(--status-pending)' },
+    reviewed:    { label: 'workflowStatus.status.reviewed', bg: 'var(--accent-blue-light)', fg: 'var(--status-pending)' },
+    approved:    { label: 'workflowStatus.status.approved', bg: 'var(--accent-green-light)', fg: 'var(--status-ok)' },
+    published:   { label: 'workflowStatus.status.published', bg: 'var(--accent-green-light)', fg: 'var(--status-ok)' },
+    rejected:    { label: 'workflowStatus.status.rejected', bg: 'var(--accent-red-light)', fg: 'var(--status-reject)' },
   }
   const c = map[status]
   return (
     <span className="px-2 py-0.5 rounded-[var(--radius-sm)] text-[10px] font-semibold uppercase tracking-wider" style={{ background: c.bg, color: c.fg }}>
-      {c.label}
+      {t(c.label)}
     </span>
   )
 }

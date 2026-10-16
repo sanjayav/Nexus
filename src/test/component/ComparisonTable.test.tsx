@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react'
+import i18n from '../../i18n'
 import ComparisonTable, { type ComparisonRow } from '../../components/marketing/ComparisonTable'
 
 /**
@@ -17,6 +18,11 @@ const ROWS: ComparisonRow[] = [
   { feature: 'AI gap analysis', nexus: 'yes', competitor: 'partial' },
   { feature: 'Self-serve trial', nexus: 'yes', competitor: 'no' },
 ]
+
+// Components use react-i18next; the shared test setup doesn't init i18n.
+beforeAll(async () => {
+  await i18n.changeLanguage('en')
+})
 
 describe('<ComparisonTable />', () => {
   it('renders every row\'s feature label', () => {

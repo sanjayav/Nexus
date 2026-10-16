@@ -1,0 +1,53 @@
+{
+  "breadcrumbs": {
+    "reports": "Reports",
+    "library": "Disclosures library"
+  },
+  "header": {
+    "eyebrow": "Disclosures Library",
+    "title": "Disclosures Library",
+    "description": "Auto-generated from your assignments. Every GRI disclosure, its status, the section it lives in, and the material topic it answers. This is the table that opens every GRI-compliant report."
+  },
+  "actions": {
+    "print": "Print",
+    "savePdf": "Save as PDF"
+  },
+  "summary": {
+    "total": "Total disclosures",
+    "totalHint": "{{pct}}% fully reported",
+    "fully": "Fully reported",
+    "fullyHint": "All required data approved",
+    "partially": "Partially",
+    "partiallyHint": "Some data in / review",
+    "omitted": "Omitted",
+    "omittedHint": "No data · needs assignment"
+  },
+  "filters": {
+    "searchAria": "Search disclosures",
+    "searchPlaceholder": "Search GRI code, line item, section…",
+    "statusAria": "Filter by status",
+    "allStatuses": "All statuses",
+    "fully": "Fully reported",
+    "partially": "Partially",
+    "omitted": "Omitted",
+    "materialOnly": "Material topics only"
+  },
+  "print": {
+    "title": "GRI Content Index — {{framework}}",
+    "generated_one": "Generated {{date}} · {{count}} disclosure",
+    "generated_other": "Generated {{date}} · {{count}} disclosures"
+  },
+  "columns": {
+    "code": "Code",
+    "disclosure": "Disclosure",
+    "section": "Section",
+    "materialTopic": "Material topic",
+    "status": "Status",
+    "approved": "Approved"
+  },
+  "status": {
+    "fully": "Fully",
+    "partially": "Partial",
+    "omitted": "Omitted"
+  }
+}

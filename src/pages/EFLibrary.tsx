@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Search,
   Plus,
@@ -118,6 +119,11 @@ const CATEGORY_ICONS: Record<string, typeof Flame> = {
   'Purchased Goods': Leaf,
 }
 
+/** 'Scope 1' → '1' — display key for the stable scope value. */
+function scopeKey(scope: ViewFactor['scope']): string {
+  return scope.replace('Scope ', '')
+}
+
 const STATUS_BADGE: Record<string, 'green' | 'amber' | 'gray'> = {
   active: 'green',
   deprecated: 'gray',
@@ -132,6 +138,7 @@ function stagger(i: number) {
    Component
    ═══════════════════════════════════════════ */
 export default function EFLibrary() {
+  const { t } = useTranslation()
   const [rows, setRows] = useState<ViewFactor[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -163,11 +170,11 @@ export default function EFLibrary() {
         const r = await fetch('/api/emission-factors', {
           headers: { Authorization: `Bearer ${localStorage.getItem('aeiforo_token') ?? ''}` },
         })
-        if (!r.ok) throw new Error(`Failed to load: ${r.status}`)
+        if (!r.ok) throw new Error(t('efLibrary.loadError.failed', { status: r.status }))
         const data: EmissionFactorRow[] = await r.json()
         if (!cancelled) setRows(data.map(toView))
       } catch (err: unknown) {
-        if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Unknown error')
+        if (!cancelled) setLoadError(err instanceof Error ? err.message : t('efLibrary.loadError.unknown'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -176,14 +183,14 @@ export default function EFLibrary() {
   }, [reloadNonce])
 
   const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Delete emission factor "${name}"? Historical activity data referencing it is preserved; the factor will no longer appear in the library.`)) return
+    if (!window.confirm(t('efLibrary.confirmDelete', { name }))) return
     setDeletingId(id)
     try {
       await orgStore.deleteEmissionFactor(id)
-      showToast('ok', 'Emission factor removed')
+      showToast('ok', t('efLibrary.toast.removed'))
       setReloadNonce(n => n + 1)
     } catch (e) {
-      showToast('err', e instanceof Error ? e.message : 'Could not delete')
+      showToast('err', e instanceof Error ? e.message : t('efLibrary.toast.deleteFailed'))
     } finally {
       setDeletingId(null)
     }
@@ -194,11 +201,11 @@ export default function EFLibrary() {
   const REGIONS = useMemo(() => [...new Set(rows.map(f => f.region))].sort(), [rows])
 
   const TABS_CONFIG = useMemo(() => [
-    { id: 'all', label: 'All Factors', count: rows.length },
-    { id: 'scope1', label: 'Scope 1', count: rows.filter(f => f.scope === 'Scope 1').length },
-    { id: 'scope2', label: 'Scope 2', count: rows.filter(f => f.scope === 'Scope 2').length },
-    { id: 'scope3', label: 'Scope 3', count: rows.filter(f => f.scope === 'Scope 3').length },
-  ], [rows])
+    { id: 'all', label: t('efLibrary.tabs.all'), count: rows.length },
+    { id: 'scope1', label: t('efLibrary.scope.1'), count: rows.filter(f => f.scope === 'Scope 1').length },
+    { id: 'scope2', label: t('efLibrary.scope.2'), count: rows.filter(f => f.scope === 'Scope 2').length },
+    { id: 'scope3', label: t('efLibrary.scope.3'), count: rows.filter(f => f.scope === 'Scope 3').length },
+  ], [rows, t])
 
   const filtered = useMemo(() => {
     return rows.filter(f => {
@@ -243,20 +250,20 @@ export default function EFLibrary() {
       )}
       <PageHeader
         breadcrumbs={[
-          { label: 'Data', to: '/data' },
-          { label: 'Emission factors' },
+          { label: t('efLibrary.breadcrumb.data'), to: '/data' },
+          { label: t('efLibrary.breadcrumb.current') },
         ]}
-        title="Emission factors"
+        title={t('efLibrary.title')}
         description={
           <>
-            Live factors from DEFRA 2024, EPA 2024, <JargonTooltip term="IPCC AR5" iconOnly /> IPCC 2006 / AR5, IEA 2024 — versioned, region-tagged.
+            {t('efLibrary.description.prefix')} <JargonTooltip term="IPCC AR5" iconOnly /> {t('efLibrary.description.suffix')}
           </>
         }
         actions={
           <>
-            <Button variant="secondary" size="sm" icon={<Download className="w-3.5 h-3.5" />}>Export</Button>
-            <Button variant="secondary" size="sm" icon={<Upload className="w-3.5 h-3.5" />}>Import</Button>
-            <Button size="sm" icon={<Plus className="w-3.5 h-3.5" />} onClick={() => setShowAddModal(true)}>Add Factor</Button>
+            <Button variant="secondary" size="sm" icon={<Download className="w-3.5 h-3.5" />}>{t('efLibrary.actions.export')}</Button>
+            <Button variant="secondary" size="sm" icon={<Upload className="w-3.5 h-3.5" />}>{t('efLibrary.actions.import')}</Button>
+            <Button size="sm" icon={<Plus className="w-3.5 h-3.5" />} onClick={() => setShowAddModal(true)}>{t('efLibrary.actions.addFactor')}</Button>
           </>
         }
       />
@@ -264,10 +271,10 @@ export default function EFLibrary() {
       {/* ── KPI Strip ── */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: 'Total Factors', value: rows.length, icon: BookOpen, accent: '#0F7B6F' },
-          { label: 'Active', value: activeCount, icon: Shield, accent: '#16A34A' },
-          { label: 'Deprecated', value: deprecatedCount, icon: Info, accent: '#D97706' },
-          { label: 'Data Sources', value: SOURCES.length, icon: ExternalLink, accent: '#2563EB' },
+          { label: t('efLibrary.kpi.total'), value: rows.length, icon: BookOpen, accent: '#0F7B6F' },
+          { label: t('efLibrary.kpi.active'), value: activeCount, icon: Shield, accent: '#16A34A' },
+          { label: t('efLibrary.kpi.deprecated'), value: deprecatedCount, icon: Info, accent: '#D97706' },
+          { label: t('efLibrary.kpi.sources'), value: SOURCES.length, icon: ExternalLink, accent: '#2563EB' },
         ].map((kpi, idx) => {
           const Icon = kpi.icon
           return (
@@ -310,7 +317,7 @@ export default function EFLibrary() {
             <Search className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors duration-300 ${searchFocused ? 'text-[var(--accent-teal)]' : 'text-[var(--text-tertiary)]'}`} />
             <input
               type="text"
-              placeholder="Search factors by name, category, source, or unit..."
+              placeholder={t('efLibrary.search.placeholder')}
               value={search}
               onChange={e => setSearch(e.target.value)}
               onFocus={() => setSearchFocused(true)}
@@ -327,19 +334,19 @@ export default function EFLibrary() {
             )}
           </div>
           <div className="flex items-center gap-3">
-            <FilterSelect label="Source" value={sourceFilter} onChange={setSourceFilter} options={SOURCES} />
-            <FilterSelect label="Category" value={categoryFilter} onChange={setCategoryFilter} options={CATEGORIES} />
-            <FilterSelect label="Region" value={regionFilter} onChange={setRegionFilter} options={REGIONS} />
+            <FilterSelect allLabel={t('efLibrary.filters.allSources')} value={sourceFilter} onChange={setSourceFilter} options={SOURCES} />
+            <FilterSelect allLabel={t('efLibrary.filters.allCategories')} value={categoryFilter} onChange={setCategoryFilter} options={CATEGORIES} />
+            <FilterSelect allLabel={t('efLibrary.filters.allRegions')} value={regionFilter} onChange={setRegionFilter} options={REGIONS} />
             <label className="flex items-center gap-2 text-[var(--text-xs)] text-[var(--text-tertiary)] cursor-pointer whitespace-nowrap ml-auto select-none group/check">
               <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all duration-200 ${showDeprecated ? 'bg-[var(--accent-teal)] border-[var(--accent-teal)]' : 'border-[var(--border-strong)] group-hover/check:border-[var(--accent-teal)]'}`}>
                 {showDeprecated && <Check className="w-2.5 h-2.5 text-white animate-check" />}
               </div>
               <input type="checkbox" checked={showDeprecated} onChange={e => setShowDeprecated(e.target.checked)} className="sr-only" />
-              Show deprecated
+              {t('efLibrary.filters.showDeprecated')}
             </label>
             <div className="h-5 w-px bg-[var(--border-default)]" />
             <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] tabular-nums">
-              <span className="font-bold text-[var(--text-primary)]">{filtered.length}</span> results
+              <span className="font-bold text-[var(--text-primary)]">{filtered.length}</span> {t('efLibrary.filters.results')}
             </span>
           </div>
         </div>
@@ -350,15 +357,15 @@ export default function EFLibrary() {
         <SkeletonTable rows={8} cols={6} />
       ) : loadError ? (
         <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-[var(--text-sm)] text-red-300">
-          Couldn't load emission factors: {loadError}. Try running <code>/api/setup</code> first to seed the table.
+          {t('efLibrary.loadError.message', { error: loadError })} {t('efLibrary.loadError.hintBefore')} <code>/api/setup</code> {t('efLibrary.loadError.hintAfter')}
         </div>
       ) : filtered.length === 0 ? (
         <div className="animate-scale-in rounded-2xl border border-dashed border-[var(--border-default)] bg-[var(--bg-secondary)] py-16 text-center">
           <div className="w-16 h-16 rounded-2xl bg-[var(--bg-tertiary)] flex items-center justify-center mx-auto mb-4 animate-float">
             <Search className="w-7 h-7 text-[var(--text-tertiary)]" />
           </div>
-          <p className="text-[var(--text-base)] font-semibold text-[var(--text-secondary)]">No emission factors found</p>
-          <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-1.5 max-w-sm mx-auto">Try adjusting your search or filter criteria.</p>
+          <p className="text-[var(--text-base)] font-semibold text-[var(--text-secondary)]">{t('efLibrary.empty.title')}</p>
+          <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-1.5 max-w-sm mx-auto">{t('efLibrary.empty.body')}</p>
         </div>
       ) : (
         <Stagger>
@@ -384,13 +391,13 @@ export default function EFLibrary() {
       {/* ── Source Reference Cards ── */}
       <div className="grid grid-cols-3 gap-4 animate-slide-up stagger-8">
         {[
-          { name: 'IPCC 2006 Guidelines', desc: 'Default factors for stationary & mobile combustion. Tier 1 methodology.', icon: BookOpen, color: '#0F7B6F' },
-          { name: 'DEFRA 2024', desc: 'UK Government conversion factors for GHG reporting. Updated annually.', icon: Shield, color: '#2563EB' },
-          { name: 'IEA 2024', desc: 'International Energy Agency country grid emission factors.', icon: Sparkles, color: '#7C3AED' },
+          { id: 'ipcc', name: t('efLibrary.references.ipcc.name'), desc: t('efLibrary.references.ipcc.desc'), icon: BookOpen, color: '#0F7B6F' },
+          { id: 'defra', name: t('efLibrary.references.defra.name'), desc: t('efLibrary.references.defra.desc'), icon: Shield, color: '#2563EB' },
+          { id: 'iea', name: t('efLibrary.references.iea.name'), desc: t('efLibrary.references.iea.desc'), icon: Sparkles, color: '#7C3AED' },
         ].map(ref => {
           const Icon = ref.icon
           return (
-            <div key={ref.name} className="group rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] p-5 transition-all duration-300 ease-[var(--ease-out-expo)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-[1px] hover:border-[var(--border-strong)] cursor-default relative overflow-hidden">
+            <div key={ref.id} className="group rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] p-5 transition-all duration-300 ease-[var(--ease-out-expo)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-[1px] hover:border-[var(--border-strong)] cursor-default relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: `linear-gradient(90deg, ${ref.color}, transparent)` }} />
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110" style={{ backgroundColor: `color-mix(in srgb, ${ref.color} 10%, transparent)` }}>
@@ -411,7 +418,7 @@ export default function EFLibrary() {
           onClose={() => setShowAddModal(false)}
           onCreated={() => {
             setShowAddModal(false)
-            showToast('ok', 'Emission factor added')
+            showToast('ok', t('efLibrary.toast.added'))
             setReloadNonce(n => n + 1)
           }}
           onError={(msg) => showToast('err', msg)}
@@ -431,6 +438,7 @@ function AddFactorModal({
   onCreated: () => void
   onError: (msg: string) => void
 }) {
+  const { t } = useTranslation()
   const today = new Date().toISOString().slice(0, 10)
   const [form, setForm] = useState({
     fuel_or_activity: '',
@@ -470,7 +478,7 @@ function AddFactorModal({
       })
       onCreated()
     } catch (e) {
-      onError(e instanceof Error ? e.message : 'Could not save')
+      onError(e instanceof Error ? e.message : t('efLibrary.toast.saveFailed'))
     } finally {
       setSaving(false)
     }
@@ -485,7 +493,7 @@ function AddFactorModal({
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'color-mix(in srgb, var(--accent-teal) 10%, transparent)' }}>
               <Plus className="w-4 h-4 text-[var(--accent-teal)]" />
             </div>
-            <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">Add Emission Factor</h2>
+            <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">{t('efLibrary.modal.title')}</h2>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--bg-tertiary)] transition-all duration-200 cursor-pointer hover:rotate-90">
             <X className="w-4 h-4 text-[var(--text-tertiary)]" />
@@ -493,77 +501,77 @@ function AddFactorModal({
         </div>
         <div className="p-5 space-y-4">
           <Input
-            label="Factor Name"
-            placeholder="e.g. Natural gas (industrial)"
+            label={t('efLibrary.modal.factorName')}
+            placeholder={t('efLibrary.modal.factorNamePlaceholder')}
             value={form.fuel_or_activity}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, fuel_or_activity: e.target.value })}
           />
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Category"
-              placeholder="e.g. stationary_combustion"
+              label={t('efLibrary.modal.category')}
+              placeholder={t('efLibrary.modal.categoryPlaceholder')}
               value={form.category}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, category: e.target.value })}
             />
             <div>
-              <label className="block text-[var(--text-sm)] font-medium text-[var(--text-primary)] mb-1.5">Scope</label>
+              <label className="block text-[var(--text-sm)] font-medium text-[var(--text-primary)] mb-1.5">{t('efLibrary.modal.scope')}</label>
               <select
                 value={form.scope}
                 onChange={e => setForm({ ...form, scope: Number(e.target.value) as 1 | 2 | 3 })}
                 className="w-full h-10 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 text-[var(--text-base)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)] cursor-pointer"
               >
-                <option value={1}>Scope 1</option>
-                <option value={2}>Scope 2</option>
-                <option value={3}>Scope 3</option>
+                <option value={1}>{t('efLibrary.scope.1')}</option>
+                <option value={2}>{t('efLibrary.scope.2')}</option>
+                <option value={3}>{t('efLibrary.scope.3')}</option>
               </select>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Value (kg CO2e / unit)"
+              label={t('efLibrary.modal.value')}
               type="number"
               placeholder="0.00"
               value={form.co2e_per_unit}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, co2e_per_unit: e.target.value })}
             />
             <Input
-              label="Unit"
-              placeholder="e.g. kgCO2e/kWh"
+              label={t('efLibrary.modal.unit')}
+              placeholder={t('efLibrary.modal.unitPlaceholder')}
               value={form.unit}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, unit: e.target.value })}
             />
           </div>
           <div className="grid grid-cols-3 gap-4">
             <Input
-              label="Source"
+              label={t('efLibrary.modal.source')}
               placeholder="DEFRA"
               value={form.source}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, source: e.target.value })}
             />
             <Input
-              label="Version"
+              label={t('efLibrary.modal.version')}
               placeholder="2024"
               value={form.source_version}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, source_version: e.target.value })}
             />
             <Input
-              label="Region"
+              label={t('efLibrary.modal.region')}
               placeholder="GLOBAL"
               value={form.region}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, region: e.target.value })}
             />
           </div>
           <Input
-            label="Valid from"
+            label={t('efLibrary.modal.validFrom')}
             type="date"
             value={form.valid_from}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, valid_from: e.target.value })}
           />
         </div>
         <div className="flex items-center justify-end gap-2 p-5 border-t border-[var(--border-subtle)]">
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button variant="secondary" onClick={onClose}>{t('common.cancel')}</Button>
           <Button onClick={submit} disabled={!valid || saving}>
-            {saving ? 'Saving…' : 'Add Factor'}
+            {saving ? t('efLibrary.modal.saving') : t('efLibrary.modal.submit')}
           </Button>
         </div>
       </div>
@@ -583,6 +591,7 @@ function FactorRow({
   onDelete: (id: string, name: string) => void
   deleting: boolean
 }) {
+  const { t } = useTranslation()
   const CatIcon = CATEGORY_ICONS[ef.category] || BookOpen
   const scopeColor = SCOPE_COLORS[ef.scope]
   const delay = Math.min(index * 30, 300)
@@ -626,7 +635,7 @@ function FactorRow({
               backgroundColor: `color-mix(in srgb, ${scopeColor} 8%, transparent)`,
             }}>
               <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: scopeColor }} />
-              <span className="text-[11px] font-semibold" style={{ color: scopeColor }}>{ef.scope}</span>
+              <span className="text-[11px] font-semibold" style={{ color: scopeColor }}>{t(`efLibrary.scope.${scopeKey(ef.scope)}`)}</span>
             </div>
 
             <div className="text-right w-32 flex-shrink-0">
@@ -640,21 +649,21 @@ function FactorRow({
             </div>
 
             <div className="w-20 flex-shrink-0 flex justify-center">
-              <Badge variant={STATUS_BADGE[ef.status]} dot>{ef.status}</Badge>
+              <Badge variant={STATUS_BADGE[ef.status]} dot>{t(`efLibrary.status.${ef.status}`)}</Badge>
             </div>
 
             <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity duration-200">
               <button
                 onClick={e => { e.stopPropagation(); onCopy(ef.id, ef.value, ef.unit) }}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--bg-tertiary)] transition-all duration-200 text-[var(--text-tertiary)] hover:text-[var(--accent-teal)] cursor-pointer"
-                title="Copy value"
+                title={t('efLibrary.row.copy')}
               >
                 {copiedId === ef.id ? <Check className="w-4 h-4 text-[var(--accent-teal)] animate-check" /> : <Copy className="w-4 h-4" />}
               </button>
               <button
                 onClick={e => e.stopPropagation()}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--bg-tertiary)] transition-all duration-200 text-[var(--text-tertiary)] hover:text-[var(--accent-blue)] cursor-pointer"
-                title="Edit"
+                title={t('efLibrary.row.edit')}
               >
                 <Edit3 className="w-4 h-4" />
               </button>
@@ -662,7 +671,7 @@ function FactorRow({
                 onClick={e => { e.stopPropagation(); onDelete(ef.id, ef.name) }}
                 disabled={deleting}
                 className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/10 transition-all duration-200 text-[var(--text-tertiary)] hover:text-red-500 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
-                title="Delete (soft — historical data preserved)"
+                title={t('efLibrary.row.delete')}
               >
                 {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
               </button>
@@ -677,11 +686,11 @@ function FactorRow({
             <div className="animate-expand border-t border-[var(--border-subtle)]">
               <div className="px-5 py-5 bg-[var(--bg-secondary)]">
                 <div className="grid grid-cols-5 gap-6">
-                  <DetailCell label="Value" value={`${ef.value} ${ef.unit}`} highlight accent={scopeColor} />
-                  <DetailCell label="Source" value={`${ef.source}`} />
-                  <DetailCell label="Region" value={ef.region} />
-                  <DetailCell label="Valid From" value={ef.lastUpdated} />
-                  <DetailCell label="Status" value={ef.status} />
+                  <DetailCell label={t('efLibrary.row.value')} value={`${ef.value} ${ef.unit}`} highlight accent={scopeColor} />
+                  <DetailCell label={t('efLibrary.row.source')} value={`${ef.source}`} />
+                  <DetailCell label={t('efLibrary.row.region')} value={ef.region} />
+                  <DetailCell label={t('efLibrary.row.validFrom')} value={ef.lastUpdated} />
+                  <DetailCell label={t('efLibrary.row.status')} value={t(`efLibrary.status.${ef.status}`)} />
                 </div>
 
                 {ef.notes && (
@@ -716,14 +725,14 @@ function DetailCell({ label, value, highlight, accent }: { label: string; value:
   )
 }
 
-function FilterSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
+function FilterSelect({ allLabel, value, onChange, options }: { allLabel: string; value: string; onChange: (v: string) => void; options: string[] }) {
   return (
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
       className="h-8 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2.5 text-[var(--text-xs)] text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent-teal)] focus:ring-2 focus:ring-[var(--accent-teal)]/10 cursor-pointer transition-all duration-200 hover:border-[var(--border-strong)]"
     >
-      <option value="all">All {label}s</option>
+      <option value="all">{allLabel}</option>
       {options.map(o => <option key={o} value={o}>{o}</option>)}
     </select>
   )
@@ -736,6 +745,7 @@ function FilterSelect({ label, value, onChange, options }: { label: string; valu
    surfaces a "best EF" with reasoning, and we render the alternates inline.
    ═══════════════════════════════════════════ */
 function VendorAiSearch() {
+  const { t } = useTranslation()
   const [vendor, setVendor] = useState('')
   const [region, setRegion] = useState('GLOBAL')
   const [loading, setLoading] = useState(false)
@@ -766,8 +776,8 @@ function VendorAiSearch() {
     <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] p-4">
       <div className="flex items-center gap-2 mb-3">
         <Sparkles className="w-4 h-4 text-[var(--accent-purple)]" />
-        <span className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)]">Find by vendor (AI)</span>
-        <span className="text-[10px] text-[var(--text-tertiary)] ml-2">Type a supplier name — Claude picks the best factor.</span>
+        <span className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)]">{t('efLibrary.vendor.title')}</span>
+        <span className="text-[10px] text-[var(--text-tertiary)] ml-2">{t('efLibrary.vendor.hint')}</span>
       </div>
       <div className="flex items-end gap-2">
         <div className="flex-1">
@@ -776,7 +786,7 @@ function VendorAiSearch() {
             value={vendor}
             onChange={e => setVendor(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') run() }}
-            placeholder="e.g. United Airlines, Office Depot, AWS"
+            placeholder={t('efLibrary.vendor.placeholder')}
             className="w-full h-10 px-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-sm)] focus:outline-none focus:border-[var(--accent-purple)]"
           />
         </div>
@@ -788,13 +798,13 @@ function VendorAiSearch() {
           {['GLOBAL','UK','US','EU','IN','CN','JP','AU','CA','DE','FR'].map(r => <option key={r} value={r}>{r}</option>)}
         </select>
         <Button onClick={run} size="sm" disabled={loading || !vendor.trim() || unconfigured} icon={loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}>
-          {unconfigured ? 'AI unavailable' : 'Suggest EF'}
+          {unconfigured ? t('efLibrary.vendor.unavailable') : t('efLibrary.vendor.suggest')}
         </Button>
       </div>
 
       {unconfigured && (
         <div className="mt-3 text-[var(--text-xs)] text-[var(--text-tertiary)]">
-          Sign in to AI to get suggestions. Set <code className="font-mono">ANTHROPIC_API_KEY</code> on the server to enable.
+          {t('efLibrary.vendor.unconfiguredBefore')} <code className="font-mono">ANTHROPIC_API_KEY</code> {t('efLibrary.vendor.unconfiguredAfter')}
         </div>
       )}
       {error && !unconfigured && (
@@ -803,9 +813,9 @@ function VendorAiSearch() {
 
       {match && (
         <div className="mt-4 space-y-2">
-          <VendorMatchRow ef={match.ef} confidence={match.confidence} reasoning={match.reasoning} badge="Top match" />
+          <VendorMatchRow ef={match.ef} confidence={match.confidence} reasoning={match.reasoning} badge={t('efLibrary.vendor.topMatch')} />
           {match.alternates.map((a, i) => (
-            <VendorMatchRow key={a.ef.id} ef={a.ef} confidence={a.confidence} reasoning={a.reasoning} badge={`Alt ${i + 1}`} />
+            <VendorMatchRow key={a.ef.id} ef={a.ef} confidence={a.confidence} reasoning={a.reasoning} badge={t('efLibrary.vendor.alt', { n: i + 1 })} />
           ))}
         </div>
       )}

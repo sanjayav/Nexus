@@ -1,5 +1,6 @@
 import { FormEvent, useState } from 'react'
 import { Mail, MapPin, CheckCircle2, Loader2 } from 'lucide-react'
+import { Trans, useTranslation } from 'react-i18next'
 import MarketingShell from '../components/marketing/MarketingShell'
 import { FadeIn } from '../components/MotionPrimitives'
 
@@ -10,6 +11,7 @@ import { FadeIn } from '../components/MotionPrimitives'
  */
 
 export default function Contact() {
+  const { t } = useTranslation()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [company, setCompany] = useState('')
@@ -22,7 +24,7 @@ export default function Contact() {
     e.preventDefault()
     setError(null)
     if (!email.trim() || !message.trim()) {
-      setError('Please add at least an email and a message.')
+      setError(t('contact.form.required'))
       return
     }
     setSubmitting(true)
@@ -44,7 +46,7 @@ export default function Contact() {
                   className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-4"
                   style={{ color: 'var(--accent-600)' }}
                 >
-                  Contact
+                  {t('contact.eyebrow')}
                 </p>
                 <h1
                   className="h-display"
@@ -54,14 +56,13 @@ export default function Contact() {
                     lineHeight: 1.1,
                   }}
                 >
-                  Get in touch.
+                  {t('contact.title')}
                 </h1>
                 <p
                   className="mt-5 text-[16px] leading-relaxed max-w-[480px]"
                   style={{ color: 'var(--text-secondary)' }}
                 >
-                  Questions about pricing, security, deployment, or just want to see Nexus on your
-                  own data? Drop us a note and a human will reply within one working day.
+                  {t('contact.intro')}
                 </p>
 
                 {submitted ? (
@@ -74,10 +75,10 @@ export default function Contact() {
                   >
                     <CheckCircle2 className="w-7 h-7 mb-3" style={{ color: 'var(--accent-600)' }} />
                     <h2 className="h-section mb-2" style={{ color: 'var(--text-primary)' }}>
-                      We&rsquo;ll be in touch.
+                      {t('contact.success.title')}
                     </h2>
                     <p className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
-                      Thanks for reaching out — we&rsquo;ve received your message and will respond shortly.
+                      {t('contact.success.body')}
                     </p>
                   </div>
                 ) : (
@@ -85,27 +86,27 @@ export default function Contact() {
                     <div className="grid sm:grid-cols-2 gap-4">
                       <Field
                         id="name"
-                        label="Your name"
+                        label={t('contact.form.name')}
                         value={name}
                         onChange={setName}
-                        placeholder="Jane Doe"
+                        placeholder={t('contact.form.namePlaceholder')}
                       />
                       <Field
                         id="email"
-                        label="Email"
+                        label={t('contact.form.email')}
                         type="email"
                         required
                         value={email}
                         onChange={setEmail}
-                        placeholder="jane@company.com"
+                        placeholder={t('contact.form.emailPlaceholder')}
                       />
                     </div>
                     <Field
                       id="company"
-                      label="Company (optional)"
+                      label={t('contact.form.company')}
                       value={company}
                       onChange={setCompany}
-                      placeholder="Acme Sustainability"
+                      placeholder={t('contact.form.companyPlaceholder')}
                     />
                     <div>
                       <label
@@ -113,7 +114,7 @@ export default function Contact() {
                         className="text-[11px] font-semibold uppercase tracking-[0.1em] block mb-1.5"
                         style={{ color: 'var(--text-tertiary)' }}
                       >
-                        Message
+                        {t('contact.form.message')}
                       </label>
                       <textarea
                         id="message"
@@ -121,7 +122,7 @@ export default function Contact() {
                         rows={5}
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
-                        placeholder="What would you like to know?"
+                        placeholder={t('contact.form.messagePlaceholder')}
                         className="w-full px-3.5 py-2.5 text-[14px] rounded-[10px] outline-none resize-y"
                         style={{
                           background: 'var(--bg-primary)',
@@ -144,7 +145,7 @@ export default function Contact() {
                       style={{ height: 44, paddingInline: 22, fontSize: 14 }}
                     >
                       {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                      {submitting ? 'Sending…' : 'Send message'}
+                      {submitting ? t('contact.form.sending') : t('contact.form.send')}
                     </button>
                   </form>
                 )}
@@ -159,7 +160,7 @@ export default function Contact() {
                     className="text-[11px] font-semibold uppercase tracking-[0.12em] mb-2"
                     style={{ color: 'var(--text-tertiary)' }}
                   >
-                    Sales
+                    {t('contact.sidebar.sales')}
                   </p>
                   <a
                     href="mailto:sales@aeiforo.local"
@@ -175,7 +176,7 @@ export default function Contact() {
                     className="text-[11px] font-semibold uppercase tracking-[0.12em] mb-2"
                     style={{ color: 'var(--text-tertiary)' }}
                   >
-                    Support
+                    {t('contact.sidebar.support')}
                   </p>
                   <a
                     href="mailto:support@aeiforo.local"
@@ -191,14 +192,14 @@ export default function Contact() {
                     className="text-[11px] font-semibold uppercase tracking-[0.12em] mb-2"
                     style={{ color: 'var(--text-tertiary)' }}
                   >
-                    Address
+                    {t('contact.sidebar.address')}
                   </p>
                   <div className="flex items-start gap-2 text-[14.5px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                     <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
                     <address className="not-italic">
                       Aeiforo Ltd<br />
-                      Office address placeholder<br />
-                      London, United Kingdom
+                      {t('contact.sidebar.addressLine2')}<br />
+                      {t('contact.sidebar.addressLine3')}
                     </address>
                   </div>
                 </div>
@@ -210,11 +211,12 @@ export default function Contact() {
                     color: 'var(--text-secondary)',
                   }}
                 >
-                  For security disclosures, please email{' '}
-                  <a href="mailto:security@aeiforo.local" style={{ color: 'var(--accent-600)' }}>
-                    security@aeiforo.local
-                  </a>{' '}
-                  rather than using the form.
+                  <Trans
+                    i18nKey="contact.sidebar.security"
+                    components={{
+                      email: <a href="mailto:security@aeiforo.local" style={{ color: 'var(--accent-600)' }} />,
+                    }}
+                  />
                 </div>
               </div>
             </FadeIn>

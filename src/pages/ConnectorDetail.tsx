@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { ArrowLeft, RefreshCw, Trash2, AlertTriangle, Check } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
 import { Card, Button, Badge } from '../design-system'
@@ -16,6 +17,9 @@ import { showError, showSuccess } from '../lib/toast'
 export default function ConnectorDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { t, i18n } = useTranslation()
+  const dateLocale = i18n.language?.startsWith('zh') ? 'zh-CN' : i18n.language?.startsWith('th') ? 'th-TH' : undefined
+  const fmtDateTime = (iso: string) => new Date(iso).toLocaleString(dateLocale)
   const [connection, setConnection] = useState<ConnectorConnectionRow | null>(null)
   const [runs, setRuns] = useState<ConnectorSyncRun[]>([])
   const [loading, setLoading] = useState(true)
@@ -33,7 +37,7 @@ export default function ConnectorDetail() {
       setConnection(res.connection)
       setRuns(res.runs)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load connection')
+      setError(e instanceof Error ? e.message : t('connectorDetail.errors.load'))
     } finally {
       setLoading(false)
     }
@@ -49,10 +53,10 @@ export default function ConnectorDetail() {
         fromDate: fromDate || undefined,
         toDate: toDate || undefined,
       })
-      showSuccess(`Imported ${result.rowsImported} of ${result.rowsFetched} rows (${result.rowsFailed} failed)`)
+      showSuccess(t('connectorDetail.toast.syncResult', { imported: result.rowsImported, fetched: result.rowsFetched, failed: result.rowsFailed }))
       await load()
     } catch (e) {
-      showError(e instanceof Error ? e.message : 'Sync failed')
+      showError(e instanceof Error ? e.message : t('connectorDetail.errors.sync'))
     } finally {
       setSyncing(false)
     }
@@ -62,26 +66,26 @@ export default function ConnectorDetail() {
     if (!id) return
     try {
       await connectors.disconnect(id)
-      showSuccess('Disconnected. Tokens cleared from storage.')
+      showSuccess(t('connectorDetail.toast.disconnected'))
       navigate('/data/connectors')
     } catch (e) {
-      showError(e instanceof Error ? e.message : 'Disconnect failed')
+      showError(e instanceof Error ? e.message : t('connectorDetail.errors.disconnect'))
     }
   }
 
   if (loading) {
-    return <div className="page-container"><div className="text-[13px] text-[var(--text-tertiary)]">Loading…</div></div>
+    return <div className="page-container"><div className="text-[13px] text-[var(--text-tertiary)]">{t('connectorDetail.loading')}</div></div>
   }
   if (error || !connection) {
     return (
       <div className="page-container">
         <Link to="/data/connectors" className="inline-flex items-center gap-1 text-[12.5px] text-[var(--text-secondary)] mb-3">
-          <ArrowLeft className="w-3.5 h-3.5" /> All connectors
+          <ArrowLeft className="w-3.5 h-3.5" /> {t('connectorDetail.allConnectors')}
         </Link>
         <Card variant="outlined" className="border-[var(--accent-red-light)]">
           <div className="flex items-start gap-3 text-[13px] text-[var(--accent-red)]">
             <AlertTriangle className="w-4 h-4" />
-            <div>{error ?? 'Connection not found'}</div>
+            <div>{error ?? t('connectorDetail.errors.notFound')}</div>
           </div>
         </Card>
       </div>
@@ -92,34 +96,34 @@ export default function ConnectorDetail() {
     <div className="page-container">
       <PageHeader
         breadcrumbs={[
-          { label: 'Data', to: '/data' },
-          { label: 'Connectors', to: '/data/connectors' },
+          { label: t('connectorDetail.breadcrumbs.data'), to: '/data' },
+          { label: t('connectorDetail.breadcrumbs.connectors'), to: '/data/connectors' },
           { label: connection.display_name },
         ]}
-        eyebrow="Live integration"
+        eyebrow={t('connectorDetail.eyebrow')}
         title={connection.display_name}
-        subtitle={`${connection.provider} · ${connection.auth_type}`}
+        subtitle={`${connection.provider} · ${t(`connectorDetail.authTypes.${connection.auth_type}`, { defaultValue: connection.auth_type })}`}
       />
 
       <Card variant="paper" className="mb-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[13px]">
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">Status</div>
+            <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('connectorDetail.fields.status')}</div>
             <Badge variant={connection.status === 'active' ? 'green' : connection.status === 'error' ? 'red' : 'gray'}>
-              {connection.status}
+              {t(`connectorDetail.connectionStatus.${connection.status}`, { defaultValue: connection.status })}
             </Badge>
           </div>
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">Last sync</div>
+            <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('connectorDetail.fields.lastSync')}</div>
             <div className="text-[var(--text-primary)]">
-              {connection.last_sync_at ? new Date(connection.last_sync_at).toLocaleString() : 'Never'}
+              {connection.last_sync_at ? fmtDateTime(connection.last_sync_at) : t('connectorDetail.fields.never')}
             </div>
             {connection.last_sync_status && (
-              <div className="text-[12px] text-[var(--text-secondary)] mt-0.5">{connection.last_sync_status}</div>
+              <div className="text-[12px] text-[var(--text-secondary)] mt-0.5">{t(`connectorDetail.runStatus.${connection.last_sync_status}`, { defaultValue: connection.last_sync_status })}</div>
             )}
           </div>
           <div>
-            <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">Account / Instance</div>
+            <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('connectorDetail.fields.account')}</div>
             <div className="text-[var(--text-primary)] font-mono text-[12px] truncate">
               {connection.instance_url ?? connection.base_url ?? connection.account_id ?? '—'}
             </div>
@@ -134,10 +138,10 @@ export default function ConnectorDetail() {
       </Card>
 
       <Card variant="paper" className="mb-4">
-        <div className="text-[14px] font-semibold text-[var(--text-primary)] mb-3">Sync</div>
+        <div className="text-[14px] font-semibold text-[var(--text-primary)] mb-3">{t('connectorDetail.sync.heading')}</div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
           <label className="text-[12.5px]">
-            <span className="block text-[var(--text-secondary)] mb-1">From date</span>
+            <span className="block text-[var(--text-secondary)] mb-1">{t('connectorDetail.sync.fromDate')}</span>
             <input
               type="date"
               value={fromDate}
@@ -146,7 +150,7 @@ export default function ConnectorDetail() {
             />
           </label>
           <label className="text-[12.5px]">
-            <span className="block text-[var(--text-secondary)] mb-1">To date</span>
+            <span className="block text-[var(--text-secondary)] mb-1">{t('connectorDetail.sync.toDate')}</span>
             <input
               type="date"
               value={toDate}
@@ -156,43 +160,43 @@ export default function ConnectorDetail() {
           </label>
           <div className="flex items-end">
             <Button variant="primary" loading={syncing} onClick={handleSync} icon={<RefreshCw className="w-4 h-4" />}>
-              Sync now
+              {t('connectorDetail.sync.syncNow')}
             </Button>
           </div>
         </div>
         <div className="text-[11.5px] text-[var(--text-tertiary)]">
-          Leave dates empty to pull the last 12 months. Rows land in activity_data as <code className="font-mono">draft</code> and need approval before they roll up into reports.
+          {t('connectorDetail.sync.helpBefore')}<code className="font-mono">draft</code>{t('connectorDetail.sync.helpAfter')}
         </div>
       </Card>
 
       <Card variant="paper" className="mb-4">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-[14px] font-semibold text-[var(--text-primary)]">Sync history</div>
+          <div className="text-[14px] font-semibold text-[var(--text-primary)]">{t('connectorDetail.history.heading')}</div>
           <Badge variant="gray">{runs.length}</Badge>
         </div>
         {runs.length === 0 ? (
-          <div className="text-[12.5px] text-[var(--text-tertiary)]">No syncs yet. Click "Sync now" to fetch your first batch.</div>
+          <div className="text-[12.5px] text-[var(--text-tertiary)]">{t('connectorDetail.history.empty')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-[12.5px]">
               <thead>
                 <tr className="text-left text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] border-b border-[var(--border-default)]">
-                  <th className="py-2 pr-3">Started</th>
-                  <th className="py-2 pr-3">Status</th>
-                  <th className="py-2 pr-3">Fetched</th>
-                  <th className="py-2 pr-3">Imported</th>
-                  <th className="py-2 pr-3">Failed</th>
-                  <th className="py-2 pr-3">Error</th>
+                  <th className="py-2 pr-3">{t('connectorDetail.history.started')}</th>
+                  <th className="py-2 pr-3">{t('connectorDetail.history.status')}</th>
+                  <th className="py-2 pr-3">{t('connectorDetail.history.fetched')}</th>
+                  <th className="py-2 pr-3">{t('connectorDetail.history.imported')}</th>
+                  <th className="py-2 pr-3">{t('connectorDetail.history.failed')}</th>
+                  <th className="py-2 pr-3">{t('connectorDetail.history.error')}</th>
                 </tr>
               </thead>
               <tbody>
                 {runs.map(r => (
                   <tr key={r.id} className="border-b border-[var(--border-subtle)]">
-                    <td className="py-2 pr-3 text-[var(--text-primary)]">{new Date(r.started_at).toLocaleString()}</td>
+                    <td className="py-2 pr-3 text-[var(--text-primary)]">{fmtDateTime(r.started_at)}</td>
                     <td className="py-2 pr-3">
-                      {r.status === 'complete' ? <Badge variant="green">complete</Badge>
-                        : r.status === 'failed' ? <Badge variant="red">failed</Badge>
-                          : <Badge variant="amber">{r.status}</Badge>}
+                      {r.status === 'complete' ? <Badge variant="green">{t('connectorDetail.runStatus.complete')}</Badge>
+                        : r.status === 'failed' ? <Badge variant="red">{t('connectorDetail.runStatus.failed')}</Badge>
+                          : <Badge variant="amber">{t(`connectorDetail.runStatus.${r.status}`, { defaultValue: r.status })}</Badge>}
                     </td>
                     <td className="py-2 pr-3 text-[var(--text-primary)] font-mono">{r.rows_fetched}</td>
                     <td className="py-2 pr-3 text-[var(--text-primary)] font-mono">{r.rows_imported}</td>
@@ -209,14 +213,14 @@ export default function ConnectorDetail() {
       <Card variant="paper">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-[14px] font-semibold text-[var(--text-primary)] mb-1">Disconnect</div>
+            <div className="text-[14px] font-semibold text-[var(--text-primary)] mb-1">{t('connectorDetail.disconnect.heading')}</div>
             <div className="text-[12.5px] text-[var(--text-secondary)]">
-              Clears the encrypted access &amp; refresh tokens. Sync history is preserved. You can re-connect at any time.
+              {t('connectorDetail.disconnect.body')}
             </div>
           </div>
           {confirmDisconnect ? (
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setConfirmDisconnect(false)}>Cancel</Button>
+              <Button variant="ghost" size="sm" onClick={() => setConfirmDisconnect(false)}>{t('connectorDetail.disconnect.cancel')}</Button>
               <Button
                 variant="primary"
                 size="sm"
@@ -224,12 +228,12 @@ export default function ConnectorDetail() {
                 onClick={handleDisconnect}
                 className="!bg-[var(--accent-red)]"
               >
-                Confirm
+                {t('connectorDetail.disconnect.confirm')}
               </Button>
             </div>
           ) : (
             <Button variant="ghost" size="sm" icon={<Trash2 className="w-3.5 h-3.5" />} onClick={() => setConfirmDisconnect(true)}>
-              Disconnect
+              {t('connectorDetail.disconnect.button')}
             </Button>
           )}
         </div>

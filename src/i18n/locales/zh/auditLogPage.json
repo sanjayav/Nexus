@@ -1,0 +1,45 @@
+{
+  "title": "活动历史",
+  "description": "不可篡改地记录身份验证、角色、任务分配及配置变更事件。可使用下方筛选条件缩小范围，并将筛选结果导出为 CSV，用于鉴证证据包。",
+  "exportCsv": "导出 CSV",
+  "exporting": "正在导出…",
+  "errors": {
+    "load": "审计日志加载失败",
+    "export": "导出失败"
+  },
+  "filters": {
+    "title": "筛选条件",
+    "from": "开始时间",
+    "to": "结束时间",
+    "actor": "操作人",
+    "anyone": "任何人",
+    "results": "结果",
+    "loading": "加载中…",
+    "events_one": "{{formattedCount}} 条事件",
+    "events_other": "{{formattedCount}} 条事件",
+    "actionType": "操作类型",
+    "resourceType": "资源类型",
+    "clearAll": "清除所有筛选条件"
+  },
+  "table": {
+    "timestamp": "时间戳",
+    "actor": "操作人",
+    "action": "操作",
+    "resource": "资源",
+    "target": "对象",
+    "ip": "IP",
+    "details": "详情",
+    "system": "系统",
+    "hide": "收起",
+    "show": "展开"
+  },
+  "empty": {
+    "title": "没有匹配的审计事件",
+    "body": "请尝试扩大日期范围或清除筛选条件。工作区内的每一项变更都会记录于此，以供鉴证使用。"
+  },
+  "pagination": {
+    "pageOf": "第 {{page}} 页，共 {{total}} 页",
+    "prev": "上一页",
+    "next": "下一页"
+  }
+}

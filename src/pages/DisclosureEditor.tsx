@@ -1,6 +1,7 @@
 import { Component, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Loader2, AlertCircle, ArrowLeft } from 'lucide-react'
 import {
   nexus,
@@ -48,6 +49,7 @@ export default function DisclosureEditor() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const { user, permissions } = useAuth()
+  const { t, i18n } = useTranslation()
 
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
   const [readingMode, setReadingMode] = useState(false)
@@ -79,9 +81,9 @@ export default function DisclosureEditor() {
       const filtered = assignments.filter(a => a.framework_id === frameworkId)
       setState({ kind: 'ready', items: tree, assignments: filtered })
     } catch (e) {
-      setState({ kind: 'error', error: e instanceof Error ? e.message : 'Failed to load framework' })
+      setState({ kind: 'error', error: e instanceof Error ? e.message : t('disclosureEditor.page.failedToLoad') })
     }
-  }, [frameworkId])
+  }, [frameworkId, t])
 
   useEffect(() => { void load() }, [load])
 
@@ -261,10 +263,10 @@ export default function DisclosureEditor() {
       setCellSave(item.id, {
         assignment,
         saveState: 'error',
-        errorMessage: e instanceof Error ? e.message : 'Save failed',
+        errorMessage: e instanceof Error ? e.message : t('disclosureEditor.page.saveFailed'),
       })
     }
-  }, [assignmentByItem, setCellSave])
+  }, [assignmentByItem, setCellSave, t])
 
   // Selected-cell workflow transitions.
   const handleWorkflowAction = useCallback(async (action: 'submit' | 'approve' | 'reject') => {
@@ -317,10 +319,10 @@ export default function DisclosureEditor() {
   if (!framework) {
     return (
       <div className="max-w-lg mx-auto mt-20 p-6 rounded-[var(--radius-lg)] border border-[var(--status-reject)]/20 bg-[var(--accent-red-light)]">
-        <h3 className="font-semibold text-[var(--text-primary)] mb-1">Framework not found</h3>
-        <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">No framework matches “{frameworkId}”.</p>
+        <h3 className="font-semibold text-[var(--text-primary)] mb-1">{t('disclosureEditor.page.notFound')}</h3>
+        <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">{t('disclosureEditor.page.noMatch', { id: frameworkId })}</p>
         <button onClick={() => navigate('/reports/templates')} className="mt-3 inline-flex items-center gap-1 text-[var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">
-          <ArrowLeft className="w-3 h-3" /> Back to templates
+          <ArrowLeft className="w-3 h-3" /> {t('disclosureEditor.page.backToTemplates')}
         </button>
       </div>
     )
@@ -340,9 +342,9 @@ export default function DisclosureEditor() {
         <div className="flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-[var(--status-reject)] flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="font-semibold text-[var(--text-primary)]">Unable to load disclosures</h3>
+            <h3 className="font-semibold text-[var(--text-primary)]">{t('disclosureEditor.page.unableToLoad')}</h3>
             <p className="text-[var(--text-sm)] text-[var(--text-secondary)] font-mono mt-1">{state.error}</p>
-            <button onClick={() => void load()} className="mt-3 text-[var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">Retry</button>
+            <button onClick={() => void load()} className="mt-3 text-[var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">{t('disclosureEditor.page.retry')}</button>
           </div>
         </div>
       </div>
@@ -352,9 +354,9 @@ export default function DisclosureEditor() {
   if (state.kind === 'empty') {
     return (
       <div className="max-w-lg mx-auto mt-20 p-6 rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] text-center">
-        <h3 className="font-semibold text-[var(--text-primary)] mb-1">No disclosures yet</h3>
+        <h3 className="font-semibold text-[var(--text-primary)] mb-1">{t('disclosureEditor.page.emptyTitle')}</h3>
         <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">
-          The questionnaire for {framework.code} is empty. Run the seed to populate it.
+          {t('disclosureEditor.page.emptyBody', { code: framework.code })}
         </p>
       </div>
     )
@@ -398,7 +400,7 @@ export default function DisclosureEditor() {
   const editorContent = (
     <div className="flex flex-col h-[calc(100vh-68px)] -mx-4 -my-5 sm:-mx-6 sm:-my-6 lg:-mx-8 lg:-my-7">
       <DisclosureProgressBar
-        frameworkName={framework.name}
+        frameworkName={(i18n.language?.startsWith('zh') && (framework as { nameZh?: string }).nameZh) || framework.name}
         frameworkCode={framework.code}
         reportingYear={ACTIVE_YEAR}
         workflowStatus={workflowStatus}
@@ -447,7 +449,7 @@ export default function DisclosureEditor() {
         id={roomId}
         initialPresence={{
           userId: user?.id ?? null,
-          name: user?.name ?? user?.email ?? 'Unknown',
+          name: user?.name ?? user?.email ?? t('disclosureEditor.page.unknownUser'),
           email: user?.email ?? '',
           color: '',  // server-issued via userInfo — local presence stays empty
           activeCellId: activeCellId,

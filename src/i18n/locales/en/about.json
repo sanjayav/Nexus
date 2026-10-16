@@ -1,0 +1,59 @@
+{
+  "eyebrow": "About Aeiforo",
+  "title": "Sustainability reporting deserves better software.",
+  "intro": "Aeiforo is the company. Nexus is the platform. We were started by a small group of sustainability practitioners and engineers who got tired of stitching together five spreadsheets and four point-tools for every reporting cycle. So we built one system that does the whole job — and we keep it honest.",
+  "mission": {
+    "eyebrow": "Our mission",
+    "statement": "Make every sustainability disclosure as trustworthy and as effortless as a bank statement."
+  },
+  "values": {
+    "eyebrow": "Values",
+    "heading": "How we work.",
+    "sustainability": {
+      "title": "Sustainability first",
+      "body": "We build software for the people doing the hardest work in climate. Our priorities follow theirs."
+    },
+    "auditable": {
+      "title": "Auditable by default",
+      "body": "Every number has a source. Every change has a trail. We never ask you to take our word for it."
+    },
+    "open": {
+      "title": "Open about trade-offs",
+      "body": "No oversold features, no marketecture. If it is a roadmap item, we say so."
+    },
+    "calm": {
+      "title": "Calm software",
+      "body": "No dark patterns. No surprise upsells. The product gets out of your way so you can do the work."
+    }
+  },
+  "team": {
+    "eyebrow": "Team",
+    "heading": "Small team. Long horizons.",
+    "note": "Bios are placeholders until the team is ready to be named publicly.",
+    "ceo": {
+      "name": "Founder",
+      "role": "CEO",
+      "bio": "Background in sustainability consulting + enterprise software."
+    },
+    "cto": {
+      "name": "Co-founder",
+      "role": "CTO",
+      "bio": "Built reporting platforms at two prior fintech companies."
+    },
+    "esg": {
+      "name": "Head of ESG",
+      "role": "Product",
+      "bio": "Ten years in CSRD/ISSB implementation across European utilities."
+    },
+    "engineering": {
+      "name": "Lead Engineer",
+      "role": "Engineering",
+      "bio": "Specialises in linked-data and audit infrastructure."
+    }
+  },
+  "cta": {
+    "heading": "Want to know more about what we're building?",
+    "primary": "Try Nexus free",
+    "secondary": "Get in touch"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "noData": "No data",
+  "status": {
+    "draft": "Draft",
+    "pending": "Pending review",
+    "in_progress": "In progress",
+    "approved": "Approved",
+    "overdue": "Overdue",
+    "returned": "Returned"
+  }
+}

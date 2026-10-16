@@ -1,0 +1,10 @@
+{
+  "activeCell": "Active cell reference",
+  "formula": "Formula",
+  "formulaLower": "formula",
+  "selectCell": "Select a cell to edit",
+  "typeValue": "Type a value or =formula",
+  "editor": "Formula or value editor",
+  "help": "Formula help",
+  "examples": "Formula examples"
+}

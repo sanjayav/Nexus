@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { X, ArrowRight, Link2, LayoutDashboard, Shield, Database, Calculator, GitBranch, FileOutput } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 const TOUR_KEY = 'nexus_tour_completed_v2'
 
@@ -49,6 +50,7 @@ const steps = [
 ]
 
 export default function GuidedTour() {
+  const { t } = useTranslation()
   const [isVisible, setIsVisible] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
 
@@ -96,8 +98,8 @@ export default function GuidedTour() {
           <div className={`w-12 h-12 rounded-2xl ${step.color} flex items-center justify-center mb-4 shadow-glow-sm`}>
             <Icon className="w-6 h-6 text-white" />
           </div>
-          <h2 className="text-xl font-heading font-bold text-white mb-2">{step.title}</h2>
-          <p className="text-sm text-dark-300 leading-relaxed">{step.description}</p>
+          <h2 className="text-xl font-heading font-bold text-white mb-2">{t(`components.guidedTour.s${currentStep}.title`, { defaultValue: step.title })}</h2>
+          <p className="text-sm text-dark-300 leading-relaxed">{t(`components.guidedTour.s${currentStep}.description`, { defaultValue: step.description })}</p>
         </div>
 
         {/* Actions */}
@@ -106,7 +108,7 @@ export default function GuidedTour() {
             onClick={handleClose}
             className="text-sm text-dark-400 hover:text-dark-300 transition-colors"
           >
-            Skip Tour
+            {t('components.guidedTour.skip')}
           </button>
           <div className="flex items-center gap-3">
             <span className="text-xs text-dark-400">{currentStep + 1} / {steps.length}</span>
@@ -115,9 +117,9 @@ export default function GuidedTour() {
               className="flex items-center gap-2 px-5 py-2.5 bg-accent-500 hover:bg-accent-600 text-white text-sm font-semibold rounded-xl transition-colors shadow-glow-sm"
             >
               {currentStep < steps.length - 1 ? (
-                <>Next <ArrowRight className="w-4 h-4" /></>
+                <>{t('common.next')} <ArrowRight className="w-4 h-4" /></>
               ) : (
-                'Get Started'
+                t('components.guidedTour.getStarted')
               )}
             </button>
           </div>

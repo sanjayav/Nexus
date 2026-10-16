@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   ShieldCheck,
   CheckCircle2,
@@ -15,15 +16,17 @@ import { assuranceItems, AssuranceItem } from '../data/moduleData'
 
 type StatusFilter = 'all' | 'not-started' | 'in-review' | 'findings' | 'cleared'
 
+/** `label` is an i18n key. */
 const STATUS_CONFIG = {
-  'not-started': { label: 'Not Started', bg: 'bg-dark-700', text: 'text-dark-300', border: 'border-dark-500' },
-  'in-review': { label: 'In Review', bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/20' },
-  'findings-raised': { label: 'Findings Raised', bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/20' },
-  'cleared': { label: 'Cleared', bg: 'bg-teal-500/15', text: 'text-teal-400', border: 'border-teal-500/20' },
-  'ready-to-publish': { label: 'Ready to Publish', bg: 'bg-accent-500/15', text: 'text-accent-400', border: 'border-accent-500/20' },
+  'not-started': { label: 'assurance.status.notStarted', bg: 'bg-dark-700', text: 'text-dark-300', border: 'border-dark-500' },
+  'in-review': { label: 'assurance.status.inReview', bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/20' },
+  'findings-raised': { label: 'assurance.status.findingsRaised', bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/20' },
+  'cleared': { label: 'assurance.status.cleared', bg: 'bg-teal-500/15', text: 'text-teal-400', border: 'border-teal-500/20' },
+  'ready-to-publish': { label: 'assurance.status.readyToPublish', bg: 'bg-accent-500/15', text: 'text-accent-400', border: 'border-accent-500/20' },
 }
 
 export default function AssuranceReview() {
+  const { t } = useTranslation()
   const [items, setItems] = useState<AssuranceItem[]>(assuranceItems)
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
@@ -50,22 +53,22 @@ export default function AssuranceReview() {
     setItems(prev => prev.map(item =>
       item.id === id ? { ...item, status: 'in-review' as const } : item
     ))
-    showToast('Review started successfully')
+    showToast(t('assurance.toast.started'))
   }
 
   const handleClearForPublishing = (id: string) => {
     setItems(prev => prev.map(item =>
       item.id === id ? { ...item, status: 'ready-to-publish' as const } : item
     ))
-    showToast('Item cleared for publishing')
+    showToast(t('assurance.toast.cleared'))
   }
 
   const filterTabs: { id: StatusFilter; label: string }[] = [
-    { id: 'all', label: 'All' },
-    { id: 'not-started', label: 'Not Started' },
-    { id: 'in-review', label: 'In Review' },
-    { id: 'findings', label: 'Findings' },
-    { id: 'cleared', label: 'Cleared' },
+    { id: 'all', label: t('common.all') },
+    { id: 'not-started', label: t('assurance.status.notStarted') },
+    { id: 'in-review', label: t('assurance.status.inReview') },
+    { id: 'findings', label: t('assurance.filter.findings') },
+    { id: 'cleared', label: t('assurance.status.cleared') },
   ]
 
   return (
@@ -85,25 +88,25 @@ export default function AssuranceReview() {
             <div className="w-10 h-10 rounded-xl bg-teal-500/15 border border-teal-500/20 flex items-center justify-center">
               <ShieldCheck className="w-5 h-5 text-teal-400" />
             </div>
-            Assurance Review
+            {t('assurance.title')}
           </h1>
           <p className="text-sm text-dark-300 mt-2">
-            Third-party validation pipeline. Assurance teams review, raise findings, and clear data packages before they are published to frameworks.
+            {t('assurance.subtitle')}
           </p>
         </div>
         <span className="text-xs text-dark-400 bg-dark-800 border border-dark-600 px-3 py-2 rounded-xl font-mono">
-          Reporting Year: FY 2026
+          {t('assurance.reportingYear', { year: 'FY 2026' })}
         </span>
       </div>
 
       {/* Pipeline Summary */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {([
-          { key: 'not-started' as const, label: 'Not Started', color: 'dark', borderColor: 'border-dark-600', textColor: 'text-white' },
-          { key: 'in-review' as const, label: 'In Review', color: 'blue', borderColor: 'border-blue-500/20', textColor: 'text-blue-400' },
-          { key: 'findings-raised' as const, label: 'Findings Raised', color: 'amber', borderColor: 'border-amber-500/20', textColor: 'text-amber-400' },
-          { key: 'cleared' as const, label: 'Cleared', color: 'teal', borderColor: 'border-teal-500/20', textColor: 'text-teal-400' },
-          { key: 'ready-to-publish' as const, label: 'Ready to Publish', color: 'accent', borderColor: 'border-accent-500/20', textColor: 'text-accent-400' },
+          { key: 'not-started' as const, label: t('assurance.status.notStarted'), color: 'dark', borderColor: 'border-dark-600', textColor: 'text-white' },
+          { key: 'in-review' as const, label: t('assurance.status.inReview'), color: 'blue', borderColor: 'border-blue-500/20', textColor: 'text-blue-400' },
+          { key: 'findings-raised' as const, label: t('assurance.status.findingsRaised'), color: 'amber', borderColor: 'border-amber-500/20', textColor: 'text-amber-400' },
+          { key: 'cleared' as const, label: t('assurance.status.cleared'), color: 'teal', borderColor: 'border-teal-500/20', textColor: 'text-teal-400' },
+          { key: 'ready-to-publish' as const, label: t('assurance.status.readyToPublish'), color: 'accent', borderColor: 'border-accent-500/20', textColor: 'text-accent-400' },
         ]).map(stage => (
           <div key={stage.key} className={`bg-dark-800 rounded-2xl border ${stage.borderColor} p-4`}>
             <p className={`text-[10px] ${stage.key === 'not-started' ? 'text-dark-400' : stage.textColor} uppercase tracking-wider font-semibold`}>
@@ -112,7 +115,7 @@ export default function AssuranceReview() {
             <p className={`text-3xl font-heading font-bold ${stage.textColor} mt-1`}>
               {pipelineCounts[stage.key]}
             </p>
-            <p className="text-xs text-dark-400 mt-0.5">data packages</p>
+            <p className="text-xs text-dark-400 mt-0.5">{t('assurance.dataPackages')}</p>
           </div>
         ))}
       </div>
@@ -122,9 +125,9 @@ export default function AssuranceReview() {
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-teal-400" />
-            <h2 className="text-lg font-heading font-semibold text-white">Assurance Pipeline</h2>
+            <h2 className="text-lg font-heading font-semibold text-white">{t('assurance.pipeline')}</h2>
             <span className="bg-blue-500/15 text-blue-400 text-xs font-bold px-2.5 py-1 rounded-full border border-blue-500/20">
-              {items.length} total
+              {t('assurance.total', { count: items.length })}
             </span>
           </div>
           <div className="flex rounded-lg border border-dark-500 overflow-hidden">
@@ -150,14 +153,14 @@ export default function AssuranceReview() {
             <thead>
               <tr className="border-b border-dark-600">
                 <th className="text-left py-3 px-4 text-xs font-semibold text-dark-400 uppercase tracking-wider w-8" />
-                <th className="text-left py-3 px-4 text-xs font-semibold text-dark-400 uppercase tracking-wider">Data Package</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-dark-400 uppercase tracking-wider">Scope</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-dark-400 uppercase tracking-wider">Entity</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-dark-400 uppercase tracking-wider">Period</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-dark-400 uppercase tracking-wider">Reviewer</th>
-                <th className="text-center py-3 px-4 text-xs font-semibold text-dark-400 uppercase tracking-wider">Status</th>
-                <th className="text-center py-3 px-4 text-xs font-semibold text-dark-400 uppercase tracking-wider">Findings</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-dark-400 uppercase tracking-wider">Actions</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-dark-400 uppercase tracking-wider">{t('assurance.table.dataPackage')}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-dark-400 uppercase tracking-wider">{t('assurance.table.scope')}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-dark-400 uppercase tracking-wider">{t('assurance.table.entity')}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-dark-400 uppercase tracking-wider">{t('assurance.table.period')}</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-dark-400 uppercase tracking-wider">{t('assurance.table.reviewer')}</th>
+                <th className="text-center py-3 px-4 text-xs font-semibold text-dark-400 uppercase tracking-wider">{t('common.status')}</th>
+                <th className="text-center py-3 px-4 text-xs font-semibold text-dark-400 uppercase tracking-wider">{t('assurance.filter.findings')}</th>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-dark-400 uppercase tracking-wider">{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -185,7 +188,7 @@ export default function AssuranceReview() {
         {filteredItems.length === 0 && (
           <div className="text-center py-10">
             <CheckCircle2 className="w-10 h-10 text-teal-400/50 mx-auto mb-3" />
-            <p className="text-sm text-dark-300">No items match the current filter.</p>
+            <p className="text-sm text-dark-300">{t('assurance.noMatch')}</p>
           </div>
         )}
       </div>
@@ -195,19 +198,19 @@ export default function AssuranceReview() {
         <div className="flex items-start gap-3">
           <ShieldCheck className="w-5 h-5 text-teal-400 flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="text-sm font-heading font-semibold text-white mb-1">Assurance Process</h3>
+            <h3 className="text-sm font-heading font-semibold text-white mb-1">{t('assurance.process.title')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
               <div className="text-xs text-dark-300 leading-relaxed">
-                <p className="font-semibold text-dark-200 mb-1">Data Integrity Check</p>
-                <p>Blockchain-anchored records are verified against source submissions. Any hash mismatch triggers an automatic finding.</p>
+                <p className="font-semibold text-dark-200 mb-1">{t('assurance.process.integrityTitle')}</p>
+                <p>{t('assurance.process.integrityBody')}</p>
               </div>
               <div className="text-xs text-dark-300 leading-relaxed">
-                <p className="font-semibold text-dark-200 mb-1">Third-Party Review</p>
-                <p>LRQA Thailand or Internal Audit reviews each data package against GHG Protocol, ISO 14064, and framework-specific requirements.</p>
+                <p className="font-semibold text-dark-200 mb-1">{t('assurance.process.reviewTitle')}</p>
+                <p>{t('assurance.process.reviewBody')}</p>
               </div>
               <div className="text-xs text-dark-300 leading-relaxed">
-                <p className="font-semibold text-dark-200 mb-1">Clear & Publish</p>
-                <p>Once all findings are resolved, cleared packages are released to the Report Publishing module for final disclosure generation.</p>
+                <p className="font-semibold text-dark-200 mb-1">{t('assurance.process.publishTitle')}</p>
+                <p>{t('assurance.process.publishBody')}</p>
               </div>
             </div>
           </div>
@@ -234,6 +237,7 @@ function ItemRow({
   onStartReview: () => void
   onClearForPublishing: () => void
 }) {
+  const { t } = useTranslation()
   return (
     <>
       <tr
@@ -253,7 +257,7 @@ function ItemRow({
         <td className="py-3 px-4 text-dark-300 text-xs">{item.reviewer}</td>
         <td className="py-3 px-4 text-center">
           <span className={`inline-flex text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${statusCfg.bg} ${statusCfg.text} border ${statusCfg.border}`}>
-            {statusCfg.label}
+            {t(statusCfg.label)}
           </span>
         </td>
         <td className="py-3 px-4 text-center">
@@ -273,7 +277,7 @@ function ItemRow({
               className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 text-xs font-semibold rounded-lg border border-blue-500/20 transition-colors ml-auto"
             >
               <Eye className="w-3 h-3" />
-              Start Review
+              {t('assurance.startReview')}
             </button>
           )}
           {item.status === 'cleared' && (
@@ -282,7 +286,7 @@ function ItemRow({
               className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-500/15 hover:bg-accent-500/25 text-accent-400 text-xs font-semibold rounded-lg border border-accent-500/20 transition-colors ml-auto"
             >
               <CheckCircle2 className="w-3 h-3" />
-              Clear for Publishing
+              {t('assurance.clearForPublishing')}
             </button>
           )}
         </td>
@@ -298,7 +302,7 @@ function ItemRow({
                 <div>
                   <h4 className="text-xs font-semibold text-dark-300 uppercase tracking-wider mb-3 flex items-center gap-2">
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-                    Findings ({item.findings.length})
+                    {t('assurance.findingsCount', { count: item.findings.length })}
                   </h4>
                   <div className="space-y-2">
                     {item.findings.map(finding => (
@@ -309,16 +313,16 @@ function ItemRow({
                               ? 'bg-rose-500/15 text-rose-400 border border-rose-500/20'
                               : 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
                           }`}>
-                            {finding.severity}
+                            {t(`assurance.severity.${finding.severity}`, { defaultValue: finding.severity })}
                           </span>
                           <div className="flex-1">
                             <p className="text-xs text-dark-300 leading-relaxed">{finding.description}</p>
                             {finding.resolution && (
                               <div className="mt-2 bg-teal-500/10 border border-teal-500/20 rounded-lg p-2.5">
-                                <p className="text-[10px] font-semibold text-teal-400 mb-0.5">Resolution</p>
+                                <p className="text-[10px] font-semibold text-teal-400 mb-0.5">{t('assurance.resolution')}</p>
                                 <p className="text-xs text-teal-300/80">{finding.resolution}</p>
                                 {finding.resolvedDate && (
-                                  <p className="text-[10px] text-dark-400 mt-1">Resolved: {finding.resolvedDate}</p>
+                                  <p className="text-[10px] text-dark-400 mt-1">{t('assurance.resolved', { date: finding.resolvedDate })}</p>
                                 )}
                               </div>
                             )}
@@ -336,7 +340,7 @@ function ItemRow({
                   <div className="bg-dark-800 border border-dark-600 rounded-xl p-4">
                     <h4 className="text-xs font-semibold text-dark-300 uppercase tracking-wider mb-2 flex items-center gap-2">
                       <FileText className="w-3.5 h-3.5 text-amber-400" />
-                      Linked Anomalies
+                      {t('assurance.linkedAnomalies')}
                     </h4>
                     <div className="flex flex-wrap gap-2">
                       {item.linkedAnomalyIds.map(aid => (
@@ -351,7 +355,7 @@ function ItemRow({
                   <div className="bg-dark-800 border border-dark-600 rounded-xl p-4">
                     <h4 className="text-xs font-semibold text-dark-300 uppercase tracking-wider mb-2 flex items-center gap-2">
                       <Link2 className="w-3.5 h-3.5 text-blue-400" />
-                      Blockchain Anchors
+                      {t('assurance.blockchainAnchors')}
                     </h4>
                     <div className="flex flex-wrap gap-2">
                       {item.linkedBlockchainIds.map(bid => (
@@ -367,7 +371,7 @@ function ItemRow({
               {item.findings.length === 0 && item.linkedAnomalyIds.length === 0 && item.linkedBlockchainIds.length === 0 && (
                 <div className="text-center py-4">
                   <Clock className="w-8 h-8 text-dark-500 mx-auto mb-2" />
-                  <p className="text-xs text-dark-400">No findings, anomalies, or blockchain anchors linked yet.</p>
+                  <p className="text-xs text-dark-400">{t('assurance.nothingLinked')}</p>
                 </div>
               )}
             </div>

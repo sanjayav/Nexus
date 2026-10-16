@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Lock, ArrowRight, Loader2, Leaf, CheckCircle2, AlertCircle } from 'lucide-react'
 import { z } from 'zod'
+import { useTranslation } from 'react-i18next'
 import { auth as authApi } from '../lib/api'
 
 /**
@@ -24,6 +25,7 @@ type FieldErr = Partial<Record<keyof ResetForm, string>>
  * from the email link. On success, redirects to /login.
  */
 export default function ResetPassword() {
+  const { t } = useTranslation()
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const token = params.get('token') ?? ''
@@ -47,7 +49,7 @@ export default function ResetPassword() {
     const issues = (result.error as unknown as { issues?: { path: (string | number)[]; message: string }[] }).issues ?? []
     for (const iss of issues) {
       const k = iss.path[0] as keyof ResetForm
-      if (!out[k]) out[k] = iss.message
+      if (!out[k]) out[k] = k === 'password' ? t('auth.register.errors.password') : t('auth.reset.mismatch')
     }
     return out
   }
@@ -78,7 +80,7 @@ export default function ResetPassword() {
       setSuccess(true)
       setTimeout(() => navigate('/login', { replace: true }), 1500)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Reset failed.')
+      setError(err instanceof Error ? err.message : t('auth.reset.failed'))
     } finally {
       setLoading(false)
     }
@@ -109,15 +111,15 @@ export default function ResetPassword() {
 
           {tokenMissing ? (
             <div className="space-y-4">
-              <h2 className="text-[20px] font-display font-bold text-white tracking-tight">Invalid reset link</h2>
+              <h2 className="text-[20px] font-display font-bold text-white tracking-tight">{t('auth.reset.invalidLink')}</h2>
               <p className="text-[13px] text-white/60">
-                The link is missing its token. Request a new reset email.
+                {t('auth.reset.missingToken')}
               </p>
               <Link
                 to="/forgot-password"
                 className="inline-flex items-center gap-2 text-[12px] text-emerald-400 hover:text-emerald-300 transition-colors"
               >
-                <span>Request new link</span>
+                <span>{t('auth.reset.requestNew')}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -125,17 +127,17 @@ export default function ResetPassword() {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                <h2 className="text-[20px] font-display font-bold text-white tracking-tight">Password updated</h2>
+                <h2 className="text-[20px] font-display font-bold text-white tracking-tight">{t('auth.reset.updated')}</h2>
               </div>
               <p className="text-[13px] text-white/60">
-                Taking you to the sign-in page...
+                {t('auth.reset.redirecting')}
               </p>
             </div>
           ) : (
             <>
-              <h2 className="text-[20px] font-display font-bold text-white tracking-tight mb-1">Set a new password</h2>
+              <h2 className="text-[20px] font-display font-bold text-white tracking-tight mb-1">{t('auth.reset.title')}</h2>
               <p className="text-[12px] text-white/50 mb-6">
-                Pick something at least 6 characters long.
+                {t('auth.reset.subtitle')}
               </p>
 
               {error && (
@@ -148,7 +150,7 @@ export default function ResetPassword() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label htmlFor="pw" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">
-                    New password
+                    {t('auth.reset.newPassword')}
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
@@ -162,7 +164,7 @@ export default function ResetPassword() {
                       aria-describedby={touched.password && fieldErrors.password ? 'pw-err' : undefined}
                       required
                       minLength={6}
-                      placeholder="Min. 6 characters"
+                      placeholder={t('auth.register.minChars')}
                       className={`w-full h-10 pl-10 pr-4 rounded-lg border bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent ${
                         touched.password && fieldErrors.password ? 'border-red-500/60' : 'border-white/10'
                       }`}
@@ -174,7 +176,7 @@ export default function ResetPassword() {
                 </div>
                 <div>
                   <label htmlFor="pw2" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">
-                    Confirm password
+                    {t('auth.reset.confirmPassword')}
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
@@ -207,7 +209,7 @@ export default function ResetPassword() {
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <>
-                      <span>Reset password</span>
+                      <span>{t('auth.reset.submit')}</span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}

@@ -13,6 +13,7 @@ import { useState } from 'react'
 import { Loader2, Sparkles, AlertCircle, CheckCircle2, BadgeCheck, Lock } from 'lucide-react'
 import { ai, isUnconfiguredError, type AiExtractionResult } from '../lib/api'
 import { useIntegrationStatus } from '../lib/integrations'
+import { Trans, useTranslation } from 'react-i18next'
 
 interface Props {
   evidenceId: string
@@ -39,13 +40,14 @@ function ConfidenceBadge({ value }: { value: number }) {
   // Banded so the user can spot low-confidence extractions before they accept.
   // ≥0.8 green, 0.5-0.8 amber, <0.5 red — same colour vocabulary as the rest
   // of the Nexus status chips.
+  const { t } = useTranslation()
   const pct = Math.round(value * 100)
   const palette =
     value >= 0.8
-      ? { bg: 'var(--accent-green-light)', fg: 'var(--status-ok)', label: 'High' }
+      ? { bg: 'var(--accent-green-light)', fg: 'var(--status-ok)', label: t('components.ai.high') }
       : value >= 0.5
-      ? { bg: 'var(--accent-amber-light)', fg: 'var(--status-draft)', label: 'Medium' }
-      : { bg: 'var(--accent-red-light)', fg: 'var(--status-reject)', label: 'Low' }
+      ? { bg: 'var(--accent-amber-light)', fg: 'var(--status-draft)', label: t('components.ai.medium') }
+      : { bg: 'var(--accent-red-light)', fg: 'var(--status-reject)', label: t('components.ai.low') }
   return (
     <span
       className="px-2 py-0.5 rounded-[var(--radius-sm)] text-[10px] font-semibold uppercase tracking-wider inline-flex items-center gap-1"
@@ -66,6 +68,7 @@ export default function AiExtractionPanel({
   onAccept,
   disabled,
 }: Props) {
+  const { t } = useTranslation()
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
   const integrations = useIntegrationStatus()
   // While the health probe is still loading we keep the button disabled but
@@ -85,8 +88,8 @@ export default function AiExtractionPanel({
       setStatus({ kind: 'result', extraction: res.extraction })
     } catch (e) {
       const message = isUnconfiguredError(e)
-        ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.'
-        : e instanceof Error ? e.message : 'Extraction failed'
+        ? t('components.ai.notConfigured')
+        : e instanceof Error ? e.message : t('components.ai.failed')
       setStatus({ kind: 'error', message })
     }
   }
@@ -96,7 +99,7 @@ export default function AiExtractionPanel({
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-tertiary)]">
           <Sparkles className="w-3 h-3 text-[var(--color-brand)]" />
-          AI extraction
+          {t('components.ai.title')}
           {filename && (
             <span className="normal-case tracking-normal font-normal text-[var(--text-quaternary)] truncate max-w-[180px]">
               · {filename}
@@ -108,12 +111,12 @@ export default function AiExtractionPanel({
             type="button"
             onClick={runExtraction}
             disabled={disabled || aiUnavailable || integrations.loading}
-            title={aiUnavailable ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : undefined}
-            aria-label={aiUnavailable ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : 'Extract data with AI'}
+            title={aiUnavailable ? t('components.ai.notConfigured') : undefined}
+            aria-label={aiUnavailable ? t('components.ai.notConfigured') : t('components.ai.extract')}
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[var(--radius-sm)] text-[11px] font-semibold text-white bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {aiUnavailable ? <Lock className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
-            {aiUnavailable ? 'AI unavailable' : 'Extract data with AI'}
+            {aiUnavailable ? t('components.ai.unavailable') : t('components.ai.extract')}
           </button>
         )}
       </div>
@@ -122,14 +125,14 @@ export default function AiExtractionPanel({
           panel is small and re-used in tight rails. */}
       {status.kind === 'idle' && aiUnavailable && (
         <div className="mt-2 text-[10.5px] text-[var(--text-tertiary)] leading-snug">
-          AI features not configured in this environment. Ask an admin to set <code className="font-mono">ANTHROPIC_API_KEY</code>.
+          <Trans i18nKey="components.ai.envHint" components={{ c: <code className="font-mono" /> }} />
         </div>
       )}
 
       {status.kind === 'loading' && (
         <div className="flex items-center gap-2 mt-2 text-[12px] text-[var(--text-secondary)]">
           <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--color-brand)]" />
-          Reading document…
+          {t('components.ai.reading')}
         </div>
       )}
 
@@ -137,14 +140,14 @@ export default function AiExtractionPanel({
         <div className="mt-2 flex items-start gap-2 p-2 rounded-[var(--radius-sm)] bg-[var(--accent-red-light)] text-[11px] text-[var(--status-reject)]">
           <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
           <div className="min-w-0">
-            <div className="font-semibold">Extraction failed</div>
+            <div className="font-semibold">{t('components.ai.failed')}</div>
             <div className="font-mono text-[10.5px] break-words">{status.message}</div>
             <button
               type="button"
               onClick={() => setStatus({ kind: 'idle' })}
               className="mt-1 text-[10.5px] font-medium text-[var(--color-brand)] hover:underline"
             >
-              Try again
+              {t('components.errorBoundary.tryAgain')}
             </button>
           </div>
         </div>
@@ -168,7 +171,7 @@ export default function AiExtractionPanel({
             {status.extraction.period && (
               <div>
                 <div className="text-[var(--text-quaternary)] uppercase tracking-wider font-semibold text-[9.5px]">
-                  Period
+                  {t('components.ai.period')}
                 </div>
                 <div className="text-[var(--text-primary)]">{status.extraction.period}</div>
               </div>
@@ -176,7 +179,7 @@ export default function AiExtractionPanel({
             {status.extraction.supplier && (
               <div>
                 <div className="text-[var(--text-quaternary)] uppercase tracking-wider font-semibold text-[9.5px]">
-                  Supplier
+                  {t('components.ai.supplier')}
                 </div>
                 <div className="text-[var(--text-primary)]">{status.extraction.supplier}</div>
               </div>
@@ -184,7 +187,7 @@ export default function AiExtractionPanel({
           </div>
 
           <div className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-            <span className="font-semibold text-[var(--text-tertiary)]">Reasoning: </span>
+            <span className="font-semibold text-[var(--text-tertiary)]">{t('components.ai.reasoning')}</span>
             {status.extraction.reasoning}
           </div>
 
@@ -201,14 +204,14 @@ export default function AiExtractionPanel({
               disabled={disabled}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] text-[11px] font-semibold text-white bg-[var(--color-brand)] hover:bg-[var(--color-brand-hover)] disabled:opacity-50 transition-colors"
             >
-              <CheckCircle2 className="w-3.5 h-3.5" /> Use this value
+              <CheckCircle2 className="w-3.5 h-3.5" /> {t('components.ai.useValue')}
             </button>
             <button
               type="button"
               onClick={() => setStatus({ kind: 'idle' })}
               className="text-[10.5px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
             >
-              Re-extract
+              {t('components.ai.reExtract')}
             </button>
           </div>
         </div>

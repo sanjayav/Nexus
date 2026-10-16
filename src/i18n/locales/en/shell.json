@@ -1,0 +1,168 @@
+{
+  "nav": {
+    "groups": {
+      "work": "Work",
+      "reports": "Reports",
+      "data": "Data",
+      "analytics": "Analytics",
+      "admin": "Admin"
+    },
+    "items": {
+      "myDay": "My Day",
+      "tasks": "Tasks",
+      "inbox": "Inbox",
+      "activeReports": "Active Reports",
+      "templates": "Templates",
+      "disclosuresLibrary": "Disclosures Library",
+      "values": "Values",
+      "spreadsheet": "Spreadsheet",
+      "evidence": "Evidence",
+      "calculators": "Calculators",
+      "pcafPortfolio": "PCAF Portfolio",
+      "connectors": "Connectors",
+      "emissionFactors": "Emission factors",
+      "anomalies": "Anomalies",
+      "analytics": "Analytics",
+      "aiReport": "AI Report",
+      "usersRoles": "Users & Roles",
+      "materiality": "Materiality",
+      "climateTargets": "Climate Targets",
+      "dataStandard": "Data Standard",
+      "activityHistory": "Activity History",
+      "apiKeys": "API Keys",
+      "scim": "SCIM",
+      "blockchain": "Blockchain",
+      "systemStatus": "System Status",
+      "settings": "Settings"
+    }
+  },
+  "sidebar": {
+    "expand": "Expand sidebar",
+    "collapse": "Collapse sidebar",
+    "flagship": "Flagship feature"
+  },
+  "roles": {
+    "platform_admin": {
+      "name": "Platform Admin",
+      "description": "Full access. Manages tenants, users, org tree, assignments."
+    },
+    "group_sustainability_officer": {
+      "name": "Group Sustainability Officer",
+      "description": "Approves consolidated figures, signs off the report."
+    },
+    "subsidiary_lead": {
+      "name": "Subsidiary Lead",
+      "description": "Reviews plant submissions, rolls up subsidiary total."
+    },
+    "plant_manager": {
+      "name": "Plant Manager",
+      "description": "Owns data entry for an individual plant. Assigns contributors."
+    },
+    "data_contributor": {
+      "name": "Data Contributor",
+      "description": "Answers assigned questionnaires, attaches evidence."
+    },
+    "narrative_owner": {
+      "name": "Narrative Owner",
+      "description": "Writes governance, strategy and management-approach disclosures (GRI 2 / GRI 3 / CSRD narrative sections)."
+    },
+    "auditor": {
+      "name": "Auditor",
+      "description": "Read-only access to published data + blockchain trail."
+    }
+  },
+  "routes": {
+    "overview": "Overview",
+    "calendar": "Calendar",
+    "reviewQueue": "Review queue",
+    "approvalQueue": "Approval queue",
+    "workflow": "Workflow",
+    "groupRollup": "Group rollup",
+    "onboarding": "Onboarding",
+    "organisation": "Organisation",
+    "reportingCycles": "Reporting cycles",
+    "materialityAssessment": "Materiality Assessment",
+    "gwpValues": "GWP values"
+  },
+  "topbar": {
+    "there": "there",
+    "greeting": "Hi, {{name}}",
+    "closeNav": "Close navigation menu",
+    "openNav": "Open navigation menu",
+    "openPalette": "Open command palette",
+    "greetingAnon": "Hi, there"
+  },
+  "newMenu": {
+    "title": "Create something new (n)",
+    "new": "New",
+    "ariaLabel": "Create new",
+    "value": "New value",
+    "valueHint": "Open the disclosure editor",
+    "evidence": "New evidence",
+    "evidenceHint": "Upload a supporting file",
+    "assignment": "New assignment",
+    "assignmentHint": "Bulk-assign disclosures",
+    "report": "New report",
+    "reportHint": "Generate a published report",
+    "aiNarrative": "Generate AI narrative",
+    "aiNarrativeHint": "Draft from approved data",
+    "shortcut": "Shortcut"
+  },
+  "skipToContent": "Skip to main content",
+  "navMenu": "Navigation menu",
+  "palette": {
+    "groups": {
+      "goTo": "Go to",
+      "actions": "Actions",
+      "frameworks": "Frameworks",
+      "recent": "Recent",
+      "system": "System"
+    },
+    "ariaLabel": "Command palette",
+    "placeholder": "Search pages, frameworks, actions…",
+    "noMatches": "No matches for",
+    "navigate": "Navigate",
+    "select": "Select",
+    "hint": {
+      "sys-theme": "Light / dark"
+    },
+    "cmd": {
+      "nav-dash": "Overview",
+      "nav-tasks": "My tasks",
+      "nav-review": "Review queue",
+      "nav-approval": "Approval queue",
+      "nav-rollup": "Group rollup",
+      "nav-reports": "Publish centre",
+      "nav-gri": "GRI index",
+      "nav-analytics": "Analytics",
+      "nav-anomalies": "Anomalies",
+      "nav-standard": "Data standard",
+      "nav-calc": "Calculators",
+      "nav-scope3": "Scope 3 calculators",
+      "nav-ef": "EF library",
+      "nav-gwp": "GWP values",
+      "nav-setup": "Setup guide",
+      "nav-welcome": "Welcome wizard",
+      "nav-periods": "Reporting cycles",
+      "nav-mat": "Materiality",
+      "nav-assign": "Assignments",
+      "nav-users": "Users & roles",
+      "nav-audit": "Audit trail",
+      "nav-connectors": "Connectors",
+      "nav-inbox": "Inbox",
+      "nav-scim": "SCIM tokens",
+      "nav-apikeys": "API keys",
+      "nav-system": "System status",
+      "nav-settings": "Settings",
+      "act-new-assign": "New assignment",
+      "act-bulk-assign": "Bulk assign",
+      "act-run-setup": "Run setup",
+      "act-publish": "Publish report",
+      "act-new-apikey": "Generate API key",
+      "act-export": "Download data export",
+      "act-toggle-mfa": "Toggle MFA",
+      "sys-theme": "Toggle theme",
+      "sys-logout": "Sign out"
+    }
+  }
+}

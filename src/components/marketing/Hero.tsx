@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, PlayCircle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { FadeIn } from '../MotionPrimitives'
 import NexusBrand from '../NexusBrand'
 
@@ -9,6 +10,7 @@ import NexusBrand from '../NexusBrand'
  * heavy deps; respects light/dark themes via design-token CSS vars.
  */
 export default function Hero() {
+  const { t } = useTranslation()
   return (
     <section
       className="relative overflow-hidden"
@@ -27,7 +29,7 @@ export default function Hero() {
                 className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-5"
                 style={{ color: 'var(--accent-600)' }}
               >
-                Sustainability Intelligence Platform
+                {t('marketing.hero.eyebrow')}
               </p>
               <h1
                 className="h-display"
@@ -38,16 +40,15 @@ export default function Hero() {
                   lineHeight: 1.05,
                 }}
               >
-                Every framework.
+                {t('marketing.hero.titleLine1')}
                 <br />
-                <span style={{ color: 'var(--accent-600)' }}>One dataset.</span>
+                <span style={{ color: 'var(--accent-600)' }}>{t('marketing.hero.titleLine2')}</span>
               </h1>
               <p
                 className="mt-6 max-w-[560px] text-[17px] leading-relaxed"
                 style={{ color: 'var(--text-secondary)' }}
               >
-                Nexus is the reporting platform that turns sustainability data into auditor-ready
-                disclosures across CSRD, ISSB, GRI, TCFD, CDP and more.
+                {t('marketing.hero.subtitle')}
               </p>
 
               <div className="mt-9 flex flex-wrap items-center gap-3">
@@ -56,7 +57,7 @@ export default function Hero() {
                   className="btn-primary"
                   style={{ height: 44, paddingInline: 22, fontSize: 14 }}
                 >
-                  Start free trial
+                  {t('marketing.cta.startFreeTrial')}
                   <ArrowRight className="w-4 h-4" />
                 </Link>
                 <a
@@ -65,7 +66,7 @@ export default function Hero() {
                   style={{ height: 44, paddingInline: 20, fontSize: 14 }}
                 >
                   <PlayCircle className="w-4 h-4" />
-                  Watch demo
+                  {t('marketing.cta.watchDemo')}
                 </a>
               </div>
 
@@ -73,7 +74,7 @@ export default function Hero() {
                 className="mt-7 text-[12px]"
                 style={{ color: 'var(--text-tertiary)' }}
               >
-                Built by ESG experts · SOC 2 (in progress) · GDPR compliant · Self-hosted available
+                {t('marketing.hero.trust')}
               </p>
             </div>
           </FadeIn>

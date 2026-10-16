@@ -22,6 +22,7 @@ import {
   GitBranch,
   Layers,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Card, Badge, Tabs, Input, Select } from '../design-system'
 import PageHeader from '../components/PageHeader'
 
@@ -151,12 +152,41 @@ const SCOPE_BADGE: Record<string, 'teal' | 'amber' | 'purple'> = { S1: 'teal', S
 
 const FAC_ICON: Record<string, typeof Factory> = { Manufacturing: Factory, Refinery: Flame, Office: Building2, Warehouse: Truck, 'Joint Venture': Network, Laboratory: Zap, 'Data Centre': Layers }
 const FAC_CLR: Record<string, 'teal' | 'blue' | 'purple' | 'amber' | 'green' | 'gray'> = { Manufacturing: 'teal', Refinery: 'amber', Office: 'blue', Warehouse: 'gray', 'Joint Venture': 'purple', Laboratory: 'green', 'Data Centre': 'blue' }
-const STATUS: Record<string, { v: 'green' | 'amber' | 'gray'; l: string }> = { operational: { v: 'green', l: 'Operational' }, planned: { v: 'amber', l: 'Planned' }, decommissioned: { v: 'gray', l: 'Decommissioned' } }
+const STATUS: Record<string, { v: 'green' | 'amber' | 'gray'; labelKey: string }> = { operational: { v: 'green', labelKey: 'orgStructure.status.operational' }, planned: { v: 'amber', labelKey: 'orgStructure.status.planned' }, decommissioned: { v: 'gray', labelKey: 'orgStructure.status.decommissioned' } }
+
+/* ── i18n label lookups (underlying data values stay unchanged) ── */
+const FAC_TYPE_KEY: Record<Facility['type'], string> = { Manufacturing: 'manufacturing', Refinery: 'refinery', Office: 'office', Warehouse: 'warehouse', 'Joint Venture': 'jointVenture', Laboratory: 'laboratory', 'Data Centre': 'dataCentre' }
+const GROUP_NAME_KEY: Record<string, string> = { Chemicals: 'chemicals', Polymers: 'polymers', 'Green Chemicals': 'greenChemicals' }
+const SOURCE_NAME_KEY: Record<string, string> = {
+  'Boilers & Furnaces': 'boilersFurnaces', 'Flare Systems': 'flareSystems', 'Process Venting': 'processVenting', 'Grid Electricity': 'gridElectricity',
+  'Company Vehicles': 'companyVehicles', 'Cracking Furnaces': 'crackingFurnaces', 'Cooling Towers': 'coolingTowers', 'Purchased Steam': 'purchasedSteam',
+  'Refrigeration Units': 'refrigerationUnits', 'Extruder Heaters': 'extruderHeaters', 'Pellet Dryers': 'pelletDryers', 'Reactor Furnaces': 'reactorFurnaces',
+  'Process Emissions': 'processEmissions', 'Fleet Vehicles': 'fleetVehicles', 'Lab Equipment (Gas)': 'labEquipmentGas',
+}
+
+function useOrgLabels() {
+  const { t, i18n } = useTranslation()
+  const isZh = i18n.language?.startsWith('zh') ?? false
+  const facType = (type: Facility['type']) => FAC_TYPE_KEY[type] ? t(`orgStructure.facilityType.${FAC_TYPE_KEY[type]}`) : type
+  const groupName = (name: string) => GROUP_NAME_KEY[name] ? t(`orgStructure.groupNames.${GROUP_NAME_KEY[name]}`) : name
+  const sourceName = (name: string) => SOURCE_NAME_KEY[name] ? t(`orgStructure.sourceNames.${SOURCE_NAME_KEY[name]}`) : name
+  // English keeps the stored country name; zh resolves the ISO code to a localised region name.
+  const countryName = (code: string, fallback: string) => {
+    if (!isZh) return fallback
+    try {
+      return new Intl.DisplayNames(['zh-CN'], { type: 'region' }).of(code) ?? fallback
+    } catch {
+      return fallback
+    }
+  }
+  return { t, facType, groupName, sourceName, countryName }
+}
 
 /* ═══════════════════════════════════════════
    Component
    ═══════════════════════════════════════════ */
 export default function OrgStructure() {
+  const { t, facType, groupName, sourceName, countryName } = useOrgLabels()
   const [tab, setTab] = useState('hierarchy')
   const [groups] = useState(DEMO_GROUPS)
   const [expanded, setExpanded] = useState<Set<string>>(new Set(['g1']))
@@ -173,7 +203,7 @@ export default function OrgStructure() {
     set(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
 
   const filtered = search
-    ? facs.filter(f => `${f.name} ${f.country} ${f.type}`.toLowerCase().includes(search.toLowerCase()))
+    ? facs.filter(f => `${f.name} ${f.country} ${f.type} ${countryName(f.countryCode, f.country)} ${facType(f.type)}`.toLowerCase().includes(search.toLowerCase()))
     : facs
 
   const s1 = srcs.filter(s => s.scope === 'S1').length
@@ -184,18 +214,18 @@ export default function OrgStructure() {
     <div className="page-container space-y-6 animate-fade-in">
       <PageHeader
         breadcrumbs={[
-          { label: 'Admin' },
-          { label: 'Organisation' },
+          { label: t('nav.admin') },
+          { label: t('orgStructure.breadcrumb') },
         ]}
-        title="Organisation Structure"
-        description="Corporate hierarchy, facilities, and emission source registrations."
+        title={t('orgStructure.title')}
+        description={t('orgStructure.description')}
         actions={
           <>
             <button onClick={() => setModal('group')} className="btn-secondary">
-              <Plus className="w-3.5 h-3.5" /> Add Group
+              <Plus className="w-3.5 h-3.5" /> {t('orgStructure.actions.addGroup')}
             </button>
             <button onClick={() => setModal('facility')} className="btn-primary">
-              <Plus className="w-3.5 h-3.5" /> Add Facility
+              <Plus className="w-3.5 h-3.5" /> {t('orgStructure.actions.addFacility')}
             </button>
           </>
         }
@@ -204,15 +234,15 @@ export default function OrgStructure() {
       {/* ── KPI strip ── */}
       <div className="grid grid-cols-5 gap-4">
         {[
-          { label: 'Business Groups', value: groups.length, icon: Network, color: 'var(--accent-teal)', bg: 'var(--accent-teal-light)' },
-          { label: 'Subsidiaries', value: groups.reduce((n, g) => n + g.subsidiaries.length, 0), icon: GitBranch, color: 'var(--accent-blue)', bg: 'var(--accent-blue-light)' },
-          { label: 'Facilities', value: facs.length, icon: Factory, color: 'var(--accent-purple)', bg: 'var(--accent-purple-light)' },
-          { label: 'Countries', value: ctrs.length, icon: Globe2, color: 'var(--accent-amber)', bg: 'var(--accent-amber-light)' },
-          { label: 'Emission Sources', value: srcs.length, icon: Flame, color: 'var(--accent-green)', bg: 'var(--accent-green-light)' },
+          { id: 'groups', label: t('orgStructure.kpi.businessGroups'), value: groups.length, icon: Network, color: 'var(--accent-teal)', bg: 'var(--accent-teal-light)' },
+          { id: 'subsidiaries', label: t('orgStructure.kpi.subsidiaries'), value: groups.reduce((n, g) => n + g.subsidiaries.length, 0), icon: GitBranch, color: 'var(--accent-blue)', bg: 'var(--accent-blue-light)' },
+          { id: 'facilities', label: t('orgStructure.kpi.facilities'), value: facs.length, icon: Factory, color: 'var(--accent-purple)', bg: 'var(--accent-purple-light)' },
+          { id: 'countries', label: t('orgStructure.kpi.countries'), value: ctrs.length, icon: Globe2, color: 'var(--accent-amber)', bg: 'var(--accent-amber-light)' },
+          { id: 'sources', label: t('orgStructure.kpi.emissionSources'), value: srcs.length, icon: Flame, color: 'var(--accent-green)', bg: 'var(--accent-green-light)' },
         ].map(m => {
           const Icon = m.icon
           return (
-            <Card key={m.label} padding="sm">
+            <Card key={m.id} padding="sm">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: m.bg }}>
                   <Icon className="w-5 h-5" style={{ color: m.color }} />
@@ -238,12 +268,12 @@ export default function OrgStructure() {
               <h2 className="text-[var(--text-base)] font-bold text-[var(--text-primary)]">{COMPANY.name}</h2>
               <Badge variant="teal">{COMPANY.tradingName}</Badge>
             </div>
-            <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-0.5">{COMPANY.sector}</p>
+            <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-0.5">{t('orgStructure.company.sector')}</p>
           </div>
           <div className="flex items-center gap-6 text-[var(--text-xs)] text-[var(--text-secondary)] flex-shrink-0">
-            <span className="flex items-center gap-1.5"><Globe2 className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />{COMPANY.boundary}</span>
-            <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />Base year {COMPANY.baseYear}</span>
-            <Badge variant="blue">{COMPANY.reportingPeriod}</Badge>
+            <span className="flex items-center gap-1.5"><Globe2 className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />{t('orgStructure.company.boundary')}</span>
+            <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />{t('orgStructure.company.baseYear', { year: COMPANY.baseYear })}</span>
+            <Badge variant="blue">{t('orgStructure.company.reportingPeriod')}</Badge>
           </div>
         </div>
       </Card>
@@ -251,9 +281,9 @@ export default function OrgStructure() {
       {/* ── Tabs ── */}
       <Tabs
         tabs={[
-          { id: 'hierarchy', label: 'Hierarchy', count: groups.length },
-          { id: 'facilities', label: 'Facilities', count: facs.length },
-          { id: 'sources', label: 'Emission Sources', count: srcs.length },
+          { id: 'hierarchy', label: t('orgStructure.tabs.hierarchy'), count: groups.length },
+          { id: 'facilities', label: t('orgStructure.tabs.facilities'), count: facs.length },
+          { id: 'sources', label: t('orgStructure.tabs.sources'), count: srcs.length },
         ]}
         activeTab={tab}
         onChange={setTab}
@@ -275,12 +305,12 @@ export default function OrgStructure() {
                     <Network className="w-5 h-5" style={{ color: group.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)] leading-tight">{group.name}</h3>
+                    <h3 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)] leading-tight">{groupName(group.name)}</h3>
                     <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-0.5">
-                      {group.subsidiaries.length} subsidiar{group.subsidiaries.length === 1 ? 'y' : 'ies'} · {gFacs.length} facilit{gFacs.length === 1 ? 'y' : 'ies'} · {gFacs.flatMap(f => f.sources).length} sources
+                      {t('orgStructure.counts.subsidiary', { count: group.subsidiaries.length })} · {t('orgStructure.counts.facility', { count: gFacs.length })} · {t('orgStructure.counts.sources', { n: gFacs.flatMap(f => f.sources).length })}
                     </p>
                   </div>
-                  <Badge variant="gray">{gFacs.reduce((n, f) => n + f.headcount, 0).toLocaleString()} staff</Badge>
+                  <Badge variant="gray">{t('orgStructure.counts.staff', { value: gFacs.reduce((n, f) => n + f.headcount, 0).toLocaleString() })}</Badge>
                   {open ? <ChevronDown className="w-4 h-4 text-[var(--text-tertiary)]" /> : <ChevronRight className="w-4 h-4 text-[var(--text-tertiary)]" />}
                 </button>
 
@@ -296,8 +326,8 @@ export default function OrgStructure() {
                             <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: group.color, opacity: 0.5 }} />
                             <GitBranch className="w-4 h-4 text-[var(--text-tertiary)] flex-shrink-0" />
                             <span className="text-[var(--text-sm)] font-medium text-[var(--text-primary)] flex-1 truncate">{sub.name}</span>
-                            <Badge variant="gray">{sub.equity}% equity</Badge>
-                            <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] w-16 text-right">{sub.facilities.length} site{sub.facilities.length !== 1 ? 's' : ''}</span>
+                            <Badge variant="gray">{t('orgStructure.counts.equity', { value: sub.equity })}</Badge>
+                            <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] w-16 text-right">{t('orgStructure.counts.site', { count: sub.facilities.length })}</span>
                             {subOpen ? <ChevronDown className="w-3.5 h-3.5 text-[var(--text-tertiary)]" /> : <ChevronRight className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />}
                           </button>
 
@@ -309,10 +339,10 @@ export default function OrgStructure() {
                               <button key={fac.id} onClick={() => setSelected(fac)} className="w-full flex items-center gap-3 px-5 py-2.5 text-left cursor-pointer hover:bg-[var(--bg-hover)] transition-colors border-b border-[var(--border-subtle)] last:border-b-0" style={{ paddingLeft: 76 }}>
                                 <Icon className="w-4 h-4 text-[var(--text-tertiary)] flex-shrink-0" />
                                 <span className="text-[var(--text-sm)] text-[var(--text-primary)] flex-1 truncate">{fac.name}</span>
-                                <Badge variant={FAC_CLR[fac.type] || 'gray'}>{fac.type}</Badge>
+                                <Badge variant={FAC_CLR[fac.type] || 'gray'}>{facType(fac.type)}</Badge>
                                 <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] font-mono w-6 text-center">{fac.countryCode}</span>
-                                <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] w-20 text-right">{fac.sources.length} sources</span>
-                                <Badge variant={st.v} dot>{st.l}</Badge>
+                                <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] w-20 text-right">{t('orgStructure.counts.sources', { n: fac.sources.length })}</span>
+                                <Badge variant={st.v} dot>{t(st.labelKey)}</Badge>
                               </button>
                             )
                           })}
@@ -326,9 +356,9 @@ export default function OrgStructure() {
           })}
 
           <div className="flex items-center gap-5 px-1 text-[var(--text-xs)] text-[var(--text-tertiary)]">
-            <span className="flex items-center gap-1.5"><Network className="w-3.5 h-3.5" /> Business Group</span>
-            <span className="flex items-center gap-1.5"><GitBranch className="w-3.5 h-3.5" /> Subsidiary</span>
-            <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> Facility</span>
+            <span className="flex items-center gap-1.5"><Network className="w-3.5 h-3.5" /> {t('orgStructure.legend.businessGroup')}</span>
+            <span className="flex items-center gap-1.5"><GitBranch className="w-3.5 h-3.5" /> {t('orgStructure.legend.subsidiary')}</span>
+            <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> {t('orgStructure.legend.facility')}</span>
           </div>
         </div>
       )}
@@ -344,7 +374,7 @@ export default function OrgStructure() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search facilities..."
+              placeholder={t('orgStructure.search.placeholder')}
               className="w-full h-9 pl-9 pr-8 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)] focus:border-transparent transition-all"
             />
             {search && (
@@ -370,13 +400,13 @@ export default function OrgStructure() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] leading-tight truncate">{fac.name}</h3>
-                        <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-0.5">{fac.country} · {fac.headcount.toLocaleString()} staff</p>
+                        <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-0.5">{countryName(fac.countryCode, fac.country)} · {t('orgStructure.counts.staff', { value: fac.headcount.toLocaleString() })}</p>
                       </div>
-                      <Badge variant={st.v} dot>{st.l}</Badge>
+                      <Badge variant={st.v} dot>{t(st.labelKey)}</Badge>
                     </div>
 
                     <div className="flex items-center gap-3 mt-4 pt-3 border-t border-[var(--border-subtle)]">
-                      <Badge variant={FAC_CLR[fac.type] || 'gray'}>{fac.type}</Badge>
+                      <Badge variant={FAC_CLR[fac.type] || 'gray'}>{facType(fac.type)}</Badge>
                       <span className="text-[10px] text-[var(--text-tertiary)] font-mono">{fac.grid}</span>
                       <div className="flex-1" />
                       <div className="flex items-center gap-2">
@@ -391,7 +421,7 @@ export default function OrgStructure() {
           </div>
 
           {filtered.length === 0 && (
-            <div className="py-12 text-center text-[var(--text-sm)] text-[var(--text-tertiary)]">No facilities match your search.</div>
+            <div className="py-12 text-center text-[var(--text-sm)] text-[var(--text-tertiary)]">{t('orgStructure.search.noMatch')}</div>
           )}
         </div>
       )}
@@ -404,11 +434,11 @@ export default function OrgStructure() {
           {/* Scope breakdown */}
           <div className="grid grid-cols-3 gap-4">
             {[
-              { scope: 'Scope 1 — Direct', count: s1, key: 'S1', types: 'Stationary, mobile, process, fugitive' },
-              { scope: 'Scope 2 — Indirect', count: s2, key: 'S2', types: 'Purchased electricity, heat, steam' },
-              { scope: 'Scope 3 — Value Chain', count: s3, key: 'S3', types: 'Upstream & downstream activities' },
+              { scope: t('orgStructure.scopes.s1'), count: s1, key: 'S1', types: t('orgStructure.scopes.s1Types') },
+              { scope: t('orgStructure.scopes.s2'), count: s2, key: 'S2', types: t('orgStructure.scopes.s2Types') },
+              { scope: t('orgStructure.scopes.s3'), count: s3, key: 'S3', types: t('orgStructure.scopes.s3Types') },
             ].map(s => (
-              <Card key={s.scope} padding="sm">
+              <Card key={s.key} padding="sm">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: SCOPE_BG[s.key] }}>
                     <Flame className="w-5 h-5" style={{ color: SCOPE_CLR[s.key] }} />
@@ -426,8 +456,8 @@ export default function OrgStructure() {
           {/* Calculator routing */}
           <Card padding="none">
             <div className="px-5 py-3 border-b border-[var(--border-default)] bg-[var(--bg-secondary)] rounded-t-xl">
-              <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">Calculator Routing</h3>
-              <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5">Each source is auto-routed to the correct GHG Protocol calculator</p>
+              <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('orgStructure.routing.title')}</h3>
+              <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5">{t('orgStructure.routing.desc')}</p>
             </div>
             {(() => {
               const byCalc: Record<string, { scope: string; names: string[]; count: number }> = {}
@@ -443,7 +473,7 @@ export default function OrgStructure() {
                   </div>
                   <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] font-mono w-36">{calc}</span>
                   <Badge variant={SCOPE_BADGE[d.scope]}>{d.scope}</Badge>
-                  <p className="flex-1 text-[var(--text-xs)] text-[var(--text-tertiary)] truncate">{d.names.join(', ')}</p>
+                  <p className="flex-1 text-[var(--text-xs)] text-[var(--text-tertiary)] truncate">{d.names.map(sourceName).join(t('orgStructure.listSeparator'))}</p>
                   <span className="text-[var(--text-sm)] font-bold tabular-nums text-[var(--text-primary)] w-10 text-right">{d.count}</span>
                 </div>
               ))
@@ -453,7 +483,7 @@ export default function OrgStructure() {
           {/* Sources per facility */}
           <Card padding="none">
             <div className="px-5 py-3 border-b border-[var(--border-default)] bg-[var(--bg-secondary)] rounded-t-xl">
-              <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">Sources by Facility</h3>
+              <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('orgStructure.sourcesByFacility')}</h3>
             </div>
             {facs.map((fac, i) => {
               const Icon = FAC_ICON[fac.type] || MapPin
@@ -485,13 +515,13 @@ export default function OrgStructure() {
          ADD GROUP MODAL
          ═══════════════════════════════════════ */}
       {modal === 'group' && (
-        <Modal title="Add Business Group" onClose={() => setModal(null)} width="max-w-md">
+        <Modal title={t('orgStructure.addGroupModal.title')} onClose={() => setModal(null)} width="max-w-md">
           <div className="space-y-4">
-            <Input label="Group Name" placeholder="e.g. Performance Materials" />
-            <Input label="Description" placeholder="Business segment description" />
-            <Select label="Accent Colour" options={[{ value: 'teal', label: 'Teal' }, { value: 'blue', label: 'Blue' }, { value: 'purple', label: 'Purple' }, { value: 'amber', label: 'Amber' }, { value: 'green', label: 'Green' }]} defaultValue="teal" />
+            <Input label={t('orgStructure.addGroupModal.groupName')} placeholder={t('orgStructure.addGroupModal.groupNamePlaceholder')} />
+            <Input label={t('orgStructure.addGroupModal.description')} placeholder={t('orgStructure.addGroupModal.descriptionPlaceholder')} />
+            <Select label={t('orgStructure.addGroupModal.accentColour')} options={['teal', 'blue', 'purple', 'amber', 'green'].map(value => ({ value, label: t(`orgStructure.colours.${value}`) }))} defaultValue="teal" />
           </div>
-          <ModalFooter onClose={() => setModal(null)} label="Create Group" />
+          <ModalFooter onClose={() => setModal(null)} label={t('orgStructure.addGroupModal.submit')} />
         </Modal>
       )}
 
@@ -499,23 +529,23 @@ export default function OrgStructure() {
          ADD FACILITY MODAL
          ═══════════════════════════════════════ */}
       {modal === 'facility' && (
-        <Modal title="Add Facility" onClose={() => setModal(null)} width="max-w-lg">
+        <Modal title={t('orgStructure.addFacilityModal.title')} onClose={() => setModal(null)} width="max-w-lg">
           <div className="space-y-4">
-            <Input label="Facility Name" placeholder="e.g. Osaka Distribution Centre" />
+            <Input label={t('orgStructure.addFacilityModal.facilityName')} placeholder={t('orgStructure.addFacilityModal.facilityNamePlaceholder')} />
             <div className="grid grid-cols-2 gap-4">
-              <Select label="Business Group" options={groups.map(g => ({ value: g.id, label: g.name }))} />
-              <Select label="Facility Type" options={[{ value: 'Manufacturing', label: 'Manufacturing' }, { value: 'Refinery', label: 'Refinery' }, { value: 'Office', label: 'Office' }, { value: 'Warehouse', label: 'Warehouse' }, { value: 'Joint Venture', label: 'Joint Venture' }, { value: 'Laboratory', label: 'Laboratory' }, { value: 'Data Centre', label: 'Data Centre' }]} />
+              <Select label={t('orgStructure.addFacilityModal.businessGroup')} options={groups.map(g => ({ value: g.id, label: groupName(g.name) }))} />
+              <Select label={t('orgStructure.addFacilityModal.facilityType')} options={(['Manufacturing', 'Refinery', 'Office', 'Warehouse', 'Joint Venture', 'Laboratory', 'Data Centre'] as const).map(value => ({ value, label: facType(value) }))} />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Country" placeholder="e.g. Japan" />
-              <Input label="Country Code" placeholder="e.g. JP" />
+              <Input label={t('orgStructure.addFacilityModal.country')} placeholder={t('orgStructure.addFacilityModal.countryPlaceholder')} />
+              <Input label={t('orgStructure.addFacilityModal.countryCode')} placeholder={t('orgStructure.addFacilityModal.countryCodePlaceholder')} />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Grid Subregion" placeholder="e.g. JP-Kansai" />
-              <Input label="Headcount" type="number" placeholder="0" />
+              <Input label={t('orgStructure.addFacilityModal.gridSubregion')} placeholder={t('orgStructure.addFacilityModal.gridSubregionPlaceholder')} />
+              <Input label={t('orgStructure.addFacilityModal.headcount')} type="number" placeholder="0" />
             </div>
           </div>
-          <ModalFooter onClose={() => setModal(null)} label="Create Facility" />
+          <ModalFooter onClose={() => setModal(null)} label={t('orgStructure.addFacilityModal.submit')} />
         </Modal>
       )}
     </div>
@@ -543,9 +573,10 @@ function Modal({ title, onClose, width = 'max-w-md', children }: { title: string
 }
 
 function ModalFooter({ onClose, label }: { onClose: () => void; label: string }) {
+  const { t } = useTranslation()
   return (
     <div className="flex items-center justify-end gap-3 pt-5 mt-5 border-t border-[var(--border-subtle)]">
-      <button onClick={onClose} className="px-4 py-2 rounded-lg text-[var(--text-sm)] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer">Cancel</button>
+      <button onClick={onClose} className="px-4 py-2 rounded-lg text-[var(--text-sm)] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer">{t('common.cancel')}</button>
       <button onClick={onClose} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--bg-inverse)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--bg-inverse-soft)] active:scale-[0.97] transition-all cursor-pointer shadow-sm">
         <Check className="w-3.5 h-3.5" /> {label}
       </button>
@@ -557,6 +588,7 @@ function ModalFooter({ onClose, label }: { onClose: () => void; label: string })
    Facility Detail Modal
    ═══════════════════════════════════════════ */
 function FacilityModal({ fac, onClose }: { fac: Facility; onClose: () => void }) {
+  const { t, facType, sourceName, countryName } = useOrgLabels()
   const Icon = FAC_ICON[fac.type] || MapPin
   const st = STATUS[fac.status]
 
@@ -573,8 +605,8 @@ function FacilityModal({ fac, onClose }: { fac: Facility; onClose: () => void })
             <div>
               <h2 className="text-[var(--text-base)] font-bold text-[var(--text-primary)] leading-tight">{fac.name}</h2>
               <div className="flex items-center gap-2 mt-1">
-                <Badge variant={FAC_CLR[fac.type] || 'gray'}>{fac.type}</Badge>
-                <Badge variant={st.v} dot>{st.l}</Badge>
+                <Badge variant={FAC_CLR[fac.type] || 'gray'}>{facType(fac.type)}</Badge>
+                <Badge variant={st.v} dot>{t(st.labelKey)}</Badge>
               </div>
             </div>
           </div>
@@ -587,12 +619,12 @@ function FacilityModal({ fac, onClose }: { fac: Facility; onClose: () => void })
           {/* Info grid */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { l: 'Country', v: fac.country },
-              { l: 'Grid Region', v: fac.grid },
-              { l: 'Grid EF', v: `${fac.ef} kgCO₂e/kWh` },
-              { l: 'Headcount', v: fac.headcount.toLocaleString() },
-              { l: 'Emission Sources', v: String(fac.sources.length) },
-              { l: 'Facility Type', v: fac.type },
+              { l: t('orgStructure.facilityModal.country'), v: countryName(fac.countryCode, fac.country) },
+              { l: t('orgStructure.facilityModal.gridRegion'), v: fac.grid },
+              { l: t('orgStructure.facilityModal.gridEf'), v: `${fac.ef} kgCO₂e/kWh` },
+              { l: t('orgStructure.facilityModal.headcount'), v: fac.headcount.toLocaleString() },
+              { l: t('orgStructure.facilityModal.emissionSources'), v: String(fac.sources.length) },
+              { l: t('orgStructure.facilityModal.facilityType'), v: facType(fac.type) },
             ].map(m => (
               <div key={m.l} className="px-3 py-2.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
                 <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-medium">{m.l}</p>
@@ -603,14 +635,14 @@ function FacilityModal({ fac, onClose }: { fac: Facility; onClose: () => void })
 
           {/* Sources list */}
           <div>
-            <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mb-2">Registered Emission Sources</h3>
+            <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mb-2">{t('orgStructure.facilityModal.registeredSources')}</h3>
             <div className="space-y-1.5">
               {fac.sources.map(src => (
                 <div key={src.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-[var(--border-default)] hover:border-[var(--border-strong)] transition-colors">
                   <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0" style={{ backgroundColor: SCOPE_BG[src.scope] }}>
                     <Flame className="w-3.5 h-3.5" style={{ color: SCOPE_CLR[src.scope] }} />
                   </div>
-                  <span className="text-[var(--text-sm)] font-medium text-[var(--text-primary)] flex-1">{src.name}</span>
+                  <span className="text-[var(--text-sm)] font-medium text-[var(--text-primary)] flex-1">{sourceName(src.name)}</span>
                   <Badge variant={SCOPE_BADGE[src.scope]}>{src.scope}</Badge>
                   <span className="text-[10px] font-mono text-[var(--text-tertiary)]">{src.calculator}</span>
                 </div>
@@ -622,21 +654,21 @@ function FacilityModal({ fac, onClose }: { fac: Facility; onClose: () => void })
           <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-[var(--accent-blue-light)] border border-blue-100">
             <Info className="w-4 h-4 text-[var(--accent-blue)] flex-shrink-0 mt-0.5" />
             <p className="text-[var(--text-xs)] text-[var(--accent-blue)] leading-relaxed">
-              <strong>{fac.grid}</strong> — location-based EF: {fac.ef} kgCO₂e/kWh (IEA {COMPANY.reportingPeriod}). Market-based factors from supplier contracts are managed separately.
+              <strong>{fac.grid}</strong>{t('orgStructure.facilityModal.callout', { ef: fac.ef, period: t('orgStructure.company.reportingPeriod') })}
             </p>
           </div>
 
           {/* Actions */}
           <div className="flex items-center gap-3 pt-3 border-t border-[var(--border-subtle)]">
             <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[var(--border-default)] text-[var(--text-sm)] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-teal)] hover:text-[var(--accent-teal)] hover:bg-[var(--accent-teal-light)] transition-all cursor-pointer">
-              <Pencil className="w-3.5 h-3.5" /> Edit
+              <Pencil className="w-3.5 h-3.5" /> {t('common.edit')}
             </button>
             <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[var(--border-default)] text-[var(--text-sm)] font-medium text-[var(--text-secondary)] hover:border-[var(--accent-teal)] hover:text-[var(--accent-teal)] hover:bg-[var(--accent-teal-light)] transition-all cursor-pointer">
-              <Plus className="w-3.5 h-3.5" /> Add Source
+              <Plus className="w-3.5 h-3.5" /> {t('orgStructure.facilityModal.addSource')}
             </button>
             <div className="flex-1" />
             <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[var(--text-sm)] font-medium text-[var(--accent-red)] hover:bg-[var(--accent-red-light)] transition-all cursor-pointer">
-              <Trash2 className="w-3.5 h-3.5" /> Decommission
+              <Trash2 className="w-3.5 h-3.5" /> {t('orgStructure.facilityModal.decommission')}
             </button>
           </div>
         </div>

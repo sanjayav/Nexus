@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { Trans, useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { ShieldCheck, Upload, CheckCircle2, AlertCircle, Leaf, FileText, X } from 'lucide-react'
 import { submitAssuranceStatement } from '../lib/orgStore'
@@ -13,6 +14,7 @@ import { SPRING } from '../components/motion'
  */
 export default function AuditorUpload() {
   const { token = '' } = useParams<{ token: string }>()
+  const { t } = useTranslation()
   const [firm, setFirm] = useState('')
   const [signedBy, setSignedBy] = useState('')
   const [opinion, setOpinion] = useState<'limited' | 'reasonable'>('limited')
@@ -28,11 +30,11 @@ export default function AuditorUpload() {
     setError(null)
     if (!f) { setFile(null); return }
     if (f.type && f.type !== 'application/pdf') {
-      setError('Statement must be a PDF.')
+      setError(t('auditor.upload.mustBePdf'))
       return
     }
     if (f.size > 10 * 1024 * 1024) {
-      setError('PDF is larger than 10 MB — compress before uploading.')
+      setError(t('auditor.upload.tooLarge'))
       return
     }
     setFile(f)
@@ -40,7 +42,7 @@ export default function AuditorUpload() {
 
   const submit = async () => {
     setError(null)
-    if (!signedBy.trim()) return setError('Please enter the signing auditor name.')
+    if (!signedBy.trim()) return setError(t('auditor.upload.needSigner'))
     setSubmitting(true)
     try {
       let pdfB64: string | undefined
@@ -59,7 +61,7 @@ export default function AuditorUpload() {
       })
       setDone(true)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Submission failed')
+      setError(e instanceof Error ? e.message : t('auditor.upload.failed'))
     } finally {
       setSubmitting(false)
     }
@@ -81,7 +83,7 @@ export default function AuditorUpload() {
           <span className="font-display font-bold tracking-[-0.02em] text-[15px]">Nexus</span>
         </a>
         <span className="chip">
-          <ShieldCheck className="w-3 h-3" /> Assurance upload
+          <ShieldCheck className="w-3 h-3" /> {t('auditor.upload.chip')}
         </span>
       </header>
 
@@ -91,40 +93,40 @@ export default function AuditorUpload() {
             <div className="inline-flex w-16 h-16 rounded-full items-center justify-center mb-5" style={{ background: 'linear-gradient(135deg, #10B981, #2E7D32)', boxShadow: '0 6px 16px rgba(46,125,50,0.3)' }}>
               <CheckCircle2 className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-display text-[28px] text-[var(--text-primary)]">Statement received</h1>
+            <h1 className="text-display text-[28px] text-[var(--text-primary)]">{t('auditor.upload.receivedTitle')}</h1>
             <p className="text-[13.5px] text-[var(--text-secondary)] mt-3 max-w-md mx-auto leading-relaxed">
-              Thank you. Your signed assurance statement is hashed and stored. It will be embedded in the next published version of the report, and the draft watermark will be removed.
+              {t('auditor.upload.receivedBody')}
             </p>
-            <div className="text-[11px] text-[var(--text-tertiary)] mt-5">This upload link is now inactive.</div>
+            <div className="text-[11px] text-[var(--text-tertiary)] mt-5">{t('auditor.upload.inactive')}</div>
           </motion.div>
         ) : (
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={SPRING} className="surface-paper p-8">
-            <span className="kicker">Independent assurance</span>
-            <h1 className="text-display text-[28px] text-[var(--text-primary)] mt-1">Submit your signed statement</h1>
+            <span className="kicker">{t('auditor.upload.kicker')}</span>
+            <h1 className="text-display text-[28px] text-[var(--text-primary)] mt-1">{t('auditor.upload.title')}</h1>
             <p className="text-[13px] text-[var(--text-secondary)] mt-2 leading-relaxed">
-              You've been asked to provide an independent assurance opinion on a sustainability report. Fill in the details below and upload your signed statement PDF. A SHA-256 hash of the file will be stored alongside your record and the statement will be bound to the next published version of the report.
+              {t('auditor.upload.intro')}
             </p>
 
             <div className="hairline my-6" />
 
             <div className="space-y-4">
-              <Field label="Firm" value={firm} onChange={setFirm} placeholder="e.g. LRQA, Deloitte, EY" />
-              <Field label="Signing auditor name *" value={signedBy} onChange={setSignedBy} placeholder="Your full name" />
+              <Field label={t('auditor.upload.firm')} value={firm} onChange={setFirm} placeholder={t('auditor.upload.firmPlaceholder')} />
+              <Field label={t('auditor.upload.signer')} value={signedBy} onChange={setSignedBy} placeholder={t('auditor.upload.signerPlaceholder')} />
               <div>
-                <label className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">Level of assurance *</label>
+                <label className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{t('auditor.upload.level')}</label>
                 <div className="flex gap-1.5">
                   {(['limited', 'reasonable'] as const).map(o => (
                     <button key={o} onClick={() => setOpinion(o)} className={`chip flex-1 justify-center ${opinion === o ? 'chip-active' : ''}`}>
-                      {o === 'limited' ? 'Limited assurance' : 'Reasonable assurance'}
+                      {o === 'limited' ? t('auditor.upload.limited') : t('auditor.upload.reasonable')}
                     </button>
                   ))}
                 </div>
               </div>
-              <Field label="Assurance standard" value={isae} onChange={setIsae} placeholder="ISAE 3000 (Revised)" />
-              <Field label="Notes / conclusion excerpt (optional)" value={notes} onChange={setNotes} as="textarea" placeholder="A short excerpt from your conclusion — this will appear in the published report alongside the embedded PDF." />
+              <Field label={t('auditor.upload.standard')} value={isae} onChange={setIsae} placeholder="ISAE 3000 (Revised)" />
+              <Field label={t('auditor.upload.notes')} value={notes} onChange={setNotes} as="textarea" placeholder={t('auditor.upload.notesPlaceholder')} />
 
               <div>
-                <label className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">Signed assurance statement (PDF)</label>
+                <label className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{t('auditor.upload.statement')}</label>
                 <div
                   onDragOver={e => { e.preventDefault(); setDragging(true) }}
                   onDragLeave={() => setDragging(false)}
@@ -153,6 +155,7 @@ export default function AuditorUpload() {
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); e.preventDefault(); onFile(null) }}
+                        aria-label={t('auditor.upload.removeFile')}
                         className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-tertiary)] hover:bg-white hover:text-[var(--text-primary)]"
                       >
                         <X className="w-4 h-4" />
@@ -161,8 +164,8 @@ export default function AuditorUpload() {
                   ) : (
                     <div className="text-center">
                       <Upload className="w-6 h-6 text-[var(--text-tertiary)] mx-auto mb-2" />
-                      <div className="text-[13px] font-semibold text-[var(--text-primary)]">Drop PDF here or click to choose</div>
-                      <div className="text-[11.5px] text-[var(--text-tertiary)] mt-0.5">Max 10 MB. Optional — you can submit without a PDF and attach it later.</div>
+                      <div className="text-[13px] font-semibold text-[var(--text-primary)]">{t('auditor.upload.drop')}</div>
+                      <div className="text-[11.5px] text-[var(--text-tertiary)] mt-0.5">{t('auditor.upload.dropHint')}</div>
                     </div>
                   )}
                 </div>
@@ -178,10 +181,10 @@ export default function AuditorUpload() {
 
             <div className="mt-7 flex items-center justify-between gap-3">
               <p className="text-[10.5px] text-[var(--text-tertiary)] leading-snug max-w-xs">
-                By submitting you attest that the information above is accurate and that you're authorised to sign the statement.
+                {t('auditor.upload.attest')}
               </p>
               <Button variant="brand" size="md" icon={<ShieldCheck className="w-4 h-4" />} onClick={submit} loading={submitting}>
-                Submit statement
+                {t('auditor.upload.submit')}
               </Button>
             </div>
           </motion.div>
@@ -189,7 +192,7 @@ export default function AuditorUpload() {
       </main>
 
       <footer className="text-center py-8 text-[11.5px] text-[var(--text-tertiary)]">
-        Nexus · Secure assurance upload · Powered by <a href="/" className="link-underline text-[var(--color-brand)] hover:text-[var(--color-brand-strong)]">Aeiforo</a>
+        <Trans i18nKey="auditor.upload.footer" components={{ a: <a href="/" className="link-underline text-[var(--color-brand)] hover:text-[var(--color-brand-strong)]" /> }} />
       </footer>
     </div>
   )

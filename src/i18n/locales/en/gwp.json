@@ -1,0 +1,89 @@
+{
+  "title": "GWP Values",
+  "subtitle": "Global Warming Potential reference table. IPCC AR5 & AR6 values for GHG inventory calculations.",
+  "actions": {
+    "exportCsv": "Export CSV",
+    "addGas": "Add Gas"
+  },
+  "kpi": {
+    "totalGases": "Total Gases",
+    "highGwp": "High GWP (>1000)",
+    "kigali": "Kigali Regulated",
+    "categories": "Categories",
+    "highestGwp": "Highest GWP"
+  },
+  "tabs": {
+    "all": "All Gases",
+    "common": "Common GHGs",
+    "hfc": "HFCs",
+    "pfc": "PFCs",
+    "blends": "Blends",
+    "natural": "Natural"
+  },
+  "categories": {
+    "commonGhg": "Common GHG",
+    "hfc": "HFC",
+    "pfc": "PFC",
+    "fluorinated": "Fluorinated",
+    "refrigerantBlend": "Refrigerant Blend",
+    "naturalRefrigerant": "Natural Refrigerant"
+  },
+  "searchPlaceholder": "Search by name, formula, or CAS number...",
+  "allCategories": "All Categories",
+  "showingPrefix": "Showing ",
+  "showingSuffix": " of {{total}} gases",
+  "horizonSuffix": " ({{horizon}}, {{ar}})",
+  "table": {
+    "substance": "Substance",
+    "formula": "Formula",
+    "cas": "CAS No.",
+    "category": "Category",
+    "lifetime": "Lifetime"
+  },
+  "commonBadge": "Common",
+  "copyGwp": "Copy GWP",
+  "ar5ToAr6Change": "AR5 → AR6 Change",
+  "na": "N/A",
+  "source": "Source",
+  "lifetime": {
+    "variable": "Variable",
+    "days": "Days",
+    "years": "{{n}} years",
+    "nDays": "{{n}} days"
+  },
+  "notes": {
+    "gwp-002": "AR6 includes climate-carbon feedback. Fossil vs biogenic distinction introduced.",
+    "gwp-003": "Biogenic methane has slightly lower GWP due to carbon cycle accounting.",
+    "gwp-006": "Used in R-410A blend. Low-GWP alternative to R-22.",
+    "gwp-008": "Most widely used automotive refrigerant. Being phased down under Kigali Amendment.",
+    "gwp-013": "Extremely long atmospheric lifetime. Primary PFC from aluminium smelting.",
+    "gwp-016": "Highest GWP of any gas measured. Used in electrical switchgear. F-gas regulations apply.",
+    "gwp-018": "HFC-125/143a/134a (44/52/4%). Common in commercial refrigeration. Being phased down.",
+    "gwp-019": "HFC-32/125 (50/50%). Standard in air conditioning. R-32 is lower-GWP single-component alternative.",
+    "gwp-022": "Natural refrigerant with near-zero GWP. Flammable (A3 safety class).",
+    "gwp-024": "Zero GWP. Toxic and flammable but widely used in industrial refrigeration."
+  },
+  "empty": "No gases match your search.",
+  "reference": {
+    "title": "GWP Reference Notes",
+    "horizonTitle": "GWP-100 vs GWP-20",
+    "horizonDesc": "GWP-100 is the standard for GHG inventories (GHG Protocol, CDP). GWP-20 shows short-term warming impact — methane is 82.5x CO₂ over 20 years vs 29.8x over 100 years.",
+    "arTitle": "AR5 vs AR6",
+    "arDesc": "IPCC AR6 (2021) updated GWP values. Most frameworks still accept AR5, but CDP 2025+ and CSRD/ESRS require AR6. Check framework guidance.",
+    "kigaliTitle": "Kigali Amendment",
+    "kigaliDesc": "HFCs are being phased down under the Kigali Amendment to the Montreal Protocol. Report HFC usage for compliance tracking and transition planning."
+  },
+  "modal": {
+    "title": "Add Greenhouse Gas",
+    "gasName": "Gas Name",
+    "gasNamePlaceholder": "e.g. HFC-32",
+    "formula": "Chemical Formula",
+    "formulaPlaceholder": "e.g. CH₂F₂",
+    "cas": "CAS Number",
+    "casPlaceholder": "e.g. 75-10-5",
+    "category": "Category",
+    "lifetime": "Atmospheric Lifetime",
+    "lifetimePlaceholder": "e.g. 11.8 years",
+    "submit": "Add Gas"
+  }
+}

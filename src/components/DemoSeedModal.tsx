@@ -3,6 +3,7 @@ import {
   Database, X, CheckCircle2, AlertTriangle, Loader2,
   Building2, Target as TargetIcon, Scale, Calendar, Sparkles,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { orgStore } from '../lib/orgStore'
 import { useFramework } from '../lib/frameworks'
 
@@ -20,15 +21,16 @@ interface Props {
  * who want to onboard manually.
  */
 export default function DemoSeedModal({ onClose, onCompleted }: Props) {
+  const { t } = useTranslation()
   const { active: framework } = useFramework()
   const [seeding, setSeeding] = useState<SeedStep | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const SEED_STAGES: { key: SeedStep; icon: typeof Building2; label: string }[] = [
-    { key: 'org',         icon: Building2,  label: 'Organisation tree (group + 3 subsidiaries + 3 plants)' },
-    { key: 'targets',     icon: TargetIcon, label: 'Climate targets (SBTi + net-zero)' },
-    { key: 'materiality', icon: Scale,      label: 'Material topics (5 priority issues)' },
-    { key: 'period',      icon: Calendar,   label: 'FY2025 reporting cycle' },
+    { key: 'org',         icon: Building2,  label: t('components.demoSeed.stages.org') },
+    { key: 'targets',     icon: TargetIcon, label: t('components.demoSeed.stages.targets') },
+    { key: 'materiality', icon: Scale,      label: t('components.demoSeed.stages.materiality') },
+    { key: 'period',      icon: Calendar,   label: t('components.demoSeed.stages.period') },
   ]
 
   const seed = async () => {
@@ -89,8 +91,8 @@ export default function DemoSeedModal({ onClose, onCompleted }: Props) {
         { topic_name: 'Circular economy & product stewardship', topic_category: 'Environmental', linked_gri_codes: ['301-1','301-2','306-3'],          impact_score: 4, financial_score: 4, dma_status: 'material' as const },
         { topic_name: 'Business ethics & anti-corruption',      topic_category: 'Governance',    linked_gri_codes: ['205-2','205-3'],                   impact_score: 4, financial_score: 4, dma_status: 'material' as const },
       ]
-      for (const t of topics) {
-        await orgStore.upsertMaterialTopic({ framework_id: framework.id, ...t })
+      for (const topic of topics) {
+        await orgStore.upsertMaterialTopic({ framework_id: framework.id, ...topic })
       }
 
       // ── Step 4: reporting period ──
@@ -111,7 +113,7 @@ export default function DemoSeedModal({ onClose, onCompleted }: Props) {
         onClose()
       }, 700)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Seed failed')
+      setError(e instanceof Error ? e.message : t('components.demoSeed.seedFailed'))
       setSeeding(null)
     }
   }
@@ -136,10 +138,10 @@ export default function DemoSeedModal({ onClose, onCompleted }: Props) {
             </div>
             <div className="min-w-0">
               <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">
-                Load demo sample
+                {t('components.demoSeed.title')}
               </h3>
               <p className="text-[11.5px] text-[var(--text-tertiary)]">
-                Pre-fills your workspace so you can demo every flow in seconds.
+                {t('components.demoSeed.subtitle')}
               </p>
             </div>
           </div>
@@ -157,7 +159,7 @@ export default function DemoSeedModal({ onClose, onCompleted }: Props) {
           {idle && (
             <>
               <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed mb-4">
-                This will create the following in your workspace. Existing data isn't touched. You can keep, edit, or delete anything afterwards.
+                {t('components.demoSeed.intro')}
               </p>
               <div className="space-y-2 mb-5">
                 {SEED_STAGES.map(stage => {
@@ -178,7 +180,7 @@ export default function DemoSeedModal({ onClose, onCompleted }: Props) {
               <div className="flex items-center gap-2 p-3 rounded-[8px] bg-[var(--accent-teal-subtle)]/40 border border-[var(--accent-teal-subtle)]">
                 <Sparkles className="w-3.5 h-3.5 text-[var(--color-brand)] flex-shrink-0" />
                 <span className="text-[11.5px] text-[var(--text-secondary)]">
-                  Recommended for demos. Skip if you want to onboard manually — every step is also available in the Setup guide.
+                  {t('components.demoSeed.recommended')}
                 </span>
               </div>
             </>
@@ -220,15 +222,15 @@ export default function DemoSeedModal({ onClose, onCompleted }: Props) {
                     >
                       {stage.label}
                     </div>
-                    {isActive && <span className="text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--color-brand)]">Working…</span>}
-                    {isDone && <span className="text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--status-ok)]">Done</span>}
+                    {isActive && <span className="text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--color-brand)]">{t('components.demoSeed.working')}</span>}
+                    {isDone && <span className="text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--status-ok)]">{t('components.demoSeed.done')}</span>}
                   </div>
                 )
               })}
               {seeding === 'done' && (
                 <div className="flex items-center gap-2 p-3 rounded-[10px] bg-[var(--accent-green-light)] border border-[rgba(46,125,50,0.3)] mt-2">
                   <CheckCircle2 className="w-5 h-5 text-[var(--status-ok)]" />
-                  <span className="text-[13px] font-semibold text-[var(--status-ok)]">All set. Closing…</span>
+                  <span className="text-[13px] font-semibold text-[var(--status-ok)]">{t('components.demoSeed.allSet')}</span>
                 </div>
               )}
             </div>
@@ -238,7 +240,7 @@ export default function DemoSeedModal({ onClose, onCompleted }: Props) {
             <div className="flex items-start gap-3 p-4 rounded-[10px] bg-[var(--accent-red-light)] border border-[rgba(220,38,38,0.3)]">
               <AlertTriangle className="w-5 h-5 text-[var(--status-reject)] flex-shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
-                <div className="text-[13.5px] font-semibold text-[var(--text-primary)]">Couldn't seed the workspace</div>
+                <div className="text-[13.5px] font-semibold text-[var(--text-primary)]">{t('components.demoSeed.couldNotSeed')}</div>
                 <div className="text-[12px] text-[var(--text-secondary)] mt-1 break-words">{error}</div>
               </div>
             </div>
@@ -252,13 +254,13 @@ export default function DemoSeedModal({ onClose, onCompleted }: Props) {
                 onClick={onClose}
                 className="flex-1 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-[13px] font-semibold hover:bg-[var(--bg-secondary)] cursor-pointer"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={seed}
                 className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--color-brand)] text-white text-[13px] font-semibold hover:bg-[var(--color-brand-strong)] active:scale-[0.98] transition-all cursor-pointer"
               >
-                <Database className="w-3.5 h-3.5" /> Load sample data
+                <Database className="w-3.5 h-3.5" /> {t('components.demoSeed.load')}
               </button>
             </>
           )}
@@ -268,13 +270,13 @@ export default function DemoSeedModal({ onClose, onCompleted }: Props) {
                 onClick={onClose}
                 className="flex-1 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-[13px] font-semibold hover:bg-[var(--bg-secondary)] cursor-pointer"
               >
-                Close
+                {t('common.close')}
               </button>
               <button
                 onClick={() => { setError(null); seed() }}
                 className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--color-brand)] text-white text-[13px] font-semibold hover:bg-[var(--color-brand-strong)] cursor-pointer"
               >
-                Try again
+                {t('components.errorBoundary.tryAgain')}
               </button>
             </>
           )}

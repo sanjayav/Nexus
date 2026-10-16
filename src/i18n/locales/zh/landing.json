@@ -1,0 +1,136 @@
+{
+  "hero": {
+    "eyebrow": "重新定义 ESG 报告",
+    "titleLead": "披露工作不该耗时六个月。",
+    "titleAccent": "Nexus 两天即可完成。",
+    "subtitle": "一个平台，覆盖所有框架——CSRD、ISSB、GRI、TCFD、CDP、SEC、欧盟分类法等。随时满足审计要求，从设计之初即以 ESG 为核心。",
+    "trust": {
+      "noSalesCall": "无需销售电话",
+      "transparentPricing": "价格公开透明",
+      "csrdReady": "2 天完成 CSRD 披露准备",
+      "frameworks": "24 个框架",
+      "blockchain": "区块链审计追踪"
+    }
+  },
+  "versus": {
+    "legacyLabel": "传统 ESG 平台",
+    "timeToDraft": {
+      "label": "首份草稿用时",
+      "legacy": "6 个月以上",
+      "nexus": "2 天"
+    },
+    "implementationCost": {
+      "label": "实施成本",
+      "legacy": "$100K+ 服务费",
+      "nexus": "无开通费用"
+    },
+    "pricing": {
+      "label": "定价方式",
+      "legacy": "需单独询价",
+      "nexus": "团队版 £500/月"
+    }
+  },
+  "pillars": {
+    "eyebrow": "为什么选择 Nexus",
+    "heading": "可持续发展团队最看重的三件事。",
+    "subheading": "这也恰恰是其他工具始终没能做好的三件事。我们重构了整个技术栈，让每一项都成为核心能力。",
+    "compliance": {
+      "title": "合规级报告",
+      "body": "开箱即用支持 CSRD、ISSB、GRI、TCFD、CDP、SEC。每一项披露均可审计，并通过区块链锚定的追踪链路回溯至原始数据点。",
+      "link": "查看支持的框架"
+    },
+    "ai": {
+      "title": "AI 自动起草与提取",
+      "body": "基于 Claude 的叙述生成、从供应商 PDF 中提取证据，以及供应商与排放因子的智能匹配。每一个数字均由人工审批确认。",
+      "link": "了解 AI 如何运作"
+    },
+    "linkedData": {
+      "title": "数据互联，唯一可信来源",
+      "body": "数值只需修改一次，即可自动同步到其出现的每个框架、每项披露和每张图表。审计师赞不绝口，分析师也不必再加班到深夜。",
+      "link": "探索数据模型"
+    }
+  },
+  "testimonial": {
+    "eyebrow": "客户故事",
+    "quote": "Nexus 将我们的披露周期从 6 周缩短到 4 天。它的关联数据模型，正是我们如果有足够人手就会自行搭建的架构。",
+    "author": "Demo Co 可持续发展负责人（占位示例，待获得真实客户评价后替换）"
+  },
+  "capabilities": {
+    "eyebrow": "完整工具集",
+    "heading": "ESG 团队所需的一切，尽在一处。",
+    "workflow": {
+      "title": "工作流与审批",
+      "body": "多级审核链，支持 SO / TL / PM 角色及自动升级。"
+    },
+    "emissionFactors": {
+      "title": "排放因子库",
+      "body": "涵盖 DEFRA、EPA、IPCC 及自定义因子。版本化管理，审计可追溯，始终保持最新。"
+    },
+    "blockchain": {
+      "title": "区块链审计追踪",
+      "body": "每个已发布的数值都会生成防篡改哈希，任何人都可凭令牌进行验证。"
+    },
+    "sso": {
+      "title": "SAML 单点登录与 SCIM",
+      "body": "支持 Azure AD、Okta、Google Workspace、JumpCloud，并内置 SCIM 自动预配。"
+    },
+    "spreadsheets": {
+      "title": "类 Excel 电子表格",
+      "body": "批量录入体验如同 Excel——支持数据校验、公式和一键导入。"
+    },
+    "residency": {
+      "title": "多区域数据驻留",
+      "body": "支持欧盟和美国数据驻留。如需完全掌控，可通过我们的 Terraform 模块自行托管。"
+    }
+  },
+  "tiers": {
+    "starter": {
+      "description": "适合单个团队试用验证平台。",
+      "f1": "1 个工作区，最多 3 名用户",
+      "f2": "仅支持 GRI 框架",
+      "f3": "每年最多 100 项披露"
+    },
+    "team": {
+      "cadence": "/月，按年计费",
+      "description": "覆盖全部框架的正式生产使用。",
+      "f1": "不限用户数",
+      "f2": "全部框架（CSRD、ISSB、GRI、TCFD、CDP、SEC）",
+      "f3": "单点登录、审计追踪、证据库"
+    },
+    "enterprise": {
+      "description": "适合集团企业、受监管行业及本地部署需求。",
+      "f1": "专属客户成功经理与上线支持",
+      "f2": "可选本地部署或私有云",
+      "f3": "定制 DPA、SLA 及高级支持"
+    }
+  },
+  "faq": {
+    "workiva": {
+      "q": "Nexus 与 Workiva 相比有何不同？",
+      "a": "我们专注于可持续发展报告这一领域，因此能在排放因子、供应商数据以及各框架特有的披露逻辑上做得更深入。对于规模相当的团队，我们的价格也仅为 Workiva 的一小部分。完整、客观的逐项对比请参阅 /compare 页面。"
+    },
+    "frameworks": {
+      "q": "支持哪些框架？",
+      "a": "CSRD/ESRS、ISSB（IFRS S1 和 S2）、GRI 通用标准及行业标准、TCFD、CDP（气候、水安全、森林）、SEC 气候披露以及 SASB。共计 24 个框架，并会随新框架的成熟持续增加。"
+    },
+    "timeline": {
+      "q": "实施周期需要多久？",
+      "a": "大多数团队可在 48 小时内通过自助方式获得 CSRD 就绪的草稿。无需顾问，也无需支付专业服务费用。逐小时的详细流程请参阅 /how-it-works。"
+    },
+    "storage": {
+      "q": "数据存储在哪里？",
+      "a": "默认存储在欧盟（法兰克福），也可应要求存储在美国（弗吉尼亚）。通过我们的 Terraform 模块自行托管时，系统将部署到您自己的 AWS / Azure / GCP 项目中——数据始终不会离开您的 VPC。"
+    },
+    "residency": {
+      "q": "是否支持欧盟和美国的数据驻留？",
+      "a": "支持。团队版即可使用这两个区域，并保证区域间数据隔离。企业版客户还可增加其他区域或采用本地部署。"
+    },
+    "api": {
+      "q": "是否提供 API？",
+      "a": "提供。采用 REST + JSON，全面版本化。界面中的每项操作均可通过 API 完成，包括证据上传、披露发布和验证。Python 和 TypeScript SDK 目前处于测试阶段。"
+    }
+  },
+  "ctaBand": {
+    "heading": "告别动辄六个月的周期，两天即可启动。"
+  }
+}

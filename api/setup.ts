@@ -20,6 +20,11 @@ import { seedSECClimate } from './_secClimateSeed.js'
 import { seedCASB253 } from './_caSb253Seed.js'
 import { seedCASB261 } from './_caSb261Seed.js'
 import { seedEUTaxonomy } from './_euTaxonomySeed.js'
+import { seedCNSSE } from './_cnSseSeed.js'
+import { seedCNCSDS } from './_cnCsdsSeed.js'
+import { seedHKEXESG } from './_hkexEsgSeed.js'
+import { seedCASSESG } from './_cassEsgSeed.js'
+import { seedCnEmissionFactors } from './_efCnFactors.js'
 import { seedConnectorTemplates } from './_connectorSeed.js'
 import { seedConceptMappings } from './_conceptSeed.js'
 
@@ -338,6 +343,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       created_at TIMESTAMPTZ DEFAULT now(),
       UNIQUE(gri_code, line_item, scope_split, reporting_scope)
     )`
+    // Optional Simplified Chinese wording for a questionnaire item. line_item
+    // stays the canonical (English) text and part of the UNIQUE key above.
+    await sql`ALTER TABLE questionnaire_item ADD COLUMN IF NOT EXISTS line_item_zh TEXT`
 
     await sql`CREATE TABLE IF NOT EXISTS reporting_year (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1299,6 +1307,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ON CONFLICT DO NOTHING
       `
     }
+    // Mainland China factors (MEE grid, GB/T 32150 fuels). Insert-only; never
+    // overwrites existing rows.
+    await seedCnEmissionFactors(sql)
 
     // ═══════════════════════════════════════════
     // CSRD ESRS E1 — climate-change disclosure datapoint catalogue.
@@ -1329,6 +1340,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await seedCASB253(sql)
     await seedCASB261(sql)
     await seedEUTaxonomy(sql)
+    // China / Hong Kong framework pack. These carry Simplified Chinese wording
+    // in questionnaire_item.line_item_zh and, unlike the seeders above, do NOT
+    // enable themselves for any org — tenants opt in via Settings → Frameworks.
+    await seedCNSSE(sql)
+    await seedCNCSDS(sql)
+    await seedHKEXESG(sql)
+    await seedCASSESG(sql)
     await seedConnectorTemplates(sql)
 
     // ═══════════════════════════════════════════

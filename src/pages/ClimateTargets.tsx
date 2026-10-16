@@ -9,6 +9,7 @@ import { Card, Badge } from '../design-system'
 import { orgStore, type OrgTarget } from '../lib/orgStore'
 import { useFramework } from '../lib/frameworks'
 import JargonTooltip from '../components/JargonTooltip'
+import { Trans, useTranslation } from 'react-i18next'
 
 type TargetKind = OrgTarget['kind']
 type TargetStatus = OrgTarget['status']
@@ -29,8 +30,25 @@ const STATUS_META: Record<TargetStatus, { label: string; badge: 'teal' | 'blue' 
 
 const SCOPE_OPTIONS = ['Scope 1', 'Scope 1+2', 'Scope 1+2+3', 'Scope 3 only']
 
+// Scope values are persisted as-is; only the display label is localised.
+const SCOPE_KEY: Record<string, string> = {
+  'Scope 1': 'scope1',
+  'Scope 1+2': 'scope12',
+  'Scope 1+2+3': 'scope123',
+  'Scope 3 only': 'scope3Only',
+}
+
+type TFn = ReturnType<typeof useTranslation>['t']
+
+const kindLabel = (t: TFn, k: TargetKind) => t(`climateTargets.kinds.${k}.label`, { defaultValue: KIND_META[k].label })
+const kindHelper = (t: TFn, k: TargetKind) => t(`climateTargets.kinds.${k}.helper`, { defaultValue: KIND_META[k].helper })
+const statusLabel = (t: TFn, s: TargetStatus) => t(`climateTargets.status.${s}`, { defaultValue: STATUS_META[s].label })
+const scopeLabel = (t: TFn, s: string) => (SCOPE_KEY[s] ? t(`climateTargets.scopes.${SCOPE_KEY[s]}`, { defaultValue: s }) : s)
+const numLocale = (lng: string | undefined) => (lng?.startsWith('zh') ? 'zh-CN' : undefined)
+
 export default function ClimateTargets() {
   const { active: framework } = useFramework()
+  const { t } = useTranslation()
   const [targets, setTargets] = useState<OrgTarget[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -47,14 +65,14 @@ export default function ClimateTargets() {
     setLoading(true)
     setError(null)
     try {
-      const t = await orgStore.listTargets()
-      setTargets(t)
+      const list = await orgStore.listTargets()
+      setTargets(list)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load targets')
+      setError(e instanceof Error ? e.message : t('climateTargets.loadError.fallback'))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => { load() }, [load])
 
@@ -62,7 +80,7 @@ export default function ClimateTargets() {
     const out: Record<TargetKind, OrgTarget[]> = {
       sbti_near_term: [], sbti_long_term: [], net_zero: [], custom: [],
     }
-    for (const t of targets) out[t.kind].push(t)
+    for (const tg of targets) out[tg.kind].push(tg)
     return out
   }, [targets])
 
@@ -82,22 +100,22 @@ export default function ClimateTargets() {
         status: input.status,
         notes: input.notes || null,
       })
-      showToast('ok', id ? 'Target updated' : 'Target created')
+      showToast('ok', id ? t('climateTargets.toast.updated') : t('climateTargets.toast.created'))
       setEditing(null)
       load()
     } catch (e) {
-      showToast('err', e instanceof Error ? e.message : 'Save failed')
+      showToast('err', e instanceof Error ? e.message : t('climateTargets.toast.saveFailed'))
     }
   }
 
-  async function removeTarget(t: OrgTarget) {
+  async function removeTarget(target: OrgTarget) {
     try {
-      await orgStore.removeTarget(t.id)
-      showToast('ok', `${t.label} removed`)
+      await orgStore.removeTarget(target.id)
+      showToast('ok', t('climateTargets.toast.removed', { label: target.label }))
       setDeleting(null)
       load()
     } catch (e) {
-      showToast('err', e instanceof Error ? e.message : 'Remove failed')
+      showToast('err', e instanceof Error ? e.message : t('climateTargets.toast.removeFailed'))
     }
   }
 
@@ -107,21 +125,21 @@ export default function ClimateTargets() {
 
       <PageHeader
         breadcrumbs={[
-          { label: 'Strategy' },
-          { label: 'Climate targets' },
+          { label: t('climateTargets.breadcrumbs.strategy') },
+          { label: t('climateTargets.breadcrumbs.climateTargets') },
         ]}
-        eyebrow="Strategy"
-        title="Climate targets"
+        eyebrow={t('climateTargets.eyebrow')}
+        title={t('climateTargets.title')}
         subtitle={(
           <>
-            Set the decarbonisation goals this workspace reports against. Validated targets feed the dashboard{' '}
-            <JargonTooltip term="SBTi">Science Based Targets initiative — global standard for setting climate targets that align with the latest climate science (1.5°C / well-below 2°C). Validated targets are independently reviewed by SBTi.</JargonTooltip>
-            {' '}tracker and the GRI 305-5 disclosure.
+            {t('climateTargets.subtitleBefore')}
+            <JargonTooltip term="SBTi">{t('climateTargets.sbtiTooltip')}</JargonTooltip>
+            {t('climateTargets.subtitleAfter')}
           </>
         )}
         actions={
           <Button variant="brand" size="md" icon={<Plus className="w-4 h-4" />} onClick={() => setEditing('new')}>
-            Add target
+            {t('climateTargets.addTarget')}
           </Button>
         }
       />
@@ -133,9 +151,9 @@ export default function ClimateTargets() {
           <div className="flex items-start gap-3 py-4">
             <AlertTriangle className="w-5 h-5 text-[var(--status-reject)] flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <div className="text-[14px] font-semibold text-[var(--text-primary)]">Couldn't load targets</div>
+              <div className="text-[14px] font-semibold text-[var(--text-primary)]">{t('climateTargets.loadError.title')}</div>
               <div className="text-[12px] text-[var(--text-secondary)] mt-1">{error}</div>
-              <button onClick={load} className="text-[12px] font-semibold text-[var(--color-brand)] hover:underline mt-2 cursor-pointer">Try again</button>
+              <button onClick={load} className="text-[12px] font-semibold text-[var(--color-brand)] hover:underline mt-2 cursor-pointer">{t('climateTargets.loadError.retry')}</button>
             </div>
           </div>
         </Card>
@@ -156,17 +174,17 @@ export default function ClimateTargets() {
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-1 h-5 rounded-full" style={{ background: meta.accent }} />
                   <div className="flex-1">
-                    <h2 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{meta.label}</h2>
-                    <p className="text-[11.5px] text-[var(--text-tertiary)] leading-relaxed">{meta.helper}</p>
+                    <h2 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{kindLabel(t, kind)}</h2>
+                    <p className="text-[11.5px] text-[var(--text-tertiary)] leading-relaxed">{kindHelper(t, kind)}</p>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  {list.map(t => (
+                  {list.map(tg => (
                     <TargetCard
-                      key={t.id}
-                      target={t}
-                      onEdit={() => setEditing(t)}
-                      onRemove={() => setDeleting(t)}
+                      key={tg.id}
+                      target={tg}
+                      onEdit={() => setEditing(tg)}
+                      onRemove={() => setDeleting(tg)}
                     />
                   ))}
                 </div>
@@ -183,7 +201,10 @@ export default function ClimateTargets() {
             <Sparkles className="w-4 h-4" />
           </div>
           <div className="flex-1 text-[12.5px] text-[var(--text-secondary)] leading-relaxed">
-            <strong className="text-[var(--text-primary)]">Tip — what auditors look for:</strong> a near-term SBTi target should be a reduction of at least <strong>42% absolute by 2030</strong> (1.5°C-aligned) versus a recent baseline. Long-term should reach <strong>net-zero by 2050</strong> with at least 90% absolute cuts. Anything weaker won't validate.
+            <Trans
+              i18nKey="climateTargets.tip"
+              components={{ lead: <strong className="text-[var(--text-primary)]" />, b: <strong /> }}
+            />
           </div>
         </div>
       </Card>
@@ -206,6 +227,8 @@ export default function ClimateTargets() {
 /* ─── Sub-components ───────────────────────────────────────── */
 
 function TargetCard({ target, onEdit, onRemove }: { target: OrgTarget; onEdit: () => void; onRemove: () => void }) {
+  const { t, i18n } = useTranslation()
+  const locale = numLocale(i18n.language)
   const meta = KIND_META[target.kind]
   const status = STATUS_META[target.status]
   return (
@@ -215,22 +238,22 @@ function TargetCard({ target, onEdit, onRemove }: { target: OrgTarget; onEdit: (
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.005em] truncate">{target.label}</h3>
-            <Badge variant={status.badge}>{status.label}</Badge>
+            <Badge variant={status.badge}>{statusLabel(t, target.status)}</Badge>
           </div>
-          <div className="text-[11.5px] text-[var(--text-tertiary)] mt-1">{target.scope_coverage}</div>
+          <div className="text-[11.5px] text-[var(--text-tertiary)] mt-1">{scopeLabel(t, target.scope_coverage)}</div>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
           <button
             onClick={onEdit}
             className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
-            title="Edit"
+            title={t('common.edit')}
           >
             <Pencil className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={onRemove}
             className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--status-reject)] hover:bg-[var(--accent-red-light)] transition-colors cursor-pointer"
-            title="Remove"
+            title={t('climateTargets.card.remove')}
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
@@ -238,9 +261,9 @@ function TargetCard({ target, onEdit, onRemove }: { target: OrgTarget; onEdit: (
       </div>
 
       <div className="grid grid-cols-3 gap-3 text-center">
-        <Stat label="Baseline" primary={`${target.baseline_value.toLocaleString()}`} secondary={`${target.baseline_unit} · ${target.baseline_year}`} accent={meta.accent} />
-        <Stat label="Reduction" primary={`-${target.target_reduction_pct}%`} secondary={`by ${target.target_year}`} accent={meta.accent} highlight />
-        <Stat label="Target" primary={`${(target.baseline_value * (1 - target.target_reduction_pct / 100)).toLocaleString(undefined, { maximumFractionDigits: 1 })}`} secondary={`${target.baseline_unit} · ${target.target_year}`} accent={meta.accent} />
+        <Stat label={t('climateTargets.card.baseline')} primary={`${target.baseline_value.toLocaleString(locale)}`} secondary={`${target.baseline_unit} · ${target.baseline_year}`} accent={meta.accent} />
+        <Stat label={t('climateTargets.card.reduction')} primary={`-${target.target_reduction_pct}%`} secondary={t('climateTargets.card.by', { year: target.target_year })} accent={meta.accent} highlight />
+        <Stat label={t('climateTargets.card.target')} primary={`${(target.baseline_value * (1 - target.target_reduction_pct / 100)).toLocaleString(locale, { maximumFractionDigits: 1 })}`} secondary={`${target.baseline_unit} · ${target.target_year}`} accent={meta.accent} />
       </div>
 
       {target.notes && (
@@ -251,7 +274,7 @@ function TargetCard({ target, onEdit, onRemove }: { target: OrgTarget; onEdit: (
 
       {target.validated_by && (
         <div className="mt-3 inline-flex items-center gap-1.5 text-[11px] text-[var(--status-ok)]">
-          <ShieldCheck className="w-3 h-3" /> Validated by {target.validated_by}
+          <ShieldCheck className="w-3 h-3" /> {t('climateTargets.card.validatedBy', { name: target.validated_by })}
         </div>
       )}
     </div>
@@ -269,6 +292,7 @@ function Stat({ label, primary, secondary, accent, highlight }: { label: string;
 }
 
 function Empty({ onAdd }: { onAdd: () => void }) {
+  const { t } = useTranslation()
   return (
     <Card>
       <div className="flex flex-col items-center text-center py-12 gap-3">
@@ -276,13 +300,13 @@ function Empty({ onAdd }: { onAdd: () => void }) {
           <TargetIcon className="w-6 h-6" />
         </div>
         <div>
-          <h3 className="font-display text-[16px] font-semibold text-[var(--text-primary)]">No climate targets yet</h3>
+          <h3 className="font-display text-[16px] font-semibold text-[var(--text-primary)]">{t('climateTargets.empty.title')}</h3>
           <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 max-w-sm">
-            Set a near-term SBTi target so your dashboard, reports, and assurance flow can track real progress.
+            {t('climateTargets.empty.body')}
           </p>
         </div>
         <button onClick={onAdd} className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[8px] bg-[var(--color-brand)] text-white text-[12.5px] font-semibold hover:bg-[var(--color-brand-strong)] cursor-pointer">
-          <Plus className="w-3.5 h-3.5" /> Add your first target
+          <Plus className="w-3.5 h-3.5" /> {t('climateTargets.empty.addFirst')}
         </button>
       </div>
     </Card>
@@ -340,6 +364,8 @@ function TargetEditor({ initial, onCancel, onSave }: {
   onCancel: () => void
   onSave: (f: TargetForm) => void
 }) {
+  const { t, i18n } = useTranslation()
+  const locale = numLocale(i18n.language)
   const isEdit = !!initial
   const thisYear = new Date().getFullYear()
 
@@ -377,8 +403,8 @@ function TargetEditor({ initial, onCancel, onSave }: {
               <TargetIcon className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{isEdit ? 'Edit climate target' : 'Add climate target'}</h3>
-              <p className="text-[11.5px] text-[var(--text-tertiary)]">Targets feed the dashboard, reports, and assurance review.</p>
+              <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{isEdit ? t('climateTargets.editor.editTitle') : t('climateTargets.editor.addTitle')}</h3>
+              <p className="text-[11.5px] text-[var(--text-tertiary)]">{t('climateTargets.editor.subtitle')}</p>
             </div>
           </div>
           <button onClick={onCancel} className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer"><X className="w-4 h-4" /></button>
@@ -386,7 +412,7 @@ function TargetEditor({ initial, onCancel, onSave }: {
 
         <div className="flex-1 overflow-y-auto p-5 space-y-4">
           {/* Kind picker */}
-          <Field label="Target kind">
+          <Field label={t('climateTargets.editor.kind')}>
             <div className="grid grid-cols-2 gap-2">
               {(Object.keys(KIND_META) as TargetKind[]).map(k => {
                 const m = KIND_META[k]
@@ -404,26 +430,26 @@ function TargetEditor({ initial, onCancel, onSave }: {
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <div className="w-1 h-3 rounded-full" style={{ background: m.accent }} />
-                      <span className="text-[12.5px] font-semibold text-[var(--text-primary)]">{m.label}</span>
+                      <span className="text-[12.5px] font-semibold text-[var(--text-primary)]">{kindLabel(t, k)}</span>
                     </div>
-                    <p className="text-[10.5px] text-[var(--text-tertiary)] leading-snug">{m.helper}</p>
+                    <p className="text-[10.5px] text-[var(--text-tertiary)] leading-snug">{kindHelper(t, k)}</p>
                   </button>
                 )
               })}
             </div>
           </Field>
 
-          <Field label="Label">
+          <Field label={t('climateTargets.editor.label')}>
             <input
               type="text"
               value={form.label}
               onChange={e => setField('label', e.target.value)}
-              placeholder="e.g. SBTi near-term: 42% absolute by 2030"
+              placeholder={t('climateTargets.editor.labelPlaceholder')}
               className="w-full h-10 px-3.5 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13.5px] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/15 focus:border-[var(--color-brand)]"
             />
           </Field>
 
-          <Field label="Scope coverage">
+          <Field label={t('climateTargets.editor.scopeCoverage')}>
             <div className="flex flex-wrap gap-1.5">
               {SCOPE_OPTIONS.map(s => {
                 const checked = form.scope_coverage === s
@@ -438,7 +464,7 @@ function TargetEditor({ initial, onCancel, onSave }: {
                         : 'border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
                     }`}
                   >
-                    {s}
+                    {scopeLabel(t, s)}
                   </button>
                 )
               })}
@@ -446,7 +472,7 @@ function TargetEditor({ initial, onCancel, onSave }: {
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Baseline year">
+            <Field label={t('climateTargets.editor.baselineYear')}>
               <input
                 type="number" min={1990} max={2100}
                 value={form.baseline_year}
@@ -454,7 +480,7 @@ function TargetEditor({ initial, onCancel, onSave }: {
                 className="w-full h-10 px-3.5 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13.5px] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/15 focus:border-[var(--color-brand)] tabular-nums"
               />
             </Field>
-            <Field label="Target year">
+            <Field label={t('climateTargets.editor.targetYear')}>
               <input
                 type="number" min={1990} max={2100}
                 value={form.target_year}
@@ -465,7 +491,7 @@ function TargetEditor({ initial, onCancel, onSave }: {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Baseline value">
+            <Field label={t('climateTargets.editor.baselineValue')}>
               <input
                 type="number" min={0} step="any"
                 value={form.baseline_value}
@@ -473,7 +499,7 @@ function TargetEditor({ initial, onCancel, onSave }: {
                 className="w-full h-10 px-3.5 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13.5px] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/15 focus:border-[var(--color-brand)] tabular-nums"
               />
             </Field>
-            <Field label="Unit">
+            <Field label={t('climateTargets.editor.unit')}>
               <input
                 type="text"
                 value={form.baseline_unit}
@@ -484,7 +510,7 @@ function TargetEditor({ initial, onCancel, onSave }: {
             </Field>
           </div>
 
-          <Field label="Reduction percentage">
+          <Field label={t('climateTargets.editor.reductionPct')}>
             <div className="flex items-center gap-3">
               <input
                 type="range" min={1} max={100} step={1}
@@ -501,15 +527,18 @@ function TargetEditor({ initial, onCancel, onSave }: {
               <span className="text-[12.5px] font-semibold text-[var(--text-secondary)]">%</span>
             </div>
             <div className="text-[11px] text-[var(--text-tertiary)] mt-1.5">
-              By {form.target_year}, emissions ≤ {targetValue.toLocaleString(undefined, { maximumFractionDigits: 1 })} {form.baseline_unit}
+              {t('climateTargets.editor.projection', {
+                year: form.target_year,
+                value: targetValue.toLocaleString(locale, { maximumFractionDigits: 1 }),
+                unit: form.baseline_unit,
+              })}
             </div>
           </Field>
 
-          <Field label="Status">
+          <Field label={t('climateTargets.editor.status')}>
             <div className="flex flex-wrap gap-1.5">
               {(Object.keys(STATUS_META) as TargetStatus[]).map(s => {
                 const checked = form.status === s
-                const m = STATUS_META[s]
                 return (
                   <button
                     key={s}
@@ -521,18 +550,18 @@ function TargetEditor({ initial, onCancel, onSave }: {
                         : 'border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
                     }`}
                   >
-                    {m.label}
+                    {statusLabel(t, s)}
                   </button>
                 )
               })}
             </div>
           </Field>
 
-          <Field label="Notes (optional)">
+          <Field label={t('climateTargets.editor.notes')}>
             <textarea
               value={form.notes}
               onChange={e => setField('notes', e.target.value)}
-              placeholder="Reference SBTi case ID, board approval date, or methodology footnote."
+              placeholder={t('climateTargets.editor.notesPlaceholder')}
               rows={3}
               className="w-full px-3.5 py-2.5 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13px] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/15 focus:border-[var(--color-brand)] resize-none"
             />
@@ -542,7 +571,7 @@ function TargetEditor({ initial, onCancel, onSave }: {
             <div className="flex items-start gap-2 p-3 rounded-[8px] bg-[var(--accent-amber-light)] border border-[rgba(230,168,23,0.3)]">
               <Info className="w-4 h-4 text-[var(--status-draft)] flex-shrink-0 mt-0.5" />
               <div className="text-[11.5px] text-[var(--text-secondary)] leading-relaxed">
-                Fill in a label, positive baseline value, and ensure target year is after the baseline year.
+                {t('climateTargets.editor.invalid')}
               </div>
             </div>
           )}
@@ -550,10 +579,10 @@ function TargetEditor({ initial, onCancel, onSave }: {
 
         <footer className="flex items-center gap-2 p-5 border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)]/50">
           <button onClick={onCancel} className="flex-1 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-[13px] font-semibold hover:bg-[var(--bg-secondary)] cursor-pointer">
-            Cancel
+            {t('common.cancel')}
           </button>
           <button onClick={() => valid && onSave(form)} disabled={!valid} className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--color-brand)] text-white text-[13px] font-semibold hover:bg-[var(--color-brand-strong)] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
-            {isEdit ? <><Pencil className="w-3.5 h-3.5" /> Save changes</> : <><Plus className="w-3.5 h-3.5" /> Create target</>}
+            {isEdit ? <><Pencil className="w-3.5 h-3.5" /> {t('climateTargets.editor.saveChanges')}</> : <><Plus className="w-3.5 h-3.5" /> {t('climateTargets.editor.create')}</>}
           </button>
         </footer>
       </div>
@@ -571,6 +600,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function ConfirmRemove({ target, onCancel, onConfirm }: { target: OrgTarget; onCancel: () => void; onConfirm: () => void }) {
+  const { t } = useTranslation()
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(11,18,32,0.5)', backdropFilter: 'blur(8px)' }} onClick={onCancel}>
       <div className="surface-paper w-full max-w-md" onClick={e => e.stopPropagation()}>
@@ -578,17 +608,21 @@ function ConfirmRemove({ target, onCancel, onConfirm }: { target: OrgTarget; onC
           <div className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0" style={{ background: 'var(--accent-red-light)', color: 'var(--status-reject)' }}>
             <Trash2 className="w-4 h-4" />
           </div>
-          <h3 className="font-display text-[16px] font-semibold text-[var(--text-primary)]">Remove climate target?</h3>
+          <h3 className="font-display text-[16px] font-semibold text-[var(--text-primary)]">{t('climateTargets.remove.title')}</h3>
         </header>
         <div className="p-5 text-[13px] text-[var(--text-secondary)] leading-relaxed">
-          <strong className="text-[var(--text-primary)]">{target.label}</strong> will be removed from this workspace. The dashboard tracker and reports will stop showing it.
+          <Trans
+            i18nKey="climateTargets.remove.body"
+            values={{ label: target.label }}
+            components={{ strong: <strong className="text-[var(--text-primary)]" /> }}
+          />
         </div>
         <footer className="flex items-center gap-2 p-5 border-t border-[var(--border-subtle)]">
           <button onClick={onCancel} className="flex-1 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-[13px] font-semibold hover:bg-[var(--bg-secondary)] cursor-pointer">
-            Keep target
+            {t('climateTargets.remove.keep')}
           </button>
           <button onClick={onConfirm} className="flex-1 h-10 rounded-[8px] bg-[var(--status-reject)] text-white text-[13px] font-semibold hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer">
-            Remove
+            {t('climateTargets.remove.confirm')}
           </button>
         </footer>
       </div>

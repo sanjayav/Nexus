@@ -8,62 +8,64 @@ import NotificationsBell from '../../components/NotificationsBell'
 import { useOpenPalette, useMobileNav } from '../../components/AppShell'
 import ThemeToggle from '../../components/ThemeToggle'
 
+/** Values are i18n keys, rendered with t(). */
 const routeLabels: Record<string, { title: string; section?: string }> = {
   // Work
-  '/':                   { title: 'My Day',              section: 'Work' },
-  '/my-day':             { title: 'My Day',              section: 'Work' },
-  '/dashboard':          { title: 'Overview',            section: 'Work' },
-  '/my-tasks':           { title: 'Tasks',               section: 'Work' },
-  '/inbox':              { title: 'Inbox',               section: 'Work' },
-  '/work/calendar':      { title: 'Calendar',            section: 'Work' },
-  '/work/review':        { title: 'Review queue',        section: 'Work' },
-  '/work/approval':      { title: 'Approval queue',      section: 'Work' },
+  '/':                   { title: 'shell.nav.items.myDay',              section: 'shell.nav.groups.work' },
+  '/my-day':             { title: 'shell.nav.items.myDay',              section: 'shell.nav.groups.work' },
+  '/dashboard':          { title: 'shell.routes.overview',            section: 'shell.nav.groups.work' },
+  '/my-tasks':           { title: 'shell.nav.items.tasks',               section: 'shell.nav.groups.work' },
+  '/inbox':              { title: 'shell.nav.items.inbox',               section: 'shell.nav.groups.work' },
+  '/work/calendar':      { title: 'shell.routes.calendar',            section: 'shell.nav.groups.work' },
+  '/work/review':        { title: 'shell.routes.reviewQueue',        section: 'shell.nav.groups.work' },
+  '/work/approval':      { title: 'shell.routes.approvalQueue',      section: 'shell.nav.groups.work' },
   // Reports
-  '/reports':            { title: 'Active Reports',      section: 'Reports' },
-  '/reports/templates':  { title: 'Templates',           section: 'Reports' },
-  '/reports/library':    { title: 'Disclosures Library', section: 'Reports' },
-  '/reports/index':      { title: 'Disclosures Library', section: 'Reports' },
-  '/reports/ai':         { title: 'AI Report',           section: 'Analytics' },
+  '/reports':            { title: 'shell.nav.items.activeReports',      section: 'shell.nav.groups.reports' },
+  '/reports/templates':  { title: 'shell.nav.items.templates',           section: 'shell.nav.groups.reports' },
+  '/reports/library':    { title: 'shell.nav.items.disclosuresLibrary', section: 'shell.nav.groups.reports' },
+  '/reports/index':      { title: 'shell.nav.items.disclosuresLibrary', section: 'shell.nav.groups.reports' },
+  '/reports/ai':         { title: 'shell.nav.items.aiReport',           section: 'shell.nav.groups.analytics' },
   // Data
-  '/data':               { title: 'Values',              section: 'Data' },
-  '/data/spreadsheet':   { title: 'Spreadsheet',         section: 'Data' },
-  '/data/evidence':      { title: 'Evidence',            section: 'Data' },
-  '/data/connectors':    { title: 'Connectors',          section: 'Data' },
-  '/data/ef-library':    { title: 'Emission factors',    section: 'Data' },
-  '/data/anomalies':     { title: 'Anomalies',           section: 'Data' },
-  '/calculators':        { title: 'Calculators',         section: 'Data' },
+  '/data':               { title: 'shell.nav.items.values',              section: 'shell.nav.groups.data' },
+  '/data/spreadsheet':   { title: 'shell.nav.items.spreadsheet',         section: 'shell.nav.groups.data' },
+  '/data/evidence':      { title: 'shell.nav.items.evidence',            section: 'shell.nav.groups.data' },
+  '/data/connectors':    { title: 'shell.nav.items.connectors',          section: 'shell.nav.groups.data' },
+  '/data/ef-library':    { title: 'shell.nav.items.emissionFactors',    section: 'shell.nav.groups.data' },
+  '/data/anomalies':     { title: 'shell.nav.items.anomalies',           section: 'shell.nav.groups.data' },
+  '/calculators':        { title: 'shell.nav.items.calculators',         section: 'shell.nav.groups.data' },
   // Analytics
-  '/analytics':          { title: 'Analytics',           section: 'Analytics' },
+  '/analytics':          { title: 'shell.nav.items.analytics',           section: 'shell.nav.groups.analytics' },
   // Legacy aliases — keep so deep links still get a readable breadcrumb.
-  '/questionnaires':     { title: 'Templates',           section: 'Reports' },
-  '/workflow':           { title: 'Workflow' },
-  '/workflow/review':    { title: 'Review queue',        section: 'Work' },
-  '/workflow/approval':  { title: 'Approval queue',      section: 'Work' },
-  '/aggregator':         { title: 'Group rollup',        section: 'Reports' },
+  '/questionnaires':     { title: 'shell.nav.items.templates',           section: 'shell.nav.groups.reports' },
+  '/workflow':           { title: 'shell.routes.workflow' },
+  '/workflow/review':    { title: 'shell.routes.reviewQueue',        section: 'shell.nav.groups.work' },
+  '/workflow/approval':  { title: 'shell.routes.approvalQueue',      section: 'shell.nav.groups.work' },
+  '/aggregator':         { title: 'shell.routes.groupRollup',        section: 'shell.nav.groups.reports' },
   // Admin tray
-  '/onboarding':         { title: 'Onboarding',          section: 'Admin' },
-  '/admin/org':          { title: 'Organisation',        section: 'Admin' },
-  '/admin/periods':      { title: 'Reporting cycles',    section: 'Admin' },
-  '/admin/materiality':  { title: 'Materiality Assessment', section: 'Admin' },
-  '/admin/assignments':  { title: 'Values',              section: 'Admin' },
-  '/admin/users':        { title: 'Users & Roles',       section: 'Admin' },
-  '/admin/ef-library':   { title: 'Emission factors',    section: 'Admin' },
-  '/admin/gwp':          { title: 'GWP values',          section: 'Admin' },
-  '/admin/audit':        { title: 'Activity History',    section: 'Admin' },
-  '/admin/data-standard':{ title: 'Data Standard',       section: 'Admin' },
-  '/admin/targets':      { title: 'Climate Targets',     section: 'Admin' },
-  '/admin/blockchain':   { title: 'Blockchain',          section: 'Admin' },
-  '/admin/system-status':{ title: 'System Status',       section: 'Admin' },
-  '/admin/api-keys':     { title: 'API Keys',            section: 'Admin' },
-  '/admin/scim':         { title: 'SCIM',                section: 'Admin' },
-  '/settings':           { title: 'Settings',            section: 'Admin' },
-  '/admin/settings':     { title: 'Settings',            section: 'Admin' },
+  '/onboarding':         { title: 'shell.routes.onboarding',          section: 'shell.nav.groups.admin' },
+  '/admin/org':          { title: 'shell.routes.organisation',        section: 'shell.nav.groups.admin' },
+  '/admin/periods':      { title: 'shell.routes.reportingCycles',    section: 'shell.nav.groups.admin' },
+  '/admin/materiality':  { title: 'shell.routes.materialityAssessment', section: 'shell.nav.groups.admin' },
+  '/admin/assignments':  { title: 'shell.nav.items.values',              section: 'shell.nav.groups.admin' },
+  '/admin/users':        { title: 'shell.nav.items.usersRoles',       section: 'shell.nav.groups.admin' },
+  '/admin/ef-library':   { title: 'shell.nav.items.emissionFactors',    section: 'shell.nav.groups.admin' },
+  '/admin/gwp':          { title: 'shell.routes.gwpValues',          section: 'shell.nav.groups.admin' },
+  '/admin/audit':        { title: 'shell.nav.items.activityHistory',    section: 'shell.nav.groups.admin' },
+  '/admin/data-standard':{ title: 'shell.nav.items.dataStandard',       section: 'shell.nav.groups.admin' },
+  '/admin/targets':      { title: 'shell.nav.items.climateTargets',     section: 'shell.nav.groups.admin' },
+  '/admin/blockchain':   { title: 'shell.nav.items.blockchain',          section: 'shell.nav.groups.admin' },
+  '/admin/system-status':{ title: 'shell.nav.items.systemStatus',       section: 'shell.nav.groups.admin' },
+  '/admin/api-keys':     { title: 'shell.nav.items.apiKeys',            section: 'shell.nav.groups.admin' },
+  '/admin/scim':         { title: 'shell.nav.items.scim',                section: 'shell.nav.groups.admin' },
+  '/settings':           { title: 'shell.nav.items.settings',            section: 'shell.nav.groups.admin' },
+  '/admin/settings':     { title: 'shell.nav.items.settings',            section: 'shell.nav.groups.admin' },
 }
 
 export default function TopBar() {
+  const { t } = useTranslation()
   const { user, logout } = useAuth()
   const location = useLocation()
-  const firstName = user?.name?.split(' ')[0] || 'there'
+  const firstName = user?.name?.split(' ')[0] || t('shell.topbar.there')
   const route = routeLabels[location.pathname]
   const openPalette = useOpenPalette()
   const mobileNav = useMobileNav()
@@ -78,7 +80,7 @@ export default function TopBar() {
           <button
             type="button"
             onClick={() => mobileNav.setOpen(!mobileNav.open)}
-            aria-label={mobileNav.open ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-label={mobileNav.open ? t('shell.topbar.closeNav') : t('shell.topbar.openNav')}
             aria-expanded={mobileNav.open}
             aria-controls="mobile-nav-drawer"
             className="w-10 h-10 -ml-1 flex items-center justify-center rounded-[8px] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors flex-shrink-0"
@@ -88,12 +90,12 @@ export default function TopBar() {
         )}
         {route?.section && (
           <>
-            <span className="hidden sm:inline text-[12.5px] text-[var(--text-tertiary)] font-medium">{route.section}</span>
+            <span className="hidden sm:inline text-[12.5px] text-[var(--text-tertiary)] font-medium">{t(route.section)}</span>
             <span className="hidden sm:inline text-[var(--text-quaternary)] text-[10px]">/</span>
           </>
         )}
         <span className="text-[14px] font-semibold text-[var(--text-primary)] tracking-[-0.01em] truncate">
-          {route?.title ?? `Hi, ${firstName}`}
+          {route?.title ? t(route.title) : user?.name ? t('shell.topbar.greeting', { name: firstName }) : t('shell.topbar.greetingAnon')}
         </span>
       </div>
 
@@ -115,10 +117,10 @@ export default function TopBar() {
           data-tour="topbar-search"
           onClick={openPalette}
           className="flex items-center gap-2 h-10 sm:h-8 w-10 sm:w-auto justify-center sm:pl-3 sm:pr-1.5 rounded-[8px] sm:border sm:border-[var(--border-default)] sm:bg-[var(--bg-primary)] text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] sm:hover:border-[var(--border-strong)] hover:text-[var(--text-secondary)] transition-colors duration-[120ms] ease-[var(--ease-out-expo)] cursor-pointer"
-          aria-label="Open command palette"
+          aria-label={t('shell.topbar.openPalette')}
         >
           <Search className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-          <span className="text-[12.5px] hidden md:inline font-medium">Search or jump to…</span>
+          <span className="text-[12.5px] hidden md:inline font-medium">{t('nav.search')}</span>
           <span className="hidden md:flex items-center gap-0.5 ml-3 kbd">
             <Command className="w-2.5 h-2.5" />K
           </span>
@@ -157,7 +159,7 @@ export default function TopBar() {
         <button
           onClick={logout}
           className="hidden sm:flex w-8 h-8 items-center justify-center rounded-[8px] text-[var(--text-tertiary)] hover:text-[var(--accent-red)] hover:bg-[var(--accent-red-light)] transition-all cursor-pointer"
-          title="Sign out"
+          title={t('nav.logout')}
         >
           <LogOut className="w-4 h-4" />
         </button>
@@ -168,6 +170,7 @@ export default function TopBar() {
 
 /** Universal "+ New" menu — appears in the TopBar between framework and search. */
 function NewMenu() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement | null>(null)
@@ -218,28 +221,28 @@ function NewMenu() {
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        title="Create something new (n)"
+        title={t('shell.newMenu.title')}
         aria-haspopup="menu"
         aria-expanded={open}
         className="flex items-center justify-center gap-1.5 h-10 sm:h-8 w-10 sm:w-auto sm:pl-2 sm:pr-2.5 rounded-[8px] sm:border sm:border-[var(--border-default)] sm:bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] sm:hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] transition-colors text-[12.5px] font-semibold cursor-pointer"
       >
         <Plus className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
-        <span className="hidden sm:inline">New</span>
+        <span className="hidden sm:inline">{t('shell.newMenu.new')}</span>
       </button>
       {open && (
         <div
           role="menu"
-          aria-label="Create new"
+          aria-label={t('shell.newMenu.ariaLabel')}
           className="absolute right-0 top-full mt-1.5 min-w-[240px] surface-paper p-1.5 shadow-lg z-50 rounded-[10px]"
         >
-          <NewMenuItem icon={ClipboardList} label="New value" hint="Open the disclosure editor" onClick={() => go(`/disclosure-editor/${lastFramework}?view=spreadsheet`)} />
-          <NewMenuItem icon={Paperclip} label="New evidence" hint="Upload a supporting file" onClick={() => go('/data/evidence?upload=1')} />
-          <NewMenuItem icon={UserCog} label="New assignment" hint="Bulk-assign disclosures" onClick={() => go('/data?action=bulk-assign')} />
-          <NewMenuItem icon={FileText} label="New report" hint="Generate a published report" onClick={() => go('/reports?action=new-report')} />
-          <NewMenuItem icon={Sparkles} label="Generate AI narrative" hint="Draft from approved data" onClick={() => go('/reports/ai')} />
+          <NewMenuItem icon={ClipboardList} label={t('shell.newMenu.value')} hint={t('shell.newMenu.valueHint')} onClick={() => go(`/disclosure-editor/${lastFramework}?view=spreadsheet`)} />
+          <NewMenuItem icon={Paperclip} label={t('shell.newMenu.evidence')} hint={t('shell.newMenu.evidenceHint')} onClick={() => go('/data/evidence?upload=1')} />
+          <NewMenuItem icon={UserCog} label={t('shell.newMenu.assignment')} hint={t('shell.newMenu.assignmentHint')} onClick={() => go('/data?action=bulk-assign')} />
+          <NewMenuItem icon={FileText} label={t('shell.newMenu.report')} hint={t('shell.newMenu.reportHint')} onClick={() => go('/reports?action=new-report')} />
+          <NewMenuItem icon={Sparkles} label={t('shell.newMenu.aiNarrative')} hint={t('shell.newMenu.aiNarrativeHint')} onClick={() => go('/reports/ai')} />
           <div className="border-t border-[var(--border-subtle)] my-1" />
           <div className="px-2 py-1.5 text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] flex items-center justify-between">
-            <span>Shortcut</span>
+            <span>{t('shell.newMenu.shortcut')}</span>
             <span className="kbd">n</span>
           </div>
         </div>
@@ -277,6 +280,7 @@ function NewMenuItem({
 const LOCALES: Array<{ code: string; label: string }> = [
   { code: 'en', label: 'English' },
   { code: 'th', label: 'ไทย' },
+  { code: 'zh', label: '简体中文' },
 ]
 
 function LanguageSwitcher() {

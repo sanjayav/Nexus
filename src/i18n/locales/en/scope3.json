@@ -1,0 +1,712 @@
+{
+  "page": {
+    "breadcrumbData": "Data",
+    "title": "Scope 3 calculators",
+    "eyebrow": "Scope 3 · GHG Protocol",
+    "descriptionBefore": "Pick a category, choose a method (supplier-specific > activity-based > spend-based), enter inputs. Results are tCO2e with",
+    "descriptionAfter": "emission-factor citations. Spend-based factors are illustrative averages until USEEIO v2.0 / EXIOBASE is wired in.",
+    "categoriesHeading": "Categories 1–15",
+    "catLabel": "Cat {{n}}",
+    "methodsCount_one": "{{count}} method",
+    "methodsCount_other": "{{count}} methods",
+    "selectPrompt": "Select a Scope 3 category on the left to begin.",
+    "method": "Method",
+    "savedAsActivity": "Saved as activity data.",
+    "viewInIngestion": "View in data ingestion",
+    "sentenceEnd": ".",
+    "computeHint": "Compute, then save the result to activity_data as a draft.",
+    "saveToActivity": "Save to activity data",
+    "compute": "Compute",
+    "selectPlaceholder": "— select —",
+    "result": "Result",
+    "savedAsDraft": "Saved as draft",
+    "efUsed": "EF used:",
+    "breakdown": "Breakdown",
+    "pickFacility": "Pick a facility first",
+    "persistEyebrow": "Persist calculator result",
+    "modalDescBefore": "Creates one draft row in",
+    "modalDescMiddle": "tagged with the calculator (",
+    "modalDescAfter": ").",
+    "facility": "Facility",
+    "noFacilities": "No active facilities",
+    "year": "Year",
+    "month": "Month",
+    "notes": "Notes",
+    "notesPlaceholder": "Optional context for reviewers",
+    "saveDraft": "Save draft",
+    "enterVendor": "Enter a vendor name first",
+    "aiMatcherTitle": "AI emission-factor matcher",
+    "vendorName": "Vendor name",
+    "vendorPlaceholder": "e.g. Acme Steel Co.",
+    "region": "Region",
+    "aiNotConfiguredTitle": "AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.",
+    "suggestAria": "Suggest emission factor with AI",
+    "aiUnavailable": "AI unavailable",
+    "suggestEf": "Suggest EF with AI",
+    "aiBannerLine": "AI emission-factor suggestions are not configured in this environment.",
+    "aiBannerAskBefore": "Ask an admin to set",
+    "aiBannerAskAfter": "on the server.",
+    "topMatch": "Top match",
+    "alternates_one": "{{count}} alternate",
+    "alternates_other": "{{count}} alternates",
+    "altN": "Alt {{n}}",
+    "applied": "Applied",
+    "useThisEf": "Use this EF"
+  },
+  "calcs": {
+    "scope3_cat01": {
+      "name": "Purchased Goods & Services",
+      "shortName": "Cat 1 Purchased Goods",
+      "description": "Upstream emissions from production of goods and services purchased by the reporting company.",
+      "methods": {
+        "supplier_specific": {
+          "name": "Supplier-specific",
+          "inputs": {
+            "supplier_emissions": {
+              "label": "Supplier-reported tCO2e"
+            }
+          }
+        },
+        "activity_based": {
+          "name": "Average-data (mass × EF)",
+          "inputs": {
+            "quantity": {
+              "label": "Quantity purchased"
+            },
+            "material": {
+              "label": "Material type"
+            },
+            "region": {
+              "label": "Region"
+            }
+          }
+        },
+        "spend_based": {
+          "name": "Spend-based",
+          "inputs": {
+            "spend": {
+              "label": "Spend"
+            },
+            "sector": {
+              "label": "Industry sector"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat02": {
+      "name": "Capital Goods",
+      "shortName": "Cat 2 Capital Goods",
+      "description": "Cradle-to-gate emissions of long-lived capital assets purchased by the reporting company in the reporting period.",
+      "methods": {
+        "activity_based": {
+          "name": "Asset-quantity × EF",
+          "inputs": {
+            "asset": {
+              "label": "Asset type"
+            },
+            "quantity": {
+              "label": "Quantity (units/m²/t depending on asset)"
+            }
+          }
+        },
+        "spend_based": {
+          "name": "Spend-based",
+          "inputs": {
+            "spend": {
+              "label": "CAPEX spend"
+            },
+            "sector": {
+              "label": "Asset sector"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat03": {
+      "name": "Fuel- and Energy-Related Activities",
+      "shortName": "Cat 3 Fuel & Energy",
+      "description": "Upstream (well-to-tank) emissions of fuels consumed in Scope 1 and 2, plus T&D losses for purchased electricity.",
+      "methods": {
+        "wtt_fuel": {
+          "name": "WTT — purchased fuels",
+          "inputs": {
+            "fuel": {
+              "label": "Fuel type"
+            },
+            "energy_kwh": {
+              "label": "Delivered energy"
+            }
+          }
+        },
+        "tnd_losses": {
+          "name": "Grid T&D losses (electricity)",
+          "inputs": {
+            "kwh_purchased": {
+              "label": "Purchased electricity"
+            },
+            "grid_ef": {
+              "label": "Grid EF"
+            },
+            "region": {
+              "label": "Region"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat04": {
+      "name": "Upstream Transportation & Distribution",
+      "shortName": "Cat 4 Upstream T&D",
+      "description": "Transport of purchased products from tier-1 suppliers and between facilities, paid for by the reporting company.",
+      "methods": {
+        "distance_based": {
+          "name": "Distance-based (mode × weight × distance)",
+          "inputs": {
+            "mode": {
+              "label": "Transport mode"
+            },
+            "weight_t": {
+              "label": "Weight shipped"
+            },
+            "distance_km": {
+              "label": "Distance"
+            }
+          }
+        },
+        "fuel_based": {
+          "name": "Fuel-based",
+          "inputs": {
+            "fuel_litres": {
+              "label": "Fuel consumed"
+            },
+            "fuel_ef": {
+              "label": "EF"
+            }
+          }
+        },
+        "spend_based": {
+          "name": "Spend-based",
+          "inputs": {
+            "spend": {
+              "label": "Logistics spend"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat05": {
+      "name": "Waste Generated in Operations",
+      "shortName": "Cat 5 Waste",
+      "description": "Disposal and treatment of waste generated in the reporting company's operations.",
+      "methods": {
+        "waste_type_method": {
+          "name": "Waste type × treatment",
+          "inputs": {
+            "waste_type": {
+              "label": "Waste stream"
+            },
+            "treatment": {
+              "label": "Treatment"
+            },
+            "tonnes": {
+              "label": "Mass"
+            }
+          }
+        },
+        "average_data": {
+          "name": "Average-data",
+          "inputs": {
+            "tonnes": {
+              "label": "Total waste"
+            },
+            "avg_ef": {
+              "label": "Average EF"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat06": {
+      "name": "Business Travel",
+      "shortName": "Cat 6 Business Travel",
+      "description": "Transportation of employees for business-related activities in vehicles not owned/operated by the reporting company.",
+      "methods": {
+        "distance_based": {
+          "name": "Distance-based (mode × pax-km)",
+          "inputs": {
+            "mode": {
+              "label": "Travel mode"
+            },
+            "pax_km": {
+              "label": "Passenger-km"
+            }
+          }
+        },
+        "hotel_nights": {
+          "name": "Hotel nights",
+          "inputs": {
+            "nights": {
+              "label": "Room-nights"
+            },
+            "region": {
+              "label": "Region"
+            }
+          }
+        },
+        "spend_based": {
+          "name": "Spend-based",
+          "inputs": {
+            "spend": {
+              "label": "Travel spend"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat07": {
+      "name": "Employee Commuting",
+      "shortName": "Cat 7 Commuting",
+      "description": "Transportation of employees between their homes and worksites.",
+      "methods": {
+        "distance_based": {
+          "name": "Distance × FTE × workdays",
+          "inputs": {
+            "mode": {
+              "label": "Commute mode"
+            },
+            "avg_one_way_km": {
+              "label": "Avg one-way distance"
+            },
+            "fte": {
+              "label": "FTEs using this mode"
+            },
+            "workdays": {
+              "label": "Working days / year"
+            }
+          }
+        },
+        "survey_avg": {
+          "name": "Survey average (per-FTE EF)",
+          "inputs": {
+            "fte": {
+              "label": "Total FTEs"
+            },
+            "avg_ef_per_fte": {
+              "label": "Avg EF per FTE / year"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat08": {
+      "name": "Upstream Leased Assets",
+      "shortName": "Cat 8 Upstream Leased",
+      "description": "Operation of assets leased by the reporting company that are not already included in Scope 1 or 2.",
+      "methods": {
+        "asset_based": {
+          "name": "Asset Scope 1/2 attribution",
+          "inputs": {
+            "energy_kwh": {
+              "label": "Energy use"
+            },
+            "grid_ef": {
+              "label": "Grid EF"
+            },
+            "fuel_kwh": {
+              "label": "Fuel use"
+            },
+            "fuel_ef": {
+              "label": "Fuel EF"
+            }
+          }
+        },
+        "floor_area_avg": {
+          "name": "Average-data (floor area × EF)",
+          "inputs": {
+            "m2": {
+              "label": "Leased floor area"
+            },
+            "ef_per_m2": {
+              "label": "EF"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat09": {
+      "name": "Downstream Transportation & Distribution",
+      "shortName": "Cat 9 Downstream T&D",
+      "description": "Transport and distribution of sold products in vehicles not owned/operated by the reporting company, including retail and storage, after the point of sale.",
+      "methods": {
+        "distance_based": {
+          "name": "Distance-based (mode × weight × distance)",
+          "inputs": {
+            "mode": {
+              "label": "Transport mode"
+            },
+            "weight_t": {
+              "label": "Weight shipped"
+            },
+            "distance_km": {
+              "label": "Distance"
+            }
+          }
+        },
+        "spend_based": {
+          "name": "Spend-based",
+          "inputs": {
+            "spend": {
+              "label": "Distribution spend"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat10": {
+      "name": "Processing of Sold Products",
+      "shortName": "Cat 10 Processing",
+      "description": "Emissions from processing of intermediate products sold by the reporting company by downstream manufacturers.",
+      "methods": {
+        "mass_based": {
+          "name": "Tonnage × processing EF",
+          "inputs": {
+            "intermediate": {
+              "label": "Intermediate product type"
+            },
+            "tonnes_sold": {
+              "label": "Volume sold to downstream processors"
+            }
+          }
+        },
+        "spend_based": {
+          "name": "Spend-based (customer processing cost proxy)",
+          "inputs": {
+            "spend": {
+              "label": "Estimated downstream processing spend"
+            },
+            "factor": {
+              "label": "Sector EEIO factor"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat11": {
+      "name": "Use of Sold Products",
+      "shortName": "Cat 11 Use of Sold Products",
+      "description": "Direct + indirect emissions from end-use of goods and services sold by the reporting company, over their lifetime.",
+      "methods": {
+        "direct_use_energy": {
+          "name": "Direct use — energy-consuming product",
+          "inputs": {
+            "units_sold": {
+              "label": "Units sold"
+            },
+            "lifetime_yr": {
+              "label": "Expected lifetime"
+            },
+            "energy_per_yr_kwh": {
+              "label": "Energy use per unit / yr"
+            },
+            "grid_ef": {
+              "label": "EF"
+            }
+          }
+        },
+        "direct_use_fuel": {
+          "name": "Direct use — fuel-consuming product",
+          "inputs": {
+            "units_sold": {
+              "label": "Units sold"
+            },
+            "lifetime_fuel_l": {
+              "label": "Lifetime fuel consumption / unit"
+            },
+            "fuel_ef": {
+              "label": "Fuel EF"
+            }
+          }
+        },
+        "indirect_use": {
+          "name": "Indirect use (LCA-derived)",
+          "inputs": {
+            "units_sold": {
+              "label": "Units sold"
+            },
+            "lca_kgco2e_per_unit": {
+              "label": "LCA use-phase EF / unit"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat12": {
+      "name": "End-of-Life Treatment of Sold Products",
+      "shortName": "Cat 12 End-of-Life",
+      "description": "Waste disposal and treatment of products sold by the reporting company at the end of their life.",
+      "methods": {
+        "waste_treatment": {
+          "name": "Mass × treatment EF",
+          "inputs": {
+            "tonnes_disposed": {
+              "label": "Tonnes disposed"
+            },
+            "treatment": {
+              "label": "Treatment"
+            }
+          }
+        },
+        "split_method": {
+          "name": "Sold-product mix × disposal split",
+          "inputs": {
+            "tonnes_sold": {
+              "label": "Tonnes of product sold"
+            },
+            "landfill_pct": {
+              "label": "% to landfill"
+            },
+            "incinerate_pct": {
+              "label": "% incinerated"
+            },
+            "recycle_pct": {
+              "label": "% recycled"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat13": {
+      "name": "Downstream Leased Assets",
+      "shortName": "Cat 13 Downstream Leased",
+      "description": "Operation of assets owned by the reporting company and leased to other entities, not already in Scope 1 or 2.",
+      "methods": {
+        "asset_based": {
+          "name": "Lessee Scope 1/2 attribution",
+          "inputs": {
+            "energy_kwh": {
+              "label": "Lessee electricity use"
+            },
+            "grid_ef": {
+              "label": "Grid EF"
+            },
+            "fuel_kwh": {
+              "label": "Lessee fuel use"
+            },
+            "fuel_ef": {
+              "label": "Fuel EF"
+            }
+          }
+        },
+        "floor_area_avg": {
+          "name": "Average-data (floor area × EF)",
+          "inputs": {
+            "m2": {
+              "label": "Leased floor area"
+            },
+            "ef_per_m2": {
+              "label": "EF"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat14": {
+      "name": "Franchises",
+      "shortName": "Cat 14 Franchises",
+      "description": "Operation of franchises not included in Scope 1 or 2 — emissions reported by the franchisee (Scope 1 + 2).",
+      "methods": {
+        "franchisee_reported": {
+          "name": "Franchisee-reported (Scope 1 + 2)",
+          "inputs": {
+            "reported_tco2e": {
+              "label": "Franchisee Scope 1+2"
+            },
+            "count": {
+              "label": "# of franchises rolled up"
+            }
+          }
+        },
+        "avg_franchise": {
+          "name": "Average per-franchise (floor area or revenue)",
+          "inputs": {
+            "num_franchises": {
+              "label": "# of franchises"
+            },
+            "avg_ef_per_franchise": {
+              "label": "Avg EF per franchise"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat15": {
+      "name": "Investments",
+      "shortName": "Cat 15 Investments",
+      "description": "Operation of investments (incl. equity, debt, project finance) — financed emissions per PCAF.",
+      "methods": {
+        "equity_share": {
+          "name": "Equity-share attribution",
+          "inputs": {
+            "investee_scope1_2": {
+              "label": "Investee Scope 1+2"
+            },
+            "equity_share_pct": {
+              "label": "Equity share"
+            }
+          }
+        },
+        "project_finance": {
+          "name": "Project finance attribution",
+          "inputs": {
+            "project_emissions": {
+              "label": "Project annual emissions"
+            },
+            "outstanding_amount": {
+              "label": "Outstanding investment"
+            },
+            "project_total_value": {
+              "label": "Project total value (EVIC equiv.)"
+            }
+          }
+        },
+        "economic_intensity": {
+          "name": "Economic intensity (spend × sector EF)",
+          "inputs": {
+            "outstanding_amount": {
+              "label": "Outstanding investment"
+            },
+            "sector_ef": {
+              "label": "Sector EF"
+            }
+          }
+        }
+      }
+    }
+  },
+  "options": {
+    "steel": "steel",
+    "aluminium": "aluminium",
+    "plastic": "plastic",
+    "paper": "paper",
+    "glass": "glass",
+    "cement": "cement",
+    "other": "other",
+    "agriculture": "agriculture",
+    "mining": "mining",
+    "utilities": "utilities",
+    "construction": "construction",
+    "food_beverage": "food_beverage",
+    "textiles_apparel": "textiles_apparel",
+    "wood_paper": "wood_paper",
+    "chemicals": "chemicals",
+    "pharmaceuticals": "pharmaceuticals",
+    "plastics_rubber": "plastics_rubber",
+    "cement_concrete": "cement_concrete",
+    "iron_steel": "iron_steel",
+    "nonferrous_metals": "nonferrous_metals",
+    "fabricated_metal": "fabricated_metal",
+    "machinery": "machinery",
+    "electronics": "electronics",
+    "electrical_equipment": "electrical_equipment",
+    "motor_vehicles": "motor_vehicles",
+    "other_transport_equipment": "other_transport_equipment",
+    "furniture": "furniture",
+    "wholesale_retail": "wholesale_retail",
+    "transport_warehousing": "transport_warehousing",
+    "information_telecom": "information_telecom",
+    "financial_services": "financial_services",
+    "real_estate": "real_estate",
+    "professional_services": "professional_services",
+    "admin_support": "admin_support",
+    "education_health": "education_health",
+    "arts_entertainment": "arts_entertainment",
+    "food_services": "food_services",
+    "other_services": "other_services",
+    "building_office": "building_office",
+    "building_industrial": "building_industrial",
+    "vehicle_light": "vehicle_light",
+    "vehicle_heavy": "vehicle_heavy",
+    "machinery_general": "machinery_general",
+    "it_equipment_server": "it_equipment_server",
+    "it_equipment_laptop": "it_equipment_laptop",
+    "natural_gas": "natural_gas",
+    "diesel": "diesel",
+    "petrol": "petrol",
+    "lpg": "lpg",
+    "coal": "coal",
+    "fuel_oil": "fuel_oil",
+    "road_lcv": "road_lcv",
+    "road_hgv": "road_hgv",
+    "rail": "rail",
+    "sea_container": "sea_container",
+    "sea_bulk": "sea_bulk",
+    "air_freight_short": "air_freight_short",
+    "air_freight_long": "air_freight_long",
+    "inland_waterway": "inland_waterway",
+    "mixed_msw": "mixed_msw",
+    "organic_food": "organic_food",
+    "metals": "metals",
+    "hazardous": "hazardous",
+    "landfill": "landfill",
+    "incineration": "incineration",
+    "recycling": "recycling",
+    "composting": "composting",
+    "flight_short_haul": "flight_short_haul",
+    "flight_medium_haul": "flight_medium_haul",
+    "flight_long_haul": "flight_long_haul",
+    "rail_intercity": "rail_intercity",
+    "rail_metro": "rail_metro",
+    "car_petrol": "car_petrol",
+    "car_diesel": "car_diesel",
+    "car_hybrid": "car_hybrid",
+    "car_ev": "car_ev",
+    "bus_coach": "bus_coach",
+    "taxi": "taxi",
+    "motorcycle": "motorcycle",
+    "bus": "bus",
+    "metro": "metro",
+    "bicycle": "bicycle",
+    "walk": "walk",
+    "work_from_home": "work_from_home",
+    "steel_downstream": "steel_downstream",
+    "aluminium_downstream": "aluminium_downstream",
+    "chemicals_intermediates": "chemicals_intermediates",
+    "plastics_conversion": "plastics_conversion",
+    "paper_conversion": "paper_conversion",
+    "textiles": "textiles",
+    "GLOBAL": "GLOBAL",
+    "UK": "UK",
+    "US": "US",
+    "EU": "EU",
+    "APAC": "APAC",
+    "IN": "IN",
+    "CN": "CN",
+    "JP": "JP",
+    "AU": "AU",
+    "CA": "CA",
+    "DE": "DE",
+    "FR": "FR"
+  },
+  "notes": {
+    "illustrativeSpend": "Illustrative spend-based factor; replace with USEEIO v2.0 / EXIOBASE for production.",
+    "pcafEquityShare": "PCAF Equity Share approach — capital × emissions ÷ EVIC.",
+    "pcafProjectFinance": "PCAF project-finance attribution.",
+    "defraCommute": "DEFRA-style commute factors.",
+    "surveyCommute": "Survey-based: derive avg EF from a representative sample of staff commute patterns.",
+    "usePhase": "Use-phase emissions over expected product lifetime.",
+    "fuelProducts": "For fuel-consuming products (vehicles, generators).",
+    "productLca": "Use product-specific LCA (ISO 14040) per ecoinvent or PCR.",
+    "cradleToGate": "Illustrative cradle-to-gate factor; refine with manufacturer LCA.",
+    "downstreamProcessing": "Illustrative downstream processing EF; refine with customer LCA where available.",
+    "defraPkm": "DEFRA 2024-style passenger-km factors.",
+    "glecMode": "Illustrative GLEC-style mode factors.",
+    "leasedConsolidation": "Only include if not already captured in Scope 1/2 under the chosen consolidation approach.",
+    "buildingAverages": "Use building-type averages where metered data is unavailable.",
+    "warmEol": "EPA WARM-style. Negative for recycling reflects avoided virgin production.",
+    "warmWaste": "Illustrative EPA WARM-style factors; net negatives reflect avoided burdens from recycling.",
+    "wttFuel": "WTT factor — DEFRA-style approximation. Replace with regional DEFRA / GHG Protocol values.",
+    "tndLoss": "Illustrative T&D loss fractions; use IEA grid-specific values where available.",
+    "efFallback": "No matching EF row in DB; using 1 kgCO2e/unit placeholder."
+  }
+}

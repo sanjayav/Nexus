@@ -1,0 +1,168 @@
+{
+  "nav": {
+    "groups": {
+      "work": "工作",
+      "reports": "报告",
+      "data": "数据",
+      "analytics": "分析",
+      "admin": "管理"
+    },
+    "items": {
+      "myDay": "我的一天",
+      "tasks": "任务",
+      "inbox": "收件箱",
+      "activeReports": "进行中的报告",
+      "templates": "模板",
+      "disclosuresLibrary": "披露库",
+      "values": "数值",
+      "spreadsheet": "电子表格",
+      "evidence": "证据",
+      "calculators": "计算器",
+      "pcafPortfolio": "PCAF 投资组合",
+      "connectors": "连接器",
+      "emissionFactors": "排放因子",
+      "anomalies": "异常",
+      "analytics": "分析",
+      "aiReport": "AI 报告",
+      "usersRoles": "用户与角色",
+      "materiality": "重要性评估",
+      "climateTargets": "气候目标",
+      "dataStandard": "数据标准",
+      "activityHistory": "活动记录",
+      "apiKeys": "API 密钥",
+      "scim": "SCIM",
+      "blockchain": "区块链",
+      "systemStatus": "系统状态",
+      "settings": "设置"
+    }
+  },
+  "sidebar": {
+    "expand": "展开侧边栏",
+    "collapse": "收起侧边栏",
+    "flagship": "旗舰功能"
+  },
+  "roles": {
+    "platform_admin": {
+      "name": "平台管理员",
+      "description": "完全访问权限。管理租户、用户、组织架构和任务指派。"
+    },
+    "group_sustainability_officer": {
+      "name": "集团可持续发展负责人",
+      "description": "审批合并数据，签署报告。"
+    },
+    "subsidiary_lead": {
+      "name": "子公司负责人",
+      "description": "审核工厂提交的数据，汇总子公司合计。"
+    },
+    "plant_manager": {
+      "name": "工厂经理",
+      "description": "负责单个工厂的数据录入，指派数据填报人。"
+    },
+    "data_contributor": {
+      "name": "数据填报人",
+      "description": "填写指派的问卷并附上证据。"
+    },
+    "narrative_owner": {
+      "name": "叙述内容负责人",
+      "description": "撰写治理、战略及管理方法披露（GRI 2 / GRI 3 / CSRD 叙述章节）。"
+    },
+    "auditor": {
+      "name": "审计师",
+      "description": "只读访问已发布数据及区块链记录。"
+    }
+  },
+  "routes": {
+    "overview": "概览",
+    "calendar": "日历",
+    "reviewQueue": "审核队列",
+    "approvalQueue": "审批队列",
+    "workflow": "工作流",
+    "groupRollup": "集团汇总",
+    "onboarding": "入门设置",
+    "organisation": "组织",
+    "reportingCycles": "报告周期",
+    "materialityAssessment": "重要性评估",
+    "gwpValues": "GWP 值"
+  },
+  "topbar": {
+    "there": "您",
+    "greeting": "您好，{{name}}",
+    "closeNav": "关闭导航菜单",
+    "openNav": "打开导航菜单",
+    "openPalette": "打开命令面板",
+    "greetingAnon": "您好"
+  },
+  "newMenu": {
+    "title": "新建（n）",
+    "new": "新建",
+    "ariaLabel": "新建",
+    "value": "新建数值",
+    "valueHint": "打开披露编辑器",
+    "evidence": "新建证据",
+    "evidenceHint": "上传支持文件",
+    "assignment": "新建指派",
+    "assignmentHint": "批量指派披露项",
+    "report": "新建报告",
+    "reportHint": "生成发布报告",
+    "aiNarrative": "生成 AI 叙述",
+    "aiNarrativeHint": "基于已审批数据起草",
+    "shortcut": "快捷键"
+  },
+  "skipToContent": "跳至主要内容",
+  "navMenu": "导航菜单",
+  "palette": {
+    "groups": {
+      "goTo": "跳转",
+      "actions": "操作",
+      "frameworks": "框架",
+      "recent": "最近访问",
+      "system": "系统"
+    },
+    "ariaLabel": "命令面板",
+    "placeholder": "搜索页面、框架、操作…",
+    "noMatches": "没有匹配结果：",
+    "navigate": "浏览",
+    "select": "选择",
+    "hint": {
+      "sys-theme": "浅色 / 深色"
+    },
+    "cmd": {
+      "nav-dash": "概览",
+      "nav-tasks": "我的任务",
+      "nav-review": "审核队列",
+      "nav-approval": "审批队列",
+      "nav-rollup": "集团汇总",
+      "nav-reports": "发布中心",
+      "nav-gri": "GRI 索引",
+      "nav-analytics": "分析",
+      "nav-anomalies": "异常",
+      "nav-standard": "数据标准",
+      "nav-calc": "计算器",
+      "nav-scope3": "范围三计算器",
+      "nav-ef": "排放因子库",
+      "nav-gwp": "GWP 值",
+      "nav-setup": "设置指南",
+      "nav-welcome": "欢迎向导",
+      "nav-periods": "报告周期",
+      "nav-mat": "重要性评估",
+      "nav-assign": "任务指派",
+      "nav-users": "用户与角色",
+      "nav-audit": "审计追踪",
+      "nav-connectors": "连接器",
+      "nav-inbox": "收件箱",
+      "nav-scim": "SCIM 令牌",
+      "nav-apikeys": "API 密钥",
+      "nav-system": "系统状态",
+      "nav-settings": "设置",
+      "act-new-assign": "新建指派",
+      "act-bulk-assign": "批量指派",
+      "act-run-setup": "运行设置",
+      "act-publish": "发布报告",
+      "act-new-apikey": "生成 API 密钥",
+      "act-export": "下载数据导出",
+      "act-toggle-mfa": "切换多因素认证",
+      "sys-theme": "切换主题",
+      "sys-logout": "退出登录"
+    }
+  }
+}

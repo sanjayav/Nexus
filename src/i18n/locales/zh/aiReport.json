@@ -1,0 +1,82 @@
+{
+  "banner": {
+    "title": "AI 功能已停用",
+    "body": "请在 Vercel 环境中设置 <code>ANTHROPIC_API_KEY</code>，以启用 AI 报告起草、证据提取、供应商 → 排放因子匹配及异常说明功能。"
+  },
+  "title": "AI 报告起草",
+  "subtitle": "基于已验证的披露数据，起草与框架对齐的叙述内容。以已批准数值为依据——缺失的输入将被标记，绝不凭空生成。",
+  "fields": {
+    "framework": "框架",
+    "section": "章节",
+    "tone": "语气"
+  },
+  "tones": {
+    "formal": "正式",
+    "narrative": "叙述",
+    "concise": "简洁"
+  },
+  "toneInline": {
+    "formal": "正式",
+    "narrative": "叙述",
+    "concise": "简洁"
+  },
+  "sections": {
+    "gri302": "GRI 302 — 能源",
+    "gri303": "GRI 303 — 水资源与污水",
+    "gri305": "GRI 305 — 排放",
+    "gri306": "GRI 306 — 废弃物",
+    "gri401": "GRI 401 — 雇佣",
+    "gri403": "GRI 403 — 职业健康与安全",
+    "esrsE1": "ESRS E1 — 气候变化",
+    "esrsE2": "ESRS E2 — 污染",
+    "esrsE3": "ESRS E3 — 水与海洋资源",
+    "esrsE5": "ESRS E5 — 循环经济",
+    "esrsS1": "ESRS S1 — 自有员工",
+    "esrsG1": "ESRS G1 — 商业行为",
+    "tcfdGovernance": "TCFD — 治理",
+    "tcfdStrategy": "TCFD — 战略",
+    "tcfdRisk": "TCFD — 风险管理",
+    "tcfdMetrics": "TCFD — 指标与目标",
+    "cdpC1": "CDP C1 — 治理",
+    "cdpC2": "CDP C2 — 风险与机遇",
+    "cdpC6": "CDP C6 — 排放数据",
+    "cdpC11": "CDP C11 — 碳定价",
+    "issbGovernance": "IFRS S2 — 治理",
+    "issbStrategy": "IFRS S2 — 战略",
+    "issbRisk": "IFRS S2 — 风险管理",
+    "issbMetrics": "IFRS S2 — 指标与目标"
+  },
+  "grounded": "以当前报告年度的已批准数据为依据",
+  "notConfiguredHint": "AI 尚未配置。请联系管理员设置 ANTHROPIC_API_KEY。",
+  "buttons": {
+    "unavailable": "AI 不可用",
+    "drafting": "起草中…",
+    "draft": "AI 起草",
+    "copied": "已复制",
+    "copy": "复制",
+    "regenerate": "重新生成",
+    "clear": "清除",
+    "inserted": "已插入",
+    "insert": "插入报告"
+  },
+  "draftPreview": "草稿预览",
+  "errors": {
+    "notConfigured": "当前环境尚未配置 AI。请联系管理员在 Vercel 中设置 ANTHROPIC_API_KEY。",
+    "generateFailed": "草稿生成失败",
+    "notConfiguredTitle": "AI 尚未配置",
+    "draftFailed": "起草失败"
+  },
+  "usage": {
+    "tokensIn": "输入 {{n}} 个 token",
+    "cached": "（{{n}} 个已缓存）",
+    "out": "输出 {{n}} 个"
+  },
+  "empty": {
+    "title": "准备起草",
+    "body": "选择框架和章节，然后点击<bold>AI 起草</bold>，即可基于已批准数据生成可供审计的叙述内容。",
+    "anchored": "以您的数据为依据",
+    "aligned": "与框架对齐",
+    "noHallucination": "不会虚构数字"
+  },
+  "drafting": "Claude 正在起草…"
+}

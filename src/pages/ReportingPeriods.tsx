@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Calendar, Lock, PlayCircle, Archive, CheckCircle2, Plus, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { orgStore, type ReportingPeriod } from '../lib/orgStore'
 import { useFramework } from '../lib/frameworks'
 import { FrameworkBadge } from '../components/FrameworkBadge'
@@ -13,6 +14,8 @@ import { riseIn, popIn, SPRING } from '../components/motion'
  * published can never be edited, only restated.
  */
 export default function ReportingPeriods() {
+  const { t, i18n } = useTranslation()
+  const dateLocale = i18n.language?.startsWith('zh') ? 'zh-CN' : undefined
   const { active: framework } = useFramework()
   const [periods, setPeriods] = useState<ReportingPeriod[]>([])
   const [loading, setLoading] = useState(true)
@@ -36,7 +39,7 @@ export default function ReportingPeriods() {
       await orgStore.transitionPeriod(id, status)
       await load()
     } catch (e) {
-      alert(`Transition failed: ${e instanceof Error ? e.message : e}`)
+      alert(t('periods.alerts.transitionFailed', { message: e instanceof Error ? e.message : String(e) }))
     }
     setBusy(null)
   }
@@ -48,14 +51,14 @@ export default function ReportingPeriods() {
       <motion.header {...riseIn(0)} className="flex items-start justify-between mb-5">
         <div>
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
-            <Calendar className="w-3 h-3" /> Reporting periods
+            <Calendar className="w-3 h-3" /> {t('periods.header.eyebrow')}
           </div>
           <div className="flex items-center gap-2 mt-1">
-            <h1 className="font-display text-[28px] font-bold text-[var(--text-primary)]">Reporting cycles</h1>
+            <h1 className="font-display text-[28px] font-bold text-[var(--text-primary)]">{t('periods.header.title')}</h1>
             <FrameworkBadge size="md" />
           </div>
           <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1 max-w-2xl">
-            Setup → Active → Locked → Published. Locking freezes assignment edits; publishing stamps a hash and moves the period read-only forever.
+            {t('periods.header.subtitle')}
           </p>
         </div>
         <motion.button
@@ -63,7 +66,7 @@ export default function ReportingPeriods() {
           onClick={() => setAdding(true)}
           className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-xs)] font-semibold hover:bg-[var(--color-brand-strong)] inline-flex items-center gap-1.5"
         >
-          <Plus className="w-3.5 h-3.5" /> New period
+          <Plus className="w-3.5 h-3.5" /> {t('periods.newPeriod')}
         </motion.button>
       </motion.header>
 
@@ -72,8 +75,8 @@ export default function ReportingPeriods() {
       ) : scoped.length === 0 ? (
         <motion.div {...popIn(1)} className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)] py-14 text-center">
           <Calendar className="w-10 h-10 mx-auto text-[var(--text-tertiary)] mb-2" />
-          <h3 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">No reporting periods</h3>
-          <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1 max-w-sm mx-auto">Create a period to open assignments and start collecting data.</p>
+          <h3 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">{t('periods.empty.title')}</h3>
+          <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1 max-w-sm mx-auto">{t('periods.empty.body')}</p>
         </motion.div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -87,7 +90,7 @@ export default function ReportingPeriods() {
               }`}>
                 <div>
                   <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
-                    FY {p.year}
+                    {t('periods.card.fy', { year: p.year })}
                   </div>
                   <h3 className="font-display text-[var(--text-lg)] font-bold text-[var(--text-primary)]">{p.label}</h3>
                 </div>
@@ -95,16 +98,16 @@ export default function ReportingPeriods() {
               </header>
               <div className="p-5 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
-                  <Meta label="Start"   value={p.start_date ?? '—'} />
-                  <Meta label="End"     value={p.end_date ?? '—'} />
-                  <Meta label="Deadline" value={p.submission_deadline ?? '—'} />
-                  <Meta label="Framework" value={p.framework_id.toUpperCase()} />
+                  <Meta label={t('periods.card.start')}    value={p.start_date ?? '—'} />
+                  <Meta label={t('periods.card.end')}      value={p.end_date ?? '—'} />
+                  <Meta label={t('periods.card.deadline')} value={p.submission_deadline ?? '—'} />
+                  <Meta label={t('periods.card.framework')} value={p.framework_id.toUpperCase()} />
                 </div>
-                {p.locked_at && <div className="text-[10px] text-[var(--text-tertiary)]">🔒 Locked {new Date(p.locked_at).toLocaleString()}</div>}
+                {p.locked_at && <div className="text-[10px] text-[var(--text-tertiary)]">🔒 {t('periods.card.lockedAt', { date: new Date(p.locked_at).toLocaleString(dateLocale) })}</div>}
                 {p.published_at && (
                   <div className="rounded-[var(--radius-sm)] bg-[var(--accent-green-light)] border border-[var(--status-ok)]/20 p-2">
-                    <div className="text-[10px] font-semibold text-[var(--status-ok)] uppercase tracking-wider">Published</div>
-                    <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{new Date(p.published_at).toLocaleString()}</div>
+                    <div className="text-[10px] font-semibold text-[var(--status-ok)] uppercase tracking-wider">{t('periods.card.published')}</div>
+                    <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{new Date(p.published_at).toLocaleString(dateLocale)}</div>
                     {p.publish_hash && <div className="text-[9px] font-mono text-[var(--text-tertiary)] mt-1 truncate">{p.publish_hash}</div>}
                   </div>
                 )}
@@ -112,22 +115,22 @@ export default function ReportingPeriods() {
                 <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center gap-2 flex-wrap">
                   {p.status === 'setup' && (
                     <button onClick={() => transition(p.id, 'active')} disabled={busy === p.id} className="px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--color-brand)] text-white text-[var(--text-xs)] font-semibold inline-flex items-center gap-1 disabled:opacity-50">
-                      <PlayCircle className="w-3 h-3" /> Start period
+                      <PlayCircle className="w-3 h-3" /> {t('periods.actions.start')}
                     </button>
                   )}
                   {p.status === 'active' && (
-                    <button onClick={() => transition(p.id, 'locked', `Lock ${p.label}? Assignment edits will be blocked.`)} disabled={busy === p.id} className="px-3 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] text-[var(--text-xs)] font-semibold inline-flex items-center gap-1 disabled:opacity-50 hover:bg-[var(--bg-secondary)]">
-                      <Lock className="w-3 h-3" /> Lock
+                    <button onClick={() => transition(p.id, 'locked', t('periods.confirm.lock', { label: p.label }))} disabled={busy === p.id} className="px-3 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] text-[var(--text-xs)] font-semibold inline-flex items-center gap-1 disabled:opacity-50 hover:bg-[var(--bg-secondary)]">
+                      <Lock className="w-3 h-3" /> {t('periods.actions.lock')}
                     </button>
                   )}
                   {p.status === 'locked' && (
-                    <button onClick={() => transition(p.id, 'published', `Publish ${p.label}? This stamps a hash and makes the period read-only forever.`)} disabled={busy === p.id} className="px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--status-ok)] text-white text-[var(--text-xs)] font-semibold inline-flex items-center gap-1 disabled:opacity-50">
-                      <CheckCircle2 className="w-3 h-3" /> Publish
+                    <button onClick={() => transition(p.id, 'published', t('periods.confirm.publish', { label: p.label }))} disabled={busy === p.id} className="px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--status-ok)] text-white text-[var(--text-xs)] font-semibold inline-flex items-center gap-1 disabled:opacity-50">
+                      <CheckCircle2 className="w-3 h-3" /> {t('periods.actions.publish')}
                     </button>
                   )}
                   {p.status === 'published' && (
-                    <button onClick={() => transition(p.id, 'archived', `Archive ${p.label}?`)} disabled={busy === p.id} className="px-3 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] text-[var(--text-xs)] font-semibold inline-flex items-center gap-1 disabled:opacity-50 hover:bg-[var(--bg-secondary)]">
-                      <Archive className="w-3 h-3" /> Archive
+                    <button onClick={() => transition(p.id, 'archived', t('periods.confirm.archive', { label: p.label }))} disabled={busy === p.id} className="px-3 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] text-[var(--text-xs)] font-semibold inline-flex items-center gap-1 disabled:opacity-50 hover:bg-[var(--bg-secondary)]">
+                      <Archive className="w-3 h-3" /> {t('periods.actions.archive')}
                     </button>
                   )}
                 </div>
@@ -152,17 +155,19 @@ function Meta({ label, value }: { label: string; value: string }) {
 }
 
 function PeriodStatusPill({ status }: { status: ReportingPeriod['status'] }) {
+  const { t } = useTranslation()
   const map = {
-    setup:     { label: 'Setup',     bg: 'var(--bg-tertiary)',       fg: 'var(--text-tertiary)' },
-    active:    { label: 'Active',    bg: 'var(--color-brand-soft)',  fg: 'var(--color-brand-strong)' },
-    locked:    { label: 'Locked',    bg: 'var(--accent-amber-light)', fg: 'var(--status-draft)' },
-    published: { label: 'Published', bg: 'var(--accent-green-light)', fg: 'var(--status-ok)' },
-    archived:  { label: 'Archived',  bg: 'var(--bg-secondary)',       fg: 'var(--text-tertiary)' },
+    setup:     { label: t('periods.status.setup'),     bg: 'var(--bg-tertiary)',       fg: 'var(--text-tertiary)' },
+    active:    { label: t('periods.status.active'),    bg: 'var(--color-brand-soft)',  fg: 'var(--color-brand-strong)' },
+    locked:    { label: t('periods.status.locked'),    bg: 'var(--accent-amber-light)', fg: 'var(--status-draft)' },
+    published: { label: t('periods.status.published'), bg: 'var(--accent-green-light)', fg: 'var(--status-ok)' },
+    archived:  { label: t('periods.status.archived'),  bg: 'var(--bg-secondary)',       fg: 'var(--text-tertiary)' },
   }[status]
   return <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: map.bg, color: map.fg }}>{map.label}</span>
 }
 
 function NewPeriodDrawer({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const { t } = useTranslation()
   const { active: framework } = useFramework()
   const [year, setYear] = useState(new Date().getFullYear())
   const [label, setLabel] = useState(`FY ${new Date().getFullYear()}`)
@@ -185,7 +190,7 @@ function NewPeriodDrawer({ onClose, onSaved }: { onClose: () => void; onSaved: (
       })
       onSaved()
     } catch (e) {
-      alert(`Create failed: ${e instanceof Error ? e.message : e}`)
+      alert(t('periods.alerts.createFailed', { message: e instanceof Error ? e.message : String(e) }))
     }
     setBusy(false)
   }
@@ -193,40 +198,40 @@ function NewPeriodDrawer({ onClose, onSaved }: { onClose: () => void; onSaved: (
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-50 flex justify-end bg-black/40" onClick={onClose}>
       <motion.div initial={{ x: 480 }} animate={{ x: 0 }} transition={SPRING} className="w-[480px] h-full bg-[var(--bg-primary)] shadow-2xl p-6 overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <h2 className="font-display text-[var(--text-xl)] font-bold mb-5">New reporting period</h2>
+        <h2 className="font-display text-[var(--text-xl)] font-bold mb-5">{t('periods.drawer.title')}</h2>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <label htmlFor="period-year" className="block">
-              <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Year</span>
+              <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('periods.drawer.year')}</span>
               <input id="period-year" type="number" value={year} onChange={e => setYear(Number(e.target.value))} className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]" />
             </label>
             <label htmlFor="period-label" className="block">
-              <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Label</span>
+              <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('periods.drawer.label')}</span>
               <input id="period-label" value={label} onChange={e => setLabel(e.target.value)} className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]" />
             </label>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <label htmlFor="period-start" className="block">
-              <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Start</span>
+              <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('periods.card.start')}</span>
               <input id="period-start" type="date" value={start} onChange={e => setStart(e.target.value)} className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]" />
             </label>
             <label htmlFor="period-end" className="block">
-              <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">End</span>
+              <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('periods.card.end')}</span>
               <input id="period-end" type="date" value={end} onChange={e => setEnd(e.target.value)} className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]" />
             </label>
           </div>
           <label htmlFor="period-deadline" className="block">
-            <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Submission deadline</span>
+            <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('periods.drawer.deadline')}</span>
             <input id="period-deadline" type="date" value={deadline} onChange={e => setDeadline(e.target.value)} className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]" />
           </label>
           <label htmlFor="period-notes" className="block">
-            <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Notes (optional)</span>
+            <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">{t('periods.drawer.notes')}</span>
             <textarea id="period-notes" value={notes} onChange={e => setNotes(e.target.value)} rows={3} className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)] resize-none" />
           </label>
         </div>
         <div className="flex gap-2 mt-6 pt-4 border-t border-[var(--border-subtle)]">
-          <button onClick={save} disabled={busy} className="flex-1 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold disabled:opacity-50">Create</button>
-          <button onClick={onClose} className="px-4 py-2 rounded-[var(--radius-md)] text-[var(--text-sm)] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">Cancel</button>
+          <button onClick={save} disabled={busy} className="flex-1 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold disabled:opacity-50">{t('periods.drawer.create')}</button>
+          <button onClick={onClose} className="px-4 py-2 rounded-[var(--radius-md)] text-[var(--text-sm)] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">{t('common.cancel')}</button>
         </div>
       </motion.div>
     </motion.div>

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Check } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * NOTE: Pricing numbers are illustrative placeholders for v1 marketing.
@@ -25,6 +26,7 @@ interface PricingTableProps {
 }
 
 export default function PricingTable({ tiers, compact = false }: PricingTableProps) {
+  const { t } = useTranslation()
   return (
     <section className="py-20 sm:py-24">
       <div className="max-w-[1280px] mx-auto px-5 sm:px-8">
@@ -51,7 +53,7 @@ export default function PricingTable({ tiers, compact = false }: PricingTablePro
                       color: '#fff',
                     }}
                   >
-                    Most popular
+                    {t('marketing.pricingTable.mostPopular')}
                   </span>
                 )}
 
@@ -111,7 +113,7 @@ export default function PricingTable({ tiers, compact = false }: PricingTablePro
             className="text-center text-[11.5px] mt-10"
             style={{ color: 'var(--text-tertiary)' }}
           >
-            Prices shown are illustrative for v1 launch — final pricing confirmed during onboarding.
+            {t('marketing.pricingTable.disclaimer')}
           </p>
         )}
       </div>

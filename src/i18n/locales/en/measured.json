@@ -1,0 +1,146 @@
+{
+  "title": "Measured & Reported Data",
+  "subtitle": "4 measured data source types with direct and hybrid processing paths. Reconciled at the aggregator.",
+  "live": "Live",
+  "lastSync": "Last sync: 2 min ago",
+  "tabs": {
+    "overview": "Overview",
+    "paths": "Processing Paths",
+    "reconciliation": "Reconciliation"
+  },
+  "sources": {
+    "cems": {
+      "title": "CEMS",
+      "fullTitle": "Continuous Emission Monitoring Systems",
+      "badge": "Continuous",
+      "desc": "Real-time stack monitoring with 15-min data intervals. Direct GHG measurement."
+    },
+    "utility": {
+      "title": "Utility Meters",
+      "fullTitle": "Utility Metering & Sub-metering",
+      "badge": "Utility",
+      "desc": "Electricity, gas, water, and steam meters with automated reading capture."
+    },
+    "verified": {
+      "title": "3rd-Party Verified",
+      "fullTitle": "Third-Party Verified Data",
+      "badge": "Third-Party",
+      "desc": "Externally audited data from certified verification bodies (SGS, Bureau Veritas, etc.)."
+    },
+    "lab": {
+      "title": "Stack Tests / Lab",
+      "fullTitle": "Stack Tests & Laboratory Analysis",
+      "badge": "Stack",
+      "desc": "Periodic emission sampling, fuel analysis, and material composition testing."
+    }
+  },
+  "frequency": {
+    "continuous": "Continuous",
+    "hourly": "Hourly",
+    "monthly": "Monthly",
+    "quarterly": "Quarterly"
+  },
+  "pipeline": {
+    "normalise": {
+      "title": "Format Normalisation",
+      "desc": "Convert units, standardise timestamps, align intervals"
+    },
+    "qa": {
+      "title": "Quality Assurance",
+      "desc": "Outlier detection, gap filling, completeness scoring"
+    },
+    "classify": {
+      "title": "Classification & Scope Tagging",
+      "desc": "Map to GHG scope, assign source categories"
+    }
+  },
+  "paths": {
+    "direct": {
+      "title": "Direct Path",
+      "subtitle": "Bypass Calculator",
+      "desc": "Pre-calculated or directly measured emissions — no calculator module needed. CEMS data and verified totals go here."
+    },
+    "hybrid": {
+      "title": "Hybrid Path",
+      "subtitle": "Partial Calculation Required",
+      "desc": "Measured activity data that still needs emission factor application or unit conversion through a calculator module."
+    }
+  },
+  "rules": {
+    "cemsVsCalc": "CEMS vs calculated: prefer CEMS when delta < 5%",
+    "meterVsInvoice": "Utility meter vs invoice: flag if delta > 2%",
+    "verifiedOverride": "Verified totals override calculated when certified",
+    "labOverride": "Lab results override EFs for tested fuel batches",
+    "gapFill": "Gap-fill rule: interpolate up to 72hr CEMS gaps"
+  },
+  "metrics": {
+    "completeness": "Data Completeness",
+    "temporal": "Temporal Coverage",
+    "sourceCoverage": "Source Coverage",
+    "anomalyRate": "Anomaly Rate"
+  },
+  "units": {
+    "sources": "sources"
+  },
+  "overview": {
+    "target": "target: {{value}}",
+    "sourceTypes": "Source Types",
+    "readings": "Readings",
+    "sources": "Sources",
+    "quality": "Quality",
+    "frequency": "Frequency",
+    "processingPipeline": "Processing Pipeline",
+    "sourcesCount": "{{count}} Sources",
+    "repository": "Repository"
+  },
+  "processing": {
+    "records": "Records",
+    "share": "Share",
+    "routingTitle": "Source-to-Path Routing",
+    "direct": "Direct",
+    "hybrid": "Hybrid",
+    "routing": {
+      "cems": {
+        "source": "CEMS — Stack Monitors",
+        "reason": "Direct GHG measurement, no calculation needed"
+      },
+      "electricity": {
+        "source": "Utility Meters — Electricity",
+        "reason": "kWh measured, needs grid EF application"
+      },
+      "gas": {
+        "source": "Utility Meters — Natural Gas",
+        "reason": "Volume + composition known, direct CO2e"
+      },
+      "verified": {
+        "source": "3rd-Party Verified Totals",
+        "reason": "Certified tCO2e values bypass calculation"
+      },
+      "fuel": {
+        "source": "Lab — Fuel Analysis",
+        "reason": "Composition data routes to combustion calc"
+      },
+      "process": {
+        "source": "Lab — Process Samples",
+        "reason": "Material balance → process emission calc"
+      }
+    }
+  },
+  "reconciliation": {
+    "activeRules": "Active Rules",
+    "matchesApplied": "Matches Applied",
+    "conflictsFlagged": "Conflicts Flagged",
+    "rulesTitle": "Aggregator Reconciliation Rules",
+    "autoApplied": "Auto-applied",
+    "active": "Active",
+    "review": "Review",
+    "howTitle": "How Reconciliation Works",
+    "step": "Step {{n}}",
+    "steps": {
+      "1": "Measured + calculated data enters aggregator",
+      "2": "Rules compare overlapping sources",
+      "3": "Best-quality source wins, delta logged",
+      "4": "Conflicts flagged for manual review"
+    }
+  }
+}

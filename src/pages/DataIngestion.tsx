@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Building2,
   FileSpreadsheet,
@@ -30,7 +31,7 @@ interface DataModule {
   accent: string
   color: 'teal' | 'blue' | 'purple' | 'amber' | 'green'
   status: 'live' | 'ready' | 'beta'
-  stats: { label: string; value: string }[]
+  stats: { key: string; label: string; value: string }[]
 }
 
 const MODULES: DataModule[] = [
@@ -43,7 +44,7 @@ const MODULES: DataModule[] = [
     accent: 'var(--accent-teal)',
     color: 'teal',
     status: 'live',
-    stats: [{ label: 'Steps', value: '7' }, { label: 'Frameworks', value: '5' }],
+    stats: [{ key: 'steps', label: 'Steps', value: '7' }, { key: 'frameworks', label: 'Frameworks', value: '5' }],
   },
   {
     id: 'raw-supplier',
@@ -54,7 +55,7 @@ const MODULES: DataModule[] = [
     accent: 'var(--accent-blue)',
     color: 'blue',
     status: 'live',
-    stats: [{ label: 'Formats', value: '.xlsx .csv' }, { label: 'Fields', value: '21' }],
+    stats: [{ key: 'formats', label: 'Formats', value: '.xlsx .csv' }, { key: 'fields', label: 'Fields', value: '21' }],
   },
   {
     id: 'measured',
@@ -65,7 +66,7 @@ const MODULES: DataModule[] = [
     accent: 'var(--accent-purple)',
     color: 'purple',
     status: 'live',
-    stats: [{ label: 'Sources', value: '91' }, { label: 'Quality', value: '98.4%' }],
+    stats: [{ key: 'sources', label: 'Sources', value: '91' }, { key: 'quality', label: 'Quality', value: '98.4%' }],
   },
   {
     id: 'entities',
@@ -76,7 +77,7 @@ const MODULES: DataModule[] = [
     accent: 'var(--accent-amber)',
     color: 'amber',
     status: 'live',
-    stats: [{ label: 'Entities', value: '48+' }, { label: 'Templates', value: '4' }],
+    stats: [{ key: 'entities', label: 'Entities', value: '48+' }, { key: 'templates', label: 'Templates', value: '4' }],
   },
 ]
 
@@ -90,11 +91,11 @@ const statusConfig = {
    Pipeline steps (shown in the landing)
    ═══════════════════════════════════════════ */
 const PIPELINE_STEPS = [
-  { icon: Upload, label: 'Ingest', desc: 'Raw files, APIs, manual entry' },
-  { icon: ShieldCheck, label: 'Validate', desc: 'Schema checks, completeness' },
-  { icon: Brain, label: 'Classify', desc: 'Auto-scope, factor matching' },
-  { icon: Plug, label: 'Route', desc: 'Direct or hybrid path' },
-  { icon: Database, label: 'Store', desc: 'Unified emission repository' },
+  { icon: Upload, key: 'ingest', label: 'Ingest', desc: 'Raw files, APIs, manual entry' },
+  { icon: ShieldCheck, key: 'validate', label: 'Validate', desc: 'Schema checks, completeness' },
+  { icon: Brain, key: 'classify', label: 'Classify', desc: 'Auto-scope, factor matching' },
+  { icon: Plug, key: 'route', label: 'Route', desc: 'Direct or hybrid path' },
+  { icon: Database, key: 'store', label: 'Store', desc: 'Unified emission repository' },
 ]
 
 /* ═══════════════════════════════════════════
@@ -104,6 +105,9 @@ type View = 'landing' | string
 
 export default function DataIngestion() {
   const [view, setView] = useState<View>('landing')
+  const { t } = useTranslation()
+  // Display copy is localised by module id; the English in MODULES is the fallback.
+  const modTitle = (m: DataModule) => t(`ingestion.modules.${m.id}.title`, { defaultValue: m.title })
 
   const activeModule = MODULES.find(m => m.id === view)
 
@@ -112,8 +116,8 @@ export default function DataIngestion() {
       {/* Landing header — only on module picker */}
       {view === 'landing' && (
         <div>
-          <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">Data Collection</h1>
-          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-tertiary)]">Upload, validate, and classify emission data from all sources.</p>
+          <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">{t('ingestion.title')}</h1>
+          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-tertiary)]">{t('ingestion.subtitle')}</p>
         </div>
       )}
 
@@ -121,10 +125,10 @@ export default function DataIngestion() {
       {view !== 'landing' && (
         <div className="flex items-center gap-1.5 text-[var(--text-sm)]">
           <button onClick={() => setView('landing')} className="inline-flex items-center gap-1 text-[var(--accent-teal)] font-medium hover:underline underline-offset-2 cursor-pointer">
-            <ArrowLeft className="w-3.5 h-3.5" /> Data Collection
+            <ArrowLeft className="w-3.5 h-3.5" /> {t('ingestion.back')}
           </button>
           <ChevronRight className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-          <span className="text-[var(--text-primary)] font-semibold">{activeModule?.title ?? view}</span>
+          <span className="text-[var(--text-primary)] font-semibold">{activeModule ? modTitle(activeModule) : view}</span>
         </div>
       )}
 
@@ -143,8 +147,8 @@ export default function DataIngestion() {
                         <Icon className="w-5 h-5 text-[var(--accent-teal)]" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)]">{step.label}</p>
-                        <p className="text-[10px] text-[var(--text-tertiary)] truncate">{step.desc}</p>
+                        <p className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)]">{t(`ingestion.pipeline.${step.key}.label`, { defaultValue: step.label })}</p>
+                        <p className="text-[10px] text-[var(--text-tertiary)] truncate">{t(`ingestion.pipeline.${step.key}.desc`, { defaultValue: step.desc })}</p>
                       </div>
                     </div>
                     {i < PIPELINE_STEPS.length - 1 && (
@@ -182,21 +186,21 @@ export default function DataIngestion() {
                         <Icon className="w-7 h-7" style={{ color: mod.accent }} />
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant={cfg.badge} dot>{cfg.label}</Badge>
+                        <Badge variant={cfg.badge} dot>{t(`ingestion.status.${mod.status}`, { defaultValue: cfg.label })}</Badge>
                         <ChevronRight className="w-5 h-5 text-[var(--text-tertiary)] group-hover:text-[var(--accent-teal)] group-hover:translate-x-0.5 transition-all" />
                       </div>
                     </div>
 
-                    <h3 className="font-display text-[var(--text-lg)] font-bold text-[var(--text-primary)]">{mod.title}</h3>
-                    <p className="text-[var(--text-xs)] font-medium text-[var(--text-secondary)] mt-0.5">{mod.subtitle}</p>
-                    <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-2 leading-relaxed">{mod.desc}</p>
+                    <h3 className="font-display text-[var(--text-lg)] font-bold text-[var(--text-primary)]">{modTitle(mod)}</h3>
+                    <p className="text-[var(--text-xs)] font-medium text-[var(--text-secondary)] mt-0.5">{t(`ingestion.modules.${mod.id}.subtitle`, { defaultValue: mod.subtitle })}</p>
+                    <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-2 leading-relaxed">{t(`ingestion.modules.${mod.id}.desc`, { defaultValue: mod.desc })}</p>
 
                     <div className="flex items-center gap-3 mt-5 pt-4 border-t border-[var(--border-subtle)]">
                       {mod.stats.map((stat, i) => (
                         <div key={stat.label} className="flex items-center gap-3">
                           {i > 0 && <div className="w-px h-8 bg-[var(--border-subtle)]" />}
                           <div>
-                            <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">{stat.label}</p>
+                            <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">{t(`ingestion.stats.${stat.key}`, { defaultValue: stat.label })}</p>
                             <p className="text-[var(--text-base)] font-bold tabular-nums" style={{ color: mod.accent }}>{stat.value}</p>
                           </div>
                         </div>

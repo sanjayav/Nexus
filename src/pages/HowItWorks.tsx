@@ -8,6 +8,7 @@ import {
   Check,
   Minus,
 } from 'lucide-react'
+import { Trans, useTranslation } from 'react-i18next'
 import MarketingShell from '../components/marketing/MarketingShell'
 import TimelineGraphic from '../components/marketing/TimelineGraphic'
 import CTABand from '../components/marketing/CTABand'
@@ -24,47 +25,33 @@ import { FadeIn, Stagger, StaggerItem } from '../components/MotionPrimitives'
  *   5. CTABand — "Stop quoting six months."
  */
 
+// Copy lives in locales/<lang>/howItWorks.json under `howItWorks.why.<id>`
+// and `howItWorks.compare.rows.<id>`.
 const DESIGN_CHOICES = [
-  {
-    icon: Layers,
-    title: 'Frameworks pre-loaded',
-    body:
-      '24 frameworks and 700+ datapoints are ready on day one — CSRD, ISSB, GRI, TCFD, CDP, SEC, EU Taxonomy and more. No template buildouts, no consultant-led configuration.',
-  },
-  {
-    icon: Sparkles,
-    title: 'AI does the heavy lifting',
-    body:
-      'Claude-powered evidence extraction reads supplier PDFs and invoices, draft generators write the narrative, and a vendor-to-emission-factor matcher handles the spend-based maths.',
-  },
-  {
-    icon: GitMerge,
-    title: 'Linked data, set once',
-    body:
-      'Change a single value — say, your London facility electricity figure — and every framework, every disclosure, every chart referencing it updates in lockstep.',
-  },
-  {
-    icon: Rocket,
-    title: 'Self-serve onboarding',
-    body:
-      'The welcome wizard walks first-time admins through entity setup, framework selection, and team invites. No implementation consultant required, no professional services fees.',
-  },
-]
+  { id: 'frameworks', icon: Layers },
+  { id: 'ai', icon: Sparkles },
+  { id: 'linked', icon: GitMerge },
+  { id: 'onboarding', icon: Rocket },
+] as const
 
+/** `true`/`false` render as check/minus; a string is an i18n key. */
 type CompareValue = boolean | string
 
-const LEGACY_COMPARE: { dimension: string; legacy: CompareValue; nexus: CompareValue }[] = [
-  { dimension: 'Time to first disclosure',     legacy: '~4–6 months',        nexus: '~48 hours' },
-  { dimension: 'Implementation cost',          legacy: '$50K–$200K services', nexus: 'No setup fee' },
-  { dimension: 'Pricing transparency',         legacy: false,                 nexus: true },
-  { dimension: 'Learning curve',               legacy: 'Steep · training',    nexus: 'Hours, self-serve' },
-  { dimension: 'Native ESG focus',             legacy: 'Bolted-on module',    nexus: 'ESG-first architecture' },
-  { dimension: 'Multi-framework reuse',        legacy: 'Per-framework setup', nexus: 'One dataset, all frameworks' },
-  { dimension: 'AI integration',               legacy: 'Add-on / partial',    nexus: 'Native Claude pipeline' },
-  { dimension: 'Audit trail',                  legacy: 'Database logs',       nexus: 'Blockchain-anchored' },
+const rowKey = (id: string) => `howItWorks.compare.rows.${id}`
+
+const LEGACY_COMPARE: { id: string; legacy: CompareValue; nexus: CompareValue }[] = [
+  { id: 'time',     legacy: `${rowKey('time')}.legacy`,     nexus: `${rowKey('time')}.nexus` },
+  { id: 'cost',     legacy: `${rowKey('cost')}.legacy`,     nexus: `${rowKey('cost')}.nexus` },
+  { id: 'pricing',  legacy: false,                          nexus: true },
+  { id: 'learning', legacy: `${rowKey('learning')}.legacy`, nexus: `${rowKey('learning')}.nexus` },
+  { id: 'native',   legacy: `${rowKey('native')}.legacy`,   nexus: `${rowKey('native')}.nexus` },
+  { id: 'reuse',    legacy: `${rowKey('reuse')}.legacy`,    nexus: `${rowKey('reuse')}.nexus` },
+  { id: 'ai',       legacy: `${rowKey('ai')}.legacy`,       nexus: `${rowKey('ai')}.nexus` },
+  { id: 'audit',    legacy: `${rowKey('audit')}.legacy`,    nexus: `${rowKey('audit')}.nexus` },
 ]
 
 function CmpCell({ value }: { value: CompareValue }) {
+  const { t } = useTranslation()
   if (value === true) {
     return <Check className="w-5 h-5 mx-auto" style={{ color: 'var(--accent-500)' }} />
   }
@@ -76,12 +63,13 @@ function CmpCell({ value }: { value: CompareValue }) {
       className="text-[13px] font-medium"
       style={{ color: 'var(--text-primary)' }}
     >
-      {value}
+      {t(value)}
     </span>
   )
 }
 
 export default function HowItWorks() {
+  const { t } = useTranslation()
   return (
     <MarketingShell>
       {/* ── Hero ── */}
@@ -98,7 +86,7 @@ export default function HowItWorks() {
               className="text-[12px] font-semibold uppercase tracking-[0.18em] mb-5"
               style={{ color: 'var(--accent-600)' }}
             >
-              How it works
+              {t('howItWorks.eyebrow')}
             </p>
             <h1
               className="h-display"
@@ -109,13 +97,13 @@ export default function HowItWorks() {
                 lineHeight: 1.08,
               }}
             >
-              From zero to CSRD-ready in 48 hours
+              {t('howItWorks.title')}
             </h1>
             <p
               className="mt-5 mx-auto max-w-[640px] text-[17px] leading-relaxed"
               style={{ color: 'var(--text-secondary)' }}
             >
-              Most ESG platforms quote 4-month implementations. Nexus takes 2 days. Here's how.
+              {t('howItWorks.intro')}
             </p>
           </FadeIn>
         </div>
@@ -132,7 +120,7 @@ export default function HowItWorks() {
               className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-3"
               style={{ color: 'var(--accent-600)' }}
             >
-              Why so fast?
+              {t('howItWorks.why.eyebrow')}
             </p>
             <h2
               className="h-display"
@@ -142,7 +130,7 @@ export default function HowItWorks() {
                 lineHeight: 1.15,
               }}
             >
-              Four design choices that compress months into days.
+              {t('howItWorks.why.heading')}
             </h2>
           </div>
 
@@ -151,7 +139,7 @@ export default function HowItWorks() {
             className="grid grid-cols-1 md:grid-cols-2 gap-5"
           >
             {DESIGN_CHOICES.map((c) => (
-              <StaggerItem key={c.title}>
+              <StaggerItem key={c.id}>
                 <article
                   className="h-full rounded-[16px] border p-7"
                   style={{
@@ -173,13 +161,13 @@ export default function HowItWorks() {
                     className="h-section mb-2"
                     style={{ color: 'var(--text-primary)' }}
                   >
-                    {c.title}
+                    {t(`howItWorks.why.${c.id}.title`)}
                   </h3>
                   <p
                     className="text-[14px] leading-relaxed"
                     style={{ color: 'var(--text-secondary)' }}
                   >
-                    {c.body}
+                    {t(`howItWorks.why.${c.id}.body`)}
                   </p>
                 </article>
               </StaggerItem>
@@ -196,7 +184,7 @@ export default function HowItWorks() {
               className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-3"
               style={{ color: 'var(--accent-600)' }}
             >
-              Side-by-side
+              {t('howItWorks.compare.eyebrow')}
             </p>
             <h2
               className="h-display"
@@ -206,17 +194,18 @@ export default function HowItWorks() {
                 lineHeight: 1.15,
               }}
             >
-              Legacy ESG platforms vs Nexus.
+              {t('howItWorks.compare.heading')}
             </h2>
             <p
               className="mt-4 text-[16px] leading-relaxed"
               style={{ color: 'var(--text-secondary)' }}
             >
-              The honest summary across eight dimensions — without naming names.
-              For a head-to-head against Workiva specifically, see{' '}
-              <Link to="/compare" className="underline" style={{ color: 'var(--accent-600)' }}>
-                /compare
-              </Link>.
+              <Trans
+                i18nKey="howItWorks.compare.intro"
+                components={{
+                  compareLink: <Link to="/compare" className="underline" style={{ color: 'var(--accent-600)' }} />,
+                }}
+              />
             </p>
           </div>
 
@@ -232,13 +221,13 @@ export default function HowItWorks() {
                     className="py-4 px-6 font-semibold text-[12px] uppercase tracking-[0.1em]"
                     style={{ color: 'var(--text-tertiary)' }}
                   >
-                    Dimension
+                    {t('howItWorks.compare.dimension')}
                   </th>
                   <th
                     className="py-4 px-6 font-semibold text-center"
                     style={{ color: 'var(--text-primary)' }}
                   >
-                    Legacy ESG platforms
+                    {t('howItWorks.compare.legacyPlatforms')}
                   </th>
                   <th
                     className="py-4 px-6 font-semibold text-center"
@@ -247,14 +236,14 @@ export default function HowItWorks() {
                       background: 'color-mix(in srgb, var(--accent-500) 6%, transparent)',
                     }}
                   >
-                    Nexus
+                    {t('howItWorks.compare.nexus')}
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {LEGACY_COMPARE.map((row, i) => (
                   <tr
-                    key={row.dimension}
+                    key={row.id}
                     style={{
                       borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)',
                     }}
@@ -263,7 +252,7 @@ export default function HowItWorks() {
                       className="py-3.5 px-6 font-medium"
                       style={{ color: 'var(--text-primary)' }}
                     >
-                      {row.dimension}
+                      {t(`howItWorks.compare.rows.${row.id}.dimension`)}
                     </td>
                     <td className="py-3.5 px-6 text-center" style={{ color: 'var(--text-secondary)' }}>
                       <CmpCell value={row.legacy} />
@@ -284,7 +273,7 @@ export default function HowItWorks() {
           <div className="md:hidden space-y-3">
             {LEGACY_COMPARE.map((row) => (
               <div
-                key={row.dimension}
+                key={row.id}
                 className="rounded-[12px] border p-4"
                 style={{
                   background: 'var(--bg-primary)',
@@ -295,7 +284,7 @@ export default function HowItWorks() {
                   className="text-[14px] font-semibold mb-3"
                   style={{ color: 'var(--text-primary)' }}
                 >
-                  {row.dimension}
+                  {t(`howItWorks.compare.rows.${row.id}.dimension`)}
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   <div
@@ -309,7 +298,7 @@ export default function HowItWorks() {
                       className="text-[10px] font-semibold uppercase tracking-[0.1em] mb-1.5"
                       style={{ color: 'var(--text-tertiary)' }}
                     >
-                      Legacy
+                      {t('howItWorks.compare.legacy')}
                     </p>
                     <CmpCell value={row.legacy} />
                   </div>
@@ -324,7 +313,7 @@ export default function HowItWorks() {
                       className="text-[10px] font-semibold uppercase tracking-[0.1em] mb-1.5"
                       style={{ color: 'var(--accent-600)' }}
                     >
-                      Nexus
+                      {t('howItWorks.compare.nexus')}
                     </p>
                     <CmpCell value={row.nexus} />
                   </div>
@@ -339,7 +328,7 @@ export default function HowItWorks() {
               className="btn-secondary"
               style={{ height: 42, paddingInline: 20, fontSize: 14 }}
             >
-              See the head-to-head vs Workiva
+              {t('howItWorks.compare.seeWorkiva')}
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -347,9 +336,9 @@ export default function HowItWorks() {
       </section>
 
       <CTABand
-        heading="Stop quoting six months. Start in two days."
-        primary={{ label: 'Start free trial', to: '/login?mode=register' }}
-        secondary={{ label: 'See pricing', to: '/pricing' }}
+        heading={t('howItWorks.cta.heading')}
+        primary={{ label: t('howItWorks.cta.primary'), to: '/login?mode=register' }}
+        secondary={{ label: t('howItWorks.cta.secondary'), to: '/pricing' }}
       />
     </MarketingShell>
   )

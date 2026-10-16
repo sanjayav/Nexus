@@ -20,6 +20,7 @@ import { aws } from './providers/aws.js'
 import { gcp } from './providers/gcp.js'
 import { azure } from './providers/azure.js'
 import { genericRest } from './providers/genericRest.js'
+import { CN_COMING_SOON_CONNECTORS } from './providers/cnCatalogue.js'
 
 export const CONNECTORS: Record<string, ConnectorDefinition> = {
   [sapS4hana.id]: sapS4hana,
@@ -34,6 +35,24 @@ export const CONNECTORS: Record<string, ConnectorDefinition> = {
   [genericRest.id]: genericRest,
 }
 
+/**
+ * Catalogue-only connectors (status 'coming_soon'). Deliberately NOT part of
+ * CONNECTORS: listConnectors() feeds the "Live integrations" grid and
+ * getConnector() gates OAuth start / callback / sync, so keeping these out
+ * guarantees no endpoint or UI path treats them as connectable. Surface them
+ * via listConnectorCatalogue() / getCatalogueEntry() with a "Coming soon"
+ * badge instead.
+ */
+export const COMING_SOON_CONNECTORS: Record<string, ConnectorDefinition> = Object.fromEntries(
+  CN_COMING_SOON_CONNECTORS.map(c => [c.id, c]),
+)
+
+/** Every catalogue entry — live first, then coming soon. */
+export const CONNECTOR_CATALOGUE: Record<string, ConnectorDefinition> = {
+  ...CONNECTORS,
+  ...COMING_SOON_CONNECTORS,
+}
+
 /** Lookup a connector by id; returns undefined for unknown ids. */
 export function getConnector(id: string): ConnectorDefinition | undefined {
   return CONNECTORS[id]
@@ -42,4 +61,14 @@ export function getConnector(id: string): ConnectorDefinition | undefined {
 /** All registered providers as an array — used by the listing endpoint. */
 export function listConnectors(): ConnectorDefinition[] {
   return Object.values(CONNECTORS)
+}
+
+/** Full catalogue (live + coming soon) — for a roadmap / marketplace view. */
+export function listConnectorCatalogue(): ConnectorDefinition[] {
+  return Object.values(CONNECTOR_CATALOGUE)
+}
+
+/** Lookup any catalogue entry, including coming-soon ones. */
+export function getCatalogueEntry(id: string): ConnectorDefinition | undefined {
+  return CONNECTOR_CATALOGUE[id]
 }

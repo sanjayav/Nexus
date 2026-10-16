@@ -1,0 +1,712 @@
+{
+  "page": {
+    "breadcrumbData": "数据",
+    "title": "范围三计算器",
+    "eyebrow": "范围三 · 温室气体核算体系",
+    "descriptionBefore": "选择类别和方法（供应商特定法 > 基于活动法 > 基于支出法），然后输入数据。结果以 tCO2e 表示，并附",
+    "descriptionAfter": "排放因子引用。在接入 USEEIO v2.0 / EXIOBASE 之前，基于支出的排放因子均为示意性平均值。",
+    "categoriesHeading": "类别 1–15",
+    "catLabel": "类别 {{n}}",
+    "methodsCount_one": "{{count}} 种方法",
+    "methodsCount_other": "{{count}} 种方法",
+    "selectPrompt": "请从左侧选择一个范围三类别开始。",
+    "method": "方法",
+    "savedAsActivity": "已保存为活动数据。",
+    "viewInIngestion": "在数据导入中查看",
+    "sentenceEnd": "。",
+    "computeHint": "先计算，然后将结果作为草稿保存到 activity_data。",
+    "saveToActivity": "保存到活动数据",
+    "compute": "计算",
+    "selectPlaceholder": "— 请选择 —",
+    "result": "结果",
+    "savedAsDraft": "已保存为草稿",
+    "efUsed": "所用排放因子：",
+    "breakdown": "明细",
+    "pickFacility": "请先选择设施",
+    "persistEyebrow": "保存计算结果",
+    "modalDescBefore": "在",
+    "modalDescMiddle": "中创建一条草稿记录，并标记所用计算器（",
+    "modalDescAfter": "）。",
+    "facility": "设施",
+    "noFacilities": "无启用中的设施",
+    "year": "年份",
+    "month": "月份",
+    "notes": "备注",
+    "notesPlaceholder": "供审核人参考的补充说明（可选）",
+    "saveDraft": "保存草稿",
+    "enterVendor": "请先输入供应商名称",
+    "aiMatcherTitle": "AI 排放因子匹配",
+    "vendorName": "供应商名称",
+    "vendorPlaceholder": "例如 Acme Steel Co.",
+    "region": "地区",
+    "aiNotConfiguredTitle": "AI 未配置。请联系管理员设置 ANTHROPIC_API_KEY。",
+    "suggestAria": "使用 AI 推荐排放因子",
+    "aiUnavailable": "AI 不可用",
+    "suggestEf": "AI 推荐排放因子",
+    "aiBannerLine": "当前环境未配置 AI 排放因子推荐。",
+    "aiBannerAskBefore": "请联系管理员在服务器上配置",
+    "aiBannerAskAfter": "环境变量。",
+    "topMatch": "最佳匹配",
+    "alternates_one": "{{count}} 个备选",
+    "alternates_other": "{{count}} 个备选",
+    "altN": "备选 {{n}}",
+    "applied": "已应用",
+    "useThisEf": "使用此排放因子"
+  },
+  "calcs": {
+    "scope3_cat01": {
+      "name": "外购商品和服务",
+      "shortName": "类别 1 外购商品",
+      "description": "报告公司所购商品和服务在生产过程中产生的上游排放。",
+      "methods": {
+        "supplier_specific": {
+          "name": "供应商特定法",
+          "inputs": {
+            "supplier_emissions": {
+              "label": "供应商报告的 tCO2e"
+            }
+          }
+        },
+        "activity_based": {
+          "name": "平均数据法（质量 × 排放因子）",
+          "inputs": {
+            "quantity": {
+              "label": "采购量"
+            },
+            "material": {
+              "label": "材料类型"
+            },
+            "region": {
+              "label": "地区"
+            }
+          }
+        },
+        "spend_based": {
+          "name": "基于支出法",
+          "inputs": {
+            "spend": {
+              "label": "支出"
+            },
+            "sector": {
+              "label": "行业部门"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat02": {
+      "name": "资本货物",
+      "shortName": "类别 2 资本货物",
+      "description": "报告公司在报告期内购置的长期资本资产的「从摇篮到大门」排放。",
+      "methods": {
+        "activity_based": {
+          "name": "资产数量 × 排放因子",
+          "inputs": {
+            "asset": {
+              "label": "资产类型"
+            },
+            "quantity": {
+              "label": "数量（视资产而定：台/m²/t）"
+            }
+          }
+        },
+        "spend_based": {
+          "name": "基于支出法",
+          "inputs": {
+            "spend": {
+              "label": "资本支出（CAPEX）"
+            },
+            "sector": {
+              "label": "资产行业"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat03": {
+      "name": "燃料和能源相关活动",
+      "shortName": "类别 3 燃料与能源",
+      "description": "范围一和范围二所消耗燃料的上游（从油井到油箱）排放，以及外购电力的输配电损耗。",
+      "methods": {
+        "wtt_fuel": {
+          "name": "WTT——外购燃料",
+          "inputs": {
+            "fuel": {
+              "label": "燃料类型"
+            },
+            "energy_kwh": {
+              "label": "交付能源量"
+            }
+          }
+        },
+        "tnd_losses": {
+          "name": "电网输配电损耗（电力）",
+          "inputs": {
+            "kwh_purchased": {
+              "label": "外购电力"
+            },
+            "grid_ef": {
+              "label": "电网排放因子"
+            },
+            "region": {
+              "label": "地区"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat04": {
+      "name": "上游运输和配送",
+      "shortName": "类别 4 上游运输配送",
+      "description": "由报告公司付费的、从一级供应商处购入产品的运输以及设施之间的运输。",
+      "methods": {
+        "distance_based": {
+          "name": "基于距离法（运输方式 × 重量 × 距离）",
+          "inputs": {
+            "mode": {
+              "label": "运输方式"
+            },
+            "weight_t": {
+              "label": "运输重量"
+            },
+            "distance_km": {
+              "label": "距离"
+            }
+          }
+        },
+        "fuel_based": {
+          "name": "基于燃料法",
+          "inputs": {
+            "fuel_litres": {
+              "label": "燃料消耗量"
+            },
+            "fuel_ef": {
+              "label": "排放因子"
+            }
+          }
+        },
+        "spend_based": {
+          "name": "基于支出法",
+          "inputs": {
+            "spend": {
+              "label": "物流支出"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat05": {
+      "name": "运营中产生的废弃物",
+      "shortName": "类别 5 废弃物",
+      "description": "报告公司运营中产生的废弃物的处置和处理。",
+      "methods": {
+        "waste_type_method": {
+          "name": "废弃物类型 × 处理方式",
+          "inputs": {
+            "waste_type": {
+              "label": "废弃物类别"
+            },
+            "treatment": {
+              "label": "处理方式"
+            },
+            "tonnes": {
+              "label": "质量"
+            }
+          }
+        },
+        "average_data": {
+          "name": "平均数据法",
+          "inputs": {
+            "tonnes": {
+              "label": "废弃物总量"
+            },
+            "avg_ef": {
+              "label": "平均排放因子"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat06": {
+      "name": "商务差旅",
+      "shortName": "类别 6 商务差旅",
+      "description": "员工因商务活动乘坐非报告公司拥有或运营的交通工具出行。",
+      "methods": {
+        "distance_based": {
+          "name": "基于距离法（出行方式 × 人公里）",
+          "inputs": {
+            "mode": {
+              "label": "出行方式"
+            },
+            "pax_km": {
+              "label": "人公里"
+            }
+          }
+        },
+        "hotel_nights": {
+          "name": "酒店住宿",
+          "inputs": {
+            "nights": {
+              "label": "间夜数"
+            },
+            "region": {
+              "label": "地区"
+            }
+          }
+        },
+        "spend_based": {
+          "name": "基于支出法",
+          "inputs": {
+            "spend": {
+              "label": "差旅支出"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat07": {
+      "name": "员工通勤",
+      "shortName": "类别 7 员工通勤",
+      "description": "员工往返住所与工作地点之间的交通。",
+      "methods": {
+        "distance_based": {
+          "name": "距离 × FTE × 工作日",
+          "inputs": {
+            "mode": {
+              "label": "通勤方式"
+            },
+            "avg_one_way_km": {
+              "label": "平均单程距离"
+            },
+            "fte": {
+              "label": "采用该方式的 FTE 数"
+            },
+            "workdays": {
+              "label": "年工作日数"
+            }
+          }
+        },
+        "survey_avg": {
+          "name": "调查平均值（每 FTE 排放因子）",
+          "inputs": {
+            "fte": {
+              "label": "FTE 总数"
+            },
+            "avg_ef_per_fte": {
+              "label": "每 FTE 年均排放因子"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat08": {
+      "name": "上游租赁资产",
+      "shortName": "类别 8 上游租赁",
+      "description": "报告公司租入、且尚未计入范围一或范围二的资产的运营。",
+      "methods": {
+        "asset_based": {
+          "name": "资产范围一/二归因",
+          "inputs": {
+            "energy_kwh": {
+              "label": "能源使用量"
+            },
+            "grid_ef": {
+              "label": "电网排放因子"
+            },
+            "fuel_kwh": {
+              "label": "燃料使用量"
+            },
+            "fuel_ef": {
+              "label": "燃料排放因子"
+            }
+          }
+        },
+        "floor_area_avg": {
+          "name": "平均数据法（建筑面积 × 排放因子）",
+          "inputs": {
+            "m2": {
+              "label": "租赁建筑面积"
+            },
+            "ef_per_m2": {
+              "label": "排放因子"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat09": {
+      "name": "下游运输和配送",
+      "shortName": "类别 9 下游运输配送",
+      "description": "销售点之后，售出产品在非报告公司拥有或运营的交通工具中的运输和配送，包括零售和仓储。",
+      "methods": {
+        "distance_based": {
+          "name": "基于距离法（运输方式 × 重量 × 距离）",
+          "inputs": {
+            "mode": {
+              "label": "运输方式"
+            },
+            "weight_t": {
+              "label": "运输重量"
+            },
+            "distance_km": {
+              "label": "距离"
+            }
+          }
+        },
+        "spend_based": {
+          "name": "基于支出法",
+          "inputs": {
+            "spend": {
+              "label": "配送支出"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat10": {
+      "name": "售出产品的加工",
+      "shortName": "类别 10 产品加工",
+      "description": "下游制造商加工报告公司售出的中间产品所产生的排放。",
+      "methods": {
+        "mass_based": {
+          "name": "吨数 × 加工排放因子",
+          "inputs": {
+            "intermediate": {
+              "label": "中间产品类型"
+            },
+            "tonnes_sold": {
+              "label": "售予下游加工商的数量"
+            }
+          }
+        },
+        "spend_based": {
+          "name": "基于支出法（以客户加工成本为代理）",
+          "inputs": {
+            "spend": {
+              "label": "预估下游加工支出"
+            },
+            "factor": {
+              "label": "行业 EEIO 因子"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat11": {
+      "name": "售出产品的使用",
+      "shortName": "类别 11 售出产品使用",
+      "description": "报告公司售出的商品和服务在其寿命期内最终使用所产生的直接和间接排放。",
+      "methods": {
+        "direct_use_energy": {
+          "name": "直接使用——耗能产品",
+          "inputs": {
+            "units_sold": {
+              "label": "售出数量"
+            },
+            "lifetime_yr": {
+              "label": "预期使用寿命"
+            },
+            "energy_per_yr_kwh": {
+              "label": "单位产品年能耗"
+            },
+            "grid_ef": {
+              "label": "排放因子"
+            }
+          }
+        },
+        "direct_use_fuel": {
+          "name": "直接使用——耗燃料产品",
+          "inputs": {
+            "units_sold": {
+              "label": "售出数量"
+            },
+            "lifetime_fuel_l": {
+              "label": "单位产品寿命期燃料消耗"
+            },
+            "fuel_ef": {
+              "label": "燃料排放因子"
+            }
+          }
+        },
+        "indirect_use": {
+          "name": "间接使用（基于 LCA）",
+          "inputs": {
+            "units_sold": {
+              "label": "售出数量"
+            },
+            "lca_kgco2e_per_unit": {
+              "label": "单位产品 LCA 使用阶段排放因子"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat12": {
+      "name": "售出产品的寿命终止处理",
+      "shortName": "类别 12 寿命终止",
+      "description": "报告公司售出的产品在寿命终止时的废弃物处置和处理。",
+      "methods": {
+        "waste_treatment": {
+          "name": "质量 × 处理排放因子",
+          "inputs": {
+            "tonnes_disposed": {
+              "label": "处置吨数"
+            },
+            "treatment": {
+              "label": "处理方式"
+            }
+          }
+        },
+        "split_method": {
+          "name": "售出产品构成 × 处置比例",
+          "inputs": {
+            "tonnes_sold": {
+              "label": "售出产品吨数"
+            },
+            "landfill_pct": {
+              "label": "填埋比例（%）"
+            },
+            "incinerate_pct": {
+              "label": "焚烧比例（%）"
+            },
+            "recycle_pct": {
+              "label": "回收比例（%）"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat13": {
+      "name": "下游租赁资产",
+      "shortName": "类别 13 下游租赁",
+      "description": "报告公司拥有并出租给其他实体、且尚未计入范围一或范围二的资产的运营。",
+      "methods": {
+        "asset_based": {
+          "name": "承租方范围一/二归因",
+          "inputs": {
+            "energy_kwh": {
+              "label": "承租方用电量"
+            },
+            "grid_ef": {
+              "label": "电网排放因子"
+            },
+            "fuel_kwh": {
+              "label": "承租方燃料使用量"
+            },
+            "fuel_ef": {
+              "label": "燃料排放因子"
+            }
+          }
+        },
+        "floor_area_avg": {
+          "name": "平均数据法（建筑面积 × 排放因子）",
+          "inputs": {
+            "m2": {
+              "label": "租赁建筑面积"
+            },
+            "ef_per_m2": {
+              "label": "排放因子"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat14": {
+      "name": "特许经营",
+      "shortName": "类别 14 特许经营",
+      "description": "未计入范围一或范围二的特许经营运营——由加盟商报告的排放（范围一 + 范围二）。",
+      "methods": {
+        "franchisee_reported": {
+          "name": "加盟商报告（范围一 + 范围二）",
+          "inputs": {
+            "reported_tco2e": {
+              "label": "加盟商范围一 + 二"
+            },
+            "count": {
+              "label": "汇总的特许经营店数量"
+            }
+          }
+        },
+        "avg_franchise": {
+          "name": "单店平均（按建筑面积或收入）",
+          "inputs": {
+            "num_franchises": {
+              "label": "特许经营店数量"
+            },
+            "avg_ef_per_franchise": {
+              "label": "单店平均排放因子"
+            }
+          }
+        }
+      }
+    },
+    "scope3_cat15": {
+      "name": "投资",
+      "shortName": "类别 15 投资",
+      "description": "投资（包括股权、债务、项目融资）的运营——按 PCAF 计算的融资排放。",
+      "methods": {
+        "equity_share": {
+          "name": "股权比例归因",
+          "inputs": {
+            "investee_scope1_2": {
+              "label": "被投资方范围一 + 二"
+            },
+            "equity_share_pct": {
+              "label": "股权比例"
+            }
+          }
+        },
+        "project_finance": {
+          "name": "项目融资归因",
+          "inputs": {
+            "project_emissions": {
+              "label": "项目年排放量"
+            },
+            "outstanding_amount": {
+              "label": "未偿投资额"
+            },
+            "project_total_value": {
+              "label": "项目总价值（等同 EVIC）"
+            }
+          }
+        },
+        "economic_intensity": {
+          "name": "经济强度（支出 × 行业排放因子）",
+          "inputs": {
+            "outstanding_amount": {
+              "label": "未偿投资额"
+            },
+            "sector_ef": {
+              "label": "行业排放因子"
+            }
+          }
+        }
+      }
+    }
+  },
+  "options": {
+    "steel": "钢材",
+    "aluminium": "铝",
+    "plastic": "塑料",
+    "paper": "纸张",
+    "glass": "玻璃",
+    "cement": "水泥",
+    "other": "其他",
+    "agriculture": "农业",
+    "mining": "采矿业",
+    "utilities": "公用事业",
+    "construction": "建筑",
+    "food_beverage": "食品饮料",
+    "textiles_apparel": "纺织服装",
+    "wood_paper": "木材与造纸",
+    "chemicals": "化学品",
+    "pharmaceuticals": "医药",
+    "plastics_rubber": "塑料与橡胶",
+    "cement_concrete": "水泥与混凝土",
+    "iron_steel": "钢铁",
+    "nonferrous_metals": "有色金属",
+    "fabricated_metal": "金属制品",
+    "machinery": "机械设备",
+    "electronics": "电子产品",
+    "electrical_equipment": "电气设备",
+    "motor_vehicles": "机动车",
+    "other_transport_equipment": "其他运输设备",
+    "furniture": "家具",
+    "wholesale_retail": "批发零售",
+    "transport_warehousing": "运输仓储",
+    "information_telecom": "信息通信",
+    "financial_services": "金融服务",
+    "real_estate": "房地产",
+    "professional_services": "专业服务",
+    "admin_support": "行政支持服务",
+    "education_health": "教育与医疗",
+    "arts_entertainment": "文化娱乐",
+    "food_services": "餐饮服务",
+    "other_services": "其他服务",
+    "building_office": "办公建筑",
+    "building_industrial": "工业建筑",
+    "vehicle_light": "轻型车辆",
+    "vehicle_heavy": "重型车辆",
+    "machinery_general": "通用机械",
+    "it_equipment_server": "IT 设备——服务器",
+    "it_equipment_laptop": "IT 设备——笔记本电脑",
+    "natural_gas": "天然气",
+    "diesel": "柴油",
+    "petrol": "汽油",
+    "lpg": "液化石油气（LPG）",
+    "coal": "煤炭",
+    "fuel_oil": "燃料油",
+    "road_lcv": "公路——轻型商用车",
+    "road_hgv": "公路——重型货车",
+    "rail": "铁路",
+    "sea_container": "海运——集装箱",
+    "sea_bulk": "海运——散货",
+    "air_freight_short": "航空货运——短途",
+    "air_freight_long": "航空货运——长途",
+    "inland_waterway": "内河航运",
+    "mixed_msw": "混合城市生活垃圾",
+    "organic_food": "有机 / 食物垃圾",
+    "metals": "金属",
+    "hazardous": "危险废物",
+    "landfill": "填埋",
+    "incineration": "焚烧",
+    "recycling": "回收利用",
+    "composting": "堆肥",
+    "flight_short_haul": "航班——短途",
+    "flight_medium_haul": "航班——中途",
+    "flight_long_haul": "航班——长途",
+    "rail_intercity": "城际铁路",
+    "rail_metro": "城市轨道交通",
+    "car_petrol": "汽车——汽油",
+    "car_diesel": "汽车——柴油",
+    "car_hybrid": "汽车——混合动力",
+    "car_ev": "汽车——纯电动",
+    "bus_coach": "公交 / 长途客车",
+    "taxi": "出租车",
+    "motorcycle": "摩托车",
+    "bus": "公交车",
+    "metro": "地铁",
+    "bicycle": "自行车",
+    "walk": "步行",
+    "work_from_home": "居家办公",
+    "steel_downstream": "钢材（下游加工）",
+    "aluminium_downstream": "铝材（下游加工）",
+    "chemicals_intermediates": "化工中间体",
+    "plastics_conversion": "塑料加工",
+    "paper_conversion": "纸张加工",
+    "textiles": "纺织品",
+    "GLOBAL": "全球",
+    "UK": "英国",
+    "US": "美国",
+    "EU": "欧盟",
+    "APAC": "亚太",
+    "IN": "印度",
+    "CN": "中国",
+    "JP": "日本",
+    "AU": "澳大利亚",
+    "CA": "加拿大",
+    "DE": "德国",
+    "FR": "法国"
+  },
+  "notes": {
+    "illustrativeSpend": "示意性基于支出的排放因子；正式使用时请替换为 USEEIO v2.0 / EXIOBASE。",
+    "pcafEquityShare": "PCAF 股权比例法——资本 × 排放 ÷ EVIC。",
+    "pcafProjectFinance": "PCAF 项目融资归因。",
+    "defraCommute": "DEFRA 式通勤排放因子。",
+    "surveyCommute": "基于调查：根据具有代表性的员工通勤模式样本推算平均排放因子。",
+    "usePhase": "产品预期寿命期内的使用阶段排放。",
+    "fuelProducts": "适用于耗燃料产品（车辆、发电机）。",
+    "productLca": "请依据 ecoinvent 或 PCR 使用产品特定的 LCA（ISO 14040）。",
+    "cradleToGate": "示意性「从摇篮到大门」排放因子；请结合制造商 LCA 进行细化。",
+    "downstreamProcessing": "示意性下游加工排放因子；如有客户 LCA，请据此细化。",
+    "defraPkm": "DEFRA 2024 式人公里排放因子。",
+    "glecMode": "示意性 GLEC 式运输方式排放因子。",
+    "leasedConsolidation": "仅在所选合并方法下尚未计入范围一/二时纳入。",
+    "buildingAverages": "无计量数据时，请使用建筑类型平均值。",
+    "warmEol": "EPA WARM 式。回收为负值，反映所避免的原生材料生产。",
+    "warmWaste": "示意性 EPA WARM 式排放因子；净负值反映回收所避免的环境负担。",
+    "wttFuel": "WTT 排放因子——DEFRA 式近似值。请替换为区域性 DEFRA / 温室气体核算体系数值。",
+    "tndLoss": "示意性输配电损耗比例；如有 IEA 电网特定数值，请优先使用。",
+    "efFallback": "数据库中无匹配的排放因子记录；使用 1 kgCO2e/unit 占位值。"
+  }
+}

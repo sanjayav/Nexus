@@ -1,0 +1,94 @@
+{
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "howItWorks": "How it works",
+    "compare": "Compare",
+    "about": "About",
+    "contact": "Contact",
+    "signIn": "Sign in",
+    "getStarted": "Get started",
+    "openMenu": "Open menu",
+    "homeAria": "Nexus — home",
+    "navAria": "Marketing navigation"
+  },
+  "footer": {
+    "tagline": "The sustainability intelligence platform — every framework, one dataset, auditor-ready.",
+    "product": "Product",
+    "company": "Company",
+    "legal": "Legal",
+    "security": "Security",
+    "api": "API",
+    "careers": "Careers",
+    "blog": "Blog",
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "dpa": "DPA",
+    "subprocessors": "Subprocessors",
+    "copyright": "© 2026 Aeiforo Ltd · All rights reserved"
+  },
+  "cta": {
+    "startFree": "Start free",
+    "startFreeTrial": "Start free trial",
+    "contactSales": "Contact sales",
+    "seeHowItWorks": "See how it works",
+    "watchDemo": "Watch demo"
+  },
+  "plans": {
+    "starter": "Starter",
+    "team": "Team",
+    "enterprise": "Enterprise",
+    "custom": "Custom",
+    "perMonth": "/mo"
+  },
+  "hero": {
+    "eyebrow": "Sustainability Intelligence Platform",
+    "titleLine1": "Every framework.",
+    "titleLine2": "One dataset.",
+    "subtitle": "Nexus is the reporting platform that turns sustainability data into auditor-ready disclosures across CSRD, ISSB, GRI, TCFD, CDP and more.",
+    "trust": "Built by ESG experts · SOC 2 (in progress) · GDPR compliant · Self-hosted available"
+  },
+  "logoCloud": {
+    "heading": "Trusted by sustainability teams at"
+  },
+  "comparison": {
+    "feature": "Feature",
+    "ariaYes": "yes",
+    "ariaNo": "no",
+    "ariaPartial": "partial",
+    "supported": "Supported",
+    "notSupported": "Not supported",
+    "partial": "Partial"
+  },
+  "faq": {
+    "heading": "Frequently asked questions"
+  },
+  "pricingTable": {
+    "mostPopular": "Most popular",
+    "disclaimer": "Prices shown are illustrative for v1 launch — final pricing confirmed during onboarding."
+  },
+  "timeline": {
+    "signUp": {
+      "when": "HOUR 1",
+      "title": "Sign up",
+      "body": "Self-serve. No sales call. Land in the workspace with one click."
+    },
+    "firstFacility": {
+      "when": "HOUR 4",
+      "title": "First facility",
+      "body": "Add an entity, pick frameworks (24 pre-loaded), invite teammates."
+    },
+    "valuesEntered": {
+      "when": "HOUR 24",
+      "title": "Values entered",
+      "body": "Upload evidence, let AI extract figures, approve the numbers."
+    },
+    "draftDisclosure": {
+      "when": "HOUR 48",
+      "title": "Draft disclosure",
+      "body": "CSRD-ready draft, auditor-trail, blockchain anchor, ready to publish."
+    },
+    "closing": "All without a sales call. All without an implementation consultant. All published pricing.",
+    "closingStrong": "£500/month Team tier."
+  }
+}

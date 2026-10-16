@@ -1,0 +1,41 @@
+{
+  "title": "系统状态",
+  "eyebrow": "管理 · 系统",
+  "subtitle": "实时查看部署运行状况及已接入的集成。每 30 秒自动刷新。",
+  "errors": {
+    "unreachable": "无法连接 /api/health"
+  },
+  "banner": {
+    "allOk": "所有系统运行正常",
+    "degraded": "服务降级",
+    "lastChecked": "上次检查：{{time}}",
+    "probing": "正在检测…"
+  },
+  "db": {
+    "title": "数据库（Neon Postgres）",
+    "latency": "SELECT 1 耗时 {{ms}} 毫秒",
+    "unavailable": "不可用",
+    "healthy": "正常",
+    "down": "宕机"
+  },
+  "integration": {
+    "configured": "已配置",
+    "notConfigured": "未配置",
+    "ready": "就绪",
+    "missing": "缺失",
+    "setupGuide": "配置指南 →"
+  },
+  "integrations": {
+    "email": "事务邮件",
+    "sso": "单点登录（SAML）",
+    "ai": "AI 辅助撰写",
+    "sentry": "错误监控",
+    "euRegion": "欧盟数据驻留",
+    "apacRegion": "亚太数据驻留"
+  },
+  "footer": {
+    "version": "版本",
+    "region": "区域",
+    "probedAt": "检测时间"
+  }
+}

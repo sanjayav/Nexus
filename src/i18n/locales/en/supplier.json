@@ -1,0 +1,152 @@
+{
+  "title": "Raw & Supplier Data Ingestion",
+  "subtitle": "Upload Excel/CSV files, auto-map columns, preview and validate data before ingestion.",
+  "uploadFile": "Upload File",
+  "tabs": {
+    "upload": "Upload",
+    "preview": "Data Preview",
+    "mapping": "Column Mapping",
+    "pipeline": "Pipeline",
+    "history": "History"
+  },
+  "fields": {
+    "skip": "— Skip column —",
+    "facility_name": "Facility / Site Name",
+    "source_id": "Source ID",
+    "source_type": "Source Type",
+    "emission_scope": "Emission Scope (1/2/3)",
+    "activity_type": "Activity Type",
+    "fuel_type": "Fuel Type",
+    "quantity": "Quantity / Amount",
+    "unit": "Unit",
+    "emission_factor": "Emission Factor",
+    "ef_unit": "EF Unit",
+    "co2e_tonnes": "CO₂e (tonnes)",
+    "co2": "CO₂ (tonnes)",
+    "ch4": "CH₄ (tonnes)",
+    "n2o": "N₂O (tonnes)",
+    "reporting_period": "Reporting Period",
+    "date": "Date",
+    "country": "Country",
+    "region": "Region",
+    "supplier_name": "Supplier Name",
+    "notes": "Notes / Comments"
+  },
+  "empty": {
+    "noFile": "No file uploaded yet",
+    "noFileSub": "Upload an Excel or CSV file to preview its contents.",
+    "noMapData": "No data to map",
+    "noMapDataSub": "Upload a file first, then map columns.",
+    "goToUpload": "Go to Upload",
+    "noPipeline": "No data in pipeline",
+    "noPipelineSub": "Upload a file and confirm column mapping to run the validation pipeline.",
+    "noHistory": "No upload history",
+    "noHistorySub": "Files you upload will appear here."
+  },
+  "upload": {
+    "kpiFiles": "Files Uploaded",
+    "kpiRows": "Total Rows",
+    "kpiSheets": "Sheets Parsed",
+    "kpiStatus": "Status",
+    "statusParsing": "Parsing…",
+    "statusReady": "Ready",
+    "parsingFile": "Parsing file…",
+    "dropHere": "Drop file here",
+    "dropPrompt": "Drop Excel or CSV file here",
+    "or": "or",
+    "clickToBrowse": "click to browse",
+    "limits": "Max file size: 50 MB. Data is parsed locally in your browser — nothing is sent to a server.",
+    "channelsTitle": "All Input Channels",
+    "active": "Active",
+    "comingSoon": "Coming soon",
+    "channels": {
+      "manual": {
+        "title": "Manual Entry",
+        "desc": "Form-based input with real-time validation"
+      },
+      "csv": {
+        "title": "CSV / Excel Upload",
+        "desc": "Active — bulk upload with auto-mapping"
+      },
+      "api": {
+        "title": "API Connectors",
+        "desc": "ERP & utility provider live feeds"
+      },
+      "ocr": {
+        "title": "Document Parse / OCR",
+        "desc": "AI extraction from invoices & bills"
+      }
+    }
+  },
+  "preview": {
+    "sheets_one": "{{count}} sheet",
+    "sheets_other": "{{count}} sheets",
+    "rowsUnit": "rows",
+    "columnsUnit": "columns",
+    "mapColumns": "Map Columns",
+    "mapped": "Mapped:",
+    "searchPlaceholder": "Search rows…",
+    "matches_one": "{{n}} match",
+    "matches_other": "{{n}} matches",
+    "colFallback": "Col {{n}}",
+    "showing": "Showing {{from}}–{{to}} of {{total}} rows",
+    "columns_one": "{{count}} column",
+    "columns_other": "{{count}} columns",
+    "rows_one": "{{n}} row",
+    "rows_other": "{{n}} rows"
+  },
+  "mapping": {
+    "title": "Column Mapping",
+    "help": "Map your source columns to the GHG data model. Auto-mapped columns are highlighted.",
+    "columnsMapped": "columns mapped",
+    "sourceColumn": "Source Column",
+    "targetField": "Target Field",
+    "sample": "Sample",
+    "unmappedNote": "Unmapped columns will be stored as raw data and can be mapped later.",
+    "confirm": "Confirm Mapping & Run Pipeline"
+  },
+  "pipeline": {
+    "stages": {
+      "schema": {
+        "title": "Schema Validation",
+        "desc": "Data type checks, required fields, format conformance"
+      },
+      "semantic": {
+        "title": "Semantic Validation",
+        "desc": "Cross-field logic, unit consistency, threshold guards"
+      },
+      "enrichment": {
+        "title": "Data Enrichment",
+        "desc": "Auto-fill emission factors, add metadata, normalise units"
+      },
+      "routing": {
+        "title": "Calculator Routing",
+        "desc": "Route to correct GHG Protocol calculator module"
+      },
+      "repository": {
+        "title": "Data Repository",
+        "desc": "Immutable storage with blockchain-anchored audit trail"
+      }
+    },
+    "mappingRequired": "Column mapping required",
+    "mappingRequiredSub": "Go to the Column Mapping tab and confirm your mappings before running the pipeline.",
+    "title": "5-Stage Validation Pipeline",
+    "processing": "Processing {{rows}} rows from {{file}}",
+    "awaiting": "Awaiting data input and column mapping",
+    "complete": "Pipeline Complete",
+    "flagged": "{{count}} flagged",
+    "throughput": "Pipeline Throughput",
+    "rowsPassed": "{{passed}} / {{total}} rows passed",
+    "exceptions": "Validation Exceptions",
+    "total": "{{count}} total",
+    "schemaFailures": "Schema validation failures (type mismatches, missing required fields)",
+    "schemaBadge": "Schema",
+    "semanticFailures": "Semantic validation failures (threshold exceeded, unit inconsistencies)",
+    "semanticBadge": "Semantic"
+  },
+  "history": {
+    "filesThisSession_one": "{{count}} file uploaded this session",
+    "filesThisSession_other": "{{count}} files uploaded this session",
+    "clearAll": "Clear All"
+  }
+}

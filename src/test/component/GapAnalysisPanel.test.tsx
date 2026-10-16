@@ -1,3 +1,4 @@
+import '../../i18n'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import GapAnalysisPanel from '../../components/disclosure-editor/GapAnalysisPanel'

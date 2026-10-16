@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { QuestionAssignment } from '../../lib/orgStore'
-import { isOverdue } from './shared'
+import { isOverdue, dateLocale } from './shared'
+
+const WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
 
 interface TaskCalendarProps {
   assignments: QuestionAssignment[]
@@ -19,6 +22,8 @@ interface TaskCalendarProps {
  *   - Today is highlighted with a brand ring
  */
 export default function TaskCalendar({ assignments, onPickDay }: TaskCalendarProps) {
+  const { t, i18n } = useTranslation()
+  const locale = dateLocale(i18n.language)
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const [cursor, setCursor] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1))
@@ -40,14 +45,14 @@ export default function TaskCalendar({ assignments, onPickDay }: TaskCalendarPro
     <div className="card-premium p-4 sm:p-5">
       <header className="flex items-center justify-between mb-4">
         <h3 className="h-section text-[var(--text-primary)]">
-          {cursor.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+          {cursor.toLocaleDateString(locale, { month: 'long', year: 'numeric' })}
         </h3>
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => setCursor(c => new Date(c.getFullYear(), c.getMonth() - 1, 1))}
             className="w-8 h-8 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)]"
-            aria-label="Previous month"
+            aria-label={t('tasks.calendar.prevMonth')}
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -56,13 +61,13 @@ export default function TaskCalendar({ assignments, onPickDay }: TaskCalendarPro
             onClick={() => setCursor(new Date(today.getFullYear(), today.getMonth(), 1))}
             className="px-3 h-8 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] text-[10px] uppercase tracking-wider font-semibold text-[var(--text-secondary)]"
           >
-            Today
+            {t('tasks.calendar.today')}
           </button>
           <button
             type="button"
             onClick={() => setCursor(c => new Date(c.getFullYear(), c.getMonth() + 1, 1))}
             className="w-8 h-8 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)]"
-            aria-label="Next month"
+            aria-label={t('tasks.calendar.nextMonth')}
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -70,9 +75,9 @@ export default function TaskCalendar({ assignments, onPickDay }: TaskCalendarPro
       </header>
 
       <div className="grid grid-cols-7 gap-1 mb-1">
-        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
+        {WEEKDAY_KEYS.map(d => (
           <div key={d} className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] text-center">
-            {d}
+            {t(`tasks.calendar.weekday.${d}`)}
           </div>
         ))}
       </div>
@@ -102,7 +107,7 @@ export default function TaskCalendar({ assignments, onPickDay }: TaskCalendarPro
               } ${
                 hasOverdue ? 'border-[var(--status-reject)]/40' : ''
               }`}
-              aria-label={`${d.date.toDateString()}, ${items.length} task${items.length === 1 ? '' : 's'}`}
+              aria-label={t('tasks.calendar.dayAria', { date: locale ? d.date.toLocaleDateString(locale, { dateStyle: 'full' }) : d.date.toDateString(), count: items.length })}
             >
               <div className={`text-[10px] font-semibold mb-1 tabular-nums ${
                 isToday ? 'text-[var(--color-brand)]' : inMonth ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'
@@ -126,7 +131,7 @@ export default function TaskCalendar({ assignments, onPickDay }: TaskCalendarPro
                 ))}
                 {items.length > 2 && (
                   <div className="text-[9px] text-[var(--text-tertiary)] font-semibold">
-                    +{items.length - 2} more
+                    {t('tasks.calendar.more', { count: items.length - 2 })}
                   </div>
                 )}
               </div>

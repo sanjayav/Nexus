@@ -1,4 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { motion } from 'framer-motion'
 import {
   AlertOctagon, AlertTriangle, Info, Shield, TrendingUp,
@@ -16,6 +18,7 @@ import AnomalyFeed from '../components/AnomalyFeed'
 import SavedViewsBar from '../components/SavedViewsBar'
 import { SkeletonCard } from '../design-system/components/Skeleton'
 import { popIn, riseIn } from '../components/motion'
+import { itemLabel } from '../lib/itemLabel'
 
 /**
  * Anomaly Detection — full-page. Everyone can see this, but the scope defaults
@@ -26,6 +29,9 @@ type StatusFilter = 'all' | AnomalyStatusValue
 type SeverityFilter = 'all' | AnomalySeverity
 
 export default function AnomalyDetection() {
+  const { t, i18n } = useTranslation()
+  const numLocale = i18n.language?.startsWith('zh') ? 'zh-CN' : undefined
+  const typeLabel = (ty: AnomalyType) => t(`anomalyPage.types.${ty}`, { defaultValue: labelForType(ty) })
   const { user } = useAuth()
   const role = resolveRole(user)
   const defaultScope = role === 'data_contributor' ? 'mine' : role === 'platform_admin' ? 'all' : 'role'
@@ -47,7 +53,7 @@ export default function AnomalyDetection() {
     setLoading(true); setErr(null)
     orgStore.anomalyScan(scope, { includeSuppressed: true, limit: 400 })
       .then(d => { if (!cancelled) { setData(d); setLoading(false) } })
-      .catch(e => { if (!cancelled) { setErr(e instanceof Error ? e.message : 'Load failed'); setLoading(false) } })
+      .catch(e => { if (!cancelled) { setErr(e instanceof Error ? e.message : t('anomalyPage.errors.loadFailed')); setLoading(false) } })
     return () => { cancelled = true }
   }, [scope, refreshNonce])
 
@@ -61,7 +67,7 @@ export default function AnomalyDetection() {
       await orgStore.updateAnomalyStatus(key, status, note)
       setStatuses(s => ({ ...s, [key]: status }))
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Status update failed')
+      setErr(e instanceof Error ? e.message : t('anomalyPage.errors.statusUpdateFailed'))
     } finally {
       setBusyKey(null)
     }
@@ -117,26 +123,26 @@ export default function AnomalyDetection() {
     <div className="space-y-8">
       <PageHeader
         breadcrumbs={[
-          { label: 'Data', to: '/data' },
-          { label: 'Anomalies' },
+          { label: t('anomalyPage.breadcrumbs.data'), to: '/data' },
+          { label: t('anomalyPage.breadcrumbs.anomalies') },
         ]}
-        eyebrow="Quality"
-        title="Anomalies"
-        description="Nine statistical and integrity rules running live across every disclosure in scope. Findings are severity-ranked, traceable to the disclosure, and fully dismissable with an audit-logged reason."
+        eyebrow={t('anomalyPage.header.eyebrow')}
+        title={t('anomalyPage.header.title')}
+        description={t('anomalyPage.header.description')}
         actions={
           <div className="flex items-center gap-1.5">
-            <ScopeTab active={scope === 'mine'} onClick={() => setScope('mine')}>Mine</ScopeTab>
-            <ScopeTab active={scope === 'role'} onClick={() => setScope('role')}>My scope</ScopeTab>
+            <ScopeTab active={scope === 'mine'} onClick={() => setScope('mine')}>{t('anomalyPage.scope.mine')}</ScopeTab>
+            <ScopeTab active={scope === 'role'} onClick={() => setScope('role')}>{t('anomalyPage.scope.role')}</ScopeTab>
             {(role === 'platform_admin' || role === 'group_sustainability_officer' || role === 'auditor') && (
-              <ScopeTab active={scope === 'all'} onClick={() => setScope('all')}>Org-wide</ScopeTab>
+              <ScopeTab active={scope === 'all'} onClick={() => setScope('all')}>{t('anomalyPage.scope.all')}</ScopeTab>
             )}
             <button
               type="button"
               onClick={() => setRefreshNonce(n => n + 1)}
               className="chip inline-flex items-center gap-1"
-              title="Re-run the anomaly scan"
+              title={t('anomalyPage.scanNowTitle')}
             >
-              <RotateCw className="w-3 h-3" /> Scan now
+              <RotateCw className="w-3 h-3" /> {t('anomaly.scanNow')}
             </button>
           </div>
         }
@@ -152,26 +158,26 @@ export default function AnomalyDetection() {
         }}
       />
 
-      <div className="flex items-center gap-2 flex-wrap" role="toolbar" aria-label="Anomaly filters">
-        <span className="text-[11px] uppercase tracking-[0.1em] font-bold text-[var(--text-tertiary)]">Severity</span>
+      <div className="flex items-center gap-2 flex-wrap" role="toolbar" aria-label={t('anomalyPage.filters.aria')}>
+        <span className="text-[11px] uppercase tracking-[0.1em] font-bold text-[var(--text-tertiary)]">{t('anomalyPage.filters.severity')}</span>
         {(['all', 'critical', 'warn', 'info'] as SeverityFilter[]).map(s => (
           <button
             key={s}
             className={`chip ${severityFilter === s ? 'chip-active' : ''}`}
             onClick={() => setSeverityFilter(s)}
           >
-            {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+            {s === 'all' ? t('common.all') : t(`anomalyPage.severity.${s}`)}
           </button>
         ))}
         <span className="mx-2 w-px h-4 bg-[var(--border-default)]" />
-        <span className="text-[11px] uppercase tracking-[0.1em] font-bold text-[var(--text-tertiary)]">Status</span>
+        <span className="text-[11px] uppercase tracking-[0.1em] font-bold text-[var(--text-tertiary)]">{t('anomalyPage.filters.status')}</span>
         {(['all', 'open', 'investigating', 'resolved', 'dismissed'] as StatusFilter[]).map(s => (
           <button
             key={s}
             className={`chip ${statusFilter === s ? 'chip-active' : ''}`}
             onClick={() => setStatusFilter(s)}
           >
-            {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+            {s === 'all' ? t('common.all') : t(`anomaly.status.${s}`)}
           </button>
         ))}
       </div>
@@ -180,26 +186,26 @@ export default function AnomalyDetection() {
 
       {data && (
         <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <HeadlineCard icon={<AlertOctagon className="w-5 h-5" />} accent="red" label="Critical" count={data.summary.critical} hint="Almost certainly errors" index={0} />
-          <HeadlineCard icon={<AlertTriangle className="w-5 h-5" />} accent="amber" label="Warn" count={data.summary.warn} hint="Reviewer should look" index={1} />
-          <HeadlineCard icon={<Info className="w-5 h-5" />} accent="blue" label="Info" count={data.summary.info} hint="Worth noting" index={2} />
-          <HeadlineCard icon={<Shield className="w-5 h-5" />} accent="green" label="Suppressed" count={data.summary.suppressed_total} hint="Acknowledged with reason" index={3} />
+          <HeadlineCard icon={<AlertOctagon className="w-5 h-5" />} accent="red" label={t('anomalyPage.headline.critical')} count={data.summary.critical} hint={t('anomalyPage.headline.criticalHint')} index={0} />
+          <HeadlineCard icon={<AlertTriangle className="w-5 h-5" />} accent="amber" label={t('anomalyPage.headline.warn')} count={data.summary.warn} hint={t('anomalyPage.headline.warnHint')} index={1} />
+          <HeadlineCard icon={<Info className="w-5 h-5" />} accent="blue" label={t('anomalyPage.headline.info')} count={data.summary.info} hint={t('anomalyPage.headline.infoHint')} index={2} />
+          <HeadlineCard icon={<Shield className="w-5 h-5" />} accent="green" label={t('anomalyPage.headline.suppressed')} count={data.summary.suppressed_total} hint={t('anomalyPage.headline.suppressedHint')} index={3} />
         </section>
       )}
 
       {data && (
         <section>
-          <SectionHeader kicker="Distribution" title="Where the flags are" subtitle="Which rule types fire most, and which entities carry the load." />
+          <SectionHeader kicker={t('anomalyPage.distribution.kicker')} title={t('anomalyPage.distribution.title')} subtitle={t('anomalyPage.distribution.subtitle')} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <motion.div {...popIn(0)} className="surface-paper p-5">
               <div className="flex items-center gap-2.5 mb-4">
                 <span className="w-7 h-7 rounded-[8px] flex items-center justify-center" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)' }}>
                   <Filter className="w-3.5 h-3.5" />
                 </span>
-                <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)]">By rule type</h3>
+                <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)]">{t('anomalyPage.distribution.byRuleType')}</h3>
               </div>
               {byType.length === 0 ? (
-                <div className="py-8 text-center text-[12.5px] text-[var(--text-tertiary)]">No anomalies in scope.</div>
+                <div className="py-8 text-center text-[12.5px] text-[var(--text-tertiary)]">{t('anomalyPage.distribution.empty')}</div>
               ) : (
                 <ul className="space-y-2.5">
                   {byType.map((r, i) => {
@@ -208,7 +214,7 @@ export default function AnomalyDetection() {
                     return (
                       <li key={r.type}>
                         <div className="flex items-baseline justify-between mb-1">
-                          <span className="text-[12.5px] font-semibold text-[var(--text-primary)]">{labelForType(r.type)}</span>
+                          <span className="text-[12.5px] font-semibold text-[var(--text-primary)]">{typeLabel(r.type)}</span>
                           <span className="text-[12px] font-bold tabular-nums text-[var(--text-primary)]">{r.count}</span>
                         </div>
                         <div className="h-[5px] rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
@@ -231,10 +237,10 @@ export default function AnomalyDetection() {
                 <span className="w-7 h-7 rounded-[8px] flex items-center justify-center" style={{ background: 'var(--accent-purple-light)', color: 'var(--accent-purple)' }}>
                   <Activity className="w-3.5 h-3.5" />
                 </span>
-                <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)]">Top entities by flag count</h3>
+                <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)]">{t('anomalyPage.distribution.topEntities')}</h3>
               </div>
               {topEntities.length === 0 ? (
-                <div className="py-8 text-center text-[12.5px] text-[var(--text-tertiary)]">No anomalies in scope.</div>
+                <div className="py-8 text-center text-[12.5px] text-[var(--text-tertiary)]">{t('anomalyPage.distribution.empty')}</div>
               ) : (
                 <ul className="space-y-2">
                   {topEntities.map((e, i) => {
@@ -245,7 +251,7 @@ export default function AnomalyDetection() {
                         <div className="flex items-baseline justify-between mb-1 gap-3">
                           <span className="text-[12.5px] font-semibold text-[var(--text-primary)] truncate">{e.entity}</span>
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            {e.critical > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full tabular-nums" style={{ background: 'var(--accent-red-light)', color: 'var(--accent-red)' }}>{e.critical} crit</span>}
+                            {e.critical > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full tabular-nums" style={{ background: 'var(--accent-red-light)', color: 'var(--accent-red)' }}>{t('anomalyPage.distribution.crit', { count: e.critical })}</span>}
                             <span className="text-[12px] font-bold tabular-nums text-[var(--text-primary)]">{e.count}</span>
                           </div>
                         </div>
@@ -263,7 +269,7 @@ export default function AnomalyDetection() {
       )}
 
       <section>
-        <SectionHeader kicker="Method" title="The nine rules" subtitle="Every check here is one an external auditor would run by hand. No black boxes, no AI hype — just statistically sound industry-standard checks." />
+        <SectionHeader kicker={t('anomalyPage.method.kicker')} title={t('anomalyPage.method.title')} subtitle={t('anomalyPage.method.subtitle')} />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {RULES.map((r, i) => (
             <motion.div key={r.type} {...riseIn(i)} className="surface-paper p-5">
@@ -271,10 +277,10 @@ export default function AnomalyDetection() {
                 <span className="w-7 h-7 rounded-[8px] flex items-center justify-center" style={{ background: r.bg, color: r.fg }}>
                   <r.icon className="w-3.5 h-3.5" />
                 </span>
-                <div className="text-[11px] uppercase tracking-[0.1em] font-bold text-[var(--text-tertiary)]">{r.severity}</div>
+                <div className="text-[11px] uppercase tracking-[0.1em] font-bold text-[var(--text-tertiary)]">{t(`anomalyPage.rules.${r.type}.severity`, { defaultValue: r.severity })}</div>
               </div>
-              <h4 className="text-[14px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{r.title}</h4>
-              <p className="text-[12px] text-[var(--text-secondary)] mt-1.5 leading-relaxed">{r.desc}</p>
+              <h4 className="text-[14px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{t(`anomalyPage.rules.${r.type}.title`, { defaultValue: r.title })}</h4>
+              <p className="text-[12px] text-[var(--text-secondary)] mt-1.5 leading-relaxed">{t(`anomalyPage.rules.${r.type}.desc`, { defaultValue: r.desc })}</p>
             </motion.div>
           ))}
         </div>
@@ -282,28 +288,28 @@ export default function AnomalyDetection() {
 
       <section>
         <SectionHeader
-          kicker="Triage"
-          title="Investigation queue"
-          subtitle="Per-anomaly workflow: investigate, resolve, or dismiss. Status changes are logged to the audit trail."
+          kicker={t('anomalyPage.triage.kicker')}
+          title={t('anomalyPage.triage.title')}
+          subtitle={t('anomalyPage.triage.subtitle')}
         />
         <div className="surface-paper overflow-hidden">
           {filteredAnomalies.length === 0 ? (
             <div className="py-12 text-center text-[12.5px] text-[var(--text-tertiary)]">
-              No anomalies match these filters.
+              {t('anomalyPage.triage.empty')}
             </div>
           ) : (
             <div className="overflow-x-auto">
             <table className="w-full text-[12.5px] min-w-[820px]">
               <thead>
                 <tr className="text-left text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)]">
-                  <th className="px-3 py-2">Severity</th>
-                  <th className="px-3 py-2 sticky left-0 bg-[var(--bg-primary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">Title</th>
-                  <th className="px-3 py-2">Facility</th>
-                  <th className="px-3 py-2">Metric</th>
-                  <th className="px-3 py-2 text-right">Expected → Actual</th>
-                  <th className="px-3 py-2 text-right">Δ%</th>
-                  <th className="px-3 py-2">Status</th>
-                  <th className="px-3 py-2 text-right">Actions</th>
+                  <th className="px-3 py-2">{t('anomalyPage.triage.columns.severity')}</th>
+                  <th className="px-3 py-2 sticky left-0 bg-[var(--bg-primary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">{t('anomalyPage.triage.columns.title')}</th>
+                  <th className="px-3 py-2">{t('anomalyPage.triage.columns.facility')}</th>
+                  <th className="px-3 py-2">{t('anomalyPage.triage.columns.metric')}</th>
+                  <th className="px-3 py-2 text-right">{t('anomalyPage.triage.columns.expectedActual')}</th>
+                  <th className="px-3 py-2 text-right">{t('anomalyPage.triage.columns.delta')}</th>
+                  <th className="px-3 py-2">{t('anomalyPage.triage.columns.status')}</th>
+                  <th className="px-3 py-2 text-right">{t('anomalyPage.triage.columns.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -321,19 +327,19 @@ export default function AnomalyDetection() {
                   return (
                     <tr key={key} className="group/row border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">
                       <td className="px-3 py-2">
-                        <span className="chip" style={{ background: sevBg, color: sevFg, fontWeight: 600 }}>{sev}</span>
+                        <span className="chip" style={{ background: sevBg, color: sevFg, fontWeight: 600 }}>{t(`anomalyPage.severityRaw.${sev}`, { defaultValue: sev })}</span>
                       </td>
                       <td className="px-3 py-2 sticky left-0 bg-[var(--bg-primary)] group-hover/row:bg-[var(--bg-secondary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">
                         <div className="font-semibold text-[var(--text-primary)]">{a.headline}</div>
-                        <div className="text-[11px] text-[var(--text-tertiary)]">{labelForType(a.anomaly_type)}</div>
+                        <div className="text-[11px] text-[var(--text-tertiary)]">{typeLabel(a.anomaly_type)}</div>
                       </td>
                       <td className="px-3 py-2 text-[var(--text-secondary)]">{a.entity_name}</td>
                       <td className="px-3 py-2">
                         <span className="font-mono text-[11px] text-[var(--text-tertiary)]">{a.gri_code}</span>
-                        <div className="text-[var(--text-secondary)]">{a.line_item}</div>
+                        <div className="text-[var(--text-secondary)]">{itemLabel(a, i18n.language)}</div>
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums text-[var(--text-secondary)]">
-                        {a.prior !== null ? a.prior.toLocaleString() : '—'} → {a.current !== null ? a.current.toLocaleString() : '—'}
+                        {a.prior !== null ? a.prior.toLocaleString(numLocale) : '—'} → {a.current !== null ? a.current.toLocaleString(numLocale) : '—'}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums">
                         {a.delta_pct === null ? '—' : `${a.delta_pct > 0 ? '+' : ''}${a.delta_pct.toFixed(1)}%`}
@@ -347,25 +353,25 @@ export default function AnomalyDetection() {
                             disabled={isBusy}
                             onClick={() => setStatus(a, 'investigating')}
                             className="chip inline-flex items-center gap-1"
-                            title="Mark as investigating"
+                            title={t('anomalyPage.triage.investigateTitle')}
                           >
-                            <Eye className="w-3 h-3" /> Investigate
+                            <Eye className="w-3 h-3" /> {t('anomaly.investigate')}
                           </button>
                           <button
                             disabled={isBusy}
                             onClick={() => setStatus(a, 'resolved')}
                             className="chip inline-flex items-center gap-1"
-                            title="Mark as resolved"
+                            title={t('anomalyPage.triage.resolveTitle')}
                           >
-                            <CheckCircle2 className="w-3 h-3" /> Resolve
+                            <CheckCircle2 className="w-3 h-3" /> {t('anomalyPage.triage.resolve')}
                           </button>
                           <button
                             disabled={isBusy}
                             onClick={() => setDismissTarget(a)}
                             className="chip inline-flex items-center gap-1"
-                            title="Dismiss with a reason"
+                            title={t('anomalyPage.triage.dismissTitle')}
                           >
-                            <XCircle className="w-3 h-3" /> Dismiss
+                            <XCircle className="w-3 h-3" /> {t('anomaly.dismiss')}
                           </button>
                         </div>
                       </td>
@@ -384,8 +390,8 @@ export default function AnomalyDetection() {
       </section>
 
       <section>
-        <SectionHeader kicker="Feed" title="Live anomaly feed" subtitle="Sorted by severity. Open any flag to land on the disclosure. Suppress with a reason to mark acknowledged." />
-        <AnomalyFeed scope={scope} limit={100} title="All flagged disclosures" />
+        <SectionHeader kicker={t('anomalyPage.feed.kicker')} title={t('anomalyPage.feed.title')} subtitle={t('anomalyPage.feed.subtitle')} />
+        <AnomalyFeed scope={scope} limit={100} title={t('anomalyPage.feed.feedTitle')} />
       </section>
 
       {dismissTarget && (
@@ -411,6 +417,7 @@ function DismissWithReasonModal({
   onCancel: () => void
   onConfirm: (reason: string) => Promise<void> | void
 }) {
+  const { t } = useTranslation()
   const [reason, setReason] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -422,7 +429,7 @@ function DismissWithReasonModal({
     try {
       await onConfirm(reason.trim())
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Could not dismiss')
+      setErr(e instanceof Error ? e.message : t('anomalyPage.errors.couldNotDismiss'))
     } finally {
       setBusy(false)
     }
@@ -437,7 +444,7 @@ function DismissWithReasonModal({
               <AlertTriangle className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-display text-[16px] font-semibold text-[var(--text-primary)]">Dismiss anomaly</h3>
+              <h3 className="font-display text-[16px] font-semibold text-[var(--text-primary)]">{t('anomalyPage.dismissModal.title')}</h3>
               <p className="text-[11.5px] text-[var(--text-tertiary)]">{anomaly.headline}</p>
             </div>
           </div>
@@ -445,21 +452,20 @@ function DismissWithReasonModal({
         </header>
         <div className="p-5 space-y-3">
           <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed">
-            Reviewers must record why this anomaly can be ignored. The reason is logged to the audit
-            trail and attached to the persisted status row.
+            {t('anomalyPage.dismissModal.body')}
           </p>
           <label className="block">
-            <span className="block text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)] mb-1.5">Reason (minimum 10 characters)</span>
+            <span className="block text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('anomalyPage.dismissModal.reasonLabel')}</span>
             <textarea
               value={reason}
               onChange={e => setReason(e.target.value)}
               rows={4}
               autoFocus
-              placeholder="e.g. Spike caused by acquisition of new subsidiary in Q3; confirmed legitimate"
+              placeholder={t('anomalyPage.dismissModal.placeholder')}
               className="w-full px-3.5 py-2.5 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13px] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/15 focus:border-[var(--color-brand)] resize-none"
             />
             <span className={`block text-[11px] mt-1 ${tooShort ? 'text-[var(--accent-amber)]' : 'text-[var(--text-tertiary)]'}`}>
-              {reason.trim().length} / 10 chars min
+              {t('anomalyPage.dismissModal.charCount', { count: reason.trim().length })}
             </span>
           </label>
           {err && (
@@ -467,10 +473,10 @@ function DismissWithReasonModal({
           )}
         </div>
         <footer className="flex items-center gap-2 p-5 border-t border-[var(--border-subtle)]">
-          <button onClick={onCancel} disabled={busy} className="flex-1 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-[13px] font-semibold hover:bg-[var(--bg-secondary)] cursor-pointer disabled:opacity-60">Cancel</button>
+          <button onClick={onCancel} disabled={busy} className="flex-1 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-[13px] font-semibold hover:bg-[var(--bg-secondary)] cursor-pointer disabled:opacity-60">{t('common.cancel')}</button>
           <button onClick={submit} disabled={tooShort || busy} className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--status-reject)] text-white text-[13px] font-semibold hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
             {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
-            Dismiss with reason
+            {t('anomalyPage.dismissModal.confirm')}
           </button>
         </footer>
       </div>
@@ -487,6 +493,9 @@ function DismissWithReasonModal({
 // ──────────────────────────────────────────────────────────────
 
 function PersistedAnomaliesPanel() {
+  const { t, i18n } = useTranslation()
+  const numLocale = i18n.language?.startsWith('zh') ? 'zh-CN' : undefined
+  const aiNotConfigured = t('anomalyPage.errors.aiNotConfigured')
   const [rows, setRows] = useState<AiAnomalyListItem[] | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -502,7 +511,7 @@ function PersistedAnomaliesPanel() {
     setLoading(true)
     ai.listAnomaliesForNarration()
       .then(r => { if (!cancelled) { setRows(r.anomalies); setLoading(false) } })
-      .catch(e => { if (!cancelled) { setErr(e instanceof Error ? e.message : 'Load failed'); setLoading(false) } })
+      .catch(e => { if (!cancelled) { setErr(e instanceof Error ? e.message : t('anomalyPage.errors.loadFailed')); setLoading(false) } })
     return () => { cancelled = true }
   }, [])
 
@@ -533,8 +542,8 @@ function PersistedAnomaliesPanel() {
       setRows(rs => rs ? rs.map(row => row.id === anomalyId ? { ...row, ai_narrative: r.narrative, ai_narrative_generated_at: r.generatedAt } : row) : rs)
     } catch (e) {
       const errMsg = isUnconfiguredError(e)
-        ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.'
-        : e instanceof Error ? e.message : 'AI request failed'
+        ? aiNotConfigured
+        : e instanceof Error ? e.message : t('anomalyPage.errors.aiRequestFailed')
       setNarratives(s => ({ ...s, [anomalyId]: { text: '', generatedAt: null, loading: false, error: errMsg, cached: false } }))
     }
   }
@@ -555,37 +564,36 @@ function PersistedAnomaliesPanel() {
   return (
     <>
       <SectionHeader
-        kicker="AI"
-        title="Explain with AI"
-        subtitle="Persisted anomalies with optional Claude-generated narratives. Click the sparkle to expand a plain-English explanation grounded in the underlying activity data."
+        kicker={t('anomalyPage.ai.kicker')}
+        title={t('anomalyPage.ai.title')}
+        subtitle={t('anomalyPage.ai.subtitle')}
       />
       {err && <div className="surface-paper p-4 text-[var(--accent-red)]">{err}</div>}
       {aiUnavailable && (
         <div className="surface-paper p-3 flex items-start gap-2 border-l-2 border-amber-400/40 bg-amber-400/5 mb-2" role="status">
           <Lock className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
           <div className="text-[12.5px] text-amber-300 leading-relaxed">
-            <span className="font-semibold">AI narration is disabled.</span>{' '}
-            Ask an admin to set <code className="font-mono">ANTHROPIC_API_KEY</code> in the server environment to
-            generate plain-English explanations. Previously-generated narratives below remain viewable.
+            <span className="font-semibold">{t('anomalyPage.ai.disabledTitle')}</span>{' '}
+            {t('anomalyPage.ai.disabledBodyBefore')} <code className="font-mono">ANTHROPIC_API_KEY</code> {t('anomalyPage.ai.disabledBodyAfter')}
           </div>
         </div>
       )}
       <div className="surface-paper overflow-hidden">
         {loading ? (
-          <div className="py-8 text-center text-[12.5px] text-[var(--text-tertiary)]">Loading anomalies…</div>
+          <div className="py-8 text-center text-[12.5px] text-[var(--text-tertiary)]">{t('anomalyPage.ai.loading')}</div>
         ) : !rows || rows.length === 0 ? (
-          <div className="py-12 text-center text-[12.5px] text-[var(--text-tertiary)]">No persisted anomalies in this workspace.</div>
+          <div className="py-12 text-center text-[12.5px] text-[var(--text-tertiary)]">{t('anomalyPage.ai.empty')}</div>
         ) : (
           <div className="overflow-x-auto">
           <table className="w-full text-[12.5px] min-w-[720px]">
             <thead>
               <tr className="text-left text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)]">
-                <th className="px-3 py-2">Severity</th>
-                <th className="px-3 py-2 sticky left-0 bg-[var(--bg-primary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">Title / Facility</th>
-                <th className="px-3 py-2">Metric</th>
-                <th className="px-3 py-2 text-right">Expected → Actual</th>
-                <th className="px-3 py-2 text-right">Δ%</th>
-                <th className="px-3 py-2 text-right">AI</th>
+                <th className="px-3 py-2">{t('anomalyPage.triage.columns.severity')}</th>
+                <th className="px-3 py-2 sticky left-0 bg-[var(--bg-primary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">{t('anomalyPage.ai.columns.titleFacility')}</th>
+                <th className="px-3 py-2">{t('anomalyPage.triage.columns.metric')}</th>
+                <th className="px-3 py-2 text-right">{t('anomalyPage.triage.columns.expectedActual')}</th>
+                <th className="px-3 py-2 text-right">{t('anomalyPage.triage.columns.delta')}</th>
+                <th className="px-3 py-2 text-right">{t('anomalyPage.ai.columns.ai')}</th>
               </tr>
             </thead>
             <tbody>
@@ -599,11 +607,11 @@ function PersistedAnomaliesPanel() {
                   <Fragment key={r.id}>
                     <tr className="group/persisted border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">
                       <td className="px-3 py-2">
-                        <span className="chip" style={{ background: sevBg, color: sevFg, fontWeight: 600 }}>{sev}</span>
+                        <span className="chip" style={{ background: sevBg, color: sevFg, fontWeight: 600 }}>{t(`anomalyPage.severityRaw.${sev}`, { defaultValue: sev })}</span>
                       </td>
                       <td className="px-3 py-2 sticky left-0 bg-[var(--bg-primary)] group-hover/persisted:bg-[var(--bg-secondary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">
                         <div className="font-semibold text-[var(--text-primary)]">{r.title}</div>
-                        <div className="text-[11px] text-[var(--text-tertiary)]">{r.facility_name ?? 'No facility'} · Scope {r.scope ?? '—'}</div>
+                        <div className="text-[11px] text-[var(--text-tertiary)]">{r.facility_name ?? t('anomalyPage.ai.noFacility')} · {t('anomalyPage.ai.scope', { scope: r.scope ?? '—' })}</div>
                       </td>
                       <td className="px-3 py-2">
                         <span className="font-mono text-[11px] text-[var(--text-tertiary)]">{r.metric ?? '—'}</span>
@@ -612,8 +620,8 @@ function PersistedAnomaliesPanel() {
                         {(() => {
                           const ev = r.expected_value == null ? null : Number(r.expected_value)
                           const av = r.actual_value == null ? null : Number(r.actual_value)
-                          const left = ev == null || !Number.isFinite(ev) ? '—' : ev.toLocaleString()
-                          const right = av == null || !Number.isFinite(av) ? '—' : av.toLocaleString()
+                          const left = ev == null || !Number.isFinite(ev) ? '—' : ev.toLocaleString(numLocale)
+                          const right = av == null || !Number.isFinite(av) ? '—' : av.toLocaleString(numLocale)
                           return `${left} → ${right}`
                         })()}
                       </td>
@@ -642,11 +650,11 @@ function PersistedAnomaliesPanel() {
                               disabled={disabledForAi}
                               aria-expanded={isOpen}
                               aria-controls={`ai-panel-${r.id}`}
-                              title={disabledForAi ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : 'Explain with AI'}
-                              aria-label={disabledForAi ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : 'Explain with AI'}
+                              title={disabledForAi ? aiNotConfigured : t('anomalyPage.ai.explainWithAi')}
+                              aria-label={disabledForAi ? aiNotConfigured : t('anomalyPage.ai.explainWithAi')}
                             >
                               {disabledForAi ? <Lock className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
-                              {disabledForAi ? 'AI off' : isOpen ? 'Hide' : 'Explain'}
+                              {disabledForAi ? t('anomalyPage.ai.aiOff') : isOpen ? t('anomalyPage.ai.hide') : t('anomalyPage.ai.explain')}
                             </button>
                           )
                         })()}
@@ -665,7 +673,7 @@ function PersistedAnomaliesPanel() {
                           >
                             <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
                               <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.1em] font-bold" style={{ color: 'var(--accent-purple, #7855c8)' }}>
-                                <Sparkles className="w-3.5 h-3.5" /> AI explanation
+                                <Sparkles className="w-3.5 h-3.5" /> {t('anomalyPage.ai.explanation')}
                               </div>
                               <div className="flex items-center gap-2">
                                 {n?.text && !n.loading && (
@@ -673,9 +681,9 @@ function PersistedAnomaliesPanel() {
                                     type="button"
                                     className="chip inline-flex items-center gap-1"
                                     onClick={() => handleCopy(r.id)}
-                                    title="Copy narrative"
+                                    title={t('anomalyPage.ai.copyTitle')}
                                   >
-                                    {copiedId === r.id ? <><Check className="w-3 h-3" /> Copied</> : <><Copy className="w-3 h-3" /> Copy</>}
+                                    {copiedId === r.id ? <><Check className="w-3 h-3" /> {t('anomalyPage.ai.copied')}</> : <><Copy className="w-3 h-3" /> {t('anomalyPage.ai.copy')}</>}
                                   </button>
                                 )}
                                 {n?.text && !n.loading && (
@@ -684,17 +692,17 @@ function PersistedAnomaliesPanel() {
                                     className="chip inline-flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
                                     onClick={() => handleExplain(r.id, true)}
                                     disabled={aiUnavailable}
-                                    title={aiUnavailable ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : 'Regenerate narrative'}
+                                    title={aiUnavailable ? aiNotConfigured : t('anomalyPage.ai.regenerateTitle')}
                                   >
                                     {aiUnavailable ? <Lock className="w-3 h-3" /> : <RotateCw className="w-3 h-3" />}
-                                    Regenerate
+                                    {t('anomalyPage.ai.regenerate')}
                                   </button>
                                 )}
                               </div>
                             </div>
                             {n?.loading ? (
                               <div className="flex items-center gap-2 text-[12.5px] text-[var(--text-secondary)]">
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating narrative…
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" /> {t('anomalyPage.ai.generating')}
                               </div>
                             ) : n?.error ? (
                               <div className="text-[12.5px] text-[var(--accent-red)]">{n.error}</div>
@@ -702,12 +710,12 @@ function PersistedAnomaliesPanel() {
                               <>
                                 <p className="text-[13px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap">{n.text}</p>
                                 <div className="mt-2 text-[10.5px] text-[var(--text-tertiary)] italic">
-                                  Generated by Claude. Verify before sharing.
-                                  {n.generatedAt && <> · Last updated {formatRelative(n.generatedAt)}</>}
+                                  {t('anomalyPage.ai.generatedBy')}
+                                  {n.generatedAt && <> · {t('anomalyPage.ai.lastUpdated', { when: formatRelative(n.generatedAt, t) })}</>}
                                 </div>
                               </>
                             ) : (
-                              <div className="text-[12.5px] text-[var(--text-secondary)]">No narrative yet.</div>
+                              <div className="text-[12.5px] text-[var(--text-secondary)]">{t('anomalyPage.ai.noNarrative')}</div>
                             )}
                           </div>
                         </td>
@@ -725,25 +733,26 @@ function PersistedAnomaliesPanel() {
   )
 }
 
-function formatRelative(iso: string): string {
+function formatRelative(iso: string, t: TFunction): string {
   const then = new Date(iso).getTime()
   if (!isFinite(then)) return ''
   const diffMs = Date.now() - then
   const mins = Math.round(diffMs / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`
+  if (mins < 1) return t('anomalyPage.relative.justNow')
+  if (mins < 60) return t('anomalyPage.relative.minutes', { count: mins })
   const hrs = Math.round(mins / 60)
-  if (hrs < 24) return `${hrs} hour${hrs === 1 ? '' : 's'} ago`
+  if (hrs < 24) return t('anomalyPage.relative.hours', { count: hrs })
   const days = Math.round(hrs / 24)
-  return `${days} day${days === 1 ? '' : 's'} ago`
+  return t('anomalyPage.relative.days', { count: days })
 }
 
 function StatusPill({ value }: { value: AnomalyStatusValue }) {
+  const { t } = useTranslation()
   const map: Record<AnomalyStatusValue, { bg: string; fg: string; label: string }> = {
-    open:          { bg: 'var(--bg-tertiary)',      fg: 'var(--text-secondary)', label: 'Open' },
-    investigating: { bg: 'var(--accent-blue-light)',fg: 'var(--accent-blue)',    label: 'Investigating' },
-    resolved:      { bg: 'var(--accent-green-light)',fg: 'var(--status-ok)',     label: 'Resolved' },
-    dismissed:     { bg: 'var(--bg-tertiary)',      fg: 'var(--text-tertiary)',  label: 'Dismissed' },
+    open:          { bg: 'var(--bg-tertiary)',      fg: 'var(--text-secondary)', label: t('anomaly.status.open') },
+    investigating: { bg: 'var(--accent-blue-light)',fg: 'var(--accent-blue)',    label: t('anomaly.status.investigating') },
+    resolved:      { bg: 'var(--accent-green-light)',fg: 'var(--status-ok)',     label: t('anomaly.status.resolved') },
+    dismissed:     { bg: 'var(--bg-tertiary)',      fg: 'var(--text-tertiary)',  label: t('anomaly.status.dismissed') },
   }
   const s = map[value]
   return (

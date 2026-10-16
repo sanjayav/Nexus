@@ -1,0 +1,277 @@
+{
+  "title": "Emissions Calculator",
+  "subtitle": "Monthly data collection for Scope 1, 2, and 3 emissions. Enter activity data by source, review cumulative totals, and submit for blockchain verification.",
+  "methodology": "Methodology",
+  "fy": "FY {{year}}",
+  "monthYear": "{{month}} {{year}}",
+  "months": {
+    "Jan": "Jan",
+    "Feb": "Feb",
+    "Mar": "Mar",
+    "Apr": "Apr",
+    "May": "May",
+    "Jun": "Jun",
+    "Jul": "Jul",
+    "Aug": "Aug",
+    "Sep": "Sep",
+    "Oct": "Oct",
+    "Nov": "Nov",
+    "Dec": "Dec"
+  },
+  "facilities": {
+    "all": "All Facilities",
+    "allProof": "Demo Co (All)"
+  },
+  "scope": {
+    "scope1": "Scope 1",
+    "scope2": "Scope 2",
+    "scope3": "Scope 3"
+  },
+  "scopeSub": {
+    "scope1": "Direct Emissions",
+    "scope2": "Energy Indirect",
+    "scope3": "Value Chain"
+  },
+  "scopeHeading": {
+    "scope1": "Scope 1 — Direct Emissions",
+    "scope2": "Scope 2 — Energy Indirect Emissions",
+    "scope3": "Scope 3 — Value Chain Emissions"
+  },
+  "methodHeading": {
+    "scope1": "Scope 1 — Direct Emissions",
+    "scope2": "Scope 2 — Energy Indirect",
+    "scope3": "Scope 3 — Value Chain"
+  },
+  "status": {
+    "verified": "Verified",
+    "submitted": "Submitted",
+    "draft": "Draft",
+    "pending": "Pending"
+  },
+  "pctOfTotal": "{{pct}}% of total",
+  "total": "Total",
+  "yoy": "{{pct}} YoY",
+  "charts": {
+    "monthlyTitle": "Monthly Emissions Breakdown",
+    "monthlySub": "Scope 1 + 2 + 3 by month, FY 2026",
+    "sourcesTitle": "{{scope}} Sources",
+    "sourcesSub": "Annual breakdown by source",
+    "cumulativeTitle": "Cumulative Emissions",
+    "cumulativeSub": "Running total through each month of FY 2026"
+  },
+  "pie": {
+    "process": "Process",
+    "combustion": "Combustion",
+    "mobile": "Mobile",
+    "fugitive": "Fugitive",
+    "electricity": "Electricity",
+    "steam": "Steam",
+    "cooling": "Cooling",
+    "cat1": "Cat 1",
+    "cat4": "Cat 4",
+    "cat11": "Cat 11",
+    "others": "Others"
+  },
+  "table": {
+    "subtitle": "Monthly data collection with source-level breakdown. Click any row to expand and edit.",
+    "saveDraft": "Save Draft",
+    "export": "Export",
+    "exportAs": "Export as {{format}}",
+    "submitAll": "Submit All for Review",
+    "month": "Month",
+    "total": "Total",
+    "cumulative": "Cumulative",
+    "status": "Status",
+    "actions": "Actions",
+    "annualTotal": "Annual Total",
+    "verifiedOf12": "{{count}}/12 verified",
+    "submitting": "Submitting...",
+    "viewProof": "View blockchain proof",
+    "submitForReview": "Submit for review"
+  },
+  "toast": {
+    "monthSubmitted": "{{month}} data submitted for review",
+    "allAlreadySubmitted": "All months already submitted or verified",
+    "monthsSubmitted_one": "{{count}} month submitted for review",
+    "monthsSubmitted_other": "{{count}} month(s) submitted for review",
+    "draftSaved": "Draft saved successfully",
+    "exporting": "Exporting {{scope}} data as {{format}}...",
+    "downloaded": "{{format}} file downloaded"
+  },
+  "proofDataPoint": "{{scope}} Emissions - {{month}}",
+  "kpi": {
+    "intensity": "Emissions Intensity",
+    "intensityUnit": "tCO₂e per tonne of product",
+    "vsFy": "{{pct}} vs FY {{year}}",
+    "production": "Production Volume",
+    "productionUnit": "tonnes produced in FY 2026",
+    "completeness": "Data Completeness",
+    "completenessSub": "{{count}} of 12 months submitted or verified"
+  },
+  "methodModal": {
+    "title": "Calculation Methodology",
+    "subtitle": "GHG Protocol Corporate Standard (2004 Revised), ISO 14064-1:2018",
+    "coreFormulaLabel": "Core Formula:",
+    "coreFormula": "Emissions (tCO₂e) = Activity Data × Emission Factor × GWP",
+    "note": "All emissions are reported in tonnes of CO₂ equivalent (tCO₂e) using AR5 Global Warming Potentials. Base year recalculation is triggered by structural changes exceeding 5% of total emissions.",
+    "source": "Source",
+    "emissionFactor": "Emission Factor",
+    "methodology": "Methodology",
+    "assuranceTitle": "Assurance & Verification",
+    "assurance1": "Third-party limited assurance by LRQA (Scope 1 & 2)",
+    "assurance2": "Blockchain-anchored data provenance via Nexus",
+    "assurance3": "SBTi-aligned target tracking (1.5°C pathway)",
+    "assurance4": "Aligns with CDP, GRI 305, TCFD / IFRS S2 disclosure requirements"
+  },
+  "ef": {
+    "naturalGas": {
+      "source": "Natural Gas",
+      "factor": "56.1 kgCO₂e/GJ",
+      "method": "IPCC 2006 GL"
+    },
+    "fuelOil": {
+      "source": "Fuel Oil",
+      "factor": "77.4 kgCO₂e/GJ",
+      "method": "IPCC 2006 GL"
+    },
+    "diesel": {
+      "source": "Diesel",
+      "factor": "74.1 kgCO₂e/GJ",
+      "method": "IPCC 2006 GL"
+    },
+    "gasoline": {
+      "source": "Gasoline",
+      "factor": "69.3 kgCO₂e/GJ",
+      "method": "IPCC 2006 GL"
+    },
+    "ethyleneCracking": {
+      "source": "Ethylene Cracking",
+      "factor": "1.04 tCO₂e/t product",
+      "method": "API Compendium"
+    },
+    "fugitiveCh4": {
+      "source": "Fugitive CH₄",
+      "factor": "GWP = 28 (AR5)",
+      "method": "IPCC AR5"
+    },
+    "gridElectricity": {
+      "source": "Thailand Grid Electricity",
+      "factor": "0.4999 tCO₂e/MWh",
+      "method": "TGO 2023 EF (Location)"
+    },
+    "marketRe": {
+      "source": "Market-Based (RE)",
+      "factor": "0.0 tCO₂e/MWh",
+      "method": "RE100 / I-REC"
+    },
+    "purchasedSteam": {
+      "source": "Purchased Steam",
+      "factor": "0.0822 tCO₂e/GJ",
+      "method": "Supplier specific"
+    },
+    "districtCooling": {
+      "source": "District Cooling",
+      "factor": "0.67 kgCO₂e/kWh(th)",
+      "method": "IEA EF (2023)"
+    },
+    "cat1": {
+      "source": "Cat 1 — Purchased Goods",
+      "factor": "Spend-based + hybrid",
+      "method": "GHG Protocol Cat 1"
+    },
+    "cat4": {
+      "source": "Cat 4 — Transport",
+      "factor": "Distance-based",
+      "method": "GLEC Framework"
+    },
+    "cat11": {
+      "source": "Cat 11 — Use of Sold Products",
+      "factor": "Product-specific LCA",
+      "method": "ISO 14040 / ecoinvent"
+    },
+    "cat12": {
+      "source": "Cat 12 — End-of-Life",
+      "factor": "Waste-type method",
+      "method": "EPA WARM v16"
+    }
+  },
+  "sources": {
+    "process": {
+      "label": "Process Emissions",
+      "short": "Process",
+      "description": "Chemical reactions in production processes (cracking, reforming, polymerization)"
+    },
+    "combustion": {
+      "label": "Stationary Combustion",
+      "short": "Stationary",
+      "description": "Fuel burned in boilers, furnaces, turbines, heaters, incinerators"
+    },
+    "mobile": {
+      "label": "Mobile Combustion",
+      "short": "Mobile",
+      "description": "Company-owned vehicles, forklifts, mobile equipment"
+    },
+    "fugitive": {
+      "label": "Fugitive Emissions",
+      "short": "Fugitive",
+      "description": "Leaks from equipment joints, seals, valves, and pipeline fittings"
+    },
+    "electricity": {
+      "label": "Purchased Electricity",
+      "short": "Electricity",
+      "description": "Grid electricity consumption across all facilities. EF: national grid 0.4999 tCO₂e/MWh"
+    },
+    "steam": {
+      "label": "Purchased Steam",
+      "short": "Steam",
+      "description": "Steam purchased from third-party co-generation plants"
+    },
+    "cooling": {
+      "label": "Purchased Cooling",
+      "short": "Cooling",
+      "description": "District cooling and chilled water purchased from external providers"
+    },
+    "cat1": {
+      "label": "Cat 1: Purchased Goods & Services",
+      "description": "Upstream emissions from production of purchased raw materials and services"
+    },
+    "cat2": {
+      "label": "Cat 2: Capital Goods",
+      "description": "Emissions from production of capital equipment and infrastructure"
+    },
+    "cat3": {
+      "label": "Cat 3: Fuel & Energy Activities",
+      "description": "Upstream emissions of purchased fuels and T&D losses not in Scope 1 or 2"
+    },
+    "cat4": {
+      "label": "Cat 4: Transportation & Distribution",
+      "description": "Upstream transportation of purchased goods, materials, and fuels"
+    },
+    "cat5": {
+      "label": "Cat 5: Waste Generated",
+      "description": "Third-party disposal and treatment of waste generated in operations"
+    },
+    "cat6": {
+      "label": "Cat 6: Business Travel",
+      "description": "Employee flights, hotel stays, ground transportation for business"
+    },
+    "cat7": {
+      "label": "Cat 7: Employee Commuting",
+      "description": "Employee transportation between homes and worksites"
+    },
+    "cat11": {
+      "label": "Cat 11: Use of Sold Products",
+      "description": "End-use emissions from sold petrochemical and polymer products"
+    },
+    "cat12": {
+      "label": "Cat 12: End-of-Life Treatment",
+      "description": "Emissions from waste disposal of sold products"
+    }
+  },
+  "detail": {
+    "heading": "{{month}} — Source-Level Breakdown",
+    "production": "Production:",
+    "tonnes": "tonnes",
+    "intensity": "Intensity:"
+  }
+}

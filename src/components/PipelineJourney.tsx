@@ -5,6 +5,8 @@ import {
 } from 'lucide-react'
 import { type StageKey, type StageStatus } from '../lib/journey'
 import { ROLE_CATALOG, type PlatformRole } from '../lib/rbac'
+import { useTranslation } from 'react-i18next'
+import i18n from '../i18n'
 
 /**
  * PipelineJourney — restrained enterprise stepper.
@@ -42,6 +44,7 @@ export default function PipelineJourney({
   myRole: PlatformRole
   onStageClick?: (stage: StageStatus) => void
 }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const go = (s: StageStatus) => { if (onStageClick) onStageClick(s); else navigate(s.stage.route) }
 
@@ -57,16 +60,16 @@ export default function PipelineJourney({
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex items-center gap-2">
             <span className="w-[5px] h-[5px] rounded-full" style={{ background: BRAND }} />
-            <span className="text-[10.5px] uppercase tracking-[0.18em] font-semibold text-[var(--text-tertiary)]">Pipeline</span>
+            <span className="text-[10.5px] uppercase tracking-[0.18em] font-semibold text-[var(--text-tertiary)]">{t('components.journey.pipelineShort')}</span>
           </div>
           <span className="h-3 w-px bg-[var(--border-default)]" />
           <h3 className="text-[13px] font-semibold text-[var(--text-primary)] tracking-[-0.005em] truncate">
-            Plant → Report · six stages
+            {t('components.journey.sixStages')}
           </h3>
         </div>
         {myStageIdx >= 0 && (
           <div className="inline-flex items-center gap-2 text-[11.5px] text-[var(--text-tertiary)]">
-            <span>You work at</span>
+            <span>{t('components.journey.youWorkAt')}</span>
             <span className="font-semibold text-[var(--text-primary)]">
               {String(myStageIdx + 1).padStart(2, '0')} · {stages[myStageIdx].stage.label}
             </span>
@@ -164,12 +167,12 @@ export default function PipelineJourney({
       {/* role note */}
       <div className="mt-5 pt-4 border-t border-[var(--border-subtle)] flex items-center justify-between gap-4 text-[11px] text-[var(--text-tertiary)]">
         <div className="flex items-center gap-4">
-          <LegendDot state="done"    label="Complete" />
-          <LegendDot state="active"  label="Active" />
-          <LegendDot state="waiting" label="Upcoming" />
+          <LegendDot state="done"    label={t('components.journey.legend.complete')} />
+          <LegendDot state="active"  label={t('components.journey.legend.active')} />
+          <LegendDot state="waiting" label={t('components.journey.legend.upcoming')} />
         </div>
         <div className="text-[11px] text-[var(--text-tertiary)] truncate">
-          {ROLE_CATALOG[myRole].name} · {ROLE_CATALOG[myRole].description}
+          {t(`shell.roles.${myRole}.name`, { defaultValue: ROLE_CATALOG[myRole].name })} · {t(`shell.roles.${myRole}.description`, { defaultValue: ROLE_CATALOG[myRole].description })}
         </div>
       </div>
     </div>
@@ -195,7 +198,7 @@ function shortOwnerLabel(owners: PlatformRole[]): string {
     narrative_owner: 'Narrative',
     auditor: 'Auditor',
   }
-  return owners.map(o => short[o] ?? o).slice(0, 2).join(' · ')
+  return owners.map(o => i18n.t(`components.journey.owners.${o}`, { defaultValue: short[o] ?? o })).slice(0, 2).join(' · ')
 }
 
 /**
@@ -217,6 +220,7 @@ export function NextAction({
   onPrimary: () => void
   onSecondary?: () => void
 }) {
+  const { t } = useTranslation()
   const Icon = stage ? STAGE_ICONS[stage.stage.key] : Sparkles
   return (
     <AnimatePresence>
@@ -243,7 +247,7 @@ export function NextAction({
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 text-[10.5px] uppercase tracking-[0.16em] font-semibold text-[var(--text-tertiary)]">
-                <span>Do this next</span>
+                <span>{t('components.journey.doNext')}</span>
                 {stage && <span className="text-[var(--text-quaternary)]">·</span>}
                 {stage && <span>{stage.stage.label}</span>}
               </div>

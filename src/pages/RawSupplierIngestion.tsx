@@ -1,5 +1,7 @@
 import { useState, useRef, useCallback, useMemo } from 'react'
 import ExcelJS from 'exceljs'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import {
   Keyboard,
   FileSpreadsheet,
@@ -74,6 +76,13 @@ const TARGET_FIELDS = [
   { value: 'notes', label: 'Notes / Comments' },
 ]
 
+/** Display label for a target field. `value` stays the stable id; the English
+ *  label in TARGET_FIELDS is the fallback. */
+function fieldLabel(t: TFunction, value: string): string {
+  const english = TARGET_FIELDS.find((f) => f.value === value)?.label ?? value
+  return t(`supplier.fields.${value || 'skip'}`, { defaultValue: english })
+}
+
 /* ── Auto-mapping heuristics ── */
 function autoMapColumn(header: string): string {
   const h = header.toLowerCase().trim()
@@ -114,6 +123,7 @@ const PIPELINE_STAGES = [
    Main Component
    ═══════════════════════════════════════════ */
 export default function RawSupplierIngestion() {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState('upload')
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [activeFile, setActiveFile] = useState<UploadedFile | null>(null)
@@ -242,10 +252,10 @@ export default function RawSupplierIngestion() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">
-            Raw & Supplier Data Ingestion
+            {t('supplier.title')}
           </h1>
           <p className="mt-1 text-[var(--text-sm)] text-[var(--text-tertiary)]">
-            Upload Excel/CSV files, auto-map columns, preview and validate data before ingestion.
+            {t('supplier.subtitle')}
           </p>
         </div>
         <button
@@ -253,7 +263,7 @@ export default function RawSupplierIngestion() {
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--bg-inverse)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--bg-inverse-soft)] active:scale-[0.98] transition-all cursor-pointer shadow-sm"
         >
           <Upload className="w-4 h-4" />
-          Upload File
+          {t('supplier.uploadFile')}
         </button>
         <input
           ref={fileInputRef}
@@ -266,11 +276,11 @@ export default function RawSupplierIngestion() {
 
       <Tabs
         tabs={[
-          { id: 'upload', label: 'Upload' },
-          { id: 'preview', label: 'Data Preview', count: activeSheet?.rowCount },
-          { id: 'mapping', label: 'Column Mapping', count: mappedCount || undefined },
-          { id: 'pipeline', label: 'Pipeline' },
-          { id: 'history', label: 'History', count: uploadedFiles.length || undefined },
+          { id: 'upload', label: t('supplier.tabs.upload') },
+          { id: 'preview', label: t('supplier.tabs.preview'), count: activeSheet?.rowCount },
+          { id: 'mapping', label: t('supplier.tabs.mapping'), count: mappedCount || undefined },
+          { id: 'pipeline', label: t('supplier.tabs.pipeline') },
+          { id: 'history', label: t('supplier.tabs.history'), count: uploadedFiles.length || undefined },
         ]}
         activeTab={activeTab}
         onChange={setActiveTab}
@@ -302,10 +312,10 @@ export default function RawSupplierIngestion() {
 
       {activeTab === 'preview' && !activeSheet && (
         <EmptyState
-          message="No file uploaded yet"
-          sub="Upload an Excel or CSV file to preview its contents."
+          message={t('supplier.empty.noFile')}
+          sub={t('supplier.empty.noFileSub')}
           onAction={() => setActiveTab('upload')}
-          actionLabel="Go to Upload"
+          actionLabel={t('supplier.empty.goToUpload')}
         />
       )}
 
@@ -320,10 +330,10 @@ export default function RawSupplierIngestion() {
 
       {activeTab === 'mapping' && !activeSheet && (
         <EmptyState
-          message="No data to map"
-          sub="Upload a file first, then map columns."
+          message={t('supplier.empty.noMapData')}
+          sub={t('supplier.empty.noMapDataSub')}
           onAction={() => setActiveTab('upload')}
-          actionLabel="Go to Upload"
+          actionLabel={t('supplier.empty.goToUpload')}
         />
       )}
 
@@ -363,20 +373,21 @@ function UploadTab({
   uploadedFiles: UploadedFile[]
   totalRows: number
 }) {
+  const { t } = useTranslation()
   return (
     <div className="space-y-6 animate-fade-in">
       {/* KPI row */}
       <div className="grid grid-cols-4 gap-4">
         {[
-          { label: 'Files Uploaded', value: uploadedFiles.length.toString(), accent: 'var(--accent-teal)' },
-          { label: 'Total Rows', value: totalRows.toLocaleString(), accent: 'var(--accent-blue)' },
-          { label: 'Sheets Parsed', value: uploadedFiles.reduce((a, f) => a + f.sheets.length, 0).toString(), accent: 'var(--accent-purple)' },
-          { label: 'Status', value: parsing ? 'Parsing…' : 'Ready', accent: 'var(--accent-green)' },
+          { id: 'kpiFiles', label: 'Files Uploaded', value: uploadedFiles.length.toString(), accent: 'var(--accent-teal)' },
+          { id: 'kpiRows', label: 'Total Rows', value: totalRows.toLocaleString(), accent: 'var(--accent-blue)' },
+          { id: 'kpiSheets', label: 'Sheets Parsed', value: uploadedFiles.reduce((a, f) => a + f.sheets.length, 0).toString(), accent: 'var(--accent-purple)' },
+          { id: 'kpiStatus', label: 'Status', value: parsing ? t('supplier.upload.statusParsing') : t('supplier.upload.statusReady'), accent: 'var(--accent-green)' },
         ].map((kpi) => (
           <Card key={kpi.label} hover className="group relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-xl opacity-60 group-hover:opacity-100 transition-opacity"
               style={{ background: `linear-gradient(90deg, ${kpi.accent}, transparent)` }} />
-            <p className="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.06em]">{kpi.label}</p>
+            <p className="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.06em]">{t(`supplier.upload.${kpi.id}`)}</p>
             <p className="font-display text-[var(--text-3xl)] font-bold text-[var(--text-primary)] mt-1 tabular-nums">{kpi.value}</p>
           </Card>
         ))}
@@ -411,10 +422,10 @@ function UploadTab({
         )}
 
         <h3 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)]">
-          {parsing ? 'Parsing file…' : dragOver ? 'Drop file here' : 'Drop Excel or CSV file here'}
+          {parsing ? t('supplier.upload.parsingFile') : dragOver ? t('supplier.upload.dropHere') : t('supplier.upload.dropPrompt')}
         </h3>
         <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1">
-          or <span className="text-[var(--accent-teal)] font-semibold underline underline-offset-2">click to browse</span>
+          {t('supplier.upload.or')} <span className="text-[var(--accent-teal)] font-semibold underline underline-offset-2">{t('supplier.upload.clickToBrowse')}</span>
         </p>
         <div className="flex items-center gap-3 mt-5">
           <Badge variant="blue">.xlsx</Badge>
@@ -423,19 +434,19 @@ function UploadTab({
           <Badge variant="gray">.tsv</Badge>
         </div>
         <p className="text-[10px] text-[var(--text-tertiary)] mt-3">
-          Max file size: 50 MB. Data is parsed locally in your browser — nothing is sent to a server.
+          {t('supplier.upload.limits')}
         </p>
       </div>
 
       {/* Input channel cards */}
       <div>
-        <h2 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)] mb-3">All Input Channels</h2>
+        <h2 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)] mb-3">{t('supplier.upload.channelsTitle')}</h2>
         <div className="grid grid-cols-4 gap-4">
           {[
-            { icon: Keyboard, title: 'Manual Entry', desc: 'Form-based input with real-time validation', color: 'teal' as const, accent: 'var(--accent-teal)', active: false },
-            { icon: FileSpreadsheet, title: 'CSV / Excel Upload', desc: 'Active — bulk upload with auto-mapping', color: 'blue' as const, accent: 'var(--accent-blue)', active: true },
-            { icon: Plug, title: 'API Connectors', desc: 'ERP & utility provider live feeds', color: 'purple' as const, accent: 'var(--accent-purple)', active: false },
-            { icon: ScanText, title: 'Document Parse / OCR', desc: 'AI extraction from invoices & bills', color: 'amber' as const, accent: 'var(--accent-amber)', active: false },
+            { id: 'manual', icon: Keyboard, title: 'Manual Entry', desc: 'Form-based input with real-time validation', color: 'teal' as const, accent: 'var(--accent-teal)', active: false },
+            { id: 'csv', icon: FileSpreadsheet, title: 'CSV / Excel Upload', desc: 'Active — bulk upload with auto-mapping', color: 'blue' as const, accent: 'var(--accent-blue)', active: true },
+            { id: 'api', icon: Plug, title: 'API Connectors', desc: 'ERP & utility provider live feeds', color: 'purple' as const, accent: 'var(--accent-purple)', active: false },
+            { id: 'ocr', icon: ScanText, title: 'Document Parse / OCR', desc: 'AI extraction from invoices & bills', color: 'amber' as const, accent: 'var(--accent-amber)', active: false },
           ].map((ch) => {
             const Icon = ch.icon
             return (
@@ -445,10 +456,10 @@ function UploadTab({
                     style={{ backgroundColor: `${ch.accent}10`, border: `1px solid ${ch.accent}25` }}>
                     <Icon className="w-5 h-5" style={{ color: ch.accent }} />
                   </div>
-                  {ch.active ? <Badge variant="blue" dot>Active</Badge> : <Badge variant="gray">Coming soon</Badge>}
+                  {ch.active ? <Badge variant="blue" dot>{t('supplier.upload.active')}</Badge> : <Badge variant="gray">{t('supplier.upload.comingSoon')}</Badge>}
                 </div>
-                <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{ch.title}</h3>
-                <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-1">{ch.desc}</p>
+                <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t(`supplier.upload.channels.${ch.id}.title`)}</h3>
+                <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-1">{t(`supplier.upload.channels.${ch.id}.desc`)}</p>
               </Card>
             )
           })}
@@ -472,6 +483,7 @@ function DataPreview({
   onSwitchSheet: (idx: number) => void
   onGoToMapping: () => void
 }) {
+  const { t } = useTranslation()
   const [searchTerm, setSearchTerm] = useState('')
   const [page, setPage] = useState(0)
   const [sortCol, setSortCol] = useState<number | null>(null)
@@ -518,7 +530,7 @@ function DataPreview({
           <FileSpreadsheet className="w-5 h-5 text-[var(--accent-blue)]" />
           <div>
             <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{file.name}</p>
-            <p className="text-[10px] text-[var(--text-tertiary)]">{(file.size / 1024).toFixed(1)} KB &middot; {file.sheets.length} sheet{file.sheets.length > 1 ? 's' : ''}</p>
+            <p className="text-[10px] text-[var(--text-tertiary)]">{(file.size / 1024).toFixed(1)} KB &middot; {t('supplier.preview.sheets', { count: file.sheets.length })}</p>
           </div>
         </div>
         <div className="h-6 w-px bg-[var(--border-default)]" />
@@ -544,14 +556,14 @@ function DataPreview({
 
         <div className="ml-auto flex items-center gap-3">
           <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-            <strong className="text-[var(--text-primary)]">{sheet.rowCount.toLocaleString()}</strong> rows &middot; <strong className="text-[var(--text-primary)]">{sheet.colCount}</strong> columns
+            <strong className="text-[var(--text-primary)]">{sheet.rowCount.toLocaleString()}</strong> {t('supplier.preview.rowsUnit')} &middot; <strong className="text-[var(--text-primary)]">{sheet.colCount}</strong> {t('supplier.preview.columnsUnit')}
           </span>
           <button
             onClick={onGoToMapping}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--bg-inverse)] text-white text-[var(--text-xs)] font-semibold hover:bg-[var(--bg-inverse-soft)] active:scale-[0.98] transition-all cursor-pointer"
           >
             <Columns className="w-3.5 h-3.5" />
-            Map Columns
+            {t('supplier.preview.mapColumns')}
           </button>
         </div>
       </Card>
@@ -559,10 +571,10 @@ function DataPreview({
       {/* Mapped columns preview */}
       {mappings.some((m) => m.target) && (
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Mapped:</span>
+          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">{t('supplier.preview.mapped')}</span>
           {mappings.filter((m) => m.target).map((m) => (
             <Badge key={m.source} variant="teal">
-              {m.source} → {TARGET_FIELDS.find((f) => f.value === m.target)?.label ?? m.target}
+              {m.source} → {fieldLabel(t, m.target)}
             </Badge>
           ))}
         </div>
@@ -574,7 +586,7 @@ function DataPreview({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
           <input
             type="text"
-            placeholder="Search rows…"
+            placeholder={t('supplier.preview.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setPage(0) }}
             className="w-full h-9 pl-10 pr-4 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)] focus:ring-offset-1 transition-all"
@@ -582,7 +594,7 @@ function DataPreview({
         </div>
         {searchTerm && (
           <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-            {filteredRows.length.toLocaleString()} matches
+            {t('supplier.preview.matches', { count: filteredRows.length, n: filteredRows.length.toLocaleString() })}
           </span>
         )}
         <div className="ml-auto flex items-center gap-2">
@@ -622,7 +634,7 @@ function DataPreview({
                         className="flex items-center gap-1.5 cursor-pointer group"
                       >
                         <span className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-wider truncate max-w-[150px]">
-                          {h || `Col ${i + 1}`}
+                          {h || t('supplier.preview.colFallback', { n: i + 1 })}
                         </span>
                         <ArrowUpDown className={`w-3 h-3 flex-shrink-0 transition-colors ${
                           sortCol === i ? 'text-[var(--accent-teal)]' : 'text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100'
@@ -630,7 +642,7 @@ function DataPreview({
                       </button>
                       {mapped && (
                         <span className="block text-[9px] text-[var(--accent-teal)] font-medium mt-0.5">
-                          → {TARGET_FIELDS.find((f) => f.value === mapped)?.label}
+                          → {fieldLabel(t, mapped)}
                         </span>
                       )}
                     </th>
@@ -658,11 +670,15 @@ function DataPreview({
         {/* Table footer */}
         <div className="px-4 py-3 bg-[var(--bg-secondary)] border-t border-[var(--border-default)] flex items-center justify-between">
           <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-            Showing {(page * PAGE_SIZE + 1).toLocaleString()}–{Math.min((page + 1) * PAGE_SIZE, filteredRows.length).toLocaleString()} of {filteredRows.length.toLocaleString()} rows
+            {t('supplier.preview.showing', {
+              from: (page * PAGE_SIZE + 1).toLocaleString(),
+              to: Math.min((page + 1) * PAGE_SIZE, filteredRows.length).toLocaleString(),
+              total: filteredRows.length.toLocaleString(),
+            })}
           </span>
           <div className="flex items-center gap-2">
-            <Badge variant="teal">{sheet.colCount} columns</Badge>
-            <Badge variant="blue">{sheet.rowCount.toLocaleString()} rows</Badge>
+            <Badge variant="teal">{t('supplier.preview.columns', { count: sheet.colCount })}</Badge>
+            <Badge variant="blue">{t('supplier.preview.rows', { count: sheet.rowCount, n: sheet.rowCount.toLocaleString() })}</Badge>
           </div>
         </div>
       </Card>
@@ -682,6 +698,7 @@ function ColumnMappingTab({
   onUpdate: (idx: number, target: string) => void
   onConfirm: () => void
 }) {
+  const { t } = useTranslation()
   const mapped = mappings.filter((m) => m.target).length
   const total = mappings.length
 
@@ -692,14 +709,14 @@ function ColumnMappingTab({
         <div className="flex items-center gap-3">
           <Columns className="w-5 h-5 text-[var(--accent-teal)]" />
           <div>
-            <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">Column Mapping</p>
-            <p className="text-[10px] text-[var(--text-tertiary)]">Map your source columns to the GHG data model. Auto-mapped columns are highlighted.</p>
+            <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('supplier.mapping.title')}</p>
+            <p className="text-[10px] text-[var(--text-tertiary)]">{t('supplier.mapping.help')}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right">
             <p className="text-[var(--text-xs)] font-bold text-[var(--text-primary)] tabular-nums">{mapped} / {total}</p>
-            <p className="text-[10px] text-[var(--text-tertiary)]">columns mapped</p>
+            <p className="text-[10px] text-[var(--text-tertiary)]">{t('supplier.mapping.columnsMapped')}</p>
           </div>
           <div className="w-20 h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
             <div
@@ -714,10 +731,10 @@ function ColumnMappingTab({
       <Card padding="none" className="overflow-hidden">
         <div className="grid grid-cols-[auto_1fr_auto_1fr_auto] gap-0 items-center px-4 py-2.5 bg-[var(--bg-secondary)] border-b border-[var(--border-default)]">
           <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider w-8">#</span>
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Source Column</span>
+          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">{t('supplier.mapping.sourceColumn')}</span>
           <span className="w-10" />
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Target Field</span>
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider w-24 text-center">Sample</span>
+          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">{t('supplier.mapping.targetField')}</span>
+          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider w-24 text-center">{t('supplier.mapping.sample')}</span>
         </div>
 
         {mappings.map((m, i) => {
@@ -756,7 +773,7 @@ function ColumnMappingTab({
                 `}
               >
                 {TARGET_FIELDS.map((f) => (
-                  <option key={f.value} value={f.value}>{f.label}</option>
+                  <option key={f.value} value={f.value}>{fieldLabel(t, f.value)}</option>
                 ))}
               </select>
 
@@ -774,14 +791,14 @@ function ColumnMappingTab({
       {/* Confirm */}
       <div className="flex items-center justify-between">
         <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-          Unmapped columns will be stored as raw data and can be mapped later.
+          {t('supplier.mapping.unmappedNote')}
         </p>
         <button
           onClick={onConfirm}
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[var(--bg-inverse)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--bg-inverse-soft)] active:scale-[0.98] transition-all cursor-pointer shadow-sm"
         >
           <CheckCircle2 className="w-4 h-4" />
-          Confirm Mapping & Run Pipeline
+          {t('supplier.mapping.confirm')}
         </button>
       </div>
     </div>
@@ -793,6 +810,7 @@ function ColumnMappingTab({
    Pipeline Tab
    ═══════════════════════════════════════════ */
 function PipelineTab({ hasData, mappingDone, rowCount, fileName }: { hasData: boolean; mappingDone: boolean; rowCount: number; fileName: string }) {
+  const { t } = useTranslation()
   // Simulated pipeline progress
   const stages = PIPELINE_STAGES.map((stage, i) => {
     if (!hasData || !mappingDone) return { ...stage, status: 'waiting' as const, passed: 0, failed: 0, rate: 0 }
@@ -806,8 +824,8 @@ function PipelineTab({ hasData, mappingDone, rowCount, fileName }: { hasData: bo
     <div className="space-y-6 animate-fade-in">
       {!hasData && (
         <EmptyState
-          message="No data in pipeline"
-          sub="Upload a file and confirm column mapping to run the validation pipeline."
+          message={t('supplier.empty.noPipeline')}
+          sub={t('supplier.empty.noPipelineSub')}
         />
       )}
 
@@ -815,9 +833,9 @@ function PipelineTab({ hasData, mappingDone, rowCount, fileName }: { hasData: bo
         <Card className="flex items-center gap-4 border-[var(--accent-amber)] bg-[var(--accent-amber-light)]">
           <AlertTriangle className="w-5 h-5 text-[var(--accent-amber)] flex-shrink-0" />
           <div>
-            <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">Column mapping required</p>
+            <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('supplier.pipeline.mappingRequired')}</p>
             <p className="text-[var(--text-xs)] text-[var(--text-secondary)]">
-              Go to the Column Mapping tab and confirm your mappings before running the pipeline.
+              {t('supplier.pipeline.mappingRequiredSub')}
             </p>
           </div>
         </Card>
@@ -827,13 +845,13 @@ function PipelineTab({ hasData, mappingDone, rowCount, fileName }: { hasData: bo
       <Card padding="lg">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)]">5-Stage Validation Pipeline</h3>
+            <h3 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)]">{t('supplier.pipeline.title')}</h3>
             <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-0.5">
-              {mappingDone ? `Processing ${rowCount.toLocaleString()} rows from ${fileName}` : 'Awaiting data input and column mapping'}
+              {mappingDone ? t('supplier.pipeline.processing', { rows: rowCount.toLocaleString(), file: fileName }) : t('supplier.pipeline.awaiting')}
             </p>
           </div>
           {mappingDone && (
-            <Badge variant="green" dot>Pipeline Complete</Badge>
+            <Badge variant="green" dot>{t('supplier.pipeline.complete')}</Badge>
           )}
         </div>
 
@@ -859,13 +877,13 @@ function PipelineTab({ hasData, mappingDone, rowCount, fileName }: { hasData: bo
                       <Icon className="w-6 h-6" style={{ color: stage.accent }} />
                     )}
                   </div>
-                  <h4 className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)] mt-3">{stage.title}</h4>
-                  <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5 leading-relaxed max-w-[140px] mx-auto">{stage.desc}</p>
+                  <h4 className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)] mt-3">{t(`supplier.pipeline.stages.${stage.id}.title`)}</h4>
+                  <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5 leading-relaxed max-w-[140px] mx-auto">{t(`supplier.pipeline.stages.${stage.id}.desc`)}</p>
                   {isComplete && (
                     <div className="mt-2 space-y-0.5">
                       <span className="text-[var(--text-xs)] font-bold tabular-nums" style={{ color: stage.accent }}>{stage.rate}%</span>
                       {stage.failed > 0 && (
-                        <p className="text-[10px] text-[var(--accent-red)]">{stage.failed} flagged</p>
+                        <p className="text-[10px] text-[var(--accent-red)]">{t('supplier.pipeline.flagged', { count: stage.failed })}</p>
                       )}
                     </div>
                   )}
@@ -887,9 +905,9 @@ function PipelineTab({ hasData, mappingDone, rowCount, fileName }: { hasData: bo
         {mappingDone && (
           <div className="mt-6 pt-4 border-t border-[var(--border-subtle)]">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[var(--text-xs)] font-medium text-[var(--text-secondary)]">Pipeline Throughput</span>
+              <span className="text-[var(--text-xs)] font-medium text-[var(--text-secondary)]">{t('supplier.pipeline.throughput')}</span>
               <span className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)] tabular-nums">
-                {stages[stages.length - 1].passed.toLocaleString()} / {rowCount.toLocaleString()} rows passed
+                {t('supplier.pipeline.rowsPassed', { passed: stages[stages.length - 1].passed.toLocaleString(), total: rowCount.toLocaleString() })}
               </span>
             </div>
             <div className="w-full h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
@@ -909,23 +927,23 @@ function PipelineTab({ hasData, mappingDone, rowCount, fileName }: { hasData: bo
       {mappingDone && (
         <Card>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">Validation Exceptions</h3>
-            <Badge variant="amber" dot>{stages[0].failed + stages[1].failed} total</Badge>
+            <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('supplier.pipeline.exceptions')}</h3>
+            <Badge variant="amber" dot>{t('supplier.pipeline.total', { count: stages[0].failed + stages[1].failed })}</Badge>
           </div>
           <div className="space-y-2">
             {stages[0].failed > 0 && (
               <div className="flex items-center gap-4 p-3 rounded-lg border border-[var(--border-subtle)]">
                 <AlertTriangle className="w-4 h-4 text-[var(--accent-amber)] flex-shrink-0" />
-                <span className="text-[var(--text-sm)] font-medium text-[var(--text-primary)] flex-1">Schema validation failures (type mismatches, missing required fields)</span>
-                <Badge variant="gray">Schema</Badge>
+                <span className="text-[var(--text-sm)] font-medium text-[var(--text-primary)] flex-1">{t('supplier.pipeline.schemaFailures')}</span>
+                <Badge variant="gray">{t('supplier.pipeline.schemaBadge')}</Badge>
                 <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] tabular-nums">{stages[0].failed}</span>
               </div>
             )}
             {stages[1].failed > 0 && (
               <div className="flex items-center gap-4 p-3 rounded-lg border border-[var(--border-subtle)]">
                 <AlertTriangle className="w-4 h-4 text-[var(--accent-red)] flex-shrink-0" />
-                <span className="text-[var(--text-sm)] font-medium text-[var(--text-primary)] flex-1">Semantic validation failures (threshold exceeded, unit inconsistencies)</span>
-                <Badge variant="gray">Semantic</Badge>
+                <span className="text-[var(--text-sm)] font-medium text-[var(--text-primary)] flex-1">{t('supplier.pipeline.semanticFailures')}</span>
+                <Badge variant="gray">{t('supplier.pipeline.semanticBadge')}</Badge>
                 <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] tabular-nums">{stages[1].failed}</span>
               </div>
             )}
@@ -947,20 +965,22 @@ function HistoryTab({
   onSelect: (f: UploadedFile) => void
   onClear: () => void
 }) {
+  const { t, i18n } = useTranslation()
+  const timeLocale = i18n.language?.startsWith('zh') ? 'zh-CN' : undefined
   if (files.length === 0) {
-    return <EmptyState message="No upload history" sub="Files you upload will appear here." />
+    return <EmptyState message={t('supplier.empty.noHistory')} sub={t('supplier.empty.noHistorySub')} />
   }
 
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between">
-        <span className="text-[var(--text-sm)] text-[var(--text-secondary)]">{files.length} file{files.length !== 1 ? 's' : ''} uploaded this session</span>
+        <span className="text-[var(--text-sm)] text-[var(--text-secondary)]">{t('supplier.history.filesThisSession', { count: files.length })}</span>
         <button
           onClick={onClear}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[var(--text-sm)] font-medium text-[var(--accent-red)] hover:bg-[var(--accent-red-light)] transition-all cursor-pointer"
         >
           <Trash2 className="w-3.5 h-3.5" />
-          Clear All
+          {t('supplier.history.clearAll')}
         </button>
       </div>
 
@@ -977,11 +997,11 @@ function HistoryTab({
             <div className="flex-1 min-w-0">
               <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{file.name}</p>
               <p className="text-[10px] text-[var(--text-tertiary)]">
-                {(file.size / 1024).toFixed(1)} KB &middot; {file.sheets.length} sheet{file.sheets.length > 1 ? 's' : ''} &middot; {file.sheets.reduce((a, s) => a + s.rowCount, 0).toLocaleString()} rows
+                {(file.size / 1024).toFixed(1)} KB &middot; {t('supplier.preview.sheets', { count: file.sheets.length })} &middot; {t('supplier.preview.rows', { count: file.sheets.reduce((a, s) => a + s.rowCount, 0), n: file.sheets.reduce((a, s) => a + s.rowCount, 0).toLocaleString() })}
               </p>
             </div>
             <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] tabular-nums">
-              {file.uploadedAt.toLocaleTimeString()}
+              {file.uploadedAt.toLocaleTimeString(timeLocale)}
             </span>
             <ChevronRight className="w-4 h-4 text-[var(--text-tertiary)]" />
           </button>

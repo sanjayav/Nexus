@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
+import { itemLabel } from '../lib/itemLabel'
+import { localizeCalc, localizeUnit } from '../calculators/labels'
 import {
   ArrowLeft, Loader2, AlertCircle, CheckCircle2, Upload, Plug, Calculator as CalcIcon,
   PencilLine, Send, Hash, FileText, X,
@@ -13,7 +16,7 @@ import {
   type NexusHistoricalPoint,
   type NexusEvidence,
 } from '../lib/api'
-import { truncateHash } from '../reports/spdTemplate'
+import { truncateHash, capitalLabelKey, subsectionLabelKey } from '../reports/spdTemplate'
 import SetupGuard from '../components/SetupGuard'
 import { Button } from '../design-system'
 import { findCalculator, type CalcDescriptor, type CalcInputValues } from '../calculators/registry'
@@ -44,6 +47,7 @@ export default function DataEntry() {
   const { questionId } = useParams<{ questionId: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const { t, i18n } = useTranslation()
 
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
   const [mode, setMode] = useState<EntryMode>('Manual')
@@ -91,7 +95,7 @@ export default function DataEntry() {
         : item.entry_mode_default
       setMode(initial)
     } catch (e) {
-      setState({ kind: 'error', error: e instanceof Error ? e.message : 'Failed to load' })
+      setState({ kind: 'error', error: e instanceof Error ? e.message : t('dataEntry.entry.failedToLoad') })
     }
   }
 
@@ -105,16 +109,16 @@ export default function DataEntry() {
 
   const handleUploadEvidence = async (file: File) => {
     if (!dataValueId) {
-      setEvidenceError('Save a draft first — evidence attaches to the saved value.')
+      setEvidenceError(t('dataEntry.entry.saveDraftFirst'))
       return
     }
     const ALLOWED = ['application/pdf', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv', 'image/png', 'image/jpeg']
     if (file.type && !ALLOWED.includes(file.type)) {
-      setEvidenceError(`Unsupported type: ${file.type}. Use PDF, XLSX, CSV, PNG or JPG.`)
+      setEvidenceError(t('dataEntry.entry.unsupportedType', { type: file.type }))
       return
     }
     if (file.size > 5 * 1024 * 1024) {
-      setEvidenceError(`File too large — ${(file.size / 1024 / 1024).toFixed(1)}MB exceeds 5MB PoC limit.`)
+      setEvidenceError(t('dataEntry.entry.tooLarge', { size: (file.size / 1024 / 1024).toFixed(1) }))
       return
     }
     setUploadingEvidence(true); setEvidenceError(null)
@@ -122,7 +126,7 @@ export default function DataEntry() {
       const uploaded = await nexus.uploadEvidence(dataValueId, file)
       setEvidence(ev => [uploaded, ...ev])
     } catch (e) {
-      setEvidenceError(e instanceof Error ? e.message : 'Upload failed')
+      setEvidenceError(e instanceof Error ? e.message : t('dataEntry.entry.uploadFailed'))
     } finally {
       setUploadingEvidence(false)
     }
@@ -133,7 +137,7 @@ export default function DataEntry() {
       await nexus.removeEvidence(id)
       setEvidence(ev => ev.filter(e => e.id !== id))
     } catch (e) {
-      setEvidenceError(e instanceof Error ? e.message : 'Remove failed')
+      setEvidenceError(e instanceof Error ? e.message : t('dataEntry.entry.removeFailed'))
     }
   }
 
@@ -141,8 +145,8 @@ export default function DataEntry() {
   // useMemo keeps the reference stable across renders — essential for the
   // useEffect below (otherwise an infinite render loop).
   const calculator: CalcDescriptor | null = useMemo(
-    () => state.kind === 'ready' ? findCalculator(state.item) : null,
-    [state]
+    () => state.kind === 'ready' ? localizeCalc(t, findCalculator(state.item)) : null,
+    [state, t]
   )
 
   // Snap mode back to a valid tab if the current mode isn't available for this
@@ -190,7 +194,7 @@ export default function DataEntry() {
       setValueHash(res.value_hash)
       setStatus('saved')
     } catch (e) {
-      setErrMsg(e instanceof Error ? e.message : 'Save failed')
+      setErrMsg(e instanceof Error ? e.message : t('dataEntry.entry.saveFailed'))
       setStatus('error')
     }
   }
@@ -210,7 +214,7 @@ export default function DataEntry() {
       setValue(String(res.value ?? ''))
       setStatus('saved')
     } catch (e) {
-      setErrMsg(e instanceof Error ? e.message : 'Connector pull failed')
+      setErrMsg(e instanceof Error ? e.message : t('dataEntry.entry.pullFailed'))
       setStatus('error')
     }
   }
@@ -228,7 +232,7 @@ export default function DataEntry() {
     if (status === 'submitted' || status === 'submitting') return
     setMode('Manual')
     setValue(String(extraction.value))
-    const note = `Auto-extracted from ${sourceFilename} via Claude${extraction.unit ? ` (${extraction.unit})` : ''}${extraction.period ? ` · period ${extraction.period}` : ''}`
+    const note = t('dataEntry.entry.autoExtracted', { file: sourceFilename }) + (extraction.unit ? ` (${extraction.unit})` : '') + (extraction.period ? t('dataEntry.entry.autoExtractedPeriod', { period: extraction.period }) : '')
     setComment(prev => (prev && prev.length > 0 ? `${prev}\n${note}` : note))
     if (extraction.id) setPendingExtractionId(extraction.id)
   }
@@ -236,7 +240,7 @@ export default function DataEntry() {
   const handleSubmit = async () => {
     if (!dataValueId) return
     if (needsEvidence && !hasEvidence) {
-      setErrMsg('Attach at least one evidence file before submitting.')
+      setErrMsg(t('dataEntry.entry.needEvidence'))
       return
     }
     setStatus('submitting'); setErrMsg(null)
@@ -254,7 +258,7 @@ export default function DataEntry() {
       }
       setStatus('submitted')
     } catch (e) {
-      setErrMsg(e instanceof Error ? e.message : 'Submit failed')
+      setErrMsg(e instanceof Error ? e.message : t('dataEntry.entry.submitFailed'))
       setStatus('error')
     }
   }
@@ -263,9 +267,9 @@ export default function DataEntry() {
   if (state.kind === 'empty') return <SetupGuard onReady={load} />
   if (state.kind === 'notfound') return (
     <div className="max-w-lg mx-auto mt-20 p-6 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)]">
-      <h2 className="font-semibold text-[var(--text-primary)] mb-1">Question not found</h2>
-      <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mb-4">No GRI line item matches this id in the active reporting year.</p>
-      <Button variant="primary" size="sm" onClick={() => navigate('/data/entry')}>Back to question picker</Button>
+      <h2 className="font-semibold text-[var(--text-primary)] mb-1">{t('dataEntry.entry.notFound')}</h2>
+      <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mb-4">{t('dataEntry.entry.notFoundBody')}</p>
+      <Button variant="primary" size="sm" onClick={() => navigate('/data/entry')}>{t('dataEntry.entry.backToPicker')}</Button>
     </div>
   )
   if (state.kind === 'error') return <ErrorPane error={state.error} onRetry={load} />
@@ -280,16 +284,16 @@ export default function DataEntry() {
           onClick={() => navigate('/data/entry')}
           className="inline-flex items-center gap-2 text-[13px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors group"
         >
-          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" /> All questions
+          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" /> {t('dataEntry.entry.allQuestions')}
         </button>
         <div className="flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)]">
-          <span>{item.section}</span>
+          <span>{t(capitalLabelKey(item.section), { defaultValue: item.section })}</span>
           <span className="text-[var(--text-quaternary)]">/</span>
-          <span>{item.subsection}</span>
+          <span>{t(subsectionLabelKey(item.subsection), { defaultValue: item.subsection })}</span>
           <span className="text-[var(--text-quaternary)]">/</span>
           <span className="font-semibold text-[var(--text-primary)]">{item.gri_code}</span>
           <span className="ml-2 chip chip-active">
-            {item.default_workflow_role}
+            {t(`workflowStatus.role.${item.default_workflow_role}`, { defaultValue: item.default_workflow_role })}
           </span>
         </div>
       </div>
@@ -300,12 +304,12 @@ export default function DataEntry() {
           {/* Question header — hero treatment */}
           <div className="surface-hero p-7">
             <div className="kicker mb-3">{item.gri_code}</div>
-            <h1 className="text-display text-[28px] md:text-[32px] text-[var(--text-primary)] leading-[1.1] max-w-2xl">{item.line_item}</h1>
+            <h1 className="text-display text-[28px] md:text-[32px] text-[var(--text-primary)] leading-[1.1] max-w-2xl">{itemLabel(item, i18n.language)}</h1>
             <div className="flex items-center gap-2 flex-wrap mt-5">
-              {item.unit && <span className="chip"><span className="text-[var(--text-quaternary)]">Unit</span><strong className="text-[var(--text-primary)]">{item.unit}</strong></span>}
-              {item.scope_split && <span className="chip"><span className="text-[var(--text-quaternary)]">Scope</span><strong className="text-[var(--text-primary)]">{item.scope_split}</strong></span>}
-              {item.target_fy2026 != null && <span className="chip chip-active"><span>FY{ACTIVE_YEAR} target</span><strong>{item.target_fy2026}</strong></span>}
-              <span className="chip"><span className="text-[var(--text-quaternary)]">Reporting</span><strong className="text-[var(--text-primary)]">{item.reporting_scope === 'jv' ? 'JV parallel' : 'Group'}</strong></span>
+              {item.unit && <span className="chip"><span className="text-[var(--text-quaternary)]">{t('dataEntry.entry.unit')}</span><strong className="text-[var(--text-primary)]">{localizeUnit(t, item.unit)}</strong></span>}
+              {item.scope_split && <span className="chip"><span className="text-[var(--text-quaternary)]">{t('dataEntry.entry.scope')}</span><strong className="text-[var(--text-primary)]">{t(`dataEntry.scope.${item.scope_split}`, { defaultValue: item.scope_split })}</strong></span>}
+              {item.target_fy2026 != null && <span className="chip chip-active"><span>{t('dataEntry.entry.target', { year: ACTIVE_YEAR })}</span><strong>{item.target_fy2026}</strong></span>}
+              <span className="chip"><span className="text-[var(--text-quaternary)]">{t('dataEntry.entry.reporting')}</span><strong className="text-[var(--text-primary)]">{item.reporting_scope === 'jv' ? t('dataEntry.entry.jvParallel') : t('dataEntry.entry.group')}</strong></span>
             </div>
           </div>
 
@@ -344,7 +348,7 @@ export default function DataEntry() {
           <div className="surface-paper overflow-hidden">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <span className="kicker !mb-0">Your submission</span>
+                <span className="kicker !mb-0">{t('dataEntry.entry.yourSubmission')}</span>
                 <div className="flex gap-1">
                   {(['Manual', 'Calculator', 'Connector'] as EntryMode[])
                     .filter(m => m !== 'Calculator' || calculator != null)
@@ -364,7 +368,7 @@ export default function DataEntry() {
                           } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           <Icon className="w-3.5 h-3.5" />
-                          {m}
+                          {t(`dataEntry.mode.${m}`)}
                         </button>
                       )
                     })}
@@ -375,7 +379,7 @@ export default function DataEntry() {
               {mode === 'Manual' && (
                 <label className="block">
                   <span className="block text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-2">
-                    Value for FY{ACTIVE_YEAR}
+                    {t('dataEntry.entry.valueFor', { year: ACTIVE_YEAR })}
                   </span>
                   <div className="flex gap-2">
                     <input
@@ -384,12 +388,12 @@ export default function DataEntry() {
                       value={value}
                       onChange={e => setValue(e.target.value)}
                       disabled={status === 'saved' || status === 'submitting' || status === 'submitted'}
-                      placeholder="Enter numeric value or use a reference above"
+                      placeholder={t('dataEntry.entry.valuePlaceholder')}
                       className="flex-1 px-4 h-12 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-[22px] font-bold tabular-nums tracking-[-0.01em] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/15 outline-none disabled:bg-[var(--bg-secondary)] transition-all"
                     />
                     {item.unit && (
                       <div className="px-4 h-12 rounded-[10px] bg-[var(--bg-secondary)] text-[13px] font-semibold text-[var(--text-secondary)] flex items-center border border-[var(--border-subtle)]">
-                        {item.unit}
+                        {localizeUnit(t, item.unit)}
                       </div>
                     )}
                   </div>
@@ -399,7 +403,7 @@ export default function DataEntry() {
               {mode === 'Calculator' && calculator && (
                 <div className="space-y-4">
                   <div className="text-[11px] text-[var(--text-tertiary)] leading-relaxed">
-                    {calculator.description}. Tweak the inputs — the result in the Compare panel above updates live. Click "Use this value" to populate the Manual field.
+                    {t('dataEntry.entry.calcIntro', { description: calculator.description })}
                   </div>
                   <div className={`grid gap-3 ${calculator.inputs.length >= 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                     {calculator.inputs.map(input => (
@@ -413,7 +417,7 @@ export default function DataEntry() {
                   </div>
                   {calculator.footnotes && calculator.footnotes.length > 0 && (
                     <div className="text-[10.5px] text-[var(--text-tertiary)] leading-relaxed italic">
-                      Methodology: {calculator.footnotes.join('; ')}
+                      {t('calculators.page.methodology', { notes: calculator.footnotes.join(t('calculators.page.listSeparator')) })}
                     </div>
                   )}
                 </div>
@@ -428,7 +432,7 @@ export default function DataEntry() {
                       </span>
                       <div className="flex-1 min-w-0">
                         <div className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{pickConnector(item)}</div>
-                        <div className="text-[11px] text-[var(--text-tertiary)]">System-of-record connector — receipt hashed on pull</div>
+                        <div className="text-[11px] text-[var(--text-tertiary)]">{t('dataEntry.entry.connectorHint')}</div>
                       </div>
                       {!receiptHash && (
                         <Button
@@ -438,7 +442,7 @@ export default function DataEntry() {
                           onClick={handleConnectorPull}
                           disabled={status === 'saving' || status === 'saved'}
                         >
-                          {status === 'saving' ? 'Pulling…' : 'Pull'}
+                          {status === 'saving' ? t('dataEntry.entry.pulling') : t('dataEntry.entry.pull')}
                         </Button>
                       )}
                     </div>
@@ -446,9 +450,9 @@ export default function DataEntry() {
                       <div className="mt-3 p-3 rounded-[8px] bg-[var(--accent-green-light)] border border-[var(--status-ok)]/20">
                         <div className="flex items-center gap-2 text-[12px] text-[var(--status-ok)] font-semibold">
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          Pulled: <span className="font-mono tabular-nums">{value}</span> {item.unit ?? ''}
+                          {t('dataEntry.entry.pulled')} <span className="font-mono tabular-nums">{value}</span> {localizeUnit(t, item.unit)}
                         </div>
-                        <div className="text-[10.5px] text-[var(--text-tertiary)] font-mono mt-1">receipt {truncateHash(receiptHash, 10, 8)}</div>
+                        <div className="text-[10.5px] text-[var(--text-tertiary)] font-mono mt-1">{t('dataEntry.entry.receipt', { hash: truncateHash(receiptHash, 10, 8) })}</div>
                       </div>
                     )}
                   </div>
@@ -481,7 +485,7 @@ export default function DataEntry() {
               <div className="mt-4">
                 <label className="block">
                   <span className="block text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-1.5">
-                    Comment (optional)
+                    {t('dataEntry.entry.commentLabel')}
                   </span>
                   <textarea
                     value={comment}
@@ -489,7 +493,7 @@ export default function DataEntry() {
                     disabled={status === 'saved' || status === 'submitting' || status === 'submitted'}
                     rows={2}
                     maxLength={500}
-                    placeholder="Methodology note, restatement reason, etc."
+                    placeholder={t('dataEntry.entry.commentPlaceholder')}
                     className="w-full px-3 py-2 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13px] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/15 outline-none disabled:bg-[var(--bg-secondary)] resize-none transition-all"
                   />
                 </label>
@@ -519,7 +523,7 @@ export default function DataEntry() {
                     disabled={effectiveValue == null || status === 'saving'}
                     icon={<Upload className="w-4 h-4" />}
                   >
-                    Save draft
+                    {t('dataEntry.entry.saveDraft')}
                   </Button>
                 )}
                 {status === 'saved' && dataValueId && (
@@ -530,12 +534,12 @@ export default function DataEntry() {
                     disabled={!canSubmit}
                     icon={<Send className="w-4 h-4" />}
                   >
-                    {needsEvidence && !hasEvidence ? 'Attach evidence to submit' : 'Submit for review'}
+                    {needsEvidence && !hasEvidence ? t('dataEntry.entry.attachToSubmit') : t('dataEntry.entry.submitForReview')}
                   </Button>
                 )}
                 {status === 'submitted' && (
                   <Button variant="secondary" size="md" onClick={() => navigate('/workflow/review')}>
-                    View in review queue →
+                    {t('dataEntry.entry.viewInQueue')}
                   </Button>
                 )}
               </div>
@@ -559,11 +563,12 @@ export default function DataEntry() {
 // ─── Supporting components ──────────────────────────────────
 
 function CalcField({ input, value, onChange }: { input: import('../calculators/registry').CalcInput; value: string; onChange: (v: string) => void }) {
+  const { t } = useTranslation()
   return (
     <label className="block">
       <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">
         {input.label}
-        {input.unit && <span className="ml-1 text-[var(--text-tertiary)]/70 normal-case tracking-normal">({input.unit})</span>}
+        {input.unit && <span className="ml-1 text-[var(--text-tertiary)]/70 normal-case tracking-normal">({localizeUnit(t, input.unit)})</span>}
       </span>
       {input.options ? (
         <select
@@ -571,7 +576,7 @@ function CalcField({ input, value, onChange }: { input: import('../calculators/r
           onChange={e => onChange(e.target.value)}
           className="w-full px-2.5 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none"
         >
-          <option value="">Select…</option>
+          <option value="">{t('dataEntry.entry.select')}</option>
           {input.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       ) : (
@@ -616,6 +621,7 @@ function EvidenceZone({
     disabled?: boolean
   }
 }) {
+  const { t } = useTranslation()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
 
@@ -656,16 +662,16 @@ function EvidenceZone({
         />
         <div className={`text-[var(--text-xs)] font-semibold ${empty && canUpload ? 'text-[var(--status-reject)]' : 'text-[var(--text-secondary)]'}`}>
           {uploading ? (
-            <><Loader2 className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5 animate-spin" /> Uploading…</>
+            <><Loader2 className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5 animate-spin" /> {t('dataEntry.evidence.uploading')}</>
           ) : empty ? (
-            <><AlertCircle className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" /> Evidence required — drop source doc or click to browse</>
+            <><AlertCircle className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" /> {t('dataEntry.evidence.required')}</>
           ) : (
-            <><Upload className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" /> Attach another file</>
+            <><Upload className="w-3.5 h-3.5 inline-block mr-1 -mt-0.5" /> {t('dataEntry.evidence.another')}</>
           )}
         </div>
         <div className="text-[10px] text-[var(--text-tertiary)] mt-1">
-          PDF, XLSX, CSV, PNG, JPG · max 5 MB
-          {!dataValueId && ' · save a draft first to attach'}
+          {t('dataEntry.evidence.formats')}
+          {!dataValueId && t('dataEntry.evidence.saveFirst')}
         </div>
         {error && <div className="text-[10px] text-[var(--status-reject)] font-mono mt-2">{error}</div>}
       </div>
@@ -692,14 +698,14 @@ function EvidenceZone({
                   rel="noreferrer"
                   className="text-[10px] text-[var(--color-brand)] hover:underline"
                 >
-                  Open
+                  {t('dataEntry.evidence.open')}
                 </a>
                 {!locked && (
                   <button
                     type="button"
                     onClick={() => onRemove(e.id)}
                     className="w-5 h-5 rounded-[var(--radius-xs)] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--status-reject)] hover:bg-[var(--accent-red-light)]"
-                    aria-label="Remove"
+                    aria-label={t('dataEntry.evidence.remove')}
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -730,13 +736,14 @@ function EvidenceZone({
 }
 
 function StatusChip({ status }: { status: 'idle' | 'saving' | 'saved' | 'submitting' | 'submitted' | 'error' }) {
+  const { t } = useTranslation()
   const map: Record<typeof status, { label: string; bg: string; fg: string } | null> = {
     idle: null,
-    saving: { label: 'Saving…', bg: 'var(--accent-blue-light)', fg: 'var(--status-pending)' },
-    saved: { label: 'Draft saved', bg: 'var(--accent-amber-light)', fg: 'var(--status-draft)' },
-    submitting: { label: 'Submitting…', bg: 'var(--accent-blue-light)', fg: 'var(--status-pending)' },
-    submitted: { label: 'Submitted for review', bg: 'var(--accent-green-light)', fg: 'var(--status-ok)' },
-    error: { label: 'Error', bg: 'var(--accent-red-light)', fg: 'var(--status-reject)' },
+    saving: { label: t('dataEntry.status.saving'), bg: 'var(--accent-blue-light)', fg: 'var(--status-pending)' },
+    saved: { label: t('dataEntry.status.saved'), bg: 'var(--accent-amber-light)', fg: 'var(--status-draft)' },
+    submitting: { label: t('dataEntry.status.submitting'), bg: 'var(--accent-blue-light)', fg: 'var(--status-pending)' },
+    submitted: { label: t('dataEntry.status.submitted'), bg: 'var(--accent-green-light)', fg: 'var(--status-ok)' },
+    error: { label: t('dataEntry.status.error'), bg: 'var(--accent-red-light)', fg: 'var(--status-reject)' },
   }
   const c = map[status]
   if (!c) return null
@@ -752,14 +759,15 @@ function Center({ children }: { children: React.ReactNode }) {
 }
 
 function ErrorPane({ error, onRetry }: { error: string; onRetry: () => void }) {
+  const { t } = useTranslation()
   return (
     <div className="max-w-lg mx-auto mt-20 p-6 rounded-[var(--radius-lg)] border border-[var(--status-reject)]/20 bg-[var(--accent-red-light)]">
       <div className="flex items-start gap-3">
         <AlertCircle className="w-5 h-5 text-[var(--status-reject)] flex-shrink-0 mt-0.5" />
         <div>
-          <h3 className="font-semibold text-[var(--text-primary)] mb-1">Unable to load data entry</h3>
+          <h3 className="font-semibold text-[var(--text-primary)] mb-1">{t('dataEntry.entry.unableToLoad')}</h3>
           <p className="text-[var(--text-sm)] text-[var(--text-secondary)] font-mono">{error}</p>
-          <button onClick={onRetry} className="mt-3 text-[var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">Retry</button>
+          <button onClick={onRetry} className="mt-3 text-[var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">{t('dataEntry.picker.retry')}</button>
         </div>
       </div>
     </div>
@@ -777,6 +785,7 @@ function CompareSources({
   connectorValue: number | null
   onUse: (src: 'calculator' | 'connector' | 'historical' | 'peer', value: number) => void
 }) {
+  const { t } = useTranslation()
   const [ref, setRef] = useState<null | { lastYear: number; lastYearValue: number; avg: number; min: number; max: number; peers: Array<{ entity_name: string; value: number }> }>(null)
 
   useEffect(() => {
@@ -803,12 +812,12 @@ function CompareSources({
   }, [item.id])
 
   const sources = [
-    { key: 'manual' as const,     label: 'Manual',         icon: PencilLine, value: manualValue,         actionable: false },
-    { key: 'calculator' as const, label: calculator?.title ?? 'Calculator', icon: CalcIcon,   value: calcResult,          actionable: calcResult != null, sub: calculator?.description },
+    { key: 'manual' as const,     label: t('dataEntry.mode.Manual'), icon: PencilLine, value: manualValue,         actionable: false },
+    { key: 'calculator' as const, label: calculator?.title ?? t('dataEntry.mode.Calculator'), icon: CalcIcon,   value: calcResult,          actionable: calcResult != null, sub: calculator?.description },
     { key: 'connector' as const,  label: pickConnector(item), icon: Plug,      value: connectorValue,      actionable: connectorValue != null },
-    { key: 'historical' as const, label: `Last filed · FY${ref?.lastYear ?? '—'}`, icon: Hash, value: ref?.lastYearValue ?? null, actionable: ref?.lastYearValue != null, sub: 'From prior year audited report' },
-    { key: 'avg' as const,        label: '4-year average', icon: Hash,       value: ref?.avg ?? null,    actionable: false,            sub: ref ? `Range ${fmt(ref.min)} – ${fmt(ref.max)}` : undefined },
-    { key: 'peer' as const,       label: 'Peer plants avg', icon: Hash,      value: ref && ref.peers.length > 0 ? (ref.peers.reduce((s, p) => s + p.value, 0) / ref.peers.length) : null, actionable: false, sub: ref && ref.peers.length > 0 ? `${ref.peers.length} plants` : 'no peer filings' },
+    { key: 'historical' as const, label: t('dataEntry.compare.lastFiled', { year: ref?.lastYear ?? '—' }), icon: Hash, value: ref?.lastYearValue ?? null, actionable: ref?.lastYearValue != null, sub: t('dataEntry.compare.priorYear') },
+    { key: 'avg' as const,        label: t('dataEntry.compare.avg4'), icon: Hash,       value: ref?.avg ?? null,    actionable: false,            sub: ref ? t('dataEntry.compare.range', { min: fmt(ref.min), max: fmt(ref.max) }) : undefined },
+    { key: 'peer' as const,       label: t('dataEntry.compare.peerAvg'), icon: Hash,      value: ref && ref.peers.length > 0 ? (ref.peers.reduce((s, p) => s + p.value, 0) / ref.peers.length) : null, actionable: false, sub: ref && ref.peers.length > 0 ? t('dataEntry.compare.plants', { count: ref.peers.length }) : t('dataEntry.compare.noPeers') },
   ]
 
   const hasAnything = sources.some(s => s.value != null)
@@ -817,14 +826,14 @@ function CompareSources({
     <div className="surface-paper p-5">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <span className="kicker !mb-0.5">Compare sources</span>
-          <div className="text-[11.5px] text-[var(--text-tertiary)]">Cross-reference before you submit. Click "Use this value" on any card to pre-fill the manual field.</div>
+          <span className="kicker !mb-0.5">{t('dataEntry.compare.title')}</span>
+          <div className="text-[11.5px] text-[var(--text-tertiary)]">{t('dataEntry.compare.intro')}</div>
         </div>
       </div>
 
       {!hasAnything ? (
         <div className="py-6 text-center text-[12px] text-[var(--text-tertiary)] italic">
-          No references available yet. Enter a value below, or open the Calculator tab to compute one.
+          {t('dataEntry.compare.empty')}
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -854,7 +863,7 @@ function CompareSources({
                     onClick={() => onUse(s.key === 'calculator' ? 'calculator' : s.key === 'connector' ? 'connector' : 'historical', s.value as number)}
                     className="mt-2 text-[10.5px] font-semibold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] inline-flex items-center gap-1 link-underline"
                   >
-                    Use this value
+                    {t('dataEntry.compare.useValue')}
                   </button>
                 )}
               </motion.div>

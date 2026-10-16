@@ -1,0 +1,82 @@
+{
+  "banner": {
+    "title": "AI features disabled",
+    "body": "Set <code>ANTHROPIC_API_KEY</code> in your Vercel environment to enable AI report drafting, evidence extraction, vendor → EF matching, and anomaly narration."
+  },
+  "title": "AI Report Drafting",
+  "subtitle": "Draft framework-aligned narrative from your verified disclosure data. Anchored to your approved values — missing inputs are flagged, never invented.",
+  "fields": {
+    "framework": "Framework",
+    "section": "Section",
+    "tone": "Tone"
+  },
+  "tones": {
+    "formal": "Formal",
+    "narrative": "Narrative",
+    "concise": "Concise"
+  },
+  "toneInline": {
+    "formal": "formal",
+    "narrative": "narrative",
+    "concise": "concise"
+  },
+  "sections": {
+    "gri302": "GRI 302 — Energy",
+    "gri303": "GRI 303 — Water & Effluents",
+    "gri305": "GRI 305 — Emissions",
+    "gri306": "GRI 306 — Waste",
+    "gri401": "GRI 401 — Employment",
+    "gri403": "GRI 403 — Occupational H&S",
+    "esrsE1": "ESRS E1 — Climate Change",
+    "esrsE2": "ESRS E2 — Pollution",
+    "esrsE3": "ESRS E3 — Water & Marine Resources",
+    "esrsE5": "ESRS E5 — Circular Economy",
+    "esrsS1": "ESRS S1 — Own Workforce",
+    "esrsG1": "ESRS G1 — Business Conduct",
+    "tcfdGovernance": "TCFD — Governance",
+    "tcfdStrategy": "TCFD — Strategy",
+    "tcfdRisk": "TCFD — Risk Management",
+    "tcfdMetrics": "TCFD — Metrics & Targets",
+    "cdpC1": "CDP C1 — Governance",
+    "cdpC2": "CDP C2 — Risks & Opportunities",
+    "cdpC6": "CDP C6 — Emissions Data",
+    "cdpC11": "CDP C11 — Carbon Pricing",
+    "issbGovernance": "IFRS S2 — Governance",
+    "issbStrategy": "IFRS S2 — Strategy",
+    "issbRisk": "IFRS S2 — Risk Management",
+    "issbMetrics": "IFRS S2 — Metrics & Targets"
+  },
+  "grounded": "Grounded in approved data values for the current reporting year",
+  "notConfiguredHint": "AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.",
+  "buttons": {
+    "unavailable": "AI unavailable",
+    "drafting": "Drafting...",
+    "draft": "Draft with AI",
+    "copied": "Copied",
+    "copy": "Copy",
+    "regenerate": "Regenerate",
+    "clear": "Clear",
+    "inserted": "Inserted",
+    "insert": "Insert into Report"
+  },
+  "draftPreview": "Draft preview",
+  "errors": {
+    "notConfigured": "AI is not configured in this environment. Ask an admin to set ANTHROPIC_API_KEY in Vercel.",
+    "generateFailed": "Failed to generate draft",
+    "notConfiguredTitle": "AI is not configured",
+    "draftFailed": "Draft failed"
+  },
+  "usage": {
+    "tokensIn": "{{n}} tokens in",
+    "cached": " ({{n}} cached)",
+    "out": "{{n}} out"
+  },
+  "empty": {
+    "title": "Ready to draft",
+    "body": "Pick a framework and section, then click <bold>Draft with AI</bold> to generate an audit-ready narrative from your approved data.",
+    "anchored": "Anchored in your data",
+    "aligned": "Framework-aligned",
+    "noHallucination": "No hallucinated numbers"
+  },
+  "drafting": "Claude is drafting..."
+}

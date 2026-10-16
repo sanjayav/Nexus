@@ -1,0 +1,32 @@
+{
+  "eyebrow": "Group rollup",
+  "title": "Plant data · cumulative group totals",
+  "intro": "Every plant enters its own figure. Subsidiary rolls up plants (equity-weighted). Group rolls up subsidiaries. The final approved group value is what flows into the GRI report.",
+  "searchPlaceholder": "Find GRI line item…",
+  "hasPlantData": "Has plant data",
+  "unit": "Unit: {{unit}}",
+  "groupTotal": "Group total",
+  "chips": {
+    "approved": "Approved",
+    "inReview": "In review",
+    "outstanding": "Outstanding"
+  },
+  "approvedOf": "{{approved}}/{{assigned}} approved",
+  "readyForReport": "Ready for report",
+  "pickQuestion": "Pick a question to see its rollup",
+  "pickHint": "Use the list on the left to select a GRI line item.",
+  "fullyApproved": {
+    "title": "This line item is fully approved",
+    "body": "The rolled-up group value will populate directly into the next GRI report.",
+    "cta": "Go to report"
+  },
+  "entityType": {
+    "group": "group",
+    "business_unit": "business unit",
+    "subsidiary": "subsidiary",
+    "plant": "plant",
+    "office": "office"
+  },
+  "equity": "{{equity}}% equity",
+  "noData": "No data"
+}

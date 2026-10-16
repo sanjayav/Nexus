@@ -4,18 +4,21 @@ import {
   Factory, Building2, Landmark, Globe2, FileOutput, Search,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { nexus, type NexusQuestionnaireItem } from '../lib/api'
 import { type OrgEntity } from '../lib/orgStore'
 import { buildRollup, type RollupNode } from '../lib/rollup'
 import { useOrgData } from '../lib/useOrgData'
 import { useFramework } from '../lib/frameworks'
 import JourneyBar from '../components/JourneyBar'
+import { itemLabel } from '../lib/itemLabel'
 
 const TYPE_ICON: Record<OrgEntity['type'], typeof Landmark> = {
   group: Landmark, business_unit: Globe2, subsidiary: Building2, plant: Factory, office: Building2,
 }
 
 export default function GroupRollup() {
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { data: orgData } = useOrgData()
   const { active: framework } = useFramework()
@@ -29,8 +32,8 @@ export default function GroupRollup() {
     setLoading(true)
     ;(async () => {
       try {
-        const t = await nexus.tree(framework.id)
-        setQuestions(t)
+        const tree = await nexus.tree(framework.id)
+        setQuestions(tree)
       } catch { /* no-op */ }
       setLoading(false)
     })()
@@ -75,14 +78,13 @@ export default function GroupRollup() {
       </div>
       <header className="mb-5">
         <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
-          <Network className="w-3 h-3" /> Group rollup
+          <Network className="w-3 h-3" /> {t('rollup.eyebrow')}
         </div>
         <h1 className="font-display text-[28px] font-bold text-[var(--text-primary)] mt-1">
-          Plant data · cumulative group totals
+          {t('rollup.title')}
         </h1>
         <p className="text-[var(--text-sm)] text-[var(--text-secondary)] max-w-2xl mt-1">
-          Every plant enters its own figure. Subsidiary rolls up plants (equity-weighted). Group rolls up subsidiaries.
-          The final approved group value is what flows into the GRI report.
+          {t('rollup.intro')}
         </p>
       </header>
 
@@ -95,7 +97,7 @@ export default function GroupRollup() {
               <input
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder="Find GRI line item…"
+                placeholder={t('rollup.searchPlaceholder')}
                 className="w-full pl-8 pr-3 py-1.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-xs)]"
               />
             </div>
@@ -118,10 +120,10 @@ export default function GroupRollup() {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <span className="text-[9px] font-bold text-[var(--color-brand)]">{q.gri_code}</span>
-                              {hasData && <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-ok)]" title="Has plant data" />}
+                              {hasData && <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-ok)]" title={t('rollup.hasPlantData')} />}
                             </div>
                             <div className={`truncate ${active ? 'font-semibold text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
-                              {q.line_item}
+                              {itemLabel(q, i18n.language)}
                             </div>
                           </div>
                           {active && <ChevronRight className="w-3 h-3 text-[var(--color-brand)]" />}
@@ -142,16 +144,16 @@ export default function GroupRollup() {
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="text-[10px] font-bold text-[var(--color-brand)]">{selectedQ.gri_code}</div>
-                  <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)] mt-0.5">{selectedQ.line_item}</h2>
+                  <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)] mt-0.5">{itemLabel(selectedQ, i18n.language)}</h2>
                   <div className="flex items-center gap-3 mt-1 text-[10px] text-[var(--text-tertiary)]">
                     <span>{selectedQ.section} · {selectedQ.subsection}</span>
-                    {selectedQ.unit && <span>Unit: {selectedQ.unit}</span>}
+                    {selectedQ.unit && <span>{t('rollup.unit', { unit: selectedQ.unit })}</span>}
                     {selectedQ.scope_split && <span>{selectedQ.scope_split}</span>}
                   </div>
                 </div>
                 {rollup && rollup.cumulative != null && (
                   <div className="text-right flex-shrink-0">
-                    <div className="text-[9px] uppercase tracking-wider font-semibold text-[var(--color-brand-strong)]">Group total</div>
+                    <div className="text-[9px] uppercase tracking-wider font-semibold text-[var(--color-brand-strong)]">{t('rollup.groupTotal')}</div>
                     <div className="text-[28px] font-bold tabular-nums text-[var(--color-brand-strong)]">
                       {formatNum(rollup.cumulative)}
                     </div>
@@ -161,15 +163,15 @@ export default function GroupRollup() {
               </div>
               {rollup && (
                 <div className="mt-3 flex items-center gap-4 text-[10px]">
-                  <CountChip label="Approved" value={rollup.approved} tone="ok" />
-                  <CountChip label="In review" value={rollup.submitted} tone="pending" />
-                  <CountChip label="Outstanding" value={rollup.notStarted} tone="draft" />
+                  <CountChip label={t('rollup.chips.approved')} value={rollup.approved} tone="ok" />
+                  <CountChip label={t('rollup.chips.inReview')} value={rollup.submitted} tone="pending" />
+                  <CountChip label={t('rollup.chips.outstanding')} value={rollup.notStarted} tone="draft" />
                   <span className="text-[var(--text-tertiary)]">
-                    {rollup.approved}/{rollup.assigned} approved
+                    {t('rollup.approvedOf', { approved: rollup.approved, assigned: rollup.assigned })}
                   </span>
                   {rollup.assigned > 0 && rollup.approved === rollup.assigned && (
                     <span className="inline-flex items-center gap-1 text-[var(--status-ok)] font-semibold">
-                      <CheckCircle2 className="w-3 h-3" /> Ready for report
+                      <CheckCircle2 className="w-3 h-3" /> {t('rollup.readyForReport')}
                     </span>
                   )}
                 </div>
@@ -195,10 +197,10 @@ export default function GroupRollup() {
             <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)] p-14 text-center">
               <Network className="w-10 h-10 mx-auto text-[var(--text-tertiary)] mb-2" />
               <h3 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">
-                {loading ? 'Loading…' : 'Pick a question to see its rollup'}
+                {loading ? t('common.loading') : t('rollup.pickQuestion')}
               </h3>
               <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1">
-                Use the list on the left to select a GRI line item.
+                {t('rollup.pickHint')}
               </p>
             </div>
           )}
@@ -208,9 +210,9 @@ export default function GroupRollup() {
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="w-6 h-6 text-[var(--status-ok)]" />
                 <div>
-                  <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">This line item is fully approved</div>
+                  <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('rollup.fullyApproved.title')}</div>
                   <div className="text-[var(--text-xs)] text-[var(--text-secondary)]">
-                    The rolled-up group value will populate directly into the next GRI report.
+                    {t('rollup.fullyApproved.body')}
                   </div>
                 </div>
               </div>
@@ -218,7 +220,7 @@ export default function GroupRollup() {
                 onClick={() => navigate('/reports')}
                 className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-xs)] font-semibold hover:bg-[var(--color-brand-strong)] inline-flex items-center gap-1.5"
               >
-                <FileOutput className="w-3.5 h-3.5" /> Go to report
+                <FileOutput className="w-3.5 h-3.5" /> {t('rollup.fullyApproved.cta')}
               </button>
             </div>
           )}
@@ -245,6 +247,7 @@ function RollupTreeRow({ node, expanded, onToggle, depth, isRoot }: {
   depth: number
   isRoot?: boolean
 }) {
+  const { t } = useTranslation()
   const isOpen = expanded.has(node.entity.id)
   const Icon = TYPE_ICON[node.entity.type]
   const hasChildren = node.children.length > 0
@@ -277,10 +280,10 @@ function RollupTreeRow({ node, expanded, onToggle, depth, isRoot }: {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{node.entity.name}</span>
-            <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">{node.entity.type.replace('_', ' ')}</span>
+            <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">{t(`rollup.entityType.${node.entity.type}`, { defaultValue: node.entity.type.replace('_', ' ') })}</span>
             {node.entity.equity != null && node.entity.equity < 100 && (
               <span className="text-[9px] font-semibold text-[var(--accent-amber)] bg-[var(--accent-amber-light)] px-1.5 py-0.5 rounded">
-                {node.entity.equity}% equity
+                {t('rollup.equity', { equity: node.entity.equity })}
               </span>
             )}
           </div>
@@ -306,7 +309,7 @@ function RollupTreeRow({ node, expanded, onToggle, depth, isRoot }: {
               {node.unit && <div className="text-[9px] text-[var(--text-tertiary)]">{node.unit}</div>}
             </>
           ) : (
-            <span className="text-[10px] text-[var(--text-tertiary)] italic">No data</span>
+            <span className="text-[10px] text-[var(--text-tertiary)] italic">{t('rollup.noData')}</span>
           )}
         </div>
       </div>

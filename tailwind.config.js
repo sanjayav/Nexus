@@ -1,3 +1,6 @@
+/** Mainland-China system CJK faces (no CJK web font is downloaded). */
+const CJK_FALLBACK = ['"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', '"Noto Sans SC"', '"Source Han Sans SC"']
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -53,10 +56,16 @@ export default {
           light: '#EAF3DE',
         },
       },
+      // Each stack falls back to mainland-China system CJK faces before the
+      // generic family. Google Fonts is unreachable from the mainland (and is
+      // loaded non-blocking in index.html), so zh-CN users render with these.
       fontFamily: {
-        display: ['"Instrument Sans"', '"DM Sans"', 'sans-serif'],
-        body: ['"DM Sans"', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'monospace'],
+        display: ['"Instrument Sans"', '"DM Sans"', ...CJK_FALLBACK, 'sans-serif'],
+        body: ['"DM Sans"', ...CJK_FALLBACK, 'sans-serif'],
+        // Tailwind's default `sans` order, with the CJK faces inserted before
+        // the generic `sans-serif` so Latin rendering is unchanged.
+        sans: ['ui-sans-serif', 'system-ui', ...CJK_FALLBACK, 'sans-serif', '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'],
+        mono: ['"JetBrains Mono"', ...CJK_FALLBACK, 'monospace'],
       },
       fontSize: {
         'xs': '11px',

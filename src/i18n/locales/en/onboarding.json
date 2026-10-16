@@ -1,0 +1,137 @@
+{
+  "welcome": {
+    "errors": {
+      "workspaceName": "Workspace name needs at least 2 characters.",
+      "industry": "Pick the closest GICS sector.",
+      "country": "Country is required.",
+      "name": "Facility name needs at least 2 characters.",
+      "location": "Location is required."
+    },
+    "saveFailed": "Could not save workspace setup.",
+    "invalidInvite": "Invalid invite.",
+    "inviteLimit": "You can invite up to 3 teammates here — add more later from Users & Roles.",
+    "inviteDuplicate": "That email is already on the list.",
+    "title": "Let's set up your workspace",
+    "subtitle": "Five quick steps. Anything you don't have yet, you can fill in later.",
+    "skip": "Skip for now",
+    "continue": "Continue",
+    "goToDashboard": "Go to dashboard",
+    "steps": {
+      "s0": "Welcome",
+      "s1": "First facility",
+      "s2": "Frameworks",
+      "s3": "Invite teammates",
+      "s4": "All set"
+    },
+    "step1": {
+      "title": "Tell us about your organisation",
+      "workspaceName": "Workspace name",
+      "industry": "Industry (GICS sector)",
+      "pickSector": "Pick a sector…",
+      "country": "Country",
+      "pickCountry": "Pick a country…"
+    },
+    "step2": {
+      "title": "Add your first facility",
+      "body": "You'll be able to add the rest of your tree from the dashboard.",
+      "name": "Facility name",
+      "namePlaceholder": "Map Ta Phut refinery",
+      "location": "Location",
+      "locationPlaceholder": "Rayong, Thailand",
+      "type": "Type",
+      "volume": "Production volume (optional)",
+      "volumeHint": "Annual tonnes, units, MWh…",
+      "volumePlaceholder": "e.g. 4.2 Mt/yr"
+    },
+    "facilityTypes": {
+      "refinery": "Refinery",
+      "factory": "Factory / plant",
+      "office": "Office",
+      "warehouse": "Warehouse / DC"
+    },
+    "step3": {
+      "title": "Pick the frameworks you report against",
+      "preselected": "We've pre-selected a sensible starter set —",
+      "endSentence": ". ",
+      "tweak": "Tweak as needed; you can change this anytime from Settings.",
+      "recommended": "Recommended"
+    },
+    "listSep": ", ",
+    "step4": {
+      "title": "Invite up to 3 teammates",
+      "body": "Optional. You can invite the rest of your team from Users & Roles after setup.",
+      "add": "Add",
+      "remove": "Remove {{email}}"
+    },
+    "step5": {
+      "title": "You're all set",
+      "body": "Here's what we'll save when you finish.",
+      "workspace": "Workspace",
+      "facility": "First facility",
+      "frameworks": "Frameworks",
+      "invites": "Invites",
+      "notSet": "Not set",
+      "noneSelected": "None selected",
+      "none": "None",
+      "teammates_one": "{{count}} teammate",
+      "teammates_other": "{{count}} teammates"
+    }
+  },
+  "gics": {
+    "Energy": "Energy",
+    "Materials": "Materials",
+    "Industrials": "Industrials",
+    "Consumer Discretionary": "Consumer Discretionary",
+    "Consumer Staples": "Consumer Staples",
+    "Health Care": "Health Care",
+    "Financials": "Financials",
+    "Information Technology": "Information Technology",
+    "Communication Services": "Communication Services",
+    "Utilities": "Utilities",
+    "Real Estate": "Real Estate"
+  },
+  "org": {
+    "types": {
+      "group": "Group",
+      "business_unit": "Business Unit",
+      "subsidiary": "Subsidiary",
+      "plant": "Plant",
+      "office": "Office"
+    },
+    "breadcrumbSetup": "Setup",
+    "eyebrow": "Organisation onboarding",
+    "title": "Build your reporting tree",
+    "stats": {
+      "entities": "Entities",
+      "subsidiaries": "Subsidiaries",
+      "plants": "Reporting plants",
+      "members": "Assigned members"
+    },
+    "treeTitle": "Reporting entity tree",
+    "startWithGroup": "Start with a group",
+    "confirmRemove": "Remove this entity and all descendants?",
+    "pickEntity": "Pick an entity from the tree to view and assign members.",
+    "readyTitle": "Ready to collect data?",
+    "readyBody": "Once the tree looks right, jump into assignments — pick a GRI question, pick a user, pick the plant it applies to.",
+    "openAssignments": "Open assignment manager",
+    "emptyTitle": "Start with your parent group",
+    "emptyBody": "Then add business units under the group, subsidiaries under each BU, and plants/offices under subsidiaries.",
+    "addGroup": "Add group",
+    "equityPct": "{{pct}}% equity",
+    "addChild": "Add child",
+    "remove": "Remove",
+    "entityName": "Entity name",
+    "codeOptional": "Code (optional)",
+    "country": "Country",
+    "equityPlaceholder": "Equity %",
+    "code": "Code",
+    "eqShort": "Eq%",
+    "addMemberFailed": "Could not add member: {{error}}",
+    "equity": "Equity",
+    "industry": "Industry",
+    "members": "Members ({{count}})",
+    "noMembers": "No members assigned to this entity yet.",
+    "addMember": "Add member",
+    "scopeNote": "The tree you build here is shared across every reporting framework — you do it once, not per framework. Right now you're preparing to report against <b>{{framework}}</b>; the same entities will power CSRD, CDP, TCFD and ISSB when they come online."
+  }
+}

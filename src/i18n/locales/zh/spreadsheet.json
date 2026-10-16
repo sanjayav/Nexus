@@ -1,0 +1,10 @@
+{
+  "activeCell": "当前单元格引用",
+  "formula": "公式",
+  "formulaLower": "公式",
+  "selectCell": "选择要编辑的单元格",
+  "typeValue": "输入数值或 =公式",
+  "editor": "公式或数值编辑器",
+  "help": "公式帮助",
+  "examples": "公式示例"
+}

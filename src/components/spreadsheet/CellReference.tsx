@@ -12,6 +12,7 @@
  * full HyperFormula message.
  */
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Loader2, CheckCircle2, AlertCircle, FunctionSquare } from 'lucide-react'
 import type { CellResult } from '../../lib/formulas'
 import { isFormula } from '../../lib/formulas'
@@ -60,6 +61,7 @@ export function CellReference({
   placeholder = '—',
   dataCell = 'value',
 }: CellReferenceProps) {
+  const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(rawText)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -132,7 +134,7 @@ export function CellReference({
       <span className={computed === null && !cellError ? 'text-[var(--text-tertiary)]' : ''}>{display}</span>
       <span className="inline-flex items-center gap-1">
         {hasFormula && !cellError && (
-          <FunctionSquare className="w-3 h-3 text-[var(--text-tertiary)]" aria-label="formula" />
+          <FunctionSquare className="w-3 h-3 text-[var(--text-tertiary)]" aria-label={t('spreadsheet.formulaLower')} />
         )}
         {saveState?.state === 'saving' && <Loader2 className="w-3 h-3 animate-spin text-[var(--color-brand)]" />}
         {saveState?.state === 'saved' && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}

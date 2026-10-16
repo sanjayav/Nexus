@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Database,
   Upload,
@@ -39,6 +40,7 @@ interface UploadedFile {
 }
 
 export default function EntitySubmissions() {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<EntityTab>('intercompany')
   const [uploadModalOpen, setUploadModalOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
@@ -50,14 +52,14 @@ export default function EntitySubmissions() {
   const overdueCount = filtered.filter((s) => s.status === 'overdue').length
 
   const tabs: { key: EntityTab; label: string }[] = [
-    { key: 'intercompany', label: 'Intercompany' },
-    { key: 'subsidiary', label: 'Subsidiary' },
-    { key: 'supplier', label: 'Supplier' },
+    { key: 'intercompany', label: t('entitySubmissions.tabs.intercompany') },
+    { key: 'subsidiary', label: t('entitySubmissions.tabs.subsidiary') },
+    { key: 'supplier', label: t('entitySubmissions.tabs.supplier') },
   ]
 
   function handleUploadComplete() {
     setUploadModalOpen(false)
-    setToast('File uploaded and validated — 14 data rows imported successfully')
+    setToast(t('entitySubmissions.toastImported', { count: 14 }))
     setTimeout(() => setToast(null), 4000)
   }
 
@@ -78,9 +80,9 @@ export default function EntitySubmissions() {
             <Database className="w-5 h-5 text-[var(--accent-amber)]" />
           </div>
           <div>
-            <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">Entity Submissions</h1>
+            <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">{t('entitySubmissions.title')}</h1>
             <p className="mt-1 text-[var(--text-sm)] text-[var(--text-tertiary)] max-w-3xl">
-              Upload Excel or CSV files from intercompany divisions, subsidiaries, and suppliers.
+              {t('entitySubmissions.subtitle')}
             </p>
           </div>
         </div>
@@ -88,7 +90,7 @@ export default function EntitySubmissions() {
           onClick={() => setUploadModalOpen(true)}
           className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-[var(--bg-inverse)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--bg-inverse-soft)] active:scale-[0.98] transition-all cursor-pointer"
         >
-          <Upload className="w-4 h-4" /> Upload File
+          <Upload className="w-4 h-4" /> {t('entitySubmissions.uploadFile')}
         </button>
       </div>
 
@@ -98,24 +100,24 @@ export default function EntitySubmissions() {
           <div className="flex items-center gap-3">
             <FileSpreadsheet className="w-5 h-5 text-[var(--accent-teal)]" />
             <div>
-              <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">Download Data Templates</p>
-              <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">Standardised Excel/CSV templates with built-in validation rules</p>
+              <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('entitySubmissions.templates.title')}</p>
+              <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">{t('entitySubmissions.templates.subtitle')}</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
             {[
-              { label: 'Emissions Template', ext: '.xlsx' },
-              { label: 'Energy Data Template', ext: '.xlsx' },
-              { label: 'Supplier Data Template', ext: '.csv' },
-              { label: 'Water & Waste Template', ext: '.xlsx' },
-            ].map((t) => (
+              { label: t('entitySubmissions.templates.emissions'), ext: '.xlsx' },
+              { label: t('entitySubmissions.templates.energy'), ext: '.xlsx' },
+              { label: t('entitySubmissions.templates.supplier'), ext: '.csv' },
+              { label: t('entitySubmissions.templates.waterWaste'), ext: '.xlsx' },
+            ].map((tpl) => (
               <button
-                key={t.label}
+                key={tpl.label}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] text-[var(--text-xs)] font-medium hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] transition-all cursor-pointer"
               >
                 <Download className="w-3 h-3" />
-                {t.label}
-                <span className="text-[var(--text-tertiary)]">{t.ext}</span>
+                {tpl.label}
+                <span className="text-[var(--text-tertiary)]">{tpl.ext}</span>
               </button>
             ))}
           </div>
@@ -142,10 +144,10 @@ export default function EntitySubmissions() {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Submissions', value: totalCount, icon: Database, color: 'var(--accent-teal)' },
-          { label: 'Complete', value: completeCount, icon: CheckCircle2, color: 'var(--accent-green)' },
-          { label: 'Pending / Submitted', value: pendingSubmittedCount, icon: Clock, color: 'var(--accent-amber)' },
-          { label: 'Overdue', value: overdueCount, icon: AlertCircle, color: 'var(--accent-red)' },
+          { label: t('entitySubmissions.stats.total'), value: totalCount, icon: Database, color: 'var(--accent-teal)' },
+          { label: t('entitySubmissions.stats.complete'), value: completeCount, icon: CheckCircle2, color: 'var(--accent-green)' },
+          { label: t('entitySubmissions.stats.pendingSubmitted'), value: pendingSubmittedCount, icon: Clock, color: 'var(--accent-amber)' },
+          { label: t('entitySubmissions.stats.overdue'), value: overdueCount, icon: AlertCircle, color: 'var(--accent-red)' },
         ].map((s) => {
           const Icon = s.icon
           return (
@@ -165,7 +167,7 @@ export default function EntitySubmissions() {
 
       {/* Recent Uploads */}
       <Card>
-        <h2 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)] mb-4">Recent File Uploads</h2>
+        <h2 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)] mb-4">{t('entitySubmissions.recent')}</h2>
         <div className="space-y-2">
           {[
             { name: 'MTP_Olefins_Q1_2026_Emissions.xlsx', entity: 'Map Ta Phut Olefins', date: '2026-04-02', rows: 48, status: 'processed' as const, format: 'Excel' },
@@ -182,11 +184,11 @@ export default function EntitySubmissions() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[var(--text-sm)] font-medium text-[var(--text-primary)] truncate">{file.name}</p>
-                <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">{file.entity} · {file.rows} rows · {file.date}</p>
+                <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">{file.entity} · {t('entitySubmissions.rows', { count: file.rows })} · {file.date}</p>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <Badge variant={file.status === 'processed' ? 'green' : 'amber'} dot>
-                  {file.status === 'processed' ? 'Processed' : '2 warnings'}
+                  {file.status === 'processed' ? t('entitySubmissions.processed') : t('entitySubmissions.warnings', { count: 2 })}
                 </Badge>
                 <Badge variant="gray">{file.format}</Badge>
               </div>
@@ -198,13 +200,13 @@ export default function EntitySubmissions() {
       {/* Submissions Table */}
       <Card>
         <h2 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)] mb-4">
-          {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Submissions
+          {t(`entitySubmissions.tableTitle.${activeTab}`)}
         </h2>
         <div className="overflow-x-auto rounded-lg border border-[var(--border-subtle)]">
           <table className="w-full text-[var(--text-xs)]">
             <thead>
               <tr className="bg-[var(--bg-secondary)]">
-                {['Entity Name', 'Data Type', 'Period', 'Format', 'Value', 'Submitted By', 'Date', 'Status'].map((h) => (
+                {[t('entitySubmissions.col.entity'), t('entitySubmissions.col.dataType'), t('entitySubmissions.col.period'), t('entitySubmissions.col.format'), t('entitySubmissions.col.value'), t('entitySubmissions.col.submittedBy'), t('entitySubmissions.col.date'), t('common.status')].map((h) => (
                   <th key={h} className="text-left font-semibold text-[var(--text-secondary)] px-4 py-2.5 whitespace-nowrap border-b border-[var(--border-subtle)]">{h}</th>
                 ))}
               </tr>
@@ -217,14 +219,14 @@ export default function EntitySubmissions() {
                     <td className="px-4 py-2.5 font-medium text-[var(--text-primary)] whitespace-nowrap">{sub.entityName}</td>
                     <td className="px-4 py-2.5 text-[var(--text-secondary)] whitespace-nowrap">{sub.dataType}</td>
                     <td className="px-4 py-2.5 text-[var(--text-secondary)] whitespace-nowrap">{sub.period}</td>
-                    <td className="px-4 py-2.5 whitespace-nowrap"><Badge variant={FORMAT_BADGE[sub.format]}>{sub.format}</Badge></td>
+                    <td className="px-4 py-2.5 whitespace-nowrap"><Badge variant={FORMAT_BADGE[sub.format]}>{t(`entitySubmissions.format.${sub.format}`, { defaultValue: sub.format })}</Badge></td>
                     <td className="px-4 py-2.5 font-medium text-[var(--text-primary)] whitespace-nowrap tabular-nums">
                       {sub.value} <span className="text-[var(--text-tertiary)] font-normal">{sub.unit}</span>
                     </td>
                     <td className="px-4 py-2.5 text-[var(--text-secondary)] whitespace-nowrap">{sub.submittedBy}</td>
                     <td className="px-4 py-2.5 text-[var(--text-tertiary)] whitespace-nowrap">{sub.submittedDate || '—'}</td>
                     <td className="px-4 py-2.5 whitespace-nowrap">
-                      <Badge variant={cfg.badge} dot>{sub.status.charAt(0).toUpperCase() + sub.status.slice(1)}</Badge>
+                      <Badge variant={cfg.badge} dot>{t(`entitySubmissions.status.${sub.status}`, { defaultValue: sub.status.charAt(0).toUpperCase() + sub.status.slice(1) })}</Badge>
                     </td>
                   </tr>
                 )
@@ -247,6 +249,7 @@ export default function EntitySubmissions() {
    Upload Modal
    ══════════════════════════════════════ */
 function UploadModal({ onClose, onComplete }: { onClose: () => void; onComplete: () => void }) {
+  const { t } = useTranslation()
   const [dragOver, setDragOver] = useState(false)
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null)
   const [entity, setEntity] = useState('')
@@ -285,11 +288,11 @@ function UploadModal({ onClose, onComplete }: { onClose: () => void; onComplete:
               <Upload className="w-4 h-4 text-[var(--accent-teal)]" />
             </div>
             <div>
-              <h3 className="font-display text-[var(--text-base)] font-bold text-[var(--text-primary)]">Upload Data File</h3>
-              <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">Accepted formats: .xlsx, .xls, .csv</p>
+              <h3 className="font-display text-[var(--text-base)] font-bold text-[var(--text-primary)]">{t('entitySubmissions.modal.title')}</h3>
+              <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">{t('entitySubmissions.modal.formats')}</p>
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer">
+          <button onClick={onClose} aria-label={t('common.close')} className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -297,13 +300,13 @@ function UploadModal({ onClose, onComplete }: { onClose: () => void; onComplete:
         <div className="p-6 space-y-5">
           {/* Entity Selector */}
           <div>
-            <label className="block text-[var(--text-xs)] font-medium text-[var(--text-secondary)] mb-1.5">Reporting Entity</label>
+            <label className="block text-[var(--text-xs)] font-medium text-[var(--text-secondary)] mb-1.5">{t('entitySubmissions.modal.entity')}</label>
             <select
               value={entity}
               onChange={(e) => setEntity(e.target.value)}
               className="w-full h-10 px-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)] text-[var(--text-primary)] appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)] focus:ring-offset-1"
             >
-              <option value="">Select entity...</option>
+              <option value="">{t('entitySubmissions.modal.selectEntity')}</option>
               {dataEntities.map((ent) => (
                 <option key={ent.id} value={ent.id}>{ent.name} ({ent.type})</option>
               ))}
@@ -327,8 +330,8 @@ function UploadModal({ onClose, onComplete }: { onClose: () => void; onComplete:
               <div className="w-12 h-12 rounded-2xl bg-[var(--bg-tertiary)] flex items-center justify-center mx-auto mb-4">
                 <FileSpreadsheet className="w-6 h-6 text-[var(--text-tertiary)]" />
               </div>
-              <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mb-1">Drag & drop your file here</p>
-              <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mb-4">or click to browse</p>
+              <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mb-1">{t('entitySubmissions.modal.drop')}</p>
+              <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mb-4">{t('entitySubmissions.modal.browse')}</p>
               <div className="flex items-center justify-center gap-2">
                 <Badge variant="green">.xlsx</Badge>
                 <Badge variant="green">.xls</Badge>
@@ -354,7 +357,7 @@ function UploadModal({ onClose, onComplete }: { onClose: () => void; onComplete:
                 {uploadedFile.status === 'validating' && (
                   <div className="mt-3 flex items-center gap-2 text-[var(--accent-blue)]">
                     <div className="w-3.5 h-3.5 border-2 border-blue-200 border-t-[var(--accent-blue)] rounded-full animate-spin" />
-                    <span className="text-[var(--text-xs)] font-semibold">Validating file structure...</span>
+                    <span className="text-[var(--text-xs)] font-semibold">{t('entitySubmissions.modal.validating')}</span>
                   </div>
                 )}
 
@@ -362,13 +365,13 @@ function UploadModal({ onClose, onComplete }: { onClose: () => void; onComplete:
                   <div className="mt-3 space-y-2">
                     <div className="flex items-center gap-2 text-emerald-500">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span className="text-[var(--text-xs)] font-semibold">Validation passed</span>
+                      <span className="text-[var(--text-xs)] font-semibold">{t('entitySubmissions.modal.passed')}</span>
                     </div>
                     <div className="grid grid-cols-3 gap-3">
                       {[
-                        { label: 'Data Rows', value: uploadedFile.rows, color: 'var(--text-primary)' },
-                        { label: 'Valid', value: 12, color: 'var(--accent-green)' },
-                        { label: 'Warnings', value: uploadedFile.warnings, color: 'var(--accent-amber)' },
+                        { label: t('entitySubmissions.modal.dataRows'), value: uploadedFile.rows, color: 'var(--text-primary)' },
+                        { label: t('entitySubmissions.modal.valid'), value: 12, color: 'var(--accent-green)' },
+                        { label: t('entitySubmissions.modal.warningsLabel'), value: uploadedFile.warnings, color: 'var(--accent-amber)' },
                       ].map(s => (
                         <div key={s.label} className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 text-center">
                           <p className="text-[var(--text-lg)] font-bold tabular-nums" style={{ color: s.color }}>{s.value}</p>
@@ -380,8 +383,8 @@ function UploadModal({ onClose, onComplete }: { onClose: () => void; onComplete:
                       <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 flex items-start gap-2">
                         <AlertTriangle className="w-3.5 h-3.5 text-[var(--accent-amber)] flex-shrink-0 mt-0.5" />
                         <div>
-                          <p className="text-[var(--text-xs)] font-semibold text-[var(--accent-amber)]">1 warning found</p>
-                          <p className="text-[var(--text-xs)] text-amber-600/70 mt-0.5">Row 8: Emissions value 52,000 is 3x above historical average — flagged for review</p>
+                          <p className="text-[var(--text-xs)] font-semibold text-[var(--accent-amber)]">{t('entitySubmissions.modal.warningFound', { count: 1 })}</p>
+                          <p className="text-[var(--text-xs)] text-amber-600/70 mt-0.5">{t('entitySubmissions.modal.warningDetail')}</p>
                         </div>
                       </div>
                     )}
@@ -395,14 +398,14 @@ function UploadModal({ onClose, onComplete }: { onClose: () => void; onComplete:
         {/* Footer */}
         <div className="flex items-center gap-3 px-6 py-4 border-t border-[var(--border-default)] bg-[var(--bg-secondary)]">
           <button onClick={onClose} className="flex-1 h-9 rounded-lg border border-[var(--border-default)] text-[var(--text-sm)] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer">
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             onClick={onComplete}
             disabled={!uploadedFile || uploadedFile.status !== 'validated'}
             className="flex-1 h-9 rounded-lg bg-[var(--accent-teal)] text-white text-[var(--text-sm)] font-semibold hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
           >
-            <Upload className="w-4 h-4" /> Import Data
+            <Upload className="w-4 h-4" /> {t('entitySubmissions.modal.import')}
           </button>
         </div>
       </div>

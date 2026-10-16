@@ -98,6 +98,7 @@ export interface ReportReadyRow {
   questionId: string
   gri_code: string
   line_item: string
+  line_item_zh?: string | null
   unit: string | null
   value: number | null
   approvedRatio: string
@@ -105,7 +106,7 @@ export interface ReportReadyRow {
 }
 
 export function buildReportRows(
-  questions: { id: string; gri_code: string; line_item: string; unit: string | null }[],
+  questions: { id: string; gri_code: string; line_item: string; line_item_zh?: string | null; unit: string | null }[],
   entities: OrgEntity[],
   assignments: QuestionAssignment[],
 ): ReportReadyRow[] {
@@ -115,6 +116,7 @@ export function buildReportRows(
       questionId: q.id,
       gri_code: q.gri_code,
       line_item: q.line_item,
+      line_item_zh: q.line_item_zh ?? null,
       unit: r.unit || q.unit,
       value: r.value,
       approvedRatio: r.total === 0 ? '0 / 0' : `${r.approved} / ${r.total}`,

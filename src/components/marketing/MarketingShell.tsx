@@ -1,6 +1,7 @@
 import { ReactNode, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Menu, X, Twitter, Linkedin, Github } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import NexusBrand from '../NexusBrand'
 
 /**
@@ -15,48 +16,50 @@ import NexusBrand from '../NexusBrand'
  * for the v1 marketing surface.
  */
 
-const NAV_LINKS: { label: string; to: string }[] = [
-  { label: 'Features', to: '/features' },
-  { label: 'Pricing', to: '/pricing' },
-  { label: 'How it works', to: '/how-it-works' },
-  { label: 'Compare', to: '/compare' },
-  { label: 'About', to: '/about' },
-  { label: 'Contact', to: '/contact' },
+// `labelKey` / `headingKey` are i18n keys (locales/<lang>/marketing.json),
+// resolved with t() at render.
+const NAV_LINKS: { labelKey: string; to: string }[] = [
+  { labelKey: 'marketing.nav.features', to: '/features' },
+  { labelKey: 'marketing.nav.pricing', to: '/pricing' },
+  { labelKey: 'marketing.nav.howItWorks', to: '/how-it-works' },
+  { labelKey: 'marketing.nav.compare', to: '/compare' },
+  { labelKey: 'marketing.nav.about', to: '/about' },
+  { labelKey: 'marketing.nav.contact', to: '/contact' },
 ]
 
 interface FooterColumn {
-  heading: string
-  items: { label: string; to: string }[]
+  headingKey: string
+  items: { labelKey: string; to: string }[]
 }
 
 const FOOTER_COLS: FooterColumn[] = [
   {
-    heading: 'Product',
+    headingKey: 'marketing.footer.product',
     items: [
-      { label: 'Features', to: '/features' },
-      { label: 'Pricing', to: '/pricing' },
-      { label: 'How it works', to: '/how-it-works' },
-      { label: 'Compare', to: '/compare' },
-      { label: 'Security', to: '#' },
-      { label: 'API', to: '#' },
+      { labelKey: 'marketing.nav.features', to: '/features' },
+      { labelKey: 'marketing.nav.pricing', to: '/pricing' },
+      { labelKey: 'marketing.nav.howItWorks', to: '/how-it-works' },
+      { labelKey: 'marketing.nav.compare', to: '/compare' },
+      { labelKey: 'marketing.footer.security', to: '#' },
+      { labelKey: 'marketing.footer.api', to: '#' },
     ],
   },
   {
-    heading: 'Company',
+    headingKey: 'marketing.footer.company',
     items: [
-      { label: 'About', to: '/about' },
-      { label: 'Contact', to: '/contact' },
-      { label: 'Careers', to: '#' },
-      { label: 'Blog', to: '#' },
+      { labelKey: 'marketing.nav.about', to: '/about' },
+      { labelKey: 'marketing.nav.contact', to: '/contact' },
+      { labelKey: 'marketing.footer.careers', to: '#' },
+      { labelKey: 'marketing.footer.blog', to: '#' },
     ],
   },
   {
-    heading: 'Legal',
+    headingKey: 'marketing.footer.legal',
     items: [
-      { label: 'Terms', to: '#' },
-      { label: 'Privacy', to: '#' },
-      { label: 'DPA', to: '#' },
-      { label: 'Subprocessors', to: '#' },
+      { labelKey: 'marketing.footer.terms', to: '#' },
+      { labelKey: 'marketing.footer.privacy', to: '#' },
+      { labelKey: 'marketing.footer.dpa', to: '#' },
+      { labelKey: 'marketing.footer.subprocessors', to: '#' },
     ],
   },
 ]
@@ -64,6 +67,7 @@ const FOOTER_COLS: FooterColumn[] = [
 export default function MarketingShell({ children }: { children: ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const location = useLocation()
+  const { t } = useTranslation()
 
   return (
     <div
@@ -79,12 +83,12 @@ export default function MarketingShell({ children }: { children: ReactNode }) {
         }}
       >
         <div className="max-w-[1280px] mx-auto px-5 sm:px-8 h-16 flex items-center justify-between gap-4">
-          <Link to="/" aria-label="Nexus — home" className="flex items-center">
+          <Link to="/" aria-label={t('marketing.nav.homeAria')} className="flex items-center">
             <NexusBrand size="sm" layout="horizontal" animated={false} showAttribution />
           </Link>
 
           {/* Desktop links */}
-          <nav className="hidden md:flex items-center gap-7" aria-label="Marketing navigation">
+          <nav className="hidden md:flex items-center gap-7" aria-label={t('marketing.nav.navAria')}>
             {NAV_LINKS.map((link) => {
               const active = location.pathname === link.to
               return (
@@ -99,7 +103,7 @@ export default function MarketingShell({ children }: { children: ReactNode }) {
                   onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
                   onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = active ? '1' : '0.75' }}
                 >
-                  {link.label}
+                  {t(link.labelKey)}
                 </Link>
               )
             })}
@@ -112,21 +116,21 @@ export default function MarketingShell({ children }: { children: ReactNode }) {
               className="btn-secondary"
               style={{ height: 36, paddingInline: 14, fontSize: 13 }}
             >
-              Sign in
+              {t('marketing.nav.signIn')}
             </Link>
             <Link
               to="/login?mode=register"
               className="btn-primary"
               style={{ height: 36, paddingInline: 16, fontSize: 13 }}
             >
-              Get started
+              {t('marketing.nav.getStarted')}
             </Link>
           </div>
 
           {/* Mobile menu button */}
           <button
             type="button"
-            aria-label="Open menu"
+            aria-label={t('marketing.nav.openMenu')}
             aria-expanded={drawerOpen}
             onClick={() => setDrawerOpen((v) => !v)}
             className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-md"
@@ -151,7 +155,7 @@ export default function MarketingShell({ children }: { children: ReactNode }) {
                   className="block px-3 py-2.5 rounded-md text-[15px] font-medium"
                   style={{ color: 'var(--text-primary)' }}
                 >
-                  {link.label}
+                  {t(link.labelKey)}
                 </Link>
               ))}
               <div className="flex flex-col gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
@@ -160,14 +164,14 @@ export default function MarketingShell({ children }: { children: ReactNode }) {
                   onClick={() => setDrawerOpen(false)}
                   className="btn-secondary w-full justify-center"
                 >
-                  Sign in
+                  {t('marketing.nav.signIn')}
                 </Link>
                 <Link
                   to="/login?mode=register"
                   onClick={() => setDrawerOpen(false)}
                   className="btn-primary w-full justify-center"
                 >
-                  Get started
+                  {t('marketing.nav.getStarted')}
                 </Link>
               </div>
             </div>
@@ -196,21 +200,21 @@ export default function MarketingShell({ children }: { children: ReactNode }) {
                 className="mt-4 text-[13px] leading-relaxed"
                 style={{ color: 'rgba(255,255,255,0.6)' }}
               >
-                The sustainability intelligence platform — every framework, one dataset, auditor-ready.
+                {t('marketing.footer.tagline')}
               </p>
             </div>
 
             {FOOTER_COLS.map((col) => (
-              <div key={col.heading}>
+              <div key={col.headingKey}>
                 <h4
                   className="text-[11px] font-semibold uppercase tracking-[0.12em] mb-4"
                   style={{ color: 'rgba(255,255,255,0.5)' }}
                 >
-                  {col.heading}
+                  {t(col.headingKey)}
                 </h4>
                 <ul className="space-y-2.5">
                   {col.items.map((item) => (
-                    <li key={item.label}>
+                    <li key={item.labelKey}>
                       <Link
                         to={item.to}
                         className="text-[13px] transition-colors"
@@ -218,7 +222,7 @@ export default function MarketingShell({ children }: { children: ReactNode }) {
                         onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#fff' }}
                         onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.75)' }}
                       >
-                        {item.label}
+                        {t(item.labelKey)}
                       </Link>
                     </li>
                   ))}
@@ -233,7 +237,7 @@ export default function MarketingShell({ children }: { children: ReactNode }) {
             style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
           >
             <p className="text-[12px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              © 2026 Aeiforo Ltd · All rights reserved
+              {t('marketing.footer.copyright')}
             </p>
             <div className="flex items-center gap-4">
               <a href="#" aria-label="Twitter" style={{ color: 'rgba(255,255,255,0.55)' }}>

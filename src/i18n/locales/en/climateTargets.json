@@ -1,0 +1,83 @@
+{
+  "kinds": {
+    "sbti_near_term": { "label": "SBTi near-term", "helper": "5–10 year reduction target validated by Science Based Targets initiative." },
+    "sbti_long_term": { "label": "SBTi long-term", "helper": "15+ year decarbonisation pathway aligned to 1.5°C." },
+    "net_zero": { "label": "Net-zero", "helper": "A long-horizon (typically 2040–2050) commitment to zero net emissions." },
+    "custom": { "label": "Custom target", "helper": "Internal commitment that doesn't map to SBTi or net-zero categories." }
+  },
+  "status": {
+    "committed": "Committed",
+    "validated": "Validated",
+    "achieved": "Achieved",
+    "missed": "Missed"
+  },
+  "scopes": {
+    "scope1": "Scope 1",
+    "scope12": "Scope 1+2",
+    "scope123": "Scope 1+2+3",
+    "scope3Only": "Scope 3 only"
+  },
+  "breadcrumbs": {
+    "strategy": "Strategy",
+    "climateTargets": "Climate targets"
+  },
+  "eyebrow": "Strategy",
+  "title": "Climate targets",
+  "subtitleBefore": "Set the decarbonisation goals this workspace reports against. Validated targets feed the dashboard ",
+  "subtitleAfter": " tracker and the GRI 305-5 disclosure.",
+  "sbtiTooltip": "Science Based Targets initiative — global standard for setting climate targets that align with the latest climate science (1.5°C / well-below 2°C). Validated targets are independently reviewed by SBTi.",
+  "addTarget": "Add target",
+  "loadError": {
+    "title": "Couldn't load targets",
+    "fallback": "Failed to load targets",
+    "retry": "Try again"
+  },
+  "toast": {
+    "updated": "Target updated",
+    "created": "Target created",
+    "removed": "{{label}} removed",
+    "saveFailed": "Save failed",
+    "removeFailed": "Remove failed"
+  },
+  "tip": "<lead>Tip — what auditors look for:</lead> a near-term SBTi target should be a reduction of at least <b>42% absolute by 2030</b> (1.5°C-aligned) versus a recent baseline. Long-term should reach <b>net-zero by 2050</b> with at least 90% absolute cuts. Anything weaker won't validate.",
+  "card": {
+    "remove": "Remove",
+    "baseline": "Baseline",
+    "reduction": "Reduction",
+    "target": "Target",
+    "by": "by {{year}}",
+    "validatedBy": "Validated by {{name}}"
+  },
+  "empty": {
+    "title": "No climate targets yet",
+    "body": "Set a near-term SBTi target so your dashboard, reports, and assurance flow can track real progress.",
+    "addFirst": "Add your first target"
+  },
+  "editor": {
+    "editTitle": "Edit climate target",
+    "addTitle": "Add climate target",
+    "subtitle": "Targets feed the dashboard, reports, and assurance review.",
+    "kind": "Target kind",
+    "label": "Label",
+    "labelPlaceholder": "e.g. SBTi near-term: 42% absolute by 2030",
+    "scopeCoverage": "Scope coverage",
+    "baselineYear": "Baseline year",
+    "targetYear": "Target year",
+    "baselineValue": "Baseline value",
+    "unit": "Unit",
+    "reductionPct": "Reduction percentage",
+    "projection": "By {{year}}, emissions ≤ {{value}} {{unit}}",
+    "status": "Status",
+    "notes": "Notes (optional)",
+    "notesPlaceholder": "Reference SBTi case ID, board approval date, or methodology footnote.",
+    "invalid": "Fill in a label, positive baseline value, and ensure target year is after the baseline year.",
+    "saveChanges": "Save changes",
+    "create": "Create target"
+  },
+  "remove": {
+    "title": "Remove climate target?",
+    "body": "<strong>{{label}}</strong> will be removed from this workspace. The dashboard tracker and reports will stop showing it.",
+    "keep": "Keep target",
+    "confirm": "Remove"
+  }
+}

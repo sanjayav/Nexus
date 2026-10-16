@@ -1,6 +1,7 @@
 import type { OrgEntity, OrgMember, QuestionAssignment } from './orgStore'
 import { resolveRole, type PlatformRole } from './rbac'
 import type { User } from '../auth/AuthContext'
+import i18n from '../i18n'
 
 export type StageKey = 'onboard' | 'assign' | 'collect' | 'review' | 'approve' | 'publish'
 
@@ -43,6 +44,17 @@ export const PIPELINE: Stage[] = [
     cta: 'Publish report' },
 ]
 
+/** Stage with label/description/cta in the current UI language. */
+function localiseStage(stage: Stage): Stage {
+  const k = `components.journey.stages.${stage.key}`
+  return {
+    ...stage,
+    label: i18n.t(`${k}.label`, { defaultValue: stage.label }),
+    description: i18n.t(`${k}.description`, { defaultValue: stage.description }),
+    cta: i18n.t(`${k}.cta`, { defaultValue: stage.cta }),
+  }
+}
+
 export interface StageStatus {
   stage: Stage
   state: 'locked' | 'todo' | 'active' | 'done'
@@ -66,6 +78,7 @@ export interface PipelineInput {
  */
 export function computePipeline(user: User | null, data: PipelineInput | null): StageStatus[] {
   const role = resolveRole(user)
+  const t = (key: string, vars?: Record<string, unknown>) => i18n.t(`components.journey.headline.${key}`, vars)
 
   const entities = data?.entities ?? []
   const members = data?.members ?? []
@@ -97,48 +110,48 @@ export function computePipeline(user: User | null, data: PipelineInput | null): 
       _unlocked: true, _done: onboardDone,
       total: 0, done: entityCount,
       headline: entityCount === 0
-        ? 'Start by adding your parent group'
+        ? t('startGroup')
         : onboardDone
-          ? `${entityCount} entities, ${members.length} members`
+          ? t('entitiesMembers', { entities: entityCount, members: members.length })
           : !hasPlants
-            ? `${entityCount} entities — add plants under subsidiaries`
-            : `${entityCount} entities — invite members to begin`,
+            ? t('addPlants', { entities: entityCount })
+            : t('inviteMembers', { entities: entityCount }),
     },
     {
       stage: PIPELINE[1],
       _unlocked: onboardDone, _done: assignDone,
       total: 0, done: assigned,
       headline: !onboardDone
-        ? 'Finish org setup first'
+        ? t('finishOrg')
         : assigned === 0
-          ? 'No questions assigned yet'
-          : `${assigned} questions assigned across ${new Set(assignments.map(a => a.entityId)).size} plants`,
+          ? t('noneAssigned')
+          : t('assignedAcross', { assigned, plants: new Set(assignments.map(a => a.entityId)).size }),
     },
     {
       stage: PIPELINE[2],
       _unlocked: assignDone, _done: collectDone,
       total: assigned, done: assigned - notStarted - inProgress,
       headline: !assignDone
-        ? 'Nothing to collect yet'
+        ? t('nothingToCollect')
         : notStarted + inProgress === 0
-          ? 'All plants have submitted'
-          : `${notStarted + inProgress} still outstanding · ${submitted + reviewed + approved} submitted`,
+          ? t('allSubmitted')
+          : t('outstanding', { outstanding: notStarted + inProgress, submitted: submitted + reviewed + approved }),
     },
     {
       stage: PIPELINE[3],
       _unlocked: submitted + reviewed + approved > 0, _done: reviewDone,
       total: submitted + reviewed + approved, done: reviewed + approved,
       headline: submitted === 0
-        ? (reviewed + approved > 0 ? 'All reviewed' : 'Nothing to review')
-        : `${submitted} waiting for subsidiary lead`,
+        ? (reviewed + approved > 0 ? t('allReviewed') : t('nothingToReview'))
+        : t('waitingLead', { count: submitted }),
     },
     {
       stage: PIPELINE[4],
       _unlocked: reviewed + approved > 0, _done: approveDone,
       total: reviewed + approved, done: approved,
       headline: reviewed === 0
-        ? (approved > 0 ? `${approved} approved` : 'Nothing to approve')
-        : `${reviewed} awaiting sustainability officer`,
+        ? (approved > 0 ? t('approvedCount', { count: approved }) : t('nothingToApprove'))
+        : t('awaitingOfficer', { count: reviewed }),
     },
     {
       stage: PIPELINE[5],
@@ -146,9 +159,9 @@ export function computePipeline(user: User | null, data: PipelineInput | null): 
       total: assigned, done: approved,
       headline: !approveDone
         ? approved === 0
-          ? 'Approvals required before publish'
-          : `${approved}/${assigned} approved — waiting on rest`
-        : 'Ready to publish the group report',
+          ? t('approvalsRequired')
+          : t('partialApproved', { approved, assigned })
+        : t('readyToPublish'),
     },
   ]
 
@@ -161,7 +174,7 @@ export function computePipeline(user: User | null, data: PipelineInput | null): 
     else if (i === activeIdx) state = 'active'
     else state = 'todo'
     const isMine = s.stage.owners.includes(role) && (state === 'active' || state === 'todo')
-    return { stage: s.stage, state, total: s.total, done: s.done, headline: s.headline, isMine }
+    return { stage: localiseStage(s.stage), state, total: s.total, done: s.done, headline: s.headline, isMine }
   })
 }
 

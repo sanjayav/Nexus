@@ -12,10 +12,14 @@
  * ═══════════════════════════════════════════════════════════ */
 
 :root {
+  /* Every stack falls back to the mainland-China system CJK faces before the
+     generic families — web fonts are optional (non-blocking in index.html and
+     unreachable from the mainland), so these are what zh-CN users actually see. */
+  --font-cjk-fallback:    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC";
   /* Display — used for h1 on landing/marketing-feel surfaces */
-  --font-display-premium: 'Inter Display', 'Inter', 'Instrument Sans', system-ui, -apple-system, sans-serif;
-  --font-sans-premium:    'Inter', 'DM Sans', system-ui, -apple-system, sans-serif;
-  --font-mono-premium:    'JetBrains Mono', ui-monospace, monospace;
+  --font-display-premium: 'Inter Display', 'Inter', 'Instrument Sans', "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", system-ui, -apple-system, sans-serif;
+  --font-sans-premium:    'Inter', 'DM Sans', "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", system-ui, -apple-system, sans-serif;
+  --font-mono-premium:    'JetBrains Mono', ui-monospace, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", monospace;
 
   /* Premium type ramp — modular 1.250 ratio.
      NOTE: we intentionally namespace these (text-premium-*) to avoid
@@ -192,9 +196,12 @@
   --shadow-card-hover: var(--shadow-card);                /* intentionally same — hover uses bg, not shadow */
 
   /* ── Typography ────────────────────────────────── */
-  --font-display: "Instrument Sans", "DM Sans", system-ui, sans-serif;
-  --font-body:    "DM Sans", system-ui, sans-serif;
-  --font-mono:    "JetBrains Mono", ui-monospace, monospace;
+  --font-display: "Instrument Sans", "DM Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", system-ui, sans-serif;
+  --font-body:    "DM Sans", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", system-ui, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", monospace;
+  /* Referenced (with an inline fallback) by NexusBrand; same Latin order as
+     that fallback, plus the CJK faces before the generic family. */
+  --font-sans:    "Inter", system-ui, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", sans-serif;
 
   /* 5-step ramp. Meta numbers below are point sizes. */
   --text-xs:   11px;   /* meta, kickers */
@@ -637,6 +644,40 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ── Small utilities ───────────────────────────── */
 .tabular-nums { font-variant-numeric: tabular-nums; }
+/* ── Simplified Chinese typography ─────────────────
+ * i18n sets <html lang="zh-CN"> when Chinese is selected. CJK glyphs are
+ * full-width and have no case, so the Latin "uppercase micro-label" treatment
+ * (wide positive tracking) just spaces characters apart, and tight negative
+ * heading tracking makes them collide. Body copy also needs more leading. */
+html:lang(zh-CN) body {
+  letter-spacing: 0;
+  line-height: 1.6;
+}
+html:lang(zh-CN) :is(h1, h2, h3, h4, h5, h6) {
+  letter-spacing: 0;
+  line-height: 1.35;
+}
+html:lang(zh-CN) :is(p, li, dd, td, blockquote, textarea, .body, .body-sm) {
+  line-height: 1.6;
+}
+html:lang(zh-CN) :is(
+  .uppercase,
+  .kicker,
+  .label,
+  .data-table thead th,
+  .tracking-wide,
+  .tracking-wider,
+  .tracking-widest,
+  [class*="tracking-[0."],
+  [class*="tracking-[.1"],
+  [class*="tracking-[.2"]
+) {
+  letter-spacing: 0;
+}
+html:lang(zh-CN) :is(.h-display, .h-page) {
+  letter-spacing: 0;
+}
+
 .link-underline {
   background-image: linear-gradient(to right, currentColor 0, currentColor 100%);
   background-size: 100% 1px;

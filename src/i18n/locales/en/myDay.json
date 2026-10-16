@@ -1,0 +1,90 @@
+{
+  "there": "there",
+  "warn": {
+    "mine": "Could not load your tasks",
+    "all": "Could not load review queue",
+    "activity": "Could not load activity",
+    "anomalies": "Could not load anomaly count",
+    "hash": "Could not verify chain"
+  },
+  "greeting": {
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening"
+  },
+  "greetingLine": "{{greeting}}, {{name}}",
+  "suggested": {
+    "disclosure": "disclosure",
+    "overdue_one": "This {{code}} is required for {{framework}} compliance and is overdue by {{count}} day.",
+    "overdue_other": "This {{code}} is required for {{framework}} compliance and is overdue by {{count}} days.",
+    "rejected": "This {{code}} was returned for revision — close the loop to keep the cycle moving.",
+    "default": "Highest-impact open item in your queue — start here to unblock downstream reviewers.",
+    "eyebrow": "Suggested next",
+    "caughtUp": "You're caught up",
+    "nothingStale": "Nothing stale on your plate. Time to celebrate.",
+    "openInEditor": "Open in editor"
+  },
+  "quarterLabel": "Q{{q}} reporting period",
+  "daysRemaining_one": "{{count}} day remaining",
+  "daysRemaining_other": "{{count}} days remaining",
+  "periodElapsed": "{{pct}}% of period elapsed",
+  "kpi": {
+    "aria": "At-a-glance metrics",
+    "open": "Open assignments",
+    "approvedWeek": "Approved this week",
+    "critical": "Critical anomalies",
+    "hashChain": "Hash chain",
+    "verified": "✓ Verified",
+    "broken": "Broken"
+  },
+  "recentActivity": "Recent activity",
+  "viewAll": "View all",
+  "dueToday": {
+    "eyebrow": "Due today",
+    "noneShown": "No tasks shown",
+    "nothing": "Nothing due today",
+    "tryRefresh": "Try refreshing the page.",
+    "quiet": "Quiet day — get ahead or take a breath.",
+    "needValues_one": "{{count}} disclosure needs values",
+    "needValues_other": "{{count}} disclosures need values",
+    "overdue": "Overdue",
+    "due": "Due {{date}}",
+    "soon": "soon",
+    "startNext": "Start the next"
+  },
+  "review": {
+    "eyebrow": "Review queue",
+    "nothing": "Nothing to review",
+    "inboxZero": "Inbox zero — reviewers can rest.",
+    "awaiting_one": "{{count}} submission awaiting review",
+    "awaiting_other": "{{count}} submissions awaiting review",
+    "unassigned": "Unassigned",
+    "openQueue": "Open queue"
+  },
+  "activity": {
+    "none": "No activity in the last few days.",
+    "system": "System"
+  },
+  "rel": {
+    "today": "today",
+    "tomorrow": "tomorrow",
+    "daysAgo_one": "{{count}}d ago",
+    "daysAgo_other": "{{count}}d ago",
+    "inDays_one": "in {{count}}d",
+    "inDays_other": "in {{count}}d",
+    "justNow": "just now",
+    "minsAgo_one": "{{count}} min ago",
+    "minsAgo_other": "{{count}} mins ago",
+    "hrsAgo_one": "{{count}} hr ago",
+    "hrsAgo_other": "{{count}} hrs ago"
+  },
+  "action": {
+    "created": "created",
+    "updated": "updated",
+    "deleted": "deleted",
+    "signedIn": "signed in",
+    "approved": "approved",
+    "rejected": "rejected",
+    "submitted": "submitted"
+  }
+}

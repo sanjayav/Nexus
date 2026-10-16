@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { ArrowRight, X, Upload, CheckSquare, Send, Sparkles } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 const STORAGE_KEY = 'aeiforo_quickstart_dismissed_v1'
 
@@ -46,6 +47,7 @@ const STEPS: Step[] = [
 ]
 
 export default function QuickStartCard() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [dismissed, setDismissed] = useState(() => {
     try { return localStorage.getItem(STORAGE_KEY) === '1' } catch { return false }
@@ -74,7 +76,7 @@ export default function QuickStartCard() {
       <button
         onClick={dismiss}
         className="absolute top-3 right-3 w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer z-10"
-        title="Dismiss"
+        title={t('components.dismiss')}
       >
         <X className="w-4 h-4" />
       </button>
@@ -84,13 +86,13 @@ export default function QuickStartCard() {
           <div className="w-7 h-7 rounded-[8px] bg-[var(--accent-teal-subtle)] flex items-center justify-center">
             <Sparkles className="w-3.5 h-3.5 text-[var(--color-brand)]" />
           </div>
-          <span className="kicker">Get started in 3 steps</span>
+          <span className="kicker">{t('components.quickStart.kicker')}</span>
         </div>
         <h2 className="font-display text-[22px] font-bold text-[var(--text-primary)] tracking-[-0.01em]">
-          From spreadsheet to assured report
+          {t('components.quickStart.title')}
         </h2>
         <p className="text-[13px] text-[var(--text-secondary)] mt-1.5 max-w-2xl leading-relaxed">
-          The fastest path through Nexus. Click any step to jump in — you don't have to do them in order.
+          {t('components.quickStart.body')}
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-5">
@@ -119,16 +121,16 @@ export default function QuickStartCard() {
                 </span>
               </div>
               <div className="text-[14px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">
-                {step.title}
+                {t(`components.quickStart.s${step.num}.title`, { defaultValue: step.title })}
               </div>
               <div className="text-[12px] text-[var(--text-secondary)] mt-1 leading-relaxed min-h-[36px]">
-                {step.body}
+                {t(`components.quickStart.s${step.num}.body`, { defaultValue: step.body })}
               </div>
               <div
                 className="text-[12px] font-semibold mt-3 inline-flex items-center gap-1 group-hover:gap-1.5 transition-all"
                 style={{ color: step.accent }}
               >
-                {step.cta} <ArrowRight className="w-3.5 h-3.5" />
+                {t(`components.quickStart.s${step.num}.cta`, { defaultValue: step.cta })} <ArrowRight className="w-3.5 h-3.5" />
               </div>
             </motion.button>
           ))}

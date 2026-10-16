@@ -1,0 +1,84 @@
+{
+  "breadcrumbs": { "data": "Data", "connectors": "Connectors" },
+  "eyebrow": "Data ingestion",
+  "title": "ERP connectors",
+  "subtitle": "Pre-built CSV mapping templates for SAP S/4HANA, NetSuite, and Snowflake. Upload an export, preview the mapping, and ingest as draft activity data.",
+  "errors": {
+    "loadTemplates": "Failed to load templates",
+    "startOAuth": "Failed to start OAuth",
+    "importFailed": "Import failed"
+  },
+  "toast": {
+    "importSlow": "Import is taking longer than expected — you can leave this page and check back in Recent imports."
+  },
+  "live": {
+    "heading": "Live integrations",
+    "providers_one": "{{count}} provider",
+    "providers_other": "{{count}} providers",
+    "connected": "Connected",
+    "error": "Error",
+    "disconnected": "Disconnected",
+    "comingSoon": "Coming soon",
+    "comingSoonHint": "This integration is not yet available.",
+    "lastSync": "Last sync: {{date}}",
+    "manage": "Manage",
+    "connect": "Connect",
+    "configure": "Configure",
+    "serverNotConfiguredTitle": "Server admin must set OAuth client_id / secret env vars",
+    "serverNotConfigured": "Server not configured"
+  },
+  "categories": {
+    "ERP": "ERP",
+    "CRM": "CRM",
+    "HCM": "HCM",
+    "Data Warehouse": "Data Warehouse",
+    "Cloud": "Cloud",
+    "Utilities": "Utilities",
+    "IoT": "IoT",
+    "Collaboration": "Collaboration",
+    "Metering": "Metering",
+    "Energy": "Energy",
+    "Finance": "Finance"
+  },
+  "sources": {
+    "sap_s4hana": { "subtitle": "Cost-center energy + MM fuel POs" },
+    "netsuite": { "subtitle": "Utility bills + Travel & expense" },
+    "snowflake": { "subtitle": "Generic activity-data passthrough" },
+    "generic_csv": { "name": "Generic CSV", "subtitle": "Bring your own column mapping" }
+  },
+  "templatesCount_one": "{{count}} template",
+  "templatesCount_other": "{{count}} templates",
+  "allSources": "All sources",
+  "noTemplates": "No templates available for this source yet.",
+  "scope": "Scope {{scope}}",
+  "requiredColumns": "Required columns",
+  "userDefined": "User-defined",
+  "backToTemplates": "Back to templates",
+  "uploadCsv": "Upload CSV",
+  "rowsParsed_one": "{{count}} row parsed (preview of first 10)",
+  "rowsParsed_other": "{{count}} rows parsed (preview of first 10)",
+  "importRows_one": "Import {{count}} row",
+  "importRows_other": "Import {{count}} rows",
+  "cancelTitle": "Stop watching this import. The job keeps running on the server; results will appear in Recent imports.",
+  "cancel": "Cancel",
+  "importComplete": "Import complete",
+  "importSummary": "{{imported}} imported · {{failed}} failed · {{total}} total",
+  "errorTable": { "row": "Row", "error": "Error" },
+  "recent": {
+    "heading": "Recent imports",
+    "emptyTitle": "No imports yet",
+    "emptyBody": "Pick a source above and upload a CSV — Nexus will auto-map columns to the right disclosure fields.",
+    "file": "File",
+    "template": "Template",
+    "imported": "Imported",
+    "failed": "Failed",
+    "status": "Status",
+    "when": "When"
+  },
+  "importStatus": {
+    "pending": "pending",
+    "processing": "processing",
+    "complete": "complete",
+    "failed": "failed"
+  }
+}

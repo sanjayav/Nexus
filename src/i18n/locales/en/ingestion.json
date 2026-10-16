@@ -1,0 +1,49 @@
+{
+  "title": "Data Collection",
+  "subtitle": "Upload, validate, and classify emission data from all sources.",
+  "back": "Data Collection",
+  "status": {
+    "live": "Live",
+    "ready": "Ready",
+    "beta": "Beta"
+  },
+  "pipeline": {
+    "ingest": { "label": "Ingest", "desc": "Raw files, APIs, manual entry" },
+    "validate": { "label": "Validate", "desc": "Schema checks, completeness" },
+    "classify": { "label": "Classify", "desc": "Auto-scope, factor matching" },
+    "route": { "label": "Route", "desc": "Direct or hybrid path" },
+    "store": { "label": "Store", "desc": "Unified emission repository" }
+  },
+  "modules": {
+    "org-setup": {
+      "title": "Organisation Setup",
+      "subtitle": "Tenant, boundaries & frameworks",
+      "desc": "Configure your organisational boundary, reporting frameworks (GRI, CSRD, ISSB), business groups, facilities, and emission source registration."
+    },
+    "raw-supplier": {
+      "title": "Raw Data Upload",
+      "subtitle": "Excel/CSV ingestion & column mapping",
+      "desc": "Upload raw GHG activity data from any format. Smart column detection maps your spreadsheet columns to the standard emission data model."
+    },
+    "measured": {
+      "title": "Measured Data",
+      "subtitle": "CEMS, meters, labs & verified data",
+      "desc": "Ingest continuous emission monitoring (CEMS), utility meter readings, lab test results, and third-party verified data with QA classification."
+    },
+    "entities": {
+      "title": "Entity Submissions",
+      "subtitle": "Intercompany, subsidiary & supplier data",
+      "desc": "Collect emission data from divisions, subsidiaries, and suppliers using standardised templates. Track submission status and validate on upload."
+    }
+  },
+  "stats": {
+    "steps": "Steps",
+    "frameworks": "Frameworks",
+    "formats": "Formats",
+    "fields": "Fields",
+    "sources": "Sources",
+    "quality": "Quality",
+    "entities": "Entities",
+    "templates": "Templates"
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "breadcrumbs": { "data": "数据", "connectors": "连接器" },
+  "eyebrow": "数据接入",
+  "title": "ERP 连接器",
+  "subtitle": "内置 SAP S/4HANA、NetSuite 和 Snowflake 的 CSV 映射模板。上传导出文件、预览字段映射，即可作为草稿活动数据导入。",
+  "errors": {
+    "loadTemplates": "加载模板失败",
+    "startOAuth": "无法启动 OAuth 授权",
+    "importFailed": "导入失败"
+  },
+  "toast": {
+    "importSlow": "导入耗时超出预期。您可以离开此页面，稍后在“最近导入”中查看结果。"
+  },
+  "live": {
+    "heading": "实时集成",
+    "providers_one": "{{count}} 个提供方",
+    "providers_other": "{{count}} 个提供方",
+    "connected": "已连接",
+    "error": "错误",
+    "disconnected": "已断开",
+    "comingSoon": "即将推出",
+    "comingSoonHint": "该集成尚未开放。",
+    "lastSync": "上次同步：{{date}}",
+    "manage": "管理",
+    "connect": "连接",
+    "configure": "配置",
+    "serverNotConfiguredTitle": "需由服务器管理员配置 OAuth client_id / secret 环境变量",
+    "serverNotConfigured": "服务器未配置"
+  },
+  "categories": {
+    "ERP": "ERP",
+    "CRM": "CRM",
+    "HCM": "人力资本管理",
+    "Data Warehouse": "数据仓库",
+    "Cloud": "云服务",
+    "Utilities": "公用事业",
+    "IoT": "物联网",
+    "Collaboration": "协同办公",
+    "Metering": "计量",
+    "Energy": "能源",
+    "Finance": "财务"
+  },
+  "sources": {
+    "sap_s4hana": { "subtitle": "成本中心能耗 + MM 燃料采购订单" },
+    "netsuite": { "subtitle": "公用事业账单 + 差旅与费用" },
+    "snowflake": { "subtitle": "通用活动数据直通" },
+    "generic_csv": { "name": "通用 CSV", "subtitle": "自定义列映射" }
+  },
+  "templatesCount_one": "{{count}} 个模板",
+  "templatesCount_other": "{{count}} 个模板",
+  "allSources": "全部数据源",
+  "noTemplates": "该数据源暂无可用模板。",
+  "scope": "范围{{scope}}",
+  "requiredColumns": "必填列",
+  "userDefined": "用户自定义",
+  "backToTemplates": "返回模板列表",
+  "uploadCsv": "上传 CSV",
+  "rowsParsed_one": "已解析 {{count}} 行（预览前 10 行）",
+  "rowsParsed_other": "已解析 {{count}} 行（预览前 10 行）",
+  "importRows_one": "导入 {{count}} 行",
+  "importRows_other": "导入 {{count}} 行",
+  "cancelTitle": "停止跟踪此次导入。任务将在服务器上继续运行，结果将显示在“最近导入”中。",
+  "cancel": "取消",
+  "importComplete": "导入完成",
+  "importSummary": "已导入 {{imported}} 行 · 失败 {{failed}} 行 · 共 {{total}} 行",
+  "errorTable": { "row": "行", "error": "错误" },
+  "recent": {
+    "heading": "最近导入",
+    "emptyTitle": "暂无导入记录",
+    "emptyBody": "在上方选择数据源并上传 CSV，Nexus 将自动把各列映射到对应的披露字段。",
+    "file": "文件",
+    "template": "模板",
+    "imported": "已导入",
+    "failed": "失败",
+    "status": "状态",
+    "when": "时间"
+  },
+  "importStatus": {
+    "pending": "待处理",
+    "processing": "处理中",
+    "complete": "已完成",
+    "failed": "失败"
+  }
+}

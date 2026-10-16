@@ -1,0 +1,54 @@
+{
+  "header": {
+    "eyebrow": "Data Governance",
+    "title": "ESG Data Standard",
+    "subtitle": "One company-wide definition, one calculation method, one cadence, one ownership chain per disclosure. This is how comparability is enforced across plants."
+  },
+  "loadFailed": "Load failed",
+  "stats": {
+    "disclosures": "Disclosures",
+    "definitions": "Definitions on file",
+    "ofTotal": "{{n}} of {{total}}",
+    "calcMethods": "Calc methods",
+    "ownershipChains": "Ownership chains"
+  },
+  "searchPlaceholder": "Search by code, line item, or definition…",
+  "allCadences": "All cadences",
+  "cadence": {
+    "daily": "Daily",
+    "monthly": "Monthly",
+    "quarterly": "Quarterly",
+    "annual": "Annual"
+  },
+  "catalog": {
+    "kicker": "Catalog",
+    "title_one": "{{count}} disclosure · {{code}}",
+    "title_other": "{{count}} disclosures · {{code}}",
+    "subtitle": "Click any row to open the full definition, calculation method, and ownership chain."
+  },
+  "otherSection": "Other",
+  "sectionCount_one": "{{count}} disclosure",
+  "sectionCount_other": "{{count}} disclosures",
+  "row": {
+    "definition": "Definition",
+    "method": "Method",
+    "canonicalDefinition": "Canonical definition",
+    "calcMethod": "Calculation method"
+  },
+  "chain": {
+    "title": "Ownership chain",
+    "dataOwner": "Data owner",
+    "reviewer": "Reviewer",
+    "approver": "Approver",
+    "unassigned": "unassigned",
+    "note": "Submissions route through each role in order. Every transition is hash-chained for audit."
+  },
+  "roles": {
+    "plant_manager": "Plant Manager",
+    "subsidiary_lead": "Subsidiary Lead",
+    "group_sustainability_officer": "Group SO",
+    "data_contributor": "Data Contributor",
+    "narrative_owner": "Narrative Owner",
+    "platform_admin": "Admin"
+  }
+}

@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronDown, ChevronRight, Search, Circle, CheckCircle2, CircleDot, List, X } from 'lucide-react'
+import { capitalLabelKey, subsectionLabelKey } from '../../reports/spdTemplate'
 
 /**
  * Left-rail navigation tree for the disclosure editor.
@@ -55,6 +57,7 @@ export default function DisclosureTree({
   readingMode = false,
   variant = 'desktop',
 }: DisclosureTreeProps) {
+  const { t } = useTranslation()
   const [query, setQuery] = useState('')
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -65,7 +68,9 @@ export default function DisclosureTree({
       ? subsections.filter(s =>
           s.label.toLowerCase().includes(q) ||
           s.code.toLowerCase().includes(q) ||
-          s.section.toLowerCase().includes(q),
+          s.section.toLowerCase().includes(q) ||
+          t(subsectionLabelKey(s.label), { defaultValue: s.label }).toLowerCase().includes(q) ||
+          t(capitalLabelKey(s.section), { defaultValue: s.section }).toLowerCase().includes(q),
         )
       : subsections
     const map = new Map<string, DisclosureTreeSubsection[]>()
@@ -74,7 +79,7 @@ export default function DisclosureTree({
       map.get(s.section)!.push(s)
     }
     return Array.from(map.entries()).map(([section, items]) => ({ section, items }))
-  }, [subsections, query])
+  }, [subsections, query, t])
 
   const toggleSection = (section: string) => {
     setCollapsedSections(prev => {
@@ -95,7 +100,7 @@ export default function DisclosureTree({
             type="search"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search disclosures…"
+            placeholder={t('disclosureEditor.tree.search')}
             className="w-full pl-7 pr-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none"
           />
         </div>
@@ -104,7 +109,7 @@ export default function DisclosureTree({
       <nav className="flex-1 overflow-y-auto py-2">
         {filteredGroups.length === 0 && (
           <div className="px-4 py-6 text-[10px] text-[var(--text-tertiary)] italic">
-            No disclosures match “{query}”.
+            {t('disclosureEditor.tree.noMatch', { query })}
           </div>
         )}
         {filteredGroups.map(group => {
@@ -120,7 +125,7 @@ export default function DisclosureTree({
                 <div className="flex items-center gap-1 min-w-0">
                   {collapsed ? <ChevronRight className="w-3 h-3 text-[var(--text-tertiary)]" /> : <ChevronDown className="w-3 h-3 text-[var(--text-tertiary)]" />}
                   <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand)] truncate">
-                    {group.section}
+                    {t(capitalLabelKey(group.section), { defaultValue: group.section })}
                   </span>
                 </div>
                 <span className="text-[9px] text-[var(--text-tertiary)] tabular-nums">{group.items.length}</span>
@@ -150,7 +155,7 @@ export default function DisclosureTree({
                           <span className="font-mono text-[10px] font-semibold text-[var(--text-tertiary)] flex-shrink-0">
                             {item.code}
                           </span>
-                          <span className="text-[11px] truncate flex-1">{item.label.replace(new RegExp(`^${item.code}\\s*[:·-]?\\s*`, 'i'), '')}</span>
+                          <span className="text-[11px] truncate flex-1">{t(subsectionLabelKey(item.label), { defaultValue: item.label }).replace(new RegExp(`^${item.code}\\s*[:·-]?\\s*`, 'i'), '')}</span>
                           <span className="text-[9px] tabular-nums text-[var(--text-tertiary)] flex-shrink-0">
                             {item.completed}/{item.total}
                           </span>
@@ -175,10 +180,10 @@ export default function DisclosureTree({
         <button
           type="button"
           onClick={() => setDrawerOpen(o => !o)}
-          aria-label="Open contents drawer"
+          aria-label={t('disclosureEditor.tree.openContents')}
           className="no-print fixed left-4 top-[88px] z-30 inline-flex items-center gap-1.5 h-9 px-3 rounded-full border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-sm text-[12.5px] font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
         >
-          <List className="w-3.5 h-3.5" /> Contents
+          <List className="w-3.5 h-3.5" /> {t('disclosureEditor.tree.contents')}
         </button>
         {drawerOpen && (
           <>
@@ -190,11 +195,11 @@ export default function DisclosureTree({
             <aside
               className="no-print fixed left-0 top-[68px] z-40 w-[280px] bg-[var(--bg-primary)] border-r border-[var(--border-subtle)] shadow-lg flex flex-col"
               style={{ height: 'calc(100vh - 68px)' }}
-              aria-label="Contents"
+              aria-label={t('disclosureEditor.tree.contents')}
             >
               <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-subtle)]">
-                <span className="text-[11px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">Contents</span>
-                <button onClick={() => setDrawerOpen(false)} aria-label="Close" className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
+                <span className="text-[11px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">{t('disclosureEditor.tree.contents')}</span>
+                <button onClick={() => setDrawerOpen(false)} aria-label={t('common.close')} className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -210,7 +215,7 @@ export default function DisclosureTree({
     return (
       <aside
         className="flex flex-col w-full h-full bg-[var(--bg-primary)]/60"
-        aria-label="Disclosure tree"
+        aria-label={t('disclosureEditor.tree.aria')}
       >
         {body()}
       </aside>
@@ -221,7 +226,7 @@ export default function DisclosureTree({
     <aside
       className="hidden lg:flex flex-col w-[240px] flex-shrink-0 border-r border-[var(--border-subtle)] bg-[var(--bg-primary)]/60 sticky top-[68px] self-start"
       style={{ height: 'calc(100vh - 68px)' }}
-      aria-label="Disclosure tree"
+      aria-label={t('disclosureEditor.tree.aria')}
     >
       {body()}
     </aside>

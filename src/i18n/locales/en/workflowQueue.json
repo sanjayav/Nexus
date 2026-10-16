@@ -1,0 +1,61 @@
+{
+  "review": {
+    "title": "Review queue",
+    "subtitle": "Subsidiary leads check every submitted plant figure before it reaches the group officer.",
+    "reject": "Send back to plant",
+    "pass": "Pass to approval"
+  },
+  "approval": {
+    "title": "Approval queue",
+    "subtitle": "Sustainability officers approve reviewed figures. Approved lines feed the group rollup and the GRI report.",
+    "reject": "Reject",
+    "pass": "Approve"
+  },
+  "errors": {
+    "update": "Could not update: {{message}}",
+    "needComment": "Please leave a short comment explaining why you're sending it back."
+  },
+  "switchToApproval": "Switch to approval queue",
+  "switchToReview": "Switch to review queue",
+  "stats": {
+    "waitingReview": "Waiting for review",
+    "waitingApproval": "Waiting for approval",
+    "alreadyReviewed": "Already reviewed"
+  },
+  "queueCount": "Queue · {{count}}",
+  "mode": {
+    "Manual": "Manual",
+    "Calculator": "Calculator",
+    "Connector": "Connector"
+  },
+  "pickRow": "Pick a row on the left",
+  "empty": {
+    "title": "Queue is empty",
+    "review": "No plant submissions are waiting for a lead to review.",
+    "approval": "Nothing is awaiting approval from the sustainability officer.",
+    "viewRollup": "View group rollup"
+  },
+  "detail": {
+    "entity": "Reporting entity",
+    "submittedBy": "Submitted by",
+    "due": "Due",
+    "modeUsed": "Mode used",
+    "narrative_one": "Submitted narrative ({{count}} char)",
+    "narrative_other": "Submitted narrative ({{count}} chars)",
+    "noNarrative": "No narrative submitted.",
+    "value": "Submitted value",
+    "evidence_one": "Evidence attached ({{count}})",
+    "evidence_other": "Evidence attached ({{count}})",
+    "note": "Note from contributor",
+    "commentLabel": "Comment (required to reject)",
+    "commentPlaceholderReview": "Optional note for the officer, or required if sending back.",
+    "commentPlaceholderApproval": "Optional, or required if rejecting."
+  },
+  "variance": {
+    "large": "YoY change of {{delta}}% vs FY{{year}} ({{prior}}). Verify before approving.",
+    "normal": "YoY change {{delta}}% vs FY{{year}} — within expected range.",
+    "noPrior": "No prior-year value on file. Cannot run variance check.",
+    "noUnit": "No unit stamped on this value. Confirm with the submitter before approving.",
+    "title": "Data-quality checks"
+  }
+}

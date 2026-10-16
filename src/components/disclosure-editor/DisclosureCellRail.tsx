@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
+import { itemLabel } from '../../lib/itemLabel'
 import {
   Loader2, FileText, ShieldCheck,
   CheckCircle2, XCircle, Send, Sparkles, Clock, History, Paperclip, Upload, X,
@@ -44,13 +46,14 @@ export interface DisclosureCellRailProps {
 
 type RailTab = 'fact' | 'comments' | 'gap'
 
+/** i18n keys for each assignment status. */
 const STATUS_LABEL: Record<QuestionAssignment['status'], string> = {
-  not_started: 'Not started',
-  in_progress: 'Draft',
-  submitted: 'Submitted',
-  reviewed: 'Reviewed',
-  approved: 'Approved',
-  rejected: 'Rejected',
+  not_started: 'workflowStatus.status.not_started',
+  in_progress: 'workflowStatus.status.draft',
+  submitted: 'workflowStatus.status.submitted',
+  reviewed: 'workflowStatus.status.reviewed',
+  approved: 'workflowStatus.status.approved',
+  rejected: 'workflowStatus.status.rejected',
 }
 
 const STATUS_PILL: Record<QuestionAssignment['status'], string> = {
@@ -66,6 +69,7 @@ export default function DisclosureCellRail({
   item, assignment, onWorkflowAction, workflowBusy = false, variant = 'desktop',
   frameworkId, reportingYear, items, onOpenCell,
 }: DisclosureCellRailProps) {
+  const { t } = useTranslation()
   const inline = variant === 'inline'
   const asideClass = inline
     ? 'flex flex-col w-full h-full bg-[var(--bg-primary)] overflow-y-auto'
@@ -79,7 +83,7 @@ export default function DisclosureCellRail({
     <aside
       className={asideClass}
       style={asideStyle}
-      aria-label="Cell detail"
+      aria-label={t('disclosureEditor.rail.aria')}
     >
       <RailTabs tab={tab} onChange={setTab} disabled={!item} />
       {!item ? (
@@ -88,8 +92,8 @@ export default function DisclosureCellRail({
             <FileText className="w-4 h-4 text-[var(--text-tertiary)]" />
           </div>
           {tab === 'gap'
-            ? 'Switch to the document or pick a disclosure to use Gap Analysis context.'
-            : 'Select a disclosure to see fact details, comments and audit history.'}
+            ? t('disclosureEditor.rail.emptyGap')
+            : t('disclosureEditor.rail.empty')}
         </div>
       ) : tab === 'fact' ? (
         <CellPanel
@@ -106,7 +110,7 @@ export default function DisclosureCellRail({
             <CommentThread assignmentId={assignment.id} />
           ) : (
             <p className="text-[11px] text-[var(--text-tertiary)] italic">
-              Enter a value to start a discussion thread.
+              {t('disclosureEditor.rail.commentsEmpty')}
             </p>
           )}
         </div>
@@ -125,10 +129,11 @@ export default function DisclosureCellRail({
 function RailTabs({
   tab, onChange, disabled,
 }: { tab: RailTab; onChange: (t: RailTab) => void; disabled?: boolean }) {
+  const { t: tr } = useTranslation()
   const tabs: Array<{ key: RailTab; label: string; icon: typeof ScrollText }> = [
-    { key: 'fact', label: 'Cell', icon: ScrollText },
-    { key: 'comments', label: 'Comments', icon: MessageSquare },
-    { key: 'gap', label: 'Gap Analysis', icon: Sparkles },
+    { key: 'fact', label: tr('disclosureEditor.rail.tabCell'), icon: ScrollText },
+    { key: 'comments', label: tr('disclosureEditor.rail.tabComments'), icon: MessageSquare },
+    { key: 'gap', label: tr('disclosureEditor.rail.tabGap'), icon: Sparkles },
   ]
   return (
     <div role="tablist" className="flex items-center border-b border-[var(--border-subtle)] bg-[var(--bg-primary)] sticky top-0 z-10">
@@ -170,6 +175,8 @@ function CellPanel({
   reportingYear: number
 }) {
   const { permissions } = useAuth()
+  const { t, i18n } = useTranslation()
+  const locale = i18n.language?.startsWith('zh') ? 'zh-CN' : undefined
   const canSubmit = hasPermission(permissions, 'data.upload')
   const canReview = hasPermission(permissions, 'workflow.approve')
   const status = assignment?.status ?? 'not_started'
@@ -200,11 +207,11 @@ function CellPanel({
       await refreshEvidence()
       setFlyoutOpen(false)
     } catch (e) {
-      setUploadError(e instanceof Error ? e.message : 'Upload failed')
+      setUploadError(e instanceof Error ? e.message : t('disclosureEditor.rail.uploadFailed'))
     } finally {
       setUploading(false)
     }
-  }, [assignment, refreshEvidence])
+  }, [assignment, refreshEvidence, t])
 
   useEffect(() => {
     let cancelled = false
@@ -231,15 +238,15 @@ function CellPanel({
       <div>
         <div className="text-[10px] font-mono text-[var(--text-tertiary)]">{item.gri_code}</div>
         <h3 className="font-display text-[var(--text-base)] font-semibold text-[var(--text-primary)] leading-snug mt-0.5">
-          {item.line_item}
+          {itemLabel(item, i18n.language)}
         </h3>
       </div>
 
       {/* Status + workflow actions */}
       <section>
-        <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-2">Status</div>
+        <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-2">{t('common.status')}</div>
         <span className={`inline-flex items-center px-2 h-5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${STATUS_PILL[status]}`}>
-          {STATUS_LABEL[status]}
+          {t(STATUS_LABEL[status])}
         </span>
         {assignment && (
           <div className="mt-3 flex flex-wrap gap-2">
@@ -250,7 +257,7 @@ function CellPanel({
                 disabled={workflowBusy || assignment.value == null}
                 className="inline-flex items-center gap-1 px-2.5 h-7 rounded-[var(--radius-sm)] bg-[var(--color-brand)] text-white text-[11px] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-50"
               >
-                <Send className="w-3 h-3" /> Submit for review
+                <Send className="w-3 h-3" /> {t('disclosureEditor.rail.submitForReview')}
               </button>
             )}
             {canReview && status === 'submitted' && (
@@ -261,7 +268,7 @@ function CellPanel({
                   disabled={workflowBusy}
                   className="inline-flex items-center gap-1 px-2.5 h-7 rounded-[var(--radius-sm)] bg-[var(--status-ok)] text-white text-[11px] font-semibold hover:opacity-90 disabled:opacity-50"
                 >
-                  <CheckCircle2 className="w-3 h-3" /> Approve
+                  <CheckCircle2 className="w-3 h-3" /> {t('disclosureEditor.rail.approve')}
                 </button>
                 <button
                   type="button"
@@ -269,7 +276,7 @@ function CellPanel({
                   disabled={workflowBusy}
                   className="inline-flex items-center gap-1 px-2.5 h-7 rounded-[var(--radius-sm)] bg-[var(--status-reject)] text-white text-[11px] font-semibold hover:opacity-90 disabled:opacity-50"
                 >
-                  <XCircle className="w-3 h-3" /> Reject
+                  <XCircle className="w-3 h-3" /> {t('disclosureEditor.rail.reject')}
                 </button>
               </>
             )}
@@ -279,24 +286,24 @@ function CellPanel({
 
       {/* Metadata (assignment) */}
       <section className="space-y-1.5 text-[11px]">
-        <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">Metadata</div>
+        <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">{t('disclosureEditor.rail.metadata')}</div>
         {assignment ? (
           <>
-            <Meta label="Assigned to" value={assignment.assigneeName || assignment.assigneeEmail || '—'} />
-            <Meta label="Last updated" value={assignment.last_updated ? new Date(assignment.last_updated).toLocaleString() : '—'} />
+            <Meta label={t('disclosureEditor.rail.assignedTo')} value={assignment.assigneeName || assignment.assigneeEmail || '—'} />
+            <Meta label={t('disclosureEditor.rail.lastUpdated')} value={assignment.last_updated ? new Date(assignment.last_updated).toLocaleString(locale) : '—'} />
             <Meta
-              label="Due"
-              value={assignment.due_date ? new Date(assignment.due_date).toLocaleDateString() : '—'}
+              label={t('disclosureEditor.rail.due')}
+              value={assignment.due_date ? new Date(assignment.due_date).toLocaleDateString(locale) : '—'}
               valueClass={overdue ? 'text-[var(--status-reject)] font-semibold' : ''}
             />
             {overdue && (
               <div className="inline-flex items-center gap-1 mt-1 px-1.5 h-4 rounded-[var(--radius-xs)] bg-[var(--accent-red-light)] text-[var(--status-reject)] text-[9px] font-semibold uppercase tracking-wider">
-                <Clock className="w-2.5 h-2.5" /> Overdue
+                <Clock className="w-2.5 h-2.5" /> {t('workflowStatus.status.overdue')}
               </div>
             )}
           </>
         ) : (
-          <p className="text-[var(--text-tertiary)] italic">No assignment yet for this cell.</p>
+          <p className="text-[var(--text-tertiary)] italic">{t('disclosureEditor.rail.noAssignment')}</p>
         )}
       </section>
 
@@ -311,11 +318,11 @@ function CellPanel({
 
       {/* Evidence */}
       <section>
-        <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-2">Evidence</div>
+        <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-2">{t('disclosureEditor.rail.evidence')}</div>
         {!assignment ? (
-          <p className="text-[11px] text-[var(--text-tertiary)] italic">Enter a value to start attaching evidence.</p>
+          <p className="text-[11px] text-[var(--text-tertiary)] italic">{t('disclosureEditor.rail.evidenceEmpty')}</p>
         ) : evidence.length === 0 ? (
-          <p className="text-[11px] text-[var(--text-tertiary)] italic">No files attached.</p>
+          <p className="text-[11px] text-[var(--text-tertiary)] italic">{t('disclosureEditor.rail.noFiles')}</p>
         ) : (
           <ul className="space-y-1">
             {evidence.map(ev => (
@@ -334,16 +341,16 @@ function CellPanel({
               onClick={() => setFlyoutOpen(true)}
               className="inline-flex items-center gap-1 px-2 h-6 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[10px] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
             >
-              <Paperclip className="w-3 h-3 text-[var(--color-brand)]" /> Attach evidence
+              <Paperclip className="w-3 h-3 text-[var(--color-brand)]" /> {t('disclosureEditor.rail.attachEvidence')}
             </button>
           )}
           {evidence.length > 0 && (
             <button
               type="button"
               className="inline-flex items-center gap-1 px-2 h-6 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[10px] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
-              title="AI extraction pipeline"
+              title={t('disclosureEditor.rail.aiPipeline')}
             >
-              <Sparkles className="w-3 h-3 text-[var(--color-brand)]" /> Extract from evidence
+              <Sparkles className="w-3 h-3 text-[var(--color-brand)]" /> {t('disclosureEditor.rail.extract')}
             </button>
           )}
         </div>
@@ -370,21 +377,21 @@ function CellPanel({
       {/* Audit trail */}
       <section>
         <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-2">
-          <History className="w-3 h-3" /> Audit
+          <History className="w-3 h-3" /> {t('disclosureEditor.rail.audit')}
         </div>
         {loading ? (
           <Loader2 className="w-3 h-3 animate-spin text-[var(--text-tertiary)]" />
         ) : trail.length === 0 ? (
-          <p className="text-[11px] text-[var(--text-tertiary)] italic">No audit events yet.</p>
+          <p className="text-[11px] text-[var(--text-tertiary)] italic">{t('disclosureEditor.rail.noAudit')}</p>
         ) : (
           <ul className="space-y-1.5 max-h-[180px] overflow-y-auto pr-1">
             {trail.map(e => (
               <li key={e.id} className="flex items-start gap-2 text-[10px]">
                 <ShieldCheck className="w-3 h-3 mt-0.5 text-[var(--color-brand)] flex-shrink-0" />
                 <div className="min-w-0">
-                  <div className="font-semibold text-[var(--text-secondary)] uppercase tracking-wider">{e.event_type}</div>
+                  <div className="font-semibold text-[var(--text-secondary)] uppercase tracking-wider">{t(`auditor.event.${e.event_type}`, { defaultValue: e.event_type })}</div>
                   <div className="text-[var(--text-tertiary)] truncate">
-                    {e.actor_name ?? e.actor_email ?? 'System'} · {new Date(e.timestamp).toLocaleString()}
+                    {e.actor_name ?? e.actor_email ?? t('disclosureEditor.rail.system')} · {new Date(e.timestamp).toLocaleString(locale)}
                   </div>
                 </div>
               </li>
@@ -411,6 +418,7 @@ function AttachEvidenceFlyout({
   onReuse: (ev: NexusEvidence) => Promise<void>
   onClose: () => void
 }) {
+  const { t } = useTranslation()
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
 
@@ -427,16 +435,16 @@ function AttachEvidenceFlyout({
       <FadeIn>
         <aside
           role="dialog"
-          aria-label="Attach evidence"
+          aria-label={t('disclosureEditor.rail.attachEvidence')}
           className="fixed right-0 top-[68px] z-50 w-[360px] bg-[var(--bg-primary)] border-l border-[var(--border-default)] shadow-2xl flex flex-col"
           style={{ height: 'calc(100vh - 68px)' }}
         >
           <header className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)]">
             <div className="flex items-center gap-2">
               <Paperclip className="w-3.5 h-3.5 text-[var(--color-brand)]" />
-              <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">Attach evidence</h3>
+              <h3 className="text-[13px] font-semibold text-[var(--text-primary)]">{t('disclosureEditor.rail.attachEvidence')}</h3>
             </div>
-            <button onClick={onClose} aria-label="Close" className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
+            <button onClick={onClose} aria-label={t('common.close')} className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
               <X className="w-3.5 h-3.5" />
             </button>
           </header>
@@ -459,7 +467,7 @@ function AttachEvidenceFlyout({
             >
               <Upload className="w-6 h-6 mx-auto text-[var(--text-tertiary)] mb-2" />
               <p className="text-[12px] text-[var(--text-secondary)]">
-                Drag and drop a file here, or
+                {t('disclosureEditor.rail.dragDrop')}
               </p>
               <button
                 type="button"
@@ -467,7 +475,7 @@ function AttachEvidenceFlyout({
                 disabled={uploading}
                 className="mt-2 inline-flex items-center gap-1.5 px-3 h-7 rounded-[8px] bg-[var(--color-brand)] text-white text-[12px] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-50"
               >
-                {uploading ? <><Loader2 className="w-3 h-3 animate-spin" /> Uploading…</> : 'Choose file'}
+                {uploading ? <><Loader2 className="w-3 h-3 animate-spin" /> {t('disclosureEditor.rail.uploading')}</> : t('disclosureEditor.rail.chooseFile')}
               </button>
               <input
                 ref={inputRef}
@@ -491,7 +499,7 @@ function AttachEvidenceFlyout({
             {reuseList.length > 0 && (
               <section>
                 <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-2">
-                  Recent files
+                  {t('disclosureEditor.rail.recentFiles')}
                 </div>
                 <ul className="space-y-1">
                   {reuseList.map(ev => (

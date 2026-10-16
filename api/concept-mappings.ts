@@ -36,7 +36,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const rows = await sql`
           SELECT cm.id, cm.concept_key, cm.framework_id, cm.questionnaire_item_id,
                  cm.unit_conversion,
-                 qi.gri_code, qi.line_item, qi.unit, qi.section
+                 qi.gri_code, qi.line_item, qi.unit, qi.section,
+                 to_jsonb(qi) ->> 'line_item_zh' AS line_item_zh
           FROM concept_mappings cm
           LEFT JOIN questionnaire_item qi ON qi.id = cm.questionnaire_item_id
           WHERE cm.concept_key = ${concept_key}
@@ -59,7 +60,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const peers = await sql`
           SELECT cm.id, cm.concept_key, cm.framework_id, cm.questionnaire_item_id,
                  cm.unit_conversion,
-                 qi.gri_code, qi.line_item, qi.unit, qi.section
+                 qi.gri_code, qi.line_item, qi.unit, qi.section,
+                 to_jsonb(qi) ->> 'line_item_zh' AS line_item_zh
           FROM concept_mappings cm
           LEFT JOIN questionnaire_item qi ON qi.id = cm.questionnaire_item_id
           WHERE cm.concept_key = ${ck}

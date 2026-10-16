@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   AlertCircle, Calculator as CalcIcon, ArrowRight, Search, Info,
 } from 'lucide-react'
@@ -8,6 +9,8 @@ import {
   type NexusQuestionnaireItem,
 } from '../lib/api'
 import { CALCULATORS, findCalculator, hasCalculator, type CalcDescriptor } from '../calculators/registry'
+import { localizeCalc, localizeUnit } from '../calculators/labels'
+import { itemLabel } from '../lib/itemLabel'
 import SetupGuard from '../components/SetupGuard'
 import { Button } from '../design-system'
 import PageHeader from '../components/PageHeader'
@@ -28,6 +31,7 @@ type LoadState =
  */
 export default function Calculators() {
   const navigate = useNavigate()
+  const { t, i18n } = useTranslation()
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
   const [query, setQuery] = useState('')
 
@@ -38,7 +42,7 @@ export default function Calculators() {
       if (items.length === 0) return setState({ kind: 'empty' })
       setState({ kind: 'ready', items })
     } catch (e) {
-      setState({ kind: 'error', error: e instanceof Error ? e.message : 'Failed to load' })
+      setState({ kind: 'error', error: e instanceof Error ? e.message : t('calculators.page.failedToLoad') })
     }
   }
 
@@ -53,15 +57,16 @@ export default function Calculators() {
     for (const item of state.items) {
       if (!hasCalculator(item)) continue
       const d = findCalculator(item)!
-      const hay = `${d.title} ${d.description} ${item.line_item} ${item.gri_code} ${item.section}`.toLowerCase()
+      const ld = localizeCalc(t, d)
+      const hay = `${d.title} ${d.description} ${ld.title} ${ld.description} ${item.line_item} ${itemLabel(item, i18n.language)} ${item.gri_code} ${item.section}`.toLowerCase()
       if (q && !hay.includes(q)) continue
-      if (!byDescriptor.has(d.id)) byDescriptor.set(d.id, { descriptor: d, items: [] })
+      if (!byDescriptor.has(d.id)) byDescriptor.set(d.id, { descriptor: ld, items: [] })
       byDescriptor.get(d.id)!.items.push(item)
     }
     return CALCULATORS
       .map(d => byDescriptor.get(d.id))
       .filter((g): g is NonNullable<typeof g> => !!g)
-  }, [state, query])
+  }, [state, query, t, i18n.language])
 
   // List line items marked Calculator-mode but missing a registered
   // descriptor. Dedupe happens upstream in nexus.tree().
@@ -84,9 +89,9 @@ export default function Calculators() {
         <div className="flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-[var(--status-reject)] flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="font-semibold text-[var(--text-primary)]">Unable to load calculators</h3>
+            <h3 className="font-semibold text-[var(--text-primary)]">{t('calculators.page.errorTitle')}</h3>
             <p className="text-[var(--text-sm)] text-[var(--text-secondary)] font-mono mt-1">{state.error}</p>
-            <button onClick={load} className="mt-3 text-[var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">Retry</button>
+            <button onClick={load} className="mt-3 text-[var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">{t('calculators.page.retry')}</button>
           </div>
         </div>
       </div>
@@ -99,11 +104,11 @@ export default function Calculators() {
     <div className="page-container space-y-5 animate-fade-in">
       <PageHeader
         breadcrumbs={[
-          { label: 'Data', to: '/data' },
-          { label: 'Calculators' },
+          { label: t('calculators.page.breadcrumbData'), to: '/data' },
+          { label: t('calculators.page.title') },
         ]}
-        title="Calculators"
-        description="Typed calculators wired to specific GRI line items. Each calculator's inputs, formula and methodology match how the published SPD derives that cell."
+        title={t('calculators.page.title')}
+        description={t('calculators.page.description')}
       />
 
       <div className="flex items-center gap-3">
@@ -112,13 +117,13 @@ export default function Calculators() {
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search calculators or GRI codes…"
+            placeholder={t('calculators.page.searchPlaceholder')}
             className="w-full pl-10 pr-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none"
           />
         </div>
         <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] whitespace-nowrap">
-          <span className="font-semibold text-[var(--text-primary)]">{groups.length}</span> calculators covering
-          <span className="font-semibold text-[var(--text-primary)] mx-1">{totalCovered}</span> line items
+          <span className="font-semibold text-[var(--text-primary)]">{groups.length}</span> {t('calculators.page.summaryCalculators')}
+          <span className="font-semibold text-[var(--text-primary)] mx-1">{totalCovered}</span> {t('calculators.page.summaryLineItems')}
         </div>
       </div>
 
@@ -126,7 +131,7 @@ export default function Calculators() {
         <div className="space-y-3">
         {groups.length === 0 && (
           <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] p-10 text-center text-[var(--text-sm)] text-[var(--text-tertiary)]">
-            No calculators matching "{query}".
+            {t('calculators.page.noMatch', { query })}
           </div>
         )}
 
@@ -144,7 +149,7 @@ export default function Calculators() {
                 </div>
               </div>
               <span className="px-2 py-0.5 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)] text-[var(--text-tertiary)] text-[10px] font-semibold uppercase tracking-wider whitespace-nowrap">
-                {items.length} line {items.length === 1 ? 'item' : 'items'}
+                {t('calculators.page.lineItemCount', { count: items.length })}
               </span>
             </div>
 
@@ -153,7 +158,7 @@ export default function Calculators() {
               {descriptor.inputs.map(inp => (
                 <span key={inp.key} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[var(--radius-xs)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
                   {inp.label}
-                  {inp.unit && <span className="text-[var(--text-tertiary)]">({inp.unit})</span>}
+                  {inp.unit && <span className="text-[var(--text-tertiary)]">({localizeUnit(t, inp.unit)})</span>}
                 </span>
               ))}
             </div>
@@ -169,7 +174,7 @@ export default function Calculators() {
                 >
                   <div className="min-w-0 flex-1">
                     <div className="text-[var(--text-xs)] font-medium text-[var(--text-primary)] group-hover:text-[var(--color-brand-strong)] truncate">
-                      {it.line_item}
+                      {itemLabel(it, i18n.language)}
                     </div>
                     <div className="text-[10px] text-[var(--text-tertiary)]">
                       {it.section} · {it.gri_code}
@@ -185,7 +190,7 @@ export default function Calculators() {
 
             {descriptor.footnotes && descriptor.footnotes.length > 0 && (
               <div className="px-5 py-2 bg-[var(--bg-secondary)] text-[10px] text-[var(--text-tertiary)] italic border-t border-[var(--border-subtle)]">
-                Methodology: {descriptor.footnotes.join('; ')}
+                {t('calculators.page.methodology', { notes: descriptor.footnotes.join(t('calculators.page.listSeparator')) })}
               </div>
             )}
           </div>
@@ -199,23 +204,23 @@ export default function Calculators() {
         <section className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-secondary)]/40 p-4">
           <div className="flex items-center gap-2 text-[var(--text-xs)] text-[var(--text-tertiary)] mb-2">
             <Info className="w-3.5 h-3.5" />
-            <span className="font-semibold uppercase tracking-wider">Coverage gap — {uncovered.length} items</span>
-            <span>— marked as Calculator mode in the seed but no typed formula registered yet.</span>
+            <span className="font-semibold uppercase tracking-wider">{t('calculators.page.coverageGap', { count: uncovered.length })}</span>
+            <span>{t('calculators.page.coverageGapNote')}</span>
           </div>
           <div className="grid grid-cols-2 gap-1.5">
             {uncovered.slice(0, 10).map(it => (
               <div key={it.id} className="text-[10px] text-[var(--text-secondary)] px-2 py-1 rounded-[var(--radius-sm)] bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
-                <span className="font-mono text-[var(--text-tertiary)]">{it.gri_code}</span> — {it.line_item}
+                <span className="font-mono text-[var(--text-tertiary)]">{it.gri_code}</span> — {itemLabel(it, i18n.language)}
               </div>
             ))}
-            {uncovered.length > 10 && <div className="text-[10px] text-[var(--text-tertiary)] italic px-2 py-1">…and {uncovered.length - 10} more</div>}
+            {uncovered.length > 10 && <div className="text-[10px] text-[var(--text-tertiary)] italic px-2 py-1">{t('calculators.page.andMore', { count: uncovered.length - 10 })}</div>}
           </div>
         </section>
       )}
 
       <div className="flex items-center justify-end gap-2 pt-2">
-        <Button variant="secondary" size="sm" onClick={() => navigate('/questionnaires')}>Open GRI tree</Button>
-        <Button variant="primary" size="sm" onClick={() => navigate('/data/entry')}>Data entry</Button>
+        <Button variant="secondary" size="sm" onClick={() => navigate('/questionnaires')}>{t('calculators.page.openGriTree')}</Button>
+        <Button variant="primary" size="sm" onClick={() => navigate('/data/entry')}>{t('calculators.page.dataEntry')}</Button>
       </div>
     </div>
   )

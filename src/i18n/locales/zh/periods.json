@@ -1,0 +1,51 @@
+{
+  "header": {
+    "eyebrow": "报告期",
+    "title": "报告周期",
+    "subtitle": "设置 → 进行中 → 已锁定 → 已发布。锁定后将冻结任务编辑；发布时将生成哈希，报告期永久只读。"
+  },
+  "newPeriod": "新建报告期",
+  "empty": {
+    "title": "暂无报告期",
+    "body": "创建报告期以开放任务并开始收集数据。"
+  },
+  "card": {
+    "fy": "{{year}} 财年",
+    "start": "开始日期",
+    "end": "结束日期",
+    "deadline": "截止日期",
+    "framework": "框架",
+    "lockedAt": "锁定于 {{date}}",
+    "published": "已发布"
+  },
+  "actions": {
+    "start": "启动报告期",
+    "lock": "锁定",
+    "publish": "发布",
+    "archive": "归档"
+  },
+  "confirm": {
+    "lock": "确定锁定「{{label}}」？锁定后将无法编辑任务。",
+    "publish": "确定发布「{{label}}」？发布将生成哈希，报告期将永久只读。",
+    "archive": "确定归档「{{label}}」？"
+  },
+  "alerts": {
+    "transitionFailed": "状态变更失败：{{message}}",
+    "createFailed": "创建失败：{{message}}"
+  },
+  "status": {
+    "setup": "设置中",
+    "active": "进行中",
+    "locked": "已锁定",
+    "published": "已发布",
+    "archived": "已归档"
+  },
+  "drawer": {
+    "title": "新建报告期",
+    "year": "年度",
+    "label": "名称",
+    "deadline": "提交截止日期",
+    "notes": "备注（选填）",
+    "create": "创建"
+  }
+}

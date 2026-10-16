@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Trash2, Search } from 'lucide-react'
 import type { PcafAsset, PcafAssetClass } from '../../lib/api'
 import { pcaf as pcafApi } from '../../lib/api'
@@ -44,6 +45,9 @@ const fmtTons = (v: number): string => {
 }
 
 export default function PortfolioGrid({ assets, onChange }: Props) {
+  const { t } = useTranslation()
+  const classLabel = (ac: PcafAssetClass): string =>
+    t(`pcaf.assetClasses.${ac}.label`, { defaultValue: ASSET_CLASS_LABEL[ac] ?? ac })
   const [filterClass, setFilterClass] = useState<PcafAssetClass | ''>('')
   const [query, setQuery] = useState('')
   const [pendingDelete, setPendingDelete] = useState<string | null>(null)
@@ -77,7 +81,7 @@ export default function PortfolioGrid({ assets, onChange }: Props) {
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search counterparty…"
+            placeholder={t('pcaf.grid.searchPlaceholder')}
             className="w-full pl-7 pr-2 py-1.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-sm)]"
           />
         </div>
@@ -86,13 +90,13 @@ export default function PortfolioGrid({ assets, onChange }: Props) {
           onChange={e => setFilterClass(e.target.value as PcafAssetClass | '')}
           className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2 py-1.5 text-[var(--text-sm)]"
         >
-          <option value="">All asset classes</option>
-          {Object.entries(ASSET_CLASS_LABEL).map(([k, label]) => (
-            <option key={k} value={k}>{label}</option>
+          <option value="">{t('pcaf.grid.allAssetClasses')}</option>
+          {(Object.keys(ASSET_CLASS_LABEL) as PcafAssetClass[]).map(k => (
+            <option key={k} value={k}>{classLabel(k)}</option>
           ))}
         </select>
         <span className="text-[12px] text-[var(--text-tertiary)] ml-auto">
-          {filtered.length} of {assets.length} assets
+          {t('pcaf.grid.countSummary', { shown: filtered.length, count: assets.length })}
         </span>
       </div>
 
@@ -100,12 +104,12 @@ export default function PortfolioGrid({ assets, onChange }: Props) {
         <table className="w-full text-[var(--text-sm)]">
           <thead>
             <tr className="text-left text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] bg-[var(--bg-secondary)]">
-              <th className="px-3 py-2 font-medium">Counterparty</th>
-              <th className="px-3 py-2 font-medium">Asset class</th>
-              <th className="px-3 py-2 font-medium text-right">Outstanding</th>
-              <th className="px-3 py-2 font-medium text-right">Attribution</th>
-              <th className="px-3 py-2 font-medium text-right">Financed</th>
-              <th className="px-3 py-2 font-medium text-center">DQ</th>
+              <th className="px-3 py-2 font-medium">{t('pcaf.grid.counterparty')}</th>
+              <th className="px-3 py-2 font-medium">{t('pcaf.grid.assetClass')}</th>
+              <th className="px-3 py-2 font-medium text-right">{t('pcaf.grid.outstanding')}</th>
+              <th className="px-3 py-2 font-medium text-right">{t('pcaf.grid.attribution')}</th>
+              <th className="px-3 py-2 font-medium text-right">{t('pcaf.grid.financed')}</th>
+              <th className="px-3 py-2 font-medium text-center">{t('pcaf.grid.dq')}</th>
               <th className="px-3 py-2 font-medium" />
             </tr>
           </thead>
@@ -113,7 +117,7 @@ export default function PortfolioGrid({ assets, onChange }: Props) {
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-3 py-8 text-center text-[var(--text-tertiary)]">
-                  No assets match your filter. Click <span className="font-medium">Add asset</span> to add the first one.
+                  {t('pcaf.grid.emptyBefore')}<span className="font-medium">{t('pcaf.grid.emptyAction')}</span>{t('pcaf.grid.emptyAfter')}
                 </td>
               </tr>
             ) : filtered.map(a => (
@@ -124,7 +128,7 @@ export default function PortfolioGrid({ assets, onChange }: Props) {
                     <div className="text-[10px] text-[var(--text-tertiary)]">{a.counterparty_sector}{a.counterparty_country ? ` · ${a.counterparty_country}` : ''}</div>
                   ) : null}
                 </td>
-                <td className="px-3 py-2 text-[var(--text-secondary)]">{ASSET_CLASS_LABEL[a.asset_class]}</td>
+                <td className="px-3 py-2 text-[var(--text-secondary)]">{classLabel(a.asset_class)}</td>
                 <td className="px-3 py-2 text-right text-[var(--text-primary)]">{fmtUsd(num(a.outstanding_amount))}</td>
                 <td className="px-3 py-2 text-right text-[var(--text-secondary)]">{num(a.attribution_factor).toFixed(4)}</td>
                 <td className="px-3 py-2 text-right text-[var(--text-primary)] font-medium">{fmtTons(num(a.financed_emissions_total))} CO₂e</td>
@@ -139,19 +143,19 @@ export default function PortfolioGrid({ assets, onChange }: Props) {
                         disabled={busy === a.id}
                         className="text-rose-400 hover:text-rose-300 text-[11px] font-medium px-1.5 py-0.5 rounded"
                       >
-                        Confirm
+                        {t('pcaf.grid.confirm')}
                       </button>
                       <button
                         onClick={() => setPendingDelete(null)}
                         className="text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] text-[11px] px-1.5 py-0.5"
                       >
-                        Cancel
+                        {t('pcaf.grid.cancel')}
                       </button>
                     </span>
                   ) : (
                     <button
                       onClick={() => setPendingDelete(a.id)}
-                      title="Delete"
+                      title={t('pcaf.grid.delete')}
                       className="text-[var(--text-tertiary)] hover:text-rose-400 p-1 rounded"
                     >
                       <Trash2 className="w-3.5 h-3.5" />

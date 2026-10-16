@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { FileText, ArrowRight, Paperclip, Info } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
 import { SkeletonTable } from '../components/Skeleton'
@@ -7,6 +8,7 @@ import EmptyState from '../components/EmptyState'
 import { EmptyEvidenceIllustration } from '../data/illustrations'
 import { useAuth } from '../auth/AuthContext'
 import { orgStore, type QuestionAssignment } from '../lib/orgStore'
+import { itemLabel } from '../lib/itemLabel'
 
 /**
  * EvidenceLibrary — a top-level browsable list of every file attached to
@@ -14,6 +16,7 @@ import { orgStore, type QuestionAssignment } from '../lib/orgStore'
  * `evidence_ids` are populated; no dedicated endpoint yet.
  */
 export default function EvidenceLibrary() {
+  const { t, i18n } = useTranslation()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -54,16 +57,19 @@ export default function EvidenceLibrary() {
     <div className="page-container space-y-6">
       <PageHeader
         breadcrumbs={[
-          { label: 'Data', to: '/data' },
-          { label: 'Evidence' },
+          { label: t('evidence.breadcrumbs.data'), to: '/data' },
+          { label: t('evidence.breadcrumbs.evidence') },
         ]}
-        title="Evidence"
+        title={t('evidence.title')}
         description={
           items === null
-            ? 'Listing every file attached to disclosures across this org.'
+            ? t('evidence.description.loading')
             : evidenced.length === 0
-              ? 'No evidence uploaded yet. Attach files to disclosures from the data-entry page.'
-              : `${totalFiles} file${totalFiles === 1 ? '' : 's'} attached across ${evidenced.length} disclosure${evidenced.length === 1 ? '' : 's'}.`
+              ? t('evidence.description.empty')
+              : t('evidence.description.summary', {
+                  files: t('evidence.description.fileCount', { count: totalFiles }),
+                  disclosures: t('evidence.description.disclosureCount', { count: evidenced.length }),
+                })
         }
       />
 
@@ -74,20 +80,20 @@ export default function EvidenceLibrary() {
         >
           <Info className="w-4 h-4 mt-0.5 text-[var(--color-brand)] flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <div className="font-semibold text-[var(--text-primary)]">Attach evidence to a disclosure</div>
+            <div className="font-semibold text-[var(--text-primary)]">{t('evidence.uploadPrompt.title')}</div>
             <p className="text-[var(--text-secondary)] mt-0.5">
-              Evidence is anchored to a specific value. Open a disclosure from My Tasks and use the right-rail "Attach evidence" button to upload a file.
+              {t('evidence.uploadPrompt.body')}
             </p>
           </div>
           <button
             onClick={() => navigate('/my-tasks')}
             className="text-[12.5px] font-semibold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] inline-flex items-center gap-1"
           >
-            Open My Tasks <ArrowRight className="w-3 h-3" />
+            {t('evidence.uploadPrompt.openMyTasks')} <ArrowRight className="w-3 h-3" />
           </button>
           <button
             onClick={() => setShowUploadPrompt(false)}
-            aria-label="Dismiss"
+            aria-label={t('evidence.uploadPrompt.dismiss')}
             className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] text-[16px] leading-none px-1"
           >
             ×
@@ -102,9 +108,9 @@ export default function EvidenceLibrary() {
           <EmptyState
             illustration={EmptyEvidenceIllustration}
             icon={Paperclip}
-            title="No evidence yet"
-            body="Open any disclosure in My Tasks and attach a supporting file. Once evidence is uploaded it will appear here, fully searchable."
-            cta={{ label: 'Open My Tasks', onClick: () => navigate('/my-tasks') }}
+            title={t('evidence.empty.title')}
+            body={t('evidence.empty.body')}
+            cta={{ label: t('evidence.empty.cta'), onClick: () => navigate('/my-tasks') }}
           />
         </div>
       ) : (
@@ -112,10 +118,10 @@ export default function EvidenceLibrary() {
           <table className="w-full text-[13px]">
             <thead className="bg-[var(--bg-secondary)] text-[11px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)]">
               <tr>
-                <th className="text-left px-4 py-3">Disclosure</th>
-                <th className="text-left px-4 py-3">Files</th>
-                <th className="text-left px-4 py-3">Assignee</th>
-                <th className="text-left px-4 py-3">Last updated</th>
+                <th className="text-left px-4 py-3">{t('evidence.columns.disclosure')}</th>
+                <th className="text-left px-4 py-3">{t('evidence.columns.files')}</th>
+                <th className="text-left px-4 py-3">{t('evidence.columns.assignee')}</th>
+                <th className="text-left px-4 py-3">{t('evidence.columns.lastUpdated')}</th>
                 <th className="w-10" />
               </tr>
             </thead>
@@ -124,7 +130,7 @@ export default function EvidenceLibrary() {
                 <tr key={a.id} className="hover:bg-[var(--bg-hover)]">
                   <td className="px-4 py-3">
                     <div className="font-mono text-[11px] text-[var(--text-tertiary)]">{a.gri_code}</div>
-                    <div className="text-[var(--text-primary)] font-medium truncate max-w-[420px]">{a.line_item}</div>
+                    <div className="text-[var(--text-primary)] font-medium truncate max-w-[420px]">{itemLabel(a, i18n.language)}</div>
                   </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center gap-1.5 text-[var(--text-secondary)]">
@@ -134,13 +140,13 @@ export default function EvidenceLibrary() {
                   </td>
                   <td className="px-4 py-3 text-[var(--text-secondary)] truncate max-w-[200px]">{a.assigneeName ?? '—'}</td>
                   <td className="px-4 py-3 text-[var(--text-tertiary)]">
-                    {a.last_updated ? new Date(a.last_updated).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                    {a.last_updated ? new Date(a.last_updated).toLocaleDateString(i18n.language?.startsWith('zh') ? 'zh-CN' : undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
                       onClick={() => navigate(`/data/entry/${a.questionId}`)}
                       className="text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] inline-flex items-center"
-                      aria-label="Open disclosure"
+                      aria-label={t('evidence.openDisclosure')}
                     >
                       <ArrowRight className="w-4 h-4" />
                     </button>

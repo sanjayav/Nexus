@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import Papa from 'papaparse'
 import { Plug, FileUp, AlertTriangle, Check, ArrowLeft, Database, Cloud, Layers, X, Briefcase, Server, Zap } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
@@ -21,12 +22,39 @@ const IMPORT_SLOW_THRESHOLD_MS = 5 * 60 * 1000
 
 type SourceKey = 'sap_s4hana' | 'netsuite' | 'snowflake' | 'generic_csv'
 
-const SOURCES: Array<{ key: SourceKey; name: string; subtitle: string; icon: typeof Database }> = [
-  { key: 'sap_s4hana', name: 'SAP S/4HANA', subtitle: 'Cost-center energy + MM fuel POs', icon: Database },
-  { key: 'netsuite',   name: 'NetSuite',    subtitle: 'Utility bills + Travel & expense', icon: Layers },
-  { key: 'snowflake',  name: 'Snowflake',   subtitle: 'Generic activity-data passthrough', icon: Cloud },
-  { key: 'generic_csv',name: 'Generic CSV', subtitle: 'Bring your own column mapping',     icon: FileUp },
+/** `name` is a product name (not translated) unless `nameKey` is set;
+ *  `subtitleKey` is an i18n key resolved at render. */
+const SOURCES: Array<{ key: SourceKey; name: string; nameKey?: string; subtitleKey: string; icon: typeof Database }> = [
+  { key: 'sap_s4hana', name: 'SAP S/4HANA', subtitleKey: 'connectorsPage.sources.sap_s4hana.subtitle', icon: Database },
+  { key: 'netsuite',   name: 'NetSuite',    subtitleKey: 'connectorsPage.sources.netsuite.subtitle',   icon: Layers },
+  { key: 'snowflake',  name: 'Snowflake',   subtitleKey: 'connectorsPage.sources.snowflake.subtitle',  icon: Cloud },
+  { key: 'generic_csv',name: 'Generic CSV', nameKey: 'connectorsPage.sources.generic_csv.name', subtitleKey: 'connectorsPage.sources.generic_csv.subtitle', icon: FileUp },
 ]
+
+/**
+ * Client-side widening of ConnectorAdapterInfo (declared in lib/api.ts) for
+ * optional fields the connector registry may expose: Simplified Chinese
+ * display copy and a not-yet-live marker for connectors that are listed but
+ * cannot be connected yet. Several spellings of the not-live flag are
+ * accepted so the page stays correct whichever one the registry uses.
+ */
+type AdapterView = ConnectorAdapterInfo & {
+  nameZh?: string | null
+  descriptionZh?: string | null
+  live?: boolean
+  available?: boolean
+  comingSoon?: boolean
+  status?: string
+  availability?: string
+}
+
+function isNotLive(a: AdapterView): boolean {
+  return a.live === false
+    || a.available === false
+    || a.comingSoon === true
+    || a.status === 'coming_soon'
+    || a.availability === 'coming_soon'
+}
 
 interface ParsedCsv {
   fileName: string
@@ -48,6 +76,10 @@ const PROVIDER_ICONS: Record<ConnectorProvider, typeof Database> = {
 }
 
 export default function Connectors() {
+  const { t, i18n } = useTranslation()
+  const isZh = i18n.language?.startsWith('zh') ?? false
+  const dateLocale = isZh ? 'zh-CN' : i18n.language?.startsWith('th') ? 'th-TH' : undefined
+  const fmtDateTime = (iso: string) => new Date(iso).toLocaleString(dateLocale)
   const [allTemplates, setAllTemplates] = useState<ConnectorTemplate[]>([])
   const [loadingTemplates, setLoadingTemplates] = useState(true)
   const [adapters, setAdapters] = useState<ConnectorAdapterInfo[]>([])
@@ -75,10 +107,10 @@ export default function Connectors() {
     ;(async () => {
       setLoadingTemplates(true)
       try {
-        const t = await connectors.templates()
-        if (!cancelled) setAllTemplates(t)
+        const tpls = await connectors.templates()
+        if (!cancelled) setAllTemplates(tpls)
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load templates')
+        if (!cancelled) setError(e instanceof Error ? e.message : t('connectorsPage.errors.loadTemplates'))
       } finally {
         if (!cancelled) setLoadingTemplates(false)
       }
@@ -107,7 +139,7 @@ export default function Connectors() {
       // which redirects back to /data/connectors/:connectionId.
       window.location.assign(authorizationUrl)
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Failed to start OAuth'
+      const msg = e instanceof Error ? e.message : t('connectorsPage.errors.startOAuth')
       // Common case: the server admin hasn't set CLIENT_ID / SECRET env vars
       // for this provider yet. Surface that clearly rather than as a stack trace.
       showError(msg)
@@ -154,7 +186,7 @@ export default function Connectors() {
     // but the user perception is the same).
     importAbortRef.current = new AbortController()
     slowTimerRef.current = setTimeout(() => {
-      showWarning('Import is taking longer than expected — you can leave this page and check back in Recent imports.')
+      showWarning(t('connectorsPage.toast.importSlow'))
     }, IMPORT_SLOW_THRESHOLD_MS)
     try {
       const result = await connectors.import({
@@ -166,7 +198,7 @@ export default function Connectors() {
       await loadImports()
     } catch (e) {
       // Distinguish a user-initiated cancel from a real failure.
-      const msg = e instanceof Error ? e.message : 'Import failed'
+      const msg = e instanceof Error ? e.message : t('connectorsPage.errors.importFailed')
       if (importAbortRef.current?.signal.aborted) {
         setError(null)
       } else {
@@ -211,12 +243,12 @@ export default function Connectors() {
     <div className="page-container">
       <PageHeader
         breadcrumbs={[
-          { label: 'Data', to: '/data' },
-          { label: 'Connectors' },
+          { label: t('connectorsPage.breadcrumbs.data'), to: '/data' },
+          { label: t('connectorsPage.breadcrumbs.connectors') },
         ]}
-        eyebrow="Data ingestion"
-        title="ERP connectors"
-        subtitle="Pre-built CSV mapping templates for SAP S/4HANA, NetSuite, and Snowflake. Upload an export, preview the mapping, and ingest as draft activity data."
+        eyebrow={t('connectorsPage.eyebrow')}
+        title={t('connectorsPage.title')}
+        subtitle={t('connectorsPage.subtitle')}
       />
 
       {error && (
@@ -232,14 +264,18 @@ export default function Connectors() {
       {adapters.length > 0 && (
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">Live integrations</h3>
-            <Badge variant="gray">{adapters.length} providers</Badge>
+            <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">{t('connectorsPage.live.heading')}</h3>
+            <Badge variant="gray">{t('connectorsPage.live.providers', { count: adapters.length })}</Badge>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {adapters.map(a => {
+            {(adapters as AdapterView[]).map(a => {
               const Icon = PROVIDER_ICONS[a.id] ?? Database
-              const conn = connectionByProvider.get(a.id)
-              const status =
+              const notLive = isNotLive(a)
+              // A not-yet-live connector is never presented as connected or connectable.
+              const conn = notLive ? undefined : connectionByProvider.get(a.id)
+              const displayName = (isZh && a.nameZh) || a.name
+              const displayDescription = (isZh && a.descriptionZh) || a.description
+              const status = notLive ? 'coming_soon' :
                 conn?.status === 'active' ? 'connected'
                   : conn?.status === 'error' ? 'error'
                     : conn?.status === 'disabled' ? 'disconnected'
@@ -252,26 +288,36 @@ export default function Connectors() {
                       <Icon className="w-4 h-4 text-[var(--text-secondary)]" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-[var(--text-primary)] text-[14px]">{a.name}</div>
-                      <div className="text-[11.5px] text-[var(--text-tertiary)] uppercase tracking-wide mt-0.5">{a.category}</div>
+                      <div className="font-semibold text-[var(--text-primary)] text-[14px]">{displayName}</div>
+                      <div className="text-[11.5px] text-[var(--text-tertiary)] uppercase tracking-wide mt-0.5">{t(`connectorsPage.categories.${a.category}`, { defaultValue: a.category })}</div>
                     </div>
-                    {status === 'connected' && <Badge variant="green">Connected</Badge>}
-                    {status === 'error' && <Badge variant="red">Error</Badge>}
-                    {status === 'disconnected' && <Badge variant="gray">Disconnected</Badge>}
+                    {status === 'connected' && <Badge variant="green">{t('connectorsPage.live.connected')}</Badge>}
+                    {status === 'error' && <Badge variant="red">{t('connectorsPage.live.error')}</Badge>}
+                    {status === 'disconnected' && <Badge variant="gray">{t('connectorsPage.live.disconnected')}</Badge>}
+                    {status === 'coming_soon' && <Badge variant="gray">{t('connectorsPage.live.comingSoon')}</Badge>}
                   </div>
-                  <div className="text-[12.5px] text-[var(--text-secondary)] mb-3 line-clamp-2">{a.description}</div>
+                  <div className="text-[12.5px] text-[var(--text-secondary)] mb-3 line-clamp-2">{displayDescription}</div>
                   {conn?.last_sync_at && (
                     <div className="text-[11.5px] text-[var(--text-tertiary)] mb-3">
-                      Last sync: {new Date(conn.last_sync_at).toLocaleString()}
+                      {t('connectorsPage.live.lastSync', { date: fmtDateTime(conn.last_sync_at) })}
                     </div>
                   )}
                   <div className="mt-auto flex items-center gap-2">
-                    {conn ? (
+                    {notLive ? (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled
+                        title={t('connectorsPage.live.comingSoonHint')}
+                      >
+                        {t('connectorsPage.live.comingSoon')}
+                      </Button>
+                    ) : conn ? (
                       <Link
                         to={`/data/connectors/${conn.id}`}
                         className="px-3 py-1.5 text-[12.5px] rounded-md border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
                       >
-                        Manage
+                        {t('connectorsPage.live.manage')}
                       </Link>
                     ) : a.authType === 'oauth2' ? (
                       <Button
@@ -280,20 +326,20 @@ export default function Connectors() {
                         loading={isStarting}
                         disabled={!a.serverConfigured}
                         onClick={() => handleConnect(a.id)}
-                        title={a.serverConfigured ? undefined : 'Server admin must set OAuth client_id / secret env vars'}
+                        title={a.serverConfigured ? undefined : t('connectorsPage.live.serverNotConfiguredTitle')}
                       >
-                        Connect
+                        {t('connectorsPage.live.connect')}
                       </Button>
                     ) : (
                       <Link
                         to={`/data/connectors/new?provider=${a.id}`}
                         className="px-3 py-1.5 text-[12.5px] rounded-md bg-[var(--accent-blue)] text-white hover:opacity-90"
                       >
-                        Configure
+                        {t('connectorsPage.live.configure')}
                       </Link>
                     )}
-                    {!a.serverConfigured && a.authType === 'oauth2' && (
-                      <span className="text-[11px] text-[var(--text-tertiary)]">Server not configured</span>
+                    {!notLive && !a.serverConfigured && a.authType === 'oauth2' && (
+                      <span className="text-[11px] text-[var(--text-tertiary)]">{t('connectorsPage.live.serverNotConfigured')}</span>
                     )}
                   </div>
                 </Card>
@@ -308,7 +354,7 @@ export default function Connectors() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {SOURCES.map(s => {
               const Icon = s.icon
-              const count = allTemplates.filter(t => t.source === s.key).length
+              const count = allTemplates.filter(tpl => tpl.source === s.key).length
               return (
                 <Card key={s.key} variant="paper" hover className="cursor-pointer" onClick={() => setSelectedSource(s.key)}>
                   <div className="flex items-start gap-3">
@@ -316,9 +362,9 @@ export default function Connectors() {
                       <Icon className="w-4 h-4 text-[var(--text-secondary)]" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-[var(--text-primary)] text-[14px]">{s.name}</div>
-                      <div className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">{s.subtitle}</div>
-                      <div className="mt-3"><Badge variant="gray">{count} template{count === 1 ? '' : 's'}</Badge></div>
+                      <div className="font-semibold text-[var(--text-primary)] text-[14px]">{s.nameKey ? t(s.nameKey) : s.name}</div>
+                      <div className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">{t(s.subtitleKey)}</div>
+                      <div className="mt-3"><Badge variant="gray">{t('connectorsPage.templatesCount', { count })}</Badge></div>
                     </div>
                   </div>
                 </Card>
@@ -332,11 +378,11 @@ export default function Connectors() {
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-4">
             <Button variant="ghost" size="sm" icon={<ArrowLeft className="w-4 h-4" />} onClick={() => setSelectedSource(null)}>
-              All sources
+              {t('connectorsPage.allSources')}
             </Button>
             <span className="text-[13px] text-[var(--text-tertiary)]">/</span>
             <span className="text-[13px] text-[var(--text-primary)] font-medium">
-              {SOURCES.find(s => s.key === selectedSource)?.name}
+              {(() => { const src = SOURCES.find(s => s.key === selectedSource); return src ? (src.nameKey ? t(src.nameKey) : src.name) : null })()}
             </span>
           </div>
           {loadingTemplates ? (
@@ -345,21 +391,21 @@ export default function Connectors() {
               <SkeletonCard />
             </div>
           ) : sourceTemplates.length === 0 ? (
-            <Card variant="paper"><div className="text-[13px] text-[var(--text-tertiary)]">No templates available for this source yet.</div></Card>
+            <Card variant="paper"><div className="text-[13px] text-[var(--text-tertiary)]">{t('connectorsPage.noTemplates')}</div></Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {sourceTemplates.map(t => (
-                <Card key={t.id} variant="paper" hover className="cursor-pointer" onClick={() => setSelectedTemplate(t)}>
+              {sourceTemplates.map(tpl => (
+                <Card key={tpl.id} variant="paper" hover className="cursor-pointer" onClick={() => setSelectedTemplate(tpl)}>
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="font-semibold text-[var(--text-primary)] text-[14px]">{t.name}</div>
-                    {t.scope !== null && <Badge variant="blue">Scope {t.scope}</Badge>}
+                    <div className="font-semibold text-[var(--text-primary)] text-[14px]">{tpl.name}</div>
+                    {tpl.scope !== null && <Badge variant="blue">{t('connectorsPage.scope', { scope: tpl.scope })}</Badge>}
                   </div>
-                  <div className="text-[12.5px] text-[var(--text-secondary)] mb-3">{t.description}</div>
-                  <div className="text-[11px] text-[var(--text-tertiary)] uppercase tracking-wide mb-1">Required columns</div>
+                  <div className="text-[12.5px] text-[var(--text-secondary)] mb-3">{tpl.description}</div>
+                  <div className="text-[11px] text-[var(--text-tertiary)] uppercase tracking-wide mb-1">{t('connectorsPage.requiredColumns')}</div>
                   <div className="flex flex-wrap gap-1.5">
-                    {t.required_columns.length === 0
-                      ? <span className="text-[12px] text-[var(--text-tertiary)]">User-defined</span>
-                      : t.required_columns.map(c => (
+                    {tpl.required_columns.length === 0
+                      ? <span className="text-[12px] text-[var(--text-tertiary)]">{t('connectorsPage.userDefined')}</span>
+                      : tpl.required_columns.map(c => (
                           <code key={c} className="px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] text-[11px] font-mono text-[var(--text-secondary)]">{c}</code>
                         ))}
                   </div>
@@ -374,7 +420,7 @@ export default function Connectors() {
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-4">
             <Button variant="ghost" size="sm" icon={<ArrowLeft className="w-4 h-4" />} onClick={resetTemplate}>
-              Back to templates
+              {t('connectorsPage.backToTemplates')}
             </Button>
             <span className="text-[13px] text-[var(--text-tertiary)]">/</span>
             <span className="text-[13px] text-[var(--text-primary)] font-medium">{selectedTemplate.name}</span>
@@ -383,10 +429,10 @@ export default function Connectors() {
           <Card variant="paper" className="mb-4">
             <div className="flex items-start justify-between gap-3 mb-3">
               <div>
-                <div className="text-[14px] font-semibold text-[var(--text-primary)]">Upload CSV</div>
+                <div className="text-[14px] font-semibold text-[var(--text-primary)]">{t('connectorsPage.uploadCsv')}</div>
                 <div className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">{selectedTemplate.description}</div>
               </div>
-              {selectedTemplate.scope !== null && <Badge variant="blue">Scope {selectedTemplate.scope}</Badge>}
+              {selectedTemplate.scope !== null && <Badge variant="blue">{t('connectorsPage.scope', { scope: selectedTemplate.scope })}</Badge>}
             </div>
             <label className="block">
               <input
@@ -408,20 +454,20 @@ export default function Connectors() {
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <div className="text-[14px] font-semibold text-[var(--text-primary)]">{csv.fileName}</div>
-                  <div className="text-[12.5px] text-[var(--text-secondary)]">{csv.rows.length} row{csv.rows.length === 1 ? '' : 's'} parsed (preview of first 10)</div>
+                  <div className="text-[12.5px] text-[var(--text-secondary)]">{t('connectorsPage.rowsParsed', { count: csv.rows.length })}</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button variant="primary" onClick={handleImport} loading={importing} icon={<FileUp className="w-4 h-4" />}>
-                    Import {csv.rows.length} rows
+                    {t('connectorsPage.importRows', { count: csv.rows.length })}
                   </Button>
                   {importing && (
                     <Button
                       variant="ghost"
                       onClick={handleCancelImport}
                       icon={<X className="w-4 h-4" />}
-                      title="Stop watching this import. The job keeps running on the server; results will appear in Recent imports."
+                      title={t('connectorsPage.cancelTitle')}
                     >
-                      Cancel
+                      {t('connectorsPage.cancel')}
                     </Button>
                   )}
                 </div>
@@ -464,9 +510,9 @@ export default function Connectors() {
                   ? <Check className="w-5 h-5 text-[var(--accent-green)]" />
                   : <AlertTriangle className="w-5 h-5 text-[var(--accent-amber)]" />}
                 <div>
-                  <div className="text-[14px] font-semibold text-[var(--text-primary)]">Import complete</div>
+                  <div className="text-[14px] font-semibold text-[var(--text-primary)]">{t('connectorsPage.importComplete')}</div>
                   <div className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">
-                    {importResult.imported} imported · {importResult.failed} failed · {importResult.total} total
+                    {t('connectorsPage.importSummary', { imported: importResult.imported, failed: importResult.failed, total: importResult.total })}
                   </div>
                 </div>
               </div>
@@ -475,8 +521,8 @@ export default function Connectors() {
                   <table className="w-full text-[12px]">
                     <thead className="bg-[var(--bg-secondary)]">
                       <tr>
-                        <th className="px-2 py-1.5 text-left text-[var(--text-secondary)] font-medium">Row</th>
-                        <th className="px-2 py-1.5 text-left text-[var(--text-secondary)] font-medium">Error</th>
+                        <th className="px-2 py-1.5 text-left text-[var(--text-secondary)] font-medium">{t('connectorsPage.errorTable.row')}</th>
+                        <th className="px-2 py-1.5 text-left text-[var(--text-secondary)] font-medium">{t('connectorsPage.errorTable.error')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -498,7 +544,7 @@ export default function Connectors() {
       <Card variant="paper">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-[14px] font-semibold text-[var(--text-primary)] flex items-center gap-2">
-            <Plug className="w-4 h-4" /> Recent imports
+            <Plug className="w-4 h-4" /> {t('connectorsPage.recent.heading')}
           </h3>
           <Badge variant="gray">{imports.length}</Badge>
         </div>
@@ -506,8 +552,8 @@ export default function Connectors() {
           <EmptyState
             illustration={EmptyEvidenceIllustration}
             icon={Plug}
-            title="No imports yet"
-            body="Pick a source above and upload a CSV — Nexus will auto-map columns to the right disclosure fields."
+            title={t('connectorsPage.recent.emptyTitle')}
+            body={t('connectorsPage.recent.emptyBody')}
             density="compact"
           />
         ) : (
@@ -515,12 +561,12 @@ export default function Connectors() {
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="text-left text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] border-b border-[var(--border-default)]">
-                  <th className="py-2 pr-3">File</th>
-                  <th className="py-2 pr-3">Template</th>
-                  <th className="py-2 pr-3">Imported</th>
-                  <th className="py-2 pr-3">Failed</th>
-                  <th className="py-2 pr-3">Status</th>
-                  <th className="py-2 pr-3">When</th>
+                  <th className="py-2 pr-3">{t('connectorsPage.recent.file')}</th>
+                  <th className="py-2 pr-3">{t('connectorsPage.recent.template')}</th>
+                  <th className="py-2 pr-3">{t('connectorsPage.recent.imported')}</th>
+                  <th className="py-2 pr-3">{t('connectorsPage.recent.failed')}</th>
+                  <th className="py-2 pr-3">{t('connectorsPage.recent.status')}</th>
+                  <th className="py-2 pr-3">{t('connectorsPage.recent.when')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -531,9 +577,9 @@ export default function Connectors() {
                     <td className="py-2.5 pr-3 text-[var(--text-primary)]">{im.rows_imported}/{im.rows_total}</td>
                     <td className="py-2.5 pr-3 text-[var(--accent-red)]">{im.rows_failed}</td>
                     <td className="py-2.5 pr-3">
-                      <Badge variant={im.status === 'complete' ? 'green' : im.status === 'failed' ? 'red' : 'amber'}>{im.status}</Badge>
+                      <Badge variant={im.status === 'complete' ? 'green' : im.status === 'failed' ? 'red' : 'amber'}>{t(`connectorsPage.importStatus.${im.status}`, { defaultValue: im.status })}</Badge>
                     </td>
-                    <td className="py-2.5 pr-3 text-[var(--text-secondary)]">{new Date(im.created_at).toLocaleString()}</td>
+                    <td className="py-2.5 pr-3 text-[var(--text-secondary)]">{fmtDateTime(im.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

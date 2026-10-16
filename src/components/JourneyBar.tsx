@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Check, Lock, ArrowRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { computePipeline, type StageKey } from '../lib/journey'
 import { useOrgData } from '../lib/useOrgData'
@@ -21,10 +22,12 @@ export default function JourneyBar({
   variant?: 'full' | 'compact'
   highlight?: StageKey
 }) {
+  const { t, i18n } = useTranslation()
   const navigate = useNavigate()
   const { user } = useAuth()
   const { data } = useOrgData()
-  const stages = useMemo(() => computePipeline(user, data), [user, data])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stages = useMemo(() => computePipeline(user, data), [user, data, i18n.language])
 
   if (variant === 'compact') {
     return (
@@ -67,12 +70,12 @@ export default function JourneyBar({
       <header className="px-5 py-3 border-b border-[var(--border-subtle)] flex items-center justify-between">
         <div>
           <div className="text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
-            Reporting pipeline
+            {t('components.journey.pipeline')}
           </div>
           <h3 className="font-display text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mt-0.5">
-            {stages.find(s => s.state === 'active')?.stage.label ?? 'All stages complete'} · {' '}
+            {stages.find(s => s.state === 'active')?.stage.label ?? t('components.journey.allComplete')} · {' '}
             <span className="text-[var(--text-tertiary)] font-normal">
-              {stages.find(s => s.state === 'active')?.headline ?? 'Publish the group report'}
+              {stages.find(s => s.state === 'active')?.headline ?? t('components.journey.publishGroup')}
             </span>
           </h3>
         </div>
@@ -101,7 +104,7 @@ export default function JourneyBar({
             >
               {isMine && (
                 <span className="absolute top-1.5 right-1.5 text-[8px] uppercase tracking-wider font-bold text-[var(--color-brand)] bg-white px-1.5 py-0.5 rounded">
-                  Your turn
+                  {t('components.journey.yourTurn')}
                 </span>
               )}
               <div className="flex items-center gap-2 mb-1.5">
@@ -151,12 +154,13 @@ function StepIcon({ state, idx }: { state: 'locked' | 'todo' | 'active' | 'done'
 }
 
 function ProgressMini({ stages }: { stages: ReturnType<typeof computePipeline> }) {
+  const { t } = useTranslation()
   const total = stages.length
   const done = stages.filter(s => s.state === 'done').length
   return (
     <div className="flex items-center gap-2 text-[10px] text-[var(--text-tertiary)]">
       <span className="font-semibold text-[var(--text-primary)] tabular-nums">{done}/{total}</span>
-      <span>stages complete</span>
+      <span>{t('components.journey.stagesComplete')}</span>
       <div className="flex items-center gap-0.5">
         {stages.map((s, i) => (
           <span key={i} className="w-1.5 h-1.5 rounded-full" style={{

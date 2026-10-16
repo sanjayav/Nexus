@@ -1,0 +1,63 @@
+{
+  "breadcrumb": "iXBRL 申报",
+  "title": "iXBRL 预览 · FY{{year}}",
+  "summary": "{{concepts}} 个概念事实 · {{contexts}} 个上下文 · {{units}} 个单位 · {{warnings}} 条警告",
+  "emptyDescription": "生成内联 XBRL（iXBRL）草稿，用于后续申报或校验工具审阅。",
+  "errors": {
+    "generate": "iXBRL 生成失败",
+    "validate": "校验失败"
+  },
+  "actions": {
+    "generating": "生成中……",
+    "generate": "生成",
+    "validate": "校验",
+    "download": "下载 .xhtml"
+  },
+  "filters": {
+    "year": "年份",
+    "frameworks": "框架",
+    "includeUnapproved": "包含未批准数据"
+  },
+  "stats": {
+    "concepts": "概念",
+    "contexts": "上下文",
+    "units": "单位",
+    "mapped": "已映射",
+    "gaps": "缺口",
+    "warnings": "警告",
+    "errors": "错误",
+    "validated": "校验结果",
+    "ok": "通过"
+  },
+  "tabs": {
+    "preview": "预览",
+    "coverage": "概念覆盖",
+    "validation": "校验"
+  },
+  "iframeTitle": "iXBRL 预览",
+  "generatingPreview": "正在生成预览……",
+  "noPreview": "暂无预览，请点击「生成」。",
+  "coverage": {
+    "concept": "概念",
+    "label": "标签",
+    "framework": "框架",
+    "source": "来源",
+    "status": "状态",
+    "mapped": "已映射",
+    "missing": "缺失（必填）",
+    "empty": "暂无映射，请先生成。"
+  },
+  "validation": {
+    "promptPrefix": "点击",
+    "promptAction": "校验",
+    "promptSuffix": "，对生成的文档执行结构检查。",
+    "valid": "文档结构有效",
+    "failed": "校验未通过",
+    "stats": "{{facts}} 个事实 · {{contexts}} 个上下文 · {{units}} 个单位",
+    "unknownConcepts": " · {{count}} 个未知概念",
+    "errors": "错误（{{count}}）",
+    "warnings": "警告（{{count}}）",
+    "line": "第 {{line}} 行：",
+    "footnote": "此处仅为结构校验——正式申报还需通过经认证的校验工具（CoreFiling、ParsePort、IRIS Carbon）使用完整的 EFRAG ESRS 链接库进行校验。"
+  }
+}

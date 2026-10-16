@@ -1,0 +1,114 @@
+{
+  "breadcrumb": {
+    "data": "数据",
+    "current": "排放因子"
+  },
+  "title": "排放因子",
+  "description": {
+    "prefix": "实时排放因子，来源包括 DEFRA 2024、EPA 2024、",
+    "suffix": "IPCC 2006 / AR5、IEA 2024——带版本管理与地区标记。"
+  },
+  "actions": {
+    "export": "导出",
+    "import": "导入",
+    "addFactor": "添加因子"
+  },
+  "kpi": {
+    "total": "因子总数",
+    "active": "有效",
+    "deprecated": "已弃用",
+    "sources": "数据来源"
+  },
+  "tabs": {
+    "all": "全部因子"
+  },
+  "scope": {
+    "1": "范围一",
+    "2": "范围二",
+    "3": "范围三"
+  },
+  "status": {
+    "active": "有效",
+    "deprecated": "已弃用"
+  },
+  "search": {
+    "placeholder": "按名称、类别、来源或单位搜索因子…"
+  },
+  "filters": {
+    "allSources": "全部来源",
+    "allCategories": "全部类别",
+    "allRegions": "全部地区",
+    "showDeprecated": "显示已弃用",
+    "results": "条结果"
+  },
+  "loadError": {
+    "message": "无法加载排放因子：{{error}}。",
+    "hintBefore": "请先运行",
+    "hintAfter": "以初始化数据表。",
+    "failed": "加载失败：{{status}}",
+    "unknown": "未知错误"
+  },
+  "empty": {
+    "title": "未找到排放因子",
+    "body": "请尝试调整搜索或筛选条件。"
+  },
+  "references": {
+    "ipcc": {
+      "name": "IPCC 2006 指南",
+      "desc": "固定源与移动源燃烧的默认排放因子，采用 Tier 1 方法学。"
+    },
+    "defra": {
+      "name": "DEFRA 2024",
+      "desc": "英国政府温室气体报告换算因子，每年更新。"
+    },
+    "iea": {
+      "name": "IEA 2024",
+      "desc": "国际能源署（IEA）各国电网排放因子。"
+    }
+  },
+  "confirmDelete": "确定删除排放因子「{{name}}」？引用该因子的历史活动数据将予以保留，但该因子将不再显示在因子库中。",
+  "toast": {
+    "removed": "排放因子已移除",
+    "added": "排放因子已添加",
+    "deleteFailed": "无法删除",
+    "saveFailed": "无法保存"
+  },
+  "modal": {
+    "title": "添加排放因子",
+    "factorName": "因子名称",
+    "factorNamePlaceholder": "例如：天然气（工业）",
+    "category": "类别",
+    "categoryPlaceholder": "例如：stationary_combustion",
+    "scope": "范围",
+    "value": "数值（kg CO2e / 单位）",
+    "unit": "单位",
+    "unitPlaceholder": "例如：kgCO2e/kWh",
+    "source": "来源",
+    "version": "版本",
+    "region": "地区",
+    "validFrom": "生效日期",
+    "saving": "保存中…",
+    "submit": "添加因子"
+  },
+  "row": {
+    "copy": "复制数值",
+    "edit": "编辑",
+    "delete": "删除（软删除，保留历史数据）",
+    "value": "数值",
+    "source": "来源",
+    "region": "地区",
+    "validFrom": "生效日期",
+    "status": "状态"
+  },
+  "vendor": {
+    "title": "按供应商查找（AI）",
+    "hint": "输入供应商名称，由 Claude 选出最匹配的因子。",
+    "placeholder": "例如：United Airlines、Office Depot、AWS",
+    "unavailable": "AI 不可用",
+    "suggest": "推荐排放因子",
+    "unconfiguredBefore": "登录 AI 以获取推荐。请在服务器上设置",
+    "unconfiguredAfter": "以启用该功能。",
+    "topMatch": "最佳匹配",
+    "alt": "备选 {{n}}"
+  }
+}

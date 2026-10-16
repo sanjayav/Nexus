@@ -1,4 +1,5 @@
 import { Leaf, Target, Users, Heart } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import MarketingShell from '../components/marketing/MarketingShell'
 import CTABand from '../components/marketing/CTABand'
 import { FadeIn, Stagger, StaggerItem } from '../components/MotionPrimitives'
@@ -8,37 +9,18 @@ import { FadeIn, Stagger, StaggerItem } from '../components/MotionPrimitives'
  * One restrained page: mission, values, team placeholders.
  */
 
+// Copy lives in locales/<lang>/about.json under `about.values.<id>` / `about.team.<id>`.
 const VALUES = [
-  {
-    icon: Leaf,
-    title: 'Sustainability first',
-    body: 'We build software for the people doing the hardest work in climate. Our priorities follow theirs.',
-  },
-  {
-    icon: Target,
-    title: 'Auditable by default',
-    body: 'Every number has a source. Every change has a trail. We never ask you to take our word for it.',
-  },
-  {
-    icon: Users,
-    title: 'Open about trade-offs',
-    body: 'No oversold features, no marketecture. If it is a roadmap item, we say so.',
-  },
-  {
-    icon: Heart,
-    title: 'Calm software',
-    body: 'No dark patterns. No surprise upsells. The product gets out of your way so you can do the work.',
-  },
-]
+  { id: 'sustainability', icon: Leaf },
+  { id: 'auditable', icon: Target },
+  { id: 'open', icon: Users },
+  { id: 'calm', icon: Heart },
+] as const
 
-const TEAM = [
-  { name: 'Founder', role: 'CEO', bio: 'Background in sustainability consulting + enterprise software.' },
-  { name: 'Co-founder', role: 'CTO', bio: 'Built reporting platforms at two prior fintech companies.' },
-  { name: 'Head of ESG', role: 'Product', bio: 'Ten years in CSRD/ISSB implementation across European utilities.' },
-  { name: 'Lead Engineer', role: 'Engineering', bio: 'Specialises in linked-data and audit infrastructure.' },
-]
+const TEAM = ['ceo', 'cto', 'esg', 'engineering'] as const
 
 export default function About() {
+  const { t } = useTranslation()
   return (
     <MarketingShell>
       {/* Hero */}
@@ -49,7 +31,7 @@ export default function About() {
               className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-4"
               style={{ color: 'var(--accent-600)' }}
             >
-              About Aeiforo
+              {t('about.eyebrow')}
             </p>
             <h1
               className="h-display"
@@ -59,16 +41,13 @@ export default function About() {
                 lineHeight: 1.1,
               }}
             >
-              Sustainability reporting deserves better software.
+              {t('about.title')}
             </h1>
             <p
               className="mt-6 text-[17px] leading-relaxed"
               style={{ color: 'var(--text-secondary)' }}
             >
-              Aeiforo is the company. Nexus is the platform. We were started by a small group of
-              sustainability practitioners and engineers who got tired of stitching together five
-              spreadsheets and four point-tools for every reporting cycle. So we built one
-              system that does the whole job — and we keep it honest.
+              {t('about.intro')}
             </p>
           </FadeIn>
         </div>
@@ -90,13 +69,13 @@ export default function About() {
                 className="text-[11px] font-semibold uppercase tracking-[0.15em] mb-4"
                 style={{ color: 'var(--text-tertiary)' }}
               >
-                Our mission
+                {t('about.mission.eyebrow')}
               </p>
               <p
                 className="text-[22px] sm:text-[26px] leading-snug font-medium tracking-tight"
                 style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-display)' }}
               >
-                Make every sustainability disclosure as trustworthy and as effortless as a bank statement.
+                {t('about.mission.statement')}
               </p>
             </div>
           </FadeIn>
@@ -111,7 +90,7 @@ export default function About() {
               className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-3"
               style={{ color: 'var(--accent-600)' }}
             >
-              Values
+              {t('about.values.eyebrow')}
             </p>
             <h2
               className="h-display"
@@ -120,12 +99,12 @@ export default function About() {
                 color: 'var(--text-primary)',
               }}
             >
-              How we work.
+              {t('about.values.heading')}
             </h2>
           </div>
           <Stagger className="grid grid-cols-1 md:grid-cols-2 gap-6" staggerMs={60}>
             {VALUES.map((v) => (
-              <StaggerItem key={v.title}>
+              <StaggerItem key={v.id}>
                 <article
                   className="rounded-[16px] border p-7 h-full"
                   style={{
@@ -146,10 +125,10 @@ export default function About() {
                     className="h-section mb-2"
                     style={{ color: 'var(--text-primary)' }}
                   >
-                    {v.title}
+                    {t(`about.values.${v.id}.title`)}
                   </h3>
                   <p className="text-[14px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                    {v.body}
+                    {t(`about.values.${v.id}.body`)}
                   </p>
                 </article>
               </StaggerItem>
@@ -166,7 +145,7 @@ export default function About() {
               className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-3"
               style={{ color: 'var(--accent-600)' }}
             >
-              Team
+              {t('about.team.eyebrow')}
             </p>
             <h2
               className="h-display"
@@ -175,18 +154,18 @@ export default function About() {
                 color: 'var(--text-primary)',
               }}
             >
-              Small team. Long horizons.
+              {t('about.team.heading')}
             </h2>
             <p
               className="mt-3 text-[15px] leading-relaxed"
               style={{ color: 'var(--text-secondary)' }}
             >
-              Bios are placeholders until the team is ready to be named publicly.
+              {t('about.team.note')}
             </p>
           </div>
           <Stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5" staggerMs={50}>
             {TEAM.map((m) => (
-              <StaggerItem key={m.role}>
+              <StaggerItem key={m}>
                 <div
                   className="rounded-[14px] border p-6 h-full"
                   style={{
@@ -202,9 +181,9 @@ export default function About() {
                     }}
                     aria-hidden="true"
                   />
-                  <p className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{m.name}</p>
-                  <p className="text-[12px] mb-3" style={{ color: 'var(--accent-600)' }}>{m.role}</p>
-                  <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{m.bio}</p>
+                  <p className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{t(`about.team.${m}.name`)}</p>
+                  <p className="text-[12px] mb-3" style={{ color: 'var(--accent-600)' }}>{t(`about.team.${m}.role`)}</p>
+                  <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{t(`about.team.${m}.bio`)}</p>
                 </div>
               </StaggerItem>
             ))}
@@ -213,9 +192,9 @@ export default function About() {
       </section>
 
       <CTABand
-        heading="Want to know more about what we're building?"
-        primary={{ label: 'Try Nexus free', to: '/login?mode=register' }}
-        secondary={{ label: 'Get in touch', to: '/contact' }}
+        heading={t('about.cta.heading')}
+        primary={{ label: t('about.cta.primary'), to: '/login?mode=register' }}
+        secondary={{ label: t('about.cta.secondary'), to: '/contact' }}
       />
     </MarketingShell>
   )

@@ -7,6 +7,9 @@ import { EmptyInboxIllustration } from '../data/illustrations'
 import PageHeader from '../components/PageHeader'
 import { SkeletonCard } from '../components/Skeleton'
 import { Stagger, StaggerItem } from '../components/MotionPrimitives'
+import { useTranslation } from 'react-i18next'
+import i18n from '../i18n'
+import { notificationKindLabel, uiLocale } from '../components/NotificationsBell'
 
 /**
  * Full notifications inbox. RBAC is enforced server-side — /api/notifications
@@ -16,6 +19,7 @@ import { Stagger, StaggerItem } from '../components/MotionPrimitives'
 const PAGE = 20
 
 export default function NotificationsPage() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [notes, setNotes] = useState<Notification[]>([])
   const [unread, setUnread] = useState(0)
@@ -111,15 +115,15 @@ export default function NotificationsPage() {
     <div className="page-container max-w-3xl mx-auto animate-fade-in">
       <PageHeader
         breadcrumbs={[
-          { label: 'Work', to: '/' },
-          { label: 'Inbox' },
+          { label: t('shell.nav.groups.work'), to: '/' },
+          { label: t('shell.nav.items.inbox') },
         ]}
-        title="Inbox"
-        description={`${total} total · ${unread} unread. Use arrow keys to navigate, Enter to open.`}
+        title={t('shell.nav.items.inbox')}
+        description={t('components.inbox.description', { total, unread })}
         actions={unread > 0 ? (
           <button onClick={markAll}
             className="text-[var(--text-xs)] font-semibold text-[var(--color-brand)] hover:underline inline-flex items-center gap-1">
-            <CheckCheck className="w-3.5 h-3.5" /> Mark all read
+            <CheckCheck className="w-3.5 h-3.5" /> {t('components.notifications.markAllRead')}
           </button>
         ) : undefined}
       />
@@ -132,7 +136,7 @@ export default function NotificationsPage() {
               ? 'bg-[var(--color-brand)] text-white border-[var(--color-brand)]'
               : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-default)] hover:bg-[var(--bg-secondary)]'
           }`}
-        >All</button>
+        >{t('common.all')}</button>
         {kinds.map(k => (
           <button
             key={k}
@@ -142,7 +146,7 @@ export default function NotificationsPage() {
                 ? 'bg-[var(--color-brand)] text-white border-[var(--color-brand)]'
                 : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-default)] hover:bg-[var(--bg-secondary)]'
             }`}
-          >{k.replace(/_/g, ' ')}</button>
+          >{notificationKindLabel(k)}</button>
         ))}
       </div>
 
@@ -157,9 +161,9 @@ export default function NotificationsPage() {
           <EmptyState
             illustration={EmptyInboxIllustration}
             icon={Inbox}
-            title="No notifications"
-            body="Assignments, reviews, and approvals will appear here as they happen."
-            cta={{ label: 'Open my tasks', onClick: () => navigate('/my-tasks') }}
+            title={t('components.inbox.emptyTitle')}
+            body={t('components.inbox.emptyBody')}
+            cta={{ label: t('components.journey.stages.collect.cta'), onClick: () => navigate('/my-tasks') }}
           />
         </div>
       ) : (
@@ -178,13 +182,13 @@ export default function NotificationsPage() {
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${!n.read_at ? 'bg-[var(--color-brand)]' : 'bg-transparent'}`} />
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand)]">{n.kind.replace(/_/g, ' ')}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-brand)]">{notificationKindLabel(n.kind)}</span>
                       <span className="ml-auto text-[10px] text-[var(--text-tertiary)]">{relativeTime(n.created_at)}</span>
                       {!n.read_at && (
                         <button
                           onClick={(e) => markOne(n, e)}
                           className="text-[10px] font-semibold text-[var(--color-brand)] hover:underline"
-                        >Mark read</button>
+                        >{t('components.notifications.markRead')}</button>
                       )}
                     </div>
                     <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{n.subject}</div>
@@ -205,7 +209,7 @@ export default function NotificationsPage() {
             className="text-[var(--text-sm)] font-semibold px-4 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50"
           >
             {loadingMore ? <Loader2 className="w-3.5 h-3.5 inline-block mr-1 animate-spin" /> : null}
-            Load more ({total - notes.length} remaining)
+            {t('components.inbox.loadMore', { count: total - notes.length })}
           </button>
         </div>
       )}
@@ -216,11 +220,11 @@ export default function NotificationsPage() {
 function relativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins}m`
+  if (mins < 1) return i18n.t('components.time.justNow')
+  if (mins < 60) return i18n.t('components.time.minutesShort', { count: mins })
   const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h`
+  if (hrs < 24) return i18n.t('components.time.hoursShort', { count: hrs })
   const days = Math.floor(hrs / 24)
-  if (days < 7) return `${days}d`
-  return new Date(iso).toLocaleDateString()
+  if (days < 7) return i18n.t('components.time.daysShort', { count: days })
+  return new Date(iso).toLocaleDateString(uiLocale())
 }

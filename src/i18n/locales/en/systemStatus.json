@@ -1,0 +1,41 @@
+{
+  "title": "System status",
+  "eyebrow": "Admin · System",
+  "subtitle": "Live health of the deployment and which integrations are wired up. Polls every 30s.",
+  "errors": {
+    "unreachable": "Failed to reach /api/health"
+  },
+  "banner": {
+    "allOk": "All systems operational",
+    "degraded": "Degraded",
+    "lastChecked": "Last checked {{time}}",
+    "probing": "Probing…"
+  },
+  "db": {
+    "title": "Database (Neon Postgres)",
+    "latency": "SELECT 1 returned in {{ms}}ms",
+    "unavailable": "unavailable",
+    "healthy": "healthy",
+    "down": "down"
+  },
+  "integration": {
+    "configured": "configured",
+    "notConfigured": "not configured",
+    "ready": "ready",
+    "missing": "missing",
+    "setupGuide": "Setup guide →"
+  },
+  "integrations": {
+    "email": "Transactional email",
+    "sso": "Single sign-on (SAML)",
+    "ai": "AI drafting",
+    "sentry": "Error monitoring",
+    "euRegion": "EU data residency",
+    "apacRegion": "APAC data residency"
+  },
+  "footer": {
+    "version": "Version",
+    "region": "Region",
+    "probedAt": "Probed at"
+  }
+}

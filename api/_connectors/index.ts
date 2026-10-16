@@ -14,7 +14,22 @@ import type { Sql } from '../_db.js'
 
 export type AuthType = 'oauth2' | 'api_key' | 'basic' | 'jwt'
 
-export type ConnectorCategory = 'ERP' | 'CRM' | 'HCM' | 'Data Warehouse' | 'Cloud' | 'Utilities'
+export type ConnectorCategory = 'ERP' | 'CRM' | 'HCM' | 'Data Warehouse' | 'Cloud' | 'Utilities' | 'IoT' | 'Regulatory'
+
+/**
+ * Availability of a connector.
+ *  - 'live'        — implemented; testConnection/fetchData hit the provider.
+ *  - 'coming_soon' — catalogue entry only. testConnection always returns
+ *                    ok:false and fetchData throws, so nothing can ever
+ *                    present a live sync. Coming-soon entries are kept OUT of
+ *                    CONNECTORS / listConnectors() / getConnector() — see
+ *                    registry.ts — and are exposed via the catalogue helpers.
+ * Omitted ⇒ 'live' (every pre-existing provider).
+ */
+export type ConnectorStatus = 'live' | 'coming_soon'
+
+/** Market a connector primarily serves. Omitted ⇒ 'global'. */
+export type ConnectorMarket = 'global' | 'cn'
 
 export interface ConnectorOAuthConfig {
   /** Provider's authorization endpoint (where the user logs in). */
@@ -118,8 +133,16 @@ export interface FieldMapping {
 export interface ConnectorDefinition {
   id: string
   name: string
+  /** Optional Simplified Chinese display name (e.g. 金蝶云·星空). */
+  nameZh?: string
   category: ConnectorCategory
   description: string
+  /** Optional Simplified Chinese description. */
+  descriptionZh?: string
+  /** Availability — omitted means 'live'. */
+  status?: ConnectorStatus
+  /** Primary market — omitted means 'global'. */
+  market?: ConnectorMarket
   /** SVG path/icon name used by the frontend ConnectorCard. */
   iconKey: string
   authType: AuthType

@@ -9,6 +9,8 @@ import { orgStore, type HistoricalReference } from '../lib/orgStore'
 import { BookOpen as BookOpenIcon, Calculator as CalculatorIcon } from 'lucide-react'
 import { formatBig } from './AnimatedNumber'
 import { SPRING } from './motion'
+import { useTranslation } from 'react-i18next'
+import { itemLabel } from '../lib/itemLabel'
 
 /**
  * Industry-standard historical reference panel.
@@ -34,6 +36,7 @@ export function HistoricalReferencePanel({
   currentValue: number | null
   currentYear?: number
 }) {
+  const { t } = useTranslation()
   const [ref, setRef] = useState<HistoricalReference | null>(null)
   const [err, setErr] = useState<string | null>(null)
 
@@ -41,8 +44,9 @@ export function HistoricalReferencePanel({
     let cancelled = false
     orgStore.historicalReference(questionnaire_item_id, entity_id)
       .then(r => { if (!cancelled) setRef(r) })
-      .catch(e => { if (!cancelled) setErr(e instanceof Error ? e.message : 'Load failed') })
+      .catch(e => { if (!cancelled) setErr(e instanceof Error ? e.message : t('components.history.loadFailed')) })
     return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questionnaire_item_id, entity_id])
 
   if (err) {
@@ -58,6 +62,7 @@ export function HistoricalReferencePanel({
 }
 
 function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; currentValue: number | null; currentYear: number }) {
+  const { t, i18n } = useTranslation()
   const series = useMemo(() => {
     const rows = [...ref_.history].sort((a, b) => a.year - b.year)
     return rows
@@ -110,25 +115,26 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
     if (currentValue == null) return out
     if (yoy != null) {
       const abs = Math.abs(yoy)
-      if (abs >= 0.5) out.push({ severity: 'critical', icon: AlertTriangle, title: `${fmtPct(yoy)} vs FY${prior.year}`, body: `This is well above the 50% review threshold. Confirm this reflects a genuine change (restatement, boundary change, major project) or correct the data.` })
-      else if (abs >= 0.2) out.push({ severity: 'warn', icon: AlertTriangle, title: `${fmtPct(yoy)} vs FY${prior.year}`, body: `Above the 20% warn threshold — add a narrative justification in the comment field.` })
+      if (abs >= 0.5) out.push({ severity: 'critical', icon: AlertTriangle, title: t('components.history.flags.yoyTitle', { pct: fmtPct(yoy), year: prior.year }), body: t('components.history.flags.yoyCritical') })
+      else if (abs >= 0.2) out.push({ severity: 'warn', icon: AlertTriangle, title: t('components.history.flags.yoyTitle', { pct: fmtPct(yoy), year: prior.year }), body: t('components.history.flags.yoyWarn') })
     }
     if (zScore != null) {
       const abs = Math.abs(zScore)
-      if (abs >= 3) out.push({ severity: 'critical', icon: AlertTriangle, title: `|z-score| = ${abs.toFixed(2)} — extreme outlier`, body: `Value sits ${abs.toFixed(2)} standard deviations from the 4-year mean. Extremely unlikely without a structural change.` })
-      else if (abs >= 2) out.push({ severity: 'warn', icon: AlertTriangle, title: `|z-score| = ${abs.toFixed(2)}`, body: `Outside 2σ of the 4-year history — worth a sanity check.` })
+      if (abs >= 3) out.push({ severity: 'critical', icon: AlertTriangle, title: t('components.history.flags.zExtremeTitle', { z: abs.toFixed(2) }), body: t('components.history.flags.zExtremeBody', { z: abs.toFixed(2) }) })
+      else if (abs >= 2) out.push({ severity: 'warn', icon: AlertTriangle, title: `|z-score| = ${abs.toFixed(2)}`, body: t('components.history.flags.zWarnBody') })
     }
     if (stats && stats.avg > 0 && currentValue > 0) {
       const ratio = currentValue / stats.avg
       if (ratio >= 8 || ratio <= 0.125) {
-        out.push({ severity: 'critical', icon: AlertTriangle, title: `${ratio.toFixed(1)}× vs historical average`, body: `Often indicates a unit typo (tonnes vs kg, m³ vs litres). Double-check the unit and the scale.` })
+        out.push({ severity: 'critical', icon: AlertTriangle, title: t('components.history.flags.ratioTitle', { ratio: ratio.toFixed(1) }), body: t('components.history.flags.ratioBody') })
       }
     }
     if (out.length === 0 && currentValue != null) {
-      out.push({ severity: 'info', icon: ShieldCheck, title: 'Within historical range', body: 'No statistical anomalies detected. Value tracks with 4-year history.' })
+      out.push({ severity: 'info', icon: ShieldCheck, title: t('components.history.flags.okTitle'), body: t('components.history.flags.okBody') })
     }
     return out
-  }, [currentValue, yoy, zScore, stats, prior])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentValue, yoy, zScore, stats, prior, i18n.language])
 
   const trendIcon = yoy == null ? Minus : yoy < -0.005 ? TrendingDown : yoy > 0.005 ? TrendingUp : Minus
   const trendColor = yoy == null ? 'var(--text-tertiary)' : yoy < 0 ? 'var(--status-ok)' : yoy > 0 ? 'var(--status-reject)' : 'var(--text-tertiary)'
@@ -140,9 +146,9 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
           <span className="w-6 h-6 rounded-[6px] flex items-center justify-center" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)' }}>
             <BookOpen className="w-3 h-3" />
           </span>
-          <span className="kicker !mb-0">Historical reference</span>
+          <span className="kicker !mb-0">{t('components.history.title')}</span>
         </div>
-        <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em] leading-snug">{ref_.meta.line_item}</h3>
+        <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em] leading-snug">{itemLabel(ref_.meta, i18n.language)}</h3>
         <div className="text-[11px] text-[var(--text-tertiary)] mt-1 flex items-center gap-2 flex-wrap">
           <span className="font-mono font-semibold text-[var(--color-brand)]">{ref_.meta.gri_code}</span>
           {ref_.meta.unit && <span>·</span>}
@@ -163,7 +169,7 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <BookOpenIcon className="w-3 h-3 text-[var(--color-brand)]" />
-                <span className="text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--color-brand)]">Definition</span>
+                <span className="text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--color-brand)]">{t('components.history.definition')}</span>
               </div>
               <p className="text-[11.5px] text-[var(--text-secondary)] leading-relaxed">{ref_.meta.definition}</p>
             </div>
@@ -172,7 +178,7 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
             <div>
               <div className="flex items-center gap-1.5 mb-1.5">
                 <CalculatorIcon className="w-3 h-3 text-[var(--accent-purple)]" />
-                <span className="text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--accent-purple)]">Calculation method</span>
+                <span className="text-[10px] uppercase tracking-[0.12em] font-bold text-[var(--accent-purple)]">{t('components.history.calcMethod')}</span>
               </div>
               <p className="text-[11.5px] text-[var(--text-secondary)] leading-relaxed">{ref_.meta.calc_method}</p>
             </div>
@@ -186,7 +192,7 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
           <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={SPRING}>
             <div className="flex items-baseline justify-between gap-3">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)]">FY{currentYear} entry</div>
+                <div className="text-[10px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)]">{t('components.history.entry', { year: currentYear })}</div>
                 <div className="text-[22px] font-bold tabular-nums text-[var(--text-primary)] leading-tight tracking-[-0.02em]">{fmtBig(currentValue)}</div>
               </div>
               {yoy != null && (
@@ -221,33 +227,33 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
                 <Line type="monotone" dataKey="current" stroke="none" dot={{ r: 5, fill: '#E6A817', stroke: 'white', strokeWidth: 2 }} />
                 {ref_.meta.target_fy2026 != null && (
                   <ReferenceLine y={ref_.meta.target_fy2026} stroke="var(--accent-green)" strokeDasharray="3 3" strokeWidth={1.5}
-                    label={{ value: 'Target', position: 'insideTopRight', fill: 'var(--accent-green)', fontSize: 9, fontWeight: 600 }} />
+                    label={{ value: t('components.history.target'), position: 'insideTopRight', fill: 'var(--accent-green)', fontSize: 9, fontWeight: 600 }} />
                 )}
                 {stats && (
                   <ReferenceLine y={stats.avg} stroke="var(--text-quaternary)" strokeDasharray="2 4" strokeWidth={1}
-                    label={{ value: 'avg', position: 'insideBottomRight', fill: 'var(--text-tertiary)', fontSize: 9 }} />
+                    label={{ value: t('components.history.avg'), position: 'insideBottomRight', fill: 'var(--text-tertiary)', fontSize: 9 }} />
                 )}
               </ComposedChart>
             </ResponsiveContainer>
           </div>
         ) : (
-          <div className="h-[120px] flex items-center justify-center text-[11.5px] text-[var(--text-tertiary)] italic">No historical values on file</div>
+          <div className="h-[120px] flex items-center justify-center text-[11.5px] text-[var(--text-tertiary)] italic">{t('components.history.noValues')}</div>
         )}
 
         {/* Stats grid */}
         {stats && (
           <div className="grid grid-cols-4 gap-2">
-            <StatCell label={`${stats.n}yr avg`} value={fmtBig(stats.avg)} />
+            <StatCell label={t('components.history.nYearAvg', { n: stats.n })} value={fmtBig(stats.avg)} />
             <StatCell label="σ" value={fmtBig(stats.sd)} />
-            <StatCell label="min" value={fmtBig(stats.min)} />
-            <StatCell label="max" value={fmtBig(stats.max)} />
+            <StatCell label={t('components.history.min')} value={fmtBig(stats.min)} />
+            <StatCell label={t('components.history.max')} value={fmtBig(stats.max)} />
           </div>
         )}
 
         {/* Year-by-year with source */}
         {series.length > 0 && (
           <div>
-            <div className="text-[10px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-2">Year by year</div>
+            <div className="text-[10px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-2">{t('components.history.yearByYear')}</div>
             <ul className="space-y-1.5">
               {series.map(h => (
                 <li key={h.year} className="flex items-center justify-between gap-3 text-[12px]">
@@ -269,7 +275,7 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
           <div className="p-3 rounded-[10px] relative overflow-hidden" style={{ background: 'var(--gradient-brand-soft)', border: '1px solid rgba(27,107,123,0.15)' }}>
             <div className="flex items-center gap-2 mb-1">
               <TargetIcon className="w-3.5 h-3.5 text-[var(--color-brand)]" />
-              <span className="text-[10px] uppercase tracking-[0.12em] font-semibold text-[var(--color-brand-strong)]">FY{currentYear} target</span>
+              <span className="text-[10px] uppercase tracking-[0.12em] font-semibold text-[var(--color-brand-strong)]">{t('components.history.fyTarget', { year: currentYear })}</span>
             </div>
             <div className="text-[18px] font-bold tabular-nums text-[var(--color-brand-strong)] tracking-[-0.01em]">{ref_.meta.target_fy2026}</div>
           </div>
@@ -278,7 +284,7 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
         {/* Peer comparison */}
         {ref_.peers.length > 0 && (
           <div>
-            <div className="text-[10px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-2">Peer plants · approved</div>
+            <div className="text-[10px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-2">{t('components.history.peers')}</div>
             <ul className="space-y-1.5">
               {ref_.peers.slice(0, 4).map(p => (
                 <li key={p.entity_id} className="flex items-center justify-between gap-3 text-[12px]">
@@ -293,7 +299,7 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
         {/* Live anomaly callouts */}
         {currentValue != null && flags.length > 0 && (
           <div>
-            <div className="text-[10px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-2">Quality check</div>
+            <div className="text-[10px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-2">{t('components.history.qualityCheck')}</div>
             <div className="space-y-1.5">
               {flags.map((f, i) => {
                 const Icon = f.icon
@@ -321,7 +327,7 @@ function Body({ ref_, currentValue, currentYear }: { ref_: HistoricalReference; 
         {series.length > 0 && series.some(h => h.source_report) && (
           <div className="pt-3 border-t border-[var(--border-subtle)] flex items-center gap-1.5 text-[10px] text-[var(--text-tertiary)]">
             <Clock className="w-3 h-3" />
-            <span>Sources cited per year · confidence scored {series.every(h => (h.confidence_score ?? 0) >= 0.9) ? 'high' : 'mixed'}</span>
+            <span>{t('components.history.sources', { level: series.every(h => (h.confidence_score ?? 0) >= 0.9) ? t('components.history.high') : t('components.history.mixed') })}</span>
           </div>
         )}
       </div>

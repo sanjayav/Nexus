@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { itemLabel } from '../lib/itemLabel'
 import {
   Loader2, CheckCircle2, XCircle, Eye, Shield, Send, ArrowRight, Factory,
   Calendar, Paperclip, Inbox, User, MessageSquare,
@@ -14,24 +16,25 @@ import { HistoricalReferencePanel } from '../components/HistoricalReferencePanel
 
 export type QueueKind = 'review' | 'approval'
 
+/** `title`, `subtitle`, `rejectLabel` and `passLabel` are i18n keys. */
 const KIND_META = {
   review: {
-    title: 'Review queue',
-    subtitle: 'Subsidiary leads check every submitted plant figure before it reaches the group officer.',
+    title: 'workflowQueue.review.title',
+    subtitle: 'workflowQueue.review.subtitle',
     inputStatus: 'submitted' as const,
     passStatus: 'reviewed' as const,
-    rejectLabel: 'Send back to plant',
-    passLabel: 'Pass to approval',
+    rejectLabel: 'workflowQueue.review.reject',
+    passLabel: 'workflowQueue.review.pass',
     icon: Eye,
     stageHighlight: 'review' as const,
   },
   approval: {
-    title: 'Approval queue',
-    subtitle: 'Sustainability officers approve reviewed figures. Approved lines feed the group rollup and the GRI report.',
+    title: 'workflowQueue.approval.title',
+    subtitle: 'workflowQueue.approval.subtitle',
     inputStatus: 'reviewed' as const,
     passStatus: 'approved' as const,
-    rejectLabel: 'Reject',
-    passLabel: 'Approve',
+    rejectLabel: 'workflowQueue.approval.reject',
+    passLabel: 'workflowQueue.approval.pass',
     icon: Shield,
     stageHighlight: 'approve' as const,
   },
@@ -46,6 +49,7 @@ const KIND_META = {
  */
 export default function WorkflowQueue({ kind }: { kind: QueueKind }) {
   const navigate = useNavigate()
+  const { t, i18n } = useTranslation()
   const meta = KIND_META[kind]
   const { active: framework } = useFramework()
   const [allAssignments, setAllAssignments] = useState<QuestionAssignment[]>([])
@@ -107,7 +111,7 @@ export default function WorkflowQueue({ kind }: { kind: QueueKind }) {
       setTimeout(() => setJustActedOn(null), 2500)
       await refresh()
     } catch (e) {
-      alert(`Could not update: ${e instanceof Error ? e.message : e}`)
+      alert(t('workflowQueue.errors.update', { message: e instanceof Error ? e.message : String(e) }))
     } finally {
       setBusy(null)
     }
@@ -115,7 +119,7 @@ export default function WorkflowQueue({ kind }: { kind: QueueKind }) {
 
   const handleReject = async (a: QuestionAssignment) => {
     if (!comment.trim()) {
-      alert('Please leave a short comment explaining why you\'re sending it back.')
+      alert(t('workflowQueue.errors.needComment'))
       return
     }
     setBusy(a.id)
@@ -126,7 +130,7 @@ export default function WorkflowQueue({ kind }: { kind: QueueKind }) {
       setTimeout(() => setJustActedOn(null), 2500)
       await refresh()
     } catch (e) {
-      alert(`Could not update: ${e instanceof Error ? e.message : e}`)
+      alert(t('workflowQueue.errors.update', { message: e instanceof Error ? e.message : String(e) }))
     } finally {
       setBusy(null)
     }
@@ -141,14 +145,14 @@ export default function WorkflowQueue({ kind }: { kind: QueueKind }) {
       <header className="flex items-start justify-between mb-5 flex-wrap gap-3">
         <div>
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
-            <meta.icon className="w-3 h-3" /> {meta.title}
+            <meta.icon className="w-3 h-3" /> {t(meta.title)}
           </div>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <h1 className="font-display text-[28px] font-bold text-[var(--text-primary)]">{meta.title}</h1>
+            <h1 className="font-display text-[28px] font-bold text-[var(--text-primary)]">{t(meta.title)}</h1>
             <FrameworkBadge size="md" />
           </div>
           <p className="text-[var(--text-sm)] text-[var(--text-secondary)] mt-1 max-w-2xl">
-            {meta.subtitle}
+            {t(meta.subtitle)}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -156,7 +160,7 @@ export default function WorkflowQueue({ kind }: { kind: QueueKind }) {
             onClick={() => navigate(kind === 'review' ? '/workflow/approval' : '/workflow/review')}
             className="px-3 py-1.5 rounded-[var(--radius-md)] border border-[var(--border-default)] text-[var(--text-xs)] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] inline-flex items-center gap-1.5"
           >
-            {kind === 'review' ? 'Switch to approval queue' : 'Switch to review queue'} <ArrowRight className="w-3 h-3" />
+            {kind === 'review' ? t('workflowQueue.switchToApproval') : t('workflowQueue.switchToReview')} <ArrowRight className="w-3 h-3" />
           </button>
         </div>
       </header>
@@ -164,17 +168,17 @@ export default function WorkflowQueue({ kind }: { kind: QueueKind }) {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         <QueueStat
-          label={kind === 'review' ? 'Waiting for review' : 'Waiting for approval'}
+          label={kind === 'review' ? t('workflowQueue.stats.waitingReview') : t('workflowQueue.stats.waitingApproval')}
           value={assignments.length}
           tone={assignments.length > 0 ? 'pending' : 'neutral'}
         />
         <QueueStat
-          label="Already reviewed"
+          label={t('workflowQueue.stats.alreadyReviewed')}
           value={allAssignments.filter(a => a.framework_id === framework.id && a.status === 'reviewed').length}
           tone="pending"
         />
         <QueueStat
-          label="Approved"
+          label={t('workflowStatus.status.approved')}
           value={allAssignments.filter(a => a.framework_id === framework.id && a.status === 'approved').length}
           tone="ok"
         />
@@ -188,7 +192,7 @@ export default function WorkflowQueue({ kind }: { kind: QueueKind }) {
           <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] overflow-hidden max-h-[70vh] flex flex-col">
             <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] flex items-center justify-between bg-[var(--bg-secondary)]">
               <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
-                Queue · {assignments.length}
+                {t('workflowQueue.queueCount', { count: assignments.length })}
               </span>
             </div>
             <ul className="overflow-y-auto flex-1 divide-y divide-[var(--border-subtle)]">
@@ -219,7 +223,7 @@ export default function WorkflowQueue({ kind }: { kind: QueueKind }) {
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-[9px] font-bold text-[var(--color-brand)]">{a.gri_code}</span>
                         {a.used_mode && (
-                          <span className="text-[9px] text-[var(--text-tertiary)] uppercase tracking-wider">· {a.used_mode}</span>
+                          <span className="text-[9px] text-[var(--text-tertiary)] uppercase tracking-wider">· {t(`workflowQueue.mode.${a.used_mode}`, { defaultValue: a.used_mode })}</span>
                         )}
                         {flags.length > 0 && (
                           <span
@@ -235,7 +239,7 @@ export default function WorkflowQueue({ kind }: { kind: QueueKind }) {
                         )}
                       </div>
                       <div className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)] line-clamp-2">
-                        {a.line_item}
+                        {itemLabel(a, i18n.language)}
                       </div>
                       {headline && (
                         <div className="text-[10px] mt-0.5 line-clamp-1" style={{ color: hasCritical ? 'var(--accent-red)' : 'var(--accent-amber)' }}>
@@ -271,7 +275,7 @@ export default function WorkflowQueue({ kind }: { kind: QueueKind }) {
           ) : (
             <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)] p-12 text-center">
               <Inbox className="w-10 h-10 mx-auto text-[var(--text-tertiary)] mb-2" />
-              <p className="text-[var(--text-sm)] text-[var(--text-tertiary)]">Pick a row on the left</p>
+              <p className="text-[var(--text-sm)] text-[var(--text-tertiary)]">{t('workflowQueue.pickRow')}</p>
             </div>
           )}
         </div>
@@ -295,22 +299,23 @@ function QueueStat({ label, value, tone }: { label: string; value: number; tone:
 
 function EmptyQueue({ kind }: { kind: QueueKind }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   return (
     <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)] py-14 text-center">
       <CheckCircle2 className="w-10 h-10 mx-auto text-[var(--status-ok)] mb-2" />
       <h3 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">
-        Queue is empty
+        {t('workflowQueue.empty.title')}
       </h3>
       <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1 max-w-sm mx-auto">
         {kind === 'review'
-          ? 'No plant submissions are waiting for a lead to review.'
-          : 'Nothing is awaiting approval from the sustainability officer.'}
+          ? t('workflowQueue.empty.review')
+          : t('workflowQueue.empty.approval')}
       </p>
       <button
         onClick={() => navigate('/aggregator')}
         className="mt-4 text-[var(--text-xs)] font-semibold text-[var(--color-brand)] hover:underline inline-flex items-center gap-1"
       >
-        View group rollup <ArrowRight className="w-3 h-3" />
+        {t('workflowQueue.empty.viewRollup')} <ArrowRight className="w-3 h-3" />
       </button>
     </div>
   )
@@ -328,6 +333,7 @@ function DetailPane({
   onReject: () => void
   plantName: (id: string) => string
 }) {
+  const { t, i18n } = useTranslation()
   const meta = KIND_META[kind]
   const fw = getFramework(assignment.framework_id)
 
@@ -345,36 +351,36 @@ function DetailPane({
           <span className="text-[10px] font-bold text-[var(--color-brand)]">{assignment.gri_code}</span>
         </div>
         <h2 className="font-display text-[var(--text-xl)] font-bold text-[var(--text-primary)]">
-          {assignment.line_item}
+          {itemLabel(assignment, i18n.language)}
         </h2>
       </div>
 
       {/* Context */}
       <div className="grid grid-cols-2 gap-3">
-        <ContextItem icon={Factory} label="Reporting entity" value={plantName(assignment.entityId)} />
-        <ContextItem icon={User} label="Submitted by" value={assignment.assigneeName} subvalue={assignment.assigneeEmail} />
+        <ContextItem icon={Factory} label={t('workflowQueue.detail.entity')} value={plantName(assignment.entityId)} />
+        <ContextItem icon={User} label={t('workflowQueue.detail.submittedBy')} value={assignment.assigneeName} subvalue={assignment.assigneeEmail} />
         <ContextItem
-          icon={Calendar} label="Due"
+          icon={Calendar} label={t('workflowQueue.detail.due')}
           value={assignment.due_date ?? '—'}
           tone={assignment.due_date && new Date(assignment.due_date) < new Date() ? 'reject' : 'default'}
         />
-        <ContextItem icon={Send} label="Mode used" value={assignment.used_mode ?? '—'} />
+        <ContextItem icon={Send} label={t('workflowQueue.detail.modeUsed')} value={assignment.used_mode ? t(`workflowQueue.mode.${assignment.used_mode}`, { defaultValue: assignment.used_mode }) : '—'} />
       </div>
 
       {/* Value or narrative preview */}
       {assignment.response_type === 'narrative' ? (
         <div className="rounded-[var(--radius-md)] border border-[var(--color-brand)]/30 bg-[var(--color-brand-soft)]/40 p-4">
           <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand-strong)] mb-1">
-            Submitted narrative ({(assignment.narrative_body ?? '').length} chars)
+            {t('workflowQueue.detail.narrative', { count: (assignment.narrative_body ?? '').length })}
           </div>
           <p className="text-[var(--text-xs)] text-[var(--text-primary)] whitespace-pre-wrap leading-relaxed max-h-[200px] overflow-y-auto">
-            {assignment.narrative_body || <span className="italic text-[var(--text-tertiary)]">No narrative submitted.</span>}
+            {assignment.narrative_body || <span className="italic text-[var(--text-tertiary)]">{t('workflowQueue.detail.noNarrative')}</span>}
           </p>
         </div>
       ) : (
         <div className="rounded-[var(--radius-md)] border border-[var(--color-brand)]/30 bg-[var(--color-brand-soft)]/40 p-4">
           <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand-strong)] mb-1">
-            Submitted value
+            {t('workflowQueue.detail.value')}
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-[28px] font-bold tabular-nums text-[var(--color-brand-strong)]">
@@ -405,7 +411,7 @@ function DetailPane({
       {assignment.evidence_ids && assignment.evidence_ids.length > 0 && (
         <div>
           <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-2 flex items-center gap-1">
-            <Paperclip className="w-3 h-3" /> Evidence attached ({assignment.evidence_ids.length})
+            <Paperclip className="w-3 h-3" /> {t('workflowQueue.detail.evidence', { count: assignment.evidence_ids.length })}
           </div>
           <ul className="space-y-1">
             {assignment.evidence_ids.map((e, i) => (
@@ -421,7 +427,7 @@ function DetailPane({
       {assignment.comment && (
         <div>
           <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1 flex items-center gap-1">
-            <MessageSquare className="w-3 h-3" /> Note from contributor
+            <MessageSquare className="w-3 h-3" /> {t('workflowQueue.detail.note')}
           </div>
           <p className="text-[var(--text-xs)] text-[var(--text-secondary)] italic bg-[var(--bg-secondary)] p-3 rounded-[var(--radius-sm)] border-l-2 border-[var(--color-brand)]">
             {assignment.comment}
@@ -433,15 +439,15 @@ function DetailPane({
       <div className="pt-4 border-t border-[var(--border-subtle)] space-y-3">
         <div>
           <label className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">
-            Comment (required to reject)
+            {t('workflowQueue.detail.commentLabel')}
           </label>
           <textarea
             value={comment}
             onChange={e => setComment(e.target.value)}
             rows={2}
             placeholder={kind === 'review'
-              ? 'Optional note for the officer, or required if sending back.'
-              : 'Optional, or required if rejecting.'}
+              ? t('workflowQueue.detail.commentPlaceholderReview')
+              : t('workflowQueue.detail.commentPlaceholderApproval')}
             className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none resize-none"
           />
         </div>
@@ -452,7 +458,7 @@ function DetailPane({
             className="flex-1 px-4 py-2.5 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-60 inline-flex items-center justify-center gap-1.5"
           >
             {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-            {meta.passLabel}
+            {t(meta.passLabel)}
           </button>
           <button
             onClick={onReject}
@@ -460,7 +466,7 @@ function DetailPane({
             className="px-4 py-2.5 rounded-[var(--radius-md)] border border-[var(--status-reject)]/30 text-[var(--status-reject)] text-[var(--text-sm)] font-semibold hover:bg-[var(--accent-red-light)] disabled:opacity-60 inline-flex items-center gap-1.5"
           >
             <XCircle className="w-4 h-4" />
-            {meta.rejectLabel}
+            {t(meta.rejectLabel)}
           </button>
         </div>
       </div>
@@ -476,9 +482,12 @@ function DetailPane({
  * for this question, compares to the submitted value, surfaces any red flags.
  */
 function VarianceCheck({ assignment }: { assignment: QuestionAssignment }) {
+  const { t, i18n } = useTranslation()
   const [history, setHistory] = useState<Array<{ year: number; value: number; source_report: string }>>([])
   useEffect(() => {
-    orgStore.historical(assignment.questionId).then(setHistory).catch(() => setHistory([]))
+    orgStore.historical(assignment.questionId)
+      .then(rows => setHistory(Array.isArray(rows) ? rows : []))
+      .catch(() => setHistory([]))
   }, [assignment.questionId])
 
   if (assignment.value == null) return null
@@ -492,25 +501,25 @@ function VarianceCheck({ assignment }: { assignment: QuestionAssignment }) {
   if (delta != null && Math.abs(delta) > 20) {
     flags.push({
       tone: 'warn',
-      text: `YoY change of ${delta > 0 ? '+' : ''}${delta.toFixed(1)}% vs FY${latest!.year} (${latest!.value.toLocaleString()}). Verify before approving.`,
+      text: t('workflowQueue.variance.large', { delta: `${delta > 0 ? '+' : ''}${delta.toFixed(1)}`, year: latest!.year, prior: latest!.value.toLocaleString(i18n.language?.startsWith('zh') ? 'zh-CN' : undefined) }),
     })
   } else if (delta != null) {
     flags.push({
       tone: 'info',
-      text: `YoY change ${delta > 0 ? '+' : ''}${delta.toFixed(1)}% vs FY${latest!.year} — within expected range.`,
+      text: t('workflowQueue.variance.normal', { delta: `${delta > 0 ? '+' : ''}${delta.toFixed(1)}`, year: latest!.year }),
     })
   } else {
-    flags.push({ tone: 'info', text: 'No prior-year value on file. Cannot run variance check.' })
+    flags.push({ tone: 'info', text: t('workflowQueue.variance.noPrior') })
   }
 
   // Unit sanity check — if entered without a unit on a numeric question, flag it
   if (!assignment.unit || assignment.unit.trim() === '') {
-    flags.push({ tone: 'warn', text: 'No unit stamped on this value. Confirm with the submitter before approving.' })
+    flags.push({ tone: 'warn', text: t('workflowQueue.variance.noUnit') })
   }
 
   return (
     <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-3 space-y-1.5">
-      <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">Data-quality checks</div>
+      <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">{t('workflowQueue.variance.title')}</div>
       {flags.map((f, i) => (
         <div key={i} className={`text-[11px] flex items-start gap-1.5 ${f.tone === 'warn' ? 'text-[var(--status-draft)]' : 'text-[var(--text-secondary)]'}`}>
           <span className="mt-0.5">{f.tone === 'warn' ? '⚠' : 'ℹ'}</span>

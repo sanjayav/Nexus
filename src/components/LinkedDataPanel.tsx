@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link2, AlertTriangle, ExternalLink } from 'lucide-react'
 import { getFramework } from '../lib/frameworks'
 import { conceptMappings } from '../lib/api'
+import { Trans, useTranslation } from 'react-i18next'
+import { itemLabel } from '../lib/itemLabel'
 
 function frameworkLabel(id: string): string {
   return getFramework(id)?.code ?? id.toUpperCase()
@@ -34,6 +36,7 @@ export interface PeerMapping {
   unit_conversion: number
   gri_code: string | null
   line_item: string | null
+  line_item_zh?: string | null
   unit: string | null
   section: string | null
 }
@@ -49,6 +52,7 @@ export function LinkedDataPanel({
   isOverridden,
   onPeerClick,
 }: LinkedDataPanelProps) {
+  const { t, i18n } = useTranslation()
   const [data, setData] = useState<ApiResp | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -71,7 +75,7 @@ export function LinkedDataPanel({
         <div className="flex items-start justify-between mb-3 gap-3">
           <div className="flex items-center gap-2">
             <Link2 className="w-4 h-4 text-[var(--color-brand)]" />
-            <span className="kicker !mb-0">Linked data</span>
+            <span className="kicker !mb-0">{t('components.linked.title')}</span>
           </div>
           <span className="text-[11px] text-[var(--text-tertiary)] font-mono">{data.concept_key}</span>
         </div>
@@ -81,21 +85,20 @@ export function LinkedDataPanel({
             {derivedFrom && (
               <span className="inline-flex items-center gap-1.5 px-2.5 h-7 rounded-full bg-[var(--accent-teal-subtle)] text-[var(--color-brand-strong)] text-[11px] font-semibold">
                 <Link2 className="w-3 h-3" />
-                Auto-filled from another framework
+                {t('components.linked.autoFilled')}
               </span>
             )}
             {isOverridden && (
               <span className="inline-flex items-center gap-1.5 px-2.5 h-7 rounded-full bg-amber-100 text-amber-800 text-[11px] font-semibold">
                 <AlertTriangle className="w-3 h-3" />
-                Locally overridden
+                {t('components.linked.overridden')}
               </span>
             )}
           </div>
         )}
 
         <p className="text-[12px] text-[var(--text-tertiary)] mb-3 leading-relaxed">
-          This value appears in <strong className="text-[var(--text-primary)]">{peers.length + 1}</strong> frameworks.
-          Approving here propagates to every linked disclosure automatically (skipping any that are locally overridden).
+          <Trans i18nKey="components.linked.appearsIn" values={{ count: peers.length + 1 }} components={{ b: <strong className="text-[var(--text-primary)]" /> }} />
         </p>
 
         <ul className="space-y-1.5">
@@ -111,7 +114,7 @@ export function LinkedDataPanel({
                     {frameworkLabel(p.framework_id)}
                   </span>
                   <span className="text-[12px] font-mono text-[var(--text-secondary)]">{p.gri_code}</span>
-                  <span className="text-[12px] text-[var(--text-primary)] truncate">{p.line_item}</span>
+                  <span className="text-[12px] text-[var(--text-primary)] truncate">{itemLabel(p, i18n.language)}</span>
                 </div>
                 <ExternalLink className="w-3.5 h-3.5 text-[var(--text-tertiary)] flex-shrink-0" />
               </button>

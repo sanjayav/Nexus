@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Lock, Mail, AlertCircle, Loader2, ArrowRight, Shield, Zap, BarChart3, Globe, User, Building2, KeyRound } from 'lucide-react'
 import { z } from 'zod'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 
 /**
@@ -56,6 +57,7 @@ const features = [
 ]
 
 export default function Login() {
+  const { t } = useTranslation()
   const { login, register, user, refreshUser } = useAuth()
   const navigate = useNavigate()
   const [params] = useSearchParams()
@@ -76,7 +78,7 @@ export default function Login() {
     const out: RegisterFieldErrors = {}
     for (const iss of r.error.issues) {
       const k = iss.path[0] as 'email' | 'name' | 'password' | undefined
-      if (k && !out[k]) out[k] = iss.message
+      if (k && !out[k]) out[k] = t(`auth.register.errors.${k}`, { defaultValue: iss.message })
     }
     return out
   })()
@@ -98,8 +100,9 @@ export default function Login() {
   // Surface the "expired" banner when the API client bounces us here after a 401.
   useEffect(() => {
     if (params.get('expired') === '1') {
-      setError('Your session expired. Please sign in again.')
+      setError(t('auth.login.sessionExpired'))
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params])
 
   // Debounced SSO discovery on email input. Quiet failure is fine — if the
@@ -144,7 +147,7 @@ export default function Login() {
       window.location.assign(authorizationUrl)
     } catch (e) {
       setSsoLoading(false)
-      setError(e instanceof Error ? e.message : 'Could not start SSO sign-in.')
+      setError(e instanceof Error ? e.message : t('auth.login.ssoStartFailed'))
     }
   }
 
@@ -167,7 +170,7 @@ export default function Login() {
       await refreshUser()
       return 'ok'
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Sign-in failed.')
+      setError(e instanceof Error ? e.message : t('auth.login.signInFailed'))
       return 'fail'
     }
   }
@@ -187,7 +190,7 @@ export default function Login() {
         workspaceName: workspaceName.trim() || undefined,
       })
       setLoading(false)
-      if (!ok) { setError('Registration failed. Email may already exist or DB not connected.'); return }
+      if (!ok) { setError(t('auth.register.failed')); return }
       navigate(homeRouteFor(user), { replace: true })
       return
     }
@@ -211,7 +214,7 @@ export default function Login() {
     const ok = await login(acc.email, SHARED_PASSWORD)
     setLoading(false)
     setQuickIdx(null)
-    if (!ok) { setError(`Couldn't sign in as ${acc.email}. Check that the backend is running and the user is seeded.`); return }
+    if (!ok) { setError(t('auth.login.quickFailed', { email: acc.email })); return }
     navigate(homeRouteFor(user), { replace: true })
   }
 
@@ -228,7 +231,7 @@ export default function Login() {
       setMfaCode('')
       navigate(homeRouteFor(user), { replace: true })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Invalid code.')
+      setError(e instanceof Error ? e.message : t('auth.mfa.invalidCode'))
     } finally {
       setMfaLoading(false)
     }
@@ -334,14 +337,14 @@ export default function Login() {
 
             <div>
               <h2 id="form-title" className="text-[20px] font-display font-bold text-white tracking-tight leading-none">
-                {mfaTempToken ? 'Two-factor code' : mode === 'login' ? 'Sign in · เข้าสู่ระบบ' : 'Create account'}
+                {mfaTempToken ? t('auth.mfa.title') : mode === 'login' ? t('auth.login.heading') : t('auth.register.heading')}
               </h2>
               <p className="mt-1 text-[12px] text-white/40">
                 {mfaTempToken
-                  ? 'Enter the 6-digit code from your authenticator app, or a recovery code.'
+                  ? t('auth.mfa.subtitle')
                   : mode === 'login'
-                  ? 'Pick a role, or enter credentials.'
-                  : 'Create your workspace — you become its admin.'}
+                  ? t('auth.login.subtitle')
+                  : t('auth.register.subtitle')}
               </p>
             </div>
 
@@ -357,7 +360,7 @@ export default function Login() {
                 <form onSubmit={handleMfaSubmit} className="space-y-3">
                   <div>
                     <label htmlFor="mfa-code" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">
-                      Authentication code
+                      {t('auth.mfa.codeLabel')}
                     </label>
                     <div className="relative">
                       <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
@@ -374,7 +377,7 @@ export default function Login() {
                       />
                     </div>
                     <p className="mt-1.5 text-[10px] text-white/30">
-                      Lost your device? Use one of your saved recovery codes.
+                      {t('auth.mfa.lostDevice')}
                     </p>
                   </div>
                   <button
@@ -382,14 +385,14 @@ export default function Login() {
                     disabled={mfaLoading || mfaCode.trim().length < 6}
                     className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[13px] font-semibold hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 transition-all"
                   >
-                    {mfaLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><span>Verify and sign in</span><ArrowRight className="w-4 h-4" /></>}
+                    {mfaLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><span>{t('auth.mfa.verify')}</span><ArrowRight className="w-4 h-4" /></>}
                   </button>
                   <button
                     type="button"
                     onClick={cancelMfa}
                     className="w-full text-center text-[12px] text-white/40 hover:text-emerald-400 transition-colors"
                   >
-                    Cancel — use a different account
+                    {t('auth.mfa.cancel')}
                   </button>
                 </form>
               </>
@@ -401,15 +404,15 @@ export default function Login() {
                 type="button"
                 onClick={() => handleSsoContinue()}
                 disabled={ssoLoading || loading}
-                aria-label="Continue with single sign-on"
+                aria-label={t('auth.sso.aria')}
                 aria-busy={ssoLoading}
-                title="Sign in via your enterprise IdP (Azure AD, Okta, Google Workspace, etc.)"
+                title={t('auth.sso.title')}
                 className="w-full h-10 rounded-[8px] flex items-center justify-center gap-2 text-[13px] font-semibold text-white bg-white/[0.06] border border-white/[0.12] hover:bg-white/[0.10] hover:border-emerald-400/40 transition-all disabled:opacity-50 cursor-pointer"
               >
                 {ssoLoading
                   ? <Loader2 className="w-4 h-4 animate-spin" />
                   : <span className="w-4 h-4 rounded-full bg-emerald-400/20 text-emerald-300 flex items-center justify-center text-[9px] font-bold">SSO</span>}
-                Continue with enterprise SSO
+                {t('auth.sso.continueEnterprise')}
               </button>
             )}
 
@@ -427,7 +430,7 @@ export default function Login() {
                         type="button"
                         onClick={() => handleQuickLogin(i)}
                         disabled={loading}
-                        aria-label={`Quick sign-in as ${acc.label}`}
+                        aria-label={t('auth.login.quickAria', { role: t(`auth.roleTiles.${acc.role}.label`, { defaultValue: acc.label }) })}
                         aria-busy={isActive}
                         className={`relative flex flex-col items-start p-2.5 rounded-lg border text-left
                           transition-all duration-200 cursor-pointer disabled:opacity-50 group
@@ -442,8 +445,8 @@ export default function Login() {
                           </span>
                           {isActive && <Loader2 className="w-3 h-3 text-emerald-400 animate-spin" />}
                         </div>
-                        <span className="text-[11px] font-semibold text-white leading-tight line-clamp-1">{acc.label}</span>
-                        <span className="text-[9px] text-white/40 mt-0.5 leading-tight line-clamp-2">{acc.desc}</span>
+                        <span className="text-[11px] font-semibold text-white leading-tight line-clamp-1">{t(`auth.roleTiles.${acc.role}.label`, { defaultValue: acc.label })}</span>
+                        <span className="text-[9px] text-white/40 mt-0.5 leading-tight line-clamp-2">{t(`auth.roleTiles.${acc.role}.desc`, { defaultValue: acc.desc })}</span>
                       </button>
                     )
                   })}
@@ -451,7 +454,7 @@ export default function Login() {
 
                 <div className="flex items-center gap-3 py-1">
                   <div className="h-px flex-1 bg-white/10" />
-                  <span className="text-[9px] text-white/30 uppercase tracking-wider font-medium">or sign in with credentials</span>
+                  <span className="text-[9px] text-white/30 uppercase tracking-wider font-medium">{t('auth.login.orCredentials')}</span>
                   <div className="h-px flex-1 bg-white/10" />
                 </div>
               </>
@@ -472,7 +475,7 @@ export default function Login() {
             {!mfaTempToken && (
             <form onSubmit={handleSubmit} noValidate aria-labelledby="form-title" className="space-y-3">
               <div>
-                <label htmlFor="email" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">Email</label>
+                <label htmlFor="email" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">{t('login.email')}</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                   <input
@@ -498,7 +501,7 @@ export default function Login() {
               {mode === 'register' && (
                 <>
                   <div>
-                    <label htmlFor="name" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">Full Name</label>
+                    <label htmlFor="name" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">{t('auth.register.fullName')}</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                       <input
@@ -507,7 +510,7 @@ export default function Login() {
                         aria-required="true"
                         aria-invalid={!!(touched.name && registerErrors.name)}
                         aria-describedby={touched.name && registerErrors.name ? 'name-err' : undefined}
-                        placeholder="John Smith"
+                        placeholder={t('auth.register.namePlaceholder')}
                         className={`w-full h-10 pl-10 pr-4 rounded-lg border bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all hover:border-white/20 ${
                           touched.name && registerErrors.name ? 'border-red-500/60' : 'border-white/10'
                         }`}
@@ -519,13 +522,13 @@ export default function Login() {
                   </div>
                   <div>
                     <label htmlFor="workspace" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">
-                      Workspace <span className="text-white/30 normal-case tracking-normal">(optional)</span>
+                      {t('auth.register.workspace')} <span className="text-white/30 normal-case tracking-normal">{t('auth.register.optional')}</span>
                     </label>
                     <div className="relative">
                       <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                       <input
                         id="workspace" type="text" value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)}
-                        placeholder="Acme Sustainability"
+                        placeholder={t('auth.register.workspacePlaceholder')}
                         className="w-full h-10 pl-10 pr-4 rounded-lg border border-white/10 bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all hover:border-white/20"
                       />
                     </div>
@@ -538,7 +541,7 @@ export default function Login() {
               {mode === 'login' && ssoAvailable ? (
                 <div className="space-y-2">
                   <div className="p-3 rounded-lg bg-emerald-400/[0.06] border border-emerald-400/20 text-[12px] text-emerald-200">
-                    Single sign-on is enabled for this email's organisation. Continue via your enterprise identity provider.
+                    {t('auth.sso.enabledForDomain')}
                   </div>
                   <button
                     type="button"
@@ -548,24 +551,24 @@ export default function Login() {
                   >
                     {ssoLoading
                       ? <Loader2 className="w-4 h-4 animate-spin" />
-                      : <><span>Continue with SSO</span><ArrowRight className="w-4 h-4" /></>}
+                      : <><span>{t('auth.sso.continue')}</span><ArrowRight className="w-4 h-4" /></>}
                   </button>
                   <button
                     type="button"
                     onClick={() => { setSsoAvailable(false); setSsoConnectionId(null) }}
                     className="w-full text-center text-[11px] text-white/40 hover:text-emerald-400 transition-colors cursor-pointer"
                   >
-                    Use password instead
+                    {t('auth.sso.usePassword')}
                   </button>
                 </div>
               ) : (
                 <>
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label htmlFor="password" className="text-[11px] font-medium text-white/50 uppercase tracking-wider">Password</label>
+                      <label htmlFor="password" className="text-[11px] font-medium text-white/50 uppercase tracking-wider">{t('login.password')}</label>
                       {mode === 'login' && (
                         <Link to="/forgot-password" className="text-[11px] text-emerald-400 hover:text-emerald-300 transition-colors">
-                          Forgot password?
+                          {t('login.forgotPassword')}
                         </Link>
                       )}
                     </div>
@@ -581,7 +584,7 @@ export default function Login() {
                             ? 'pw-err'
                             : error ? 'login-error' : undefined
                         }
-                        placeholder={mode === 'register' ? 'Min. 6 characters' : ''}
+                        placeholder={mode === 'register' ? t('auth.register.minChars') : ''}
                         className={`w-full h-10 pl-10 pr-4 rounded-lg border bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all hover:border-white/20 ${
                           mode === 'register' && touched.password && registerErrors.password ? 'border-red-500/60' : 'border-white/10'
                         }`}
@@ -596,7 +599,7 @@ export default function Login() {
                     aria-busy={loading}
                     className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[13px] font-semibold hover:from-emerald-400 hover:to-teal-400 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer shadow-[0_0_20px_-6px_rgba(52,211,153,0.6)]"
                   >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><span>{mode === 'login' ? 'Sign in' : 'Create Account'}</span><ArrowRight className="w-4 h-4" /></>}
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><span>{mode === 'login' ? t('login.signIn') : t('auth.register.submit')}</span><ArrowRight className="w-4 h-4" /></>}
                   </button>
                 </>
               )}
@@ -605,7 +608,7 @@ export default function Login() {
                 onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(null); setTouched({}) }}
                 className="w-full text-center text-[12px] text-white/40 hover:text-emerald-400 transition-colors cursor-pointer"
               >
-                {mode === 'login' ? 'Need an account? Create one' : 'Already have an account? Sign in'}
+                {mode === 'login' ? t('auth.login.needAccount') : t('auth.register.haveAccount')}
               </button>
             </form>
             )}
@@ -634,22 +637,22 @@ export default function Login() {
             <div className="flex flex-col gap-2">
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-400/10 border border-emerald-400/20 text-[10px] font-semibold uppercase tracking-[0.15em] text-emerald-300 w-fit">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Live 3D
+                {t('auth.hero.live3d')}
               </span>
               <h2 className="text-[32px] font-display font-bold text-white tracking-tight leading-tight max-w-[400px]">
-                One dataset.<br />Every framework.
+                {t('auth.hero.line1')}<br />{t('auth.hero.line2')}
               </h2>
               <p className="text-[13px] text-white/50 max-w-[360px] leading-relaxed">
-                GRI, CSRD, ISSB, TCFD, CDP — regenerated from the same approved values, with a full audit trail.
+                {t('auth.hero.body')}
               </p>
 
               <div className="mt-4 grid grid-cols-2 gap-2 max-w-[360px] pointer-events-auto">
-                {features.map(({ icon: Icon, text }) => (
+                {features.map(({ icon: Icon, text }, fi) => (
                   <div key={text} className="flex items-center gap-2 p-2 rounded-lg bg-black/40 backdrop-blur border border-white/5">
                     <div className="w-6 h-6 rounded-md bg-emerald-400/10 flex items-center justify-center">
                       <Icon className="w-3 h-3 text-emerald-400" />
                     </div>
-                    <span className="text-[10px] text-white/60 leading-tight">{text}</span>
+                    <span className="text-[10px] text-white/60 leading-tight">{t(`auth.hero.features.f${fi}`, { defaultValue: text })}</span>
                   </div>
                 ))}
               </div>

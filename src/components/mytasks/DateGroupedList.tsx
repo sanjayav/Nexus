@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronDown } from 'lucide-react'
 import type { QuestionAssignment, OrgEntity, OrgMember } from '../../lib/orgStore'
 import type { NexusQuestionnaireItem } from '../../lib/api'
@@ -31,6 +32,7 @@ export default function DateGroupedList({
   assignments, questionById, entityById, entities, members,
   expandedId, focusedId, onToggle, onUpdate, registerRow,
 }: DateGroupedListProps) {
+  const { t } = useTranslation()
   const groups = useMemo(() => {
     const map = new Map<DateGroupKey, QuestionAssignment[]>()
     for (const a of assignments) {
@@ -56,7 +58,7 @@ export default function DateGroupedList({
                 g.key === 'overdue' ? 'text-[var(--status-reject)]' : 'text-[var(--text-secondary)]'
               }`}
             >
-              {g.label}
+              {t(g.label)}
             </h3>
             <span className="text-[10px] font-semibold tabular-nums px-1.5 py-0.5 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">
               {g.items.length}

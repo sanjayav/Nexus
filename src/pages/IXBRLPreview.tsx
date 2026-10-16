@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import PageHeader from '../components/PageHeader'
 import { reports, type IxbrlPreviewResult, type IxbrlValidationResult } from '../lib/api'
 import { Download, FileCheck2, Loader2, Play, AlertTriangle, CheckCircle2, XCircle, FileText } from 'lucide-react'
@@ -28,6 +29,7 @@ function StatChip({ label, value, tone = 'neutral' }: { label: string; value: st
 }
 
 export default function IXBRLPreview() {
+  const { t } = useTranslation()
   const [params, setParams] = useSearchParams()
   const year = Number(params.get('year') ?? new Date().getUTCFullYear())
   const frameworks = (params.get('frameworks') ?? 'csrd-e1')
@@ -51,7 +53,7 @@ export default function IXBRLPreview() {
       const r = await reports.previewIxbrl({ year, frameworks, includeUnapproved })
       setResult(r)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to generate iXBRL')
+      setError(e instanceof Error ? e.message : t('ixbrl.errors.generate'))
     } finally {
       setLoading(false)
     }
@@ -65,7 +67,7 @@ export default function IXBRLPreview() {
       setValidation(v)
       setTab('validation')
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Validation failed')
+      setError(e instanceof Error ? e.message : t('ixbrl.errors.validate'))
     } finally {
       setValidating(false)
     }
@@ -107,14 +109,14 @@ export default function IXBRLPreview() {
     <div className="page-container">
       <PageHeader
         breadcrumbs={[
-          { label: 'Reports', to: '/reports' },
-          { label: 'iXBRL Filing' },
+          { label: t('nav.reports'), to: '/reports' },
+          { label: t('ixbrl.breadcrumb') },
         ]}
-        title={`iXBRL Preview · FY${year}`}
+        title={t('ixbrl.title', { year })}
         description={
           result
-            ? `${result.concepts} concept facts · ${result.contexts} contexts · ${result.units} units · ${result.warnings.length} warnings`
-            : 'Generate an inline XBRL draft for downstream filing or validator review.'
+            ? t('ixbrl.summary', { concepts: result.concepts, contexts: result.contexts, units: result.units, warnings: result.warnings.length })
+            : t('ixbrl.emptyDescription')
         }
         actions={
           <div className="flex items-center gap-2 flex-wrap">
@@ -124,7 +126,7 @@ export default function IXBRLPreview() {
               className="btn btn-ghost gap-1.5"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin"/> : <Play className="w-4 h-4"/>}
-              {loading ? 'Generating…' : 'Generate'}
+              {loading ? t('ixbrl.actions.generating') : t('ixbrl.actions.generate')}
             </button>
             <button
               onClick={validate}
@@ -132,7 +134,7 @@ export default function IXBRLPreview() {
               className="btn btn-ghost gap-1.5"
             >
               {validating ? <Loader2 className="w-4 h-4 animate-spin"/> : <FileCheck2 className="w-4 h-4"/>}
-              Validate
+              {t('ixbrl.actions.validate')}
             </button>
             <button
               onClick={download}
@@ -140,7 +142,7 @@ export default function IXBRLPreview() {
               className="btn btn-primary gap-1.5"
             >
               <Download className="w-4 h-4"/>
-              Download .xhtml
+              {t('ixbrl.actions.download')}
             </button>
           </div>
         }
@@ -148,7 +150,7 @@ export default function IXBRLPreview() {
 
       {/* Filter row */}
       <div className="glass-panel p-4 mb-5 flex flex-wrap items-center gap-3 text-[13px]">
-        <span className="text-[var(--text-tertiary)]">Year</span>
+        <span className="text-[var(--text-tertiary)]">{t('ixbrl.filters.year')}</span>
         <input
           type="number"
           value={year}
@@ -157,7 +159,7 @@ export default function IXBRLPreview() {
           min={1990}
           max={2100}
         />
-        <span className="text-[var(--text-tertiary)] ml-2">Frameworks</span>
+        <span className="text-[var(--text-tertiary)] ml-2">{t('ixbrl.filters.frameworks')}</span>
         <input
           value={frameworks.join(',')}
           onChange={e => updateFrameworks(e.target.value)}
@@ -174,23 +176,23 @@ export default function IXBRLPreview() {
               setParams(params)
             }}
           />
-          Include unapproved
+          {t('ixbrl.filters.includeUnapproved')}
         </label>
       </div>
 
       {/* Stats strip */}
       {result && (
         <div className="flex flex-wrap items-center gap-2 mb-4">
-          <StatChip label="Concepts" value={result.concepts}/>
-          <StatChip label="Contexts" value={result.contexts}/>
-          <StatChip label="Units" value={result.units}/>
-          <StatChip label="Mapped" value={mappedCount} tone="good"/>
-          {unmappedCount > 0 && <StatChip label="Gaps" value={unmappedCount} tone="warn"/>}
-          {result.warnings.length > 0 && <StatChip label="Warnings" value={result.warnings.length} tone="warn"/>}
+          <StatChip label={t('ixbrl.stats.concepts')} value={result.concepts}/>
+          <StatChip label={t('ixbrl.stats.contexts')} value={result.contexts}/>
+          <StatChip label={t('ixbrl.stats.units')} value={result.units}/>
+          <StatChip label={t('ixbrl.stats.mapped')} value={mappedCount} tone="good"/>
+          {unmappedCount > 0 && <StatChip label={t('ixbrl.stats.gaps')} value={unmappedCount} tone="warn"/>}
+          {result.warnings.length > 0 && <StatChip label={t('ixbrl.stats.warnings')} value={result.warnings.length} tone="warn"/>}
           {validation && (
             errorCount > 0
-              ? <StatChip label="Errors" value={errorCount} tone="bad"/>
-              : <StatChip label="Validated" value="OK" tone="good"/>
+              ? <StatChip label={t('ixbrl.stats.errors')} value={errorCount} tone="bad"/>
+              : <StatChip label={t('ixbrl.stats.validated')} value={t('ixbrl.stats.ok')} tone="good"/>
           )}
         </div>
       )}
@@ -205,21 +207,21 @@ export default function IXBRLPreview() {
       {/* Tabs */}
       <div className="border-b border-[var(--border-subtle)] mb-4 flex items-center gap-1">
         {([
-          { k: 'preview',    label: 'Preview',          icon: <FileText className="w-4 h-4"/> },
-          { k: 'coverage',   label: 'Concept Coverage', icon: <CheckCircle2 className="w-4 h-4"/> },
-          { k: 'validation', label: 'Validation',       icon: <FileCheck2 className="w-4 h-4"/> },
-        ] as const).map(t => (
+          { k: 'preview',    labelKey: 'ixbrl.tabs.preview',    icon: <FileText className="w-4 h-4"/> },
+          { k: 'coverage',   labelKey: 'ixbrl.tabs.coverage',   icon: <CheckCircle2 className="w-4 h-4"/> },
+          { k: 'validation', labelKey: 'ixbrl.tabs.validation', icon: <FileCheck2 className="w-4 h-4"/> },
+        ] as const).map(tb => (
           <button
-            key={t.k}
-            onClick={() => setTab(t.k)}
+            key={tb.k}
+            onClick={() => setTab(tb.k)}
             className={`px-3 py-2 text-[13px] font-medium border-b-2 transition-colors inline-flex items-center gap-1.5 ${
-              tab === t.k
+              tab === tb.k
                 ? 'border-[var(--accent)] text-[var(--text-primary)]'
                 : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
             }`}
           >
-            {t.icon}
-            {t.label}
+            {tb.icon}
+            {t(tb.labelKey)}
           </button>
         ))}
       </div>
@@ -229,14 +231,14 @@ export default function IXBRLPreview() {
         <div className="glass-panel p-0 overflow-hidden">
           {result ? (
             <iframe
-              title="iXBRL Preview"
+              title={t('ixbrl.iframeTitle')}
               srcDoc={previewSrcDoc}
               sandbox=""
               className="w-full h-[70vh] bg-white"
             />
           ) : (
             <div className="p-8 text-center text-[var(--text-tertiary)] text-[13px]">
-              {loading ? 'Generating preview…' : 'No preview yet — click Generate.'}
+              {loading ? t('ixbrl.generatingPreview') : t('ixbrl.noPreview')}
             </div>
           )}
         </div>
@@ -247,11 +249,11 @@ export default function IXBRLPreview() {
           <table className="w-full text-[13px]">
             <thead className="bg-[var(--surface-2)]">
               <tr className="text-left">
-                <th className="px-3 py-2 font-semibold text-[var(--text-secondary)]">Concept</th>
-                <th className="px-3 py-2 font-semibold text-[var(--text-secondary)]">Label</th>
-                <th className="px-3 py-2 font-semibold text-[var(--text-secondary)]">Framework</th>
-                <th className="px-3 py-2 font-semibold text-[var(--text-secondary)]">Source</th>
-                <th className="px-3 py-2 font-semibold text-[var(--text-secondary)]">Status</th>
+                <th className="px-3 py-2 font-semibold text-[var(--text-secondary)]">{t('ixbrl.coverage.concept')}</th>
+                <th className="px-3 py-2 font-semibold text-[var(--text-secondary)]">{t('ixbrl.coverage.label')}</th>
+                <th className="px-3 py-2 font-semibold text-[var(--text-secondary)]">{t('ixbrl.coverage.framework')}</th>
+                <th className="px-3 py-2 font-semibold text-[var(--text-secondary)]">{t('ixbrl.coverage.source')}</th>
+                <th className="px-3 py-2 font-semibold text-[var(--text-secondary)]">{t('ixbrl.coverage.status')}</th>
               </tr>
             </thead>
             <tbody>
@@ -263,13 +265,13 @@ export default function IXBRLPreview() {
                   <td className="px-3 py-2 text-[var(--text-tertiary)]">{c.griCode ?? '—'}</td>
                   <td className="px-3 py-2">
                     {c.mapped
-                      ? <span className="inline-flex items-center gap-1 text-emerald-400"><CheckCircle2 className="w-3.5 h-3.5"/> Mapped</span>
-                      : <span className="inline-flex items-center gap-1 text-amber-400"><AlertTriangle className="w-3.5 h-3.5"/> Missing (required)</span>}
+                      ? <span className="inline-flex items-center gap-1 text-emerald-400"><CheckCircle2 className="w-3.5 h-3.5"/> {t('ixbrl.coverage.mapped')}</span>
+                      : <span className="inline-flex items-center gap-1 text-amber-400"><AlertTriangle className="w-3.5 h-3.5"/> {t('ixbrl.coverage.missing')}</span>}
                   </td>
                 </tr>
               ))}
               {(!result || result.coverage.length === 0) && (
-                <tr><td colSpan={5} className="px-3 py-6 text-center text-[var(--text-tertiary)]">No mappings yet — generate first.</td></tr>
+                <tr><td colSpan={5} className="px-3 py-6 text-center text-[var(--text-tertiary)]">{t('ixbrl.coverage.empty')}</td></tr>
               )}
             </tbody>
           </table>
@@ -280,27 +282,27 @@ export default function IXBRLPreview() {
         <div className="glass-panel p-4">
           {!validation ? (
             <div className="text-center text-[var(--text-tertiary)] text-[13px] py-8">
-              Click <strong>Validate</strong> to run structural checks on the generated document.
+              {t('ixbrl.validation.promptPrefix')}<strong>{t('ixbrl.validation.promptAction')}</strong>{t('ixbrl.validation.promptSuffix')}
             </div>
           ) : (
             <div className="space-y-4">
               <div className="flex items-center gap-3 text-[14px]">
                 {validation.valid
-                  ? <span className="inline-flex items-center gap-1.5 text-emerald-400"><CheckCircle2 className="w-4 h-4"/> Document is structurally valid</span>
-                  : <span className="inline-flex items-center gap-1.5 text-rose-400"><XCircle className="w-4 h-4"/> Validation failed</span>}
+                  ? <span className="inline-flex items-center gap-1.5 text-emerald-400"><CheckCircle2 className="w-4 h-4"/> {t('ixbrl.validation.valid')}</span>
+                  : <span className="inline-flex items-center gap-1.5 text-rose-400"><XCircle className="w-4 h-4"/> {t('ixbrl.validation.failed')}</span>}
                 <span className="text-[var(--text-tertiary)]">
-                  {validation.stats.facts} facts · {validation.stats.contexts} contexts · {validation.stats.units} units
-                  {validation.stats.unknownConcepts > 0 && ` · ${validation.stats.unknownConcepts} unknown concepts`}
+                  {t('ixbrl.validation.stats', { facts: validation.stats.facts, contexts: validation.stats.contexts, units: validation.stats.units })}
+                  {validation.stats.unknownConcepts > 0 && t('ixbrl.validation.unknownConcepts', { count: validation.stats.unknownConcepts })}
                 </span>
               </div>
 
               {validation.errors.length > 0 && (
                 <div>
-                  <h3 className="font-semibold text-[13px] mb-2 text-rose-300">Errors ({validation.errors.length})</h3>
+                  <h3 className="font-semibold text-[13px] mb-2 text-rose-300">{t('ixbrl.validation.errors', { count: validation.errors.length })}</h3>
                   <ul className="space-y-1 text-[12px] font-mono">
                     {validation.errors.map((e, i) => (
                       <li key={i} className="text-rose-200">
-                        {e.line != null && <span className="text-rose-400/70">line {e.line}: </span>}
+                        {e.line != null && <span className="text-rose-400/70">{t('ixbrl.validation.line', { line: e.line })}</span>}
                         {e.message}
                       </li>
                     ))}
@@ -310,11 +312,11 @@ export default function IXBRLPreview() {
 
               {validation.warnings.length > 0 && (
                 <div>
-                  <h3 className="font-semibold text-[13px] mb-2 text-amber-300">Warnings ({validation.warnings.length})</h3>
+                  <h3 className="font-semibold text-[13px] mb-2 text-amber-300">{t('ixbrl.validation.warnings', { count: validation.warnings.length })}</h3>
                   <ul className="space-y-1 text-[12px] font-mono">
                     {validation.warnings.map((w, i) => (
                       <li key={i} className="text-amber-200">
-                        {w.line != null && <span className="text-amber-400/70">line {w.line}: </span>}
+                        {w.line != null && <span className="text-amber-400/70">{t('ixbrl.validation.line', { line: w.line })}</span>}
                         {w.message}
                       </li>
                     ))}
@@ -323,8 +325,7 @@ export default function IXBRLPreview() {
               )}
 
               <p className="text-[11px] text-[var(--text-tertiary)] pt-2 border-t border-[var(--border-subtle)]">
-                Structural validation only — production filing also requires the full EFRAG ESRS
-                linkbase via a certified validator (CoreFiling, ParsePort, IRIS Carbon).
+                {t('ixbrl.validation.footnote')}
               </p>
             </div>
           )}

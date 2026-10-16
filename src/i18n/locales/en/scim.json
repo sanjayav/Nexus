@@ -1,0 +1,62 @@
+{
+  "breadcrumbAdmin": "Admin",
+  "breadcrumb": "SCIM tokens",
+  "eyebrow": "Admin · Identity",
+  "title": "SCIM provisioning",
+  "subtitle": "Issue a SCIM 2.0 bearer token so an identity provider (Azure AD, Okta, OneLogin) can sync users into this workspace automatically.",
+  "errors": {
+    "load": "Failed to load SCIM tokens",
+    "create": "Failed to create SCIM token",
+    "revoke": "Failed to revoke token"
+  },
+  "confirmRevoke": "Revoke this token? Any IdP using it will lose access immediately.",
+  "reveal": {
+    "title": "Token generated",
+    "body": "This is the only time you will see this token. Copy it now and paste it into your IdP. We store only a hash.",
+    "dismiss": "Dismiss",
+    "copied": "Copied",
+    "copy": "Copy"
+  },
+  "generate": {
+    "heading": "Generate a new SCIM token",
+    "intro": "New users provisioned via this token get the role you choose here by default.",
+    "defaultRole": "Default role",
+    "button": "Generate token"
+  },
+  "roles": {
+    "viewer": "viewer",
+    "analyst": "analyst",
+    "team-lead": "team-lead",
+    "auditor": "auditor"
+  },
+  "setup": {
+    "heading": "IdP setup instructions",
+    "intro": "SCIM 2.0 base URL and configuration for Azure AD, Okta, and OneLogin.",
+    "baseUrl": "SCIM Base URL",
+    "authentication": "Authentication",
+    "authBody": "Bearer token (paste the value shown when generating).",
+    "endpoints": "Supported endpoints",
+    "filterBy": "(filter by",
+    "filterClose": ")",
+    "softDelete": "(DELETE soft-deactivates the user)",
+    "azureTitle": "Azure AD",
+    "azureBody": "Enterprise applications → your app → Provisioning. Set \"Tenant URL\" to the base URL above and paste the token into \"Secret Token\". Test connection then start provisioning.",
+    "oktaTitle": "Okta",
+    "oktaBody": "Application → Provisioning → Integration. Enable API integration, paste the base URL into \"SCIM connector base URL\" and the token under \"OAuth Bearer Token\"."
+  },
+  "table": {
+    "heading": "Active tokens",
+    "emptyTitle": "No SCIM tokens yet",
+    "emptyBody": "Generate a bearer token above and paste it into your IdP (Azure AD, Okta, Google Workspace) to start auto-provisioning users.",
+    "prefix": "Prefix",
+    "defaultRole": "Default role",
+    "status": "Status",
+    "lastUsed": "Last used",
+    "created": "Created",
+    "actions": "Actions",
+    "active": "active",
+    "revoked": "revoked",
+    "never": "never",
+    "revoke": "Revoke"
+  }
+}

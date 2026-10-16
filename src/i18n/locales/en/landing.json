@@ -1,0 +1,136 @@
+{
+  "hero": {
+    "eyebrow": "ESG Reporting — Reimagined",
+    "titleLead": "Disclosures shouldn't take six months.",
+    "titleAccent": "Nexus does it in two days.",
+    "subtitle": "One platform. Every framework — CSRD, ISSB, GRI, TCFD, CDP, SEC, EU Taxonomy, and more. Auditor-ready. Built ESG-first.",
+    "trust": {
+      "noSalesCall": "No sales call required",
+      "transparentPricing": "Transparent pricing",
+      "csrdReady": "CSRD-ready in 2 days",
+      "frameworks": "24 frameworks",
+      "blockchain": "Blockchain audit trail"
+    }
+  },
+  "versus": {
+    "legacyLabel": "Legacy ESG platforms",
+    "timeToDraft": {
+      "label": "Time to first draft",
+      "legacy": "6+ months",
+      "nexus": "2 days"
+    },
+    "implementationCost": {
+      "label": "Implementation cost",
+      "legacy": "$100K+ services",
+      "nexus": "No setup fee"
+    },
+    "pricing": {
+      "label": "Pricing",
+      "legacy": "Quote required",
+      "nexus": "£500/mo Team tier"
+    }
+  },
+  "pillars": {
+    "eyebrow": "Why Nexus",
+    "heading": "Three things sustainability teams ask for.",
+    "subheading": "They are also the three things every other tool gets wrong. We rebuilt the stack so each one is a first-class citizen.",
+    "compliance": {
+      "title": "Compliance-grade reporting",
+      "body": "CSRD, ISSB, GRI, TCFD, CDP, SEC — out of the box. Every disclosure is auditable, with a blockchain-anchored trail back to the original data point.",
+      "link": "See supported frameworks"
+    },
+    "ai": {
+      "title": "AI that drafts and extracts",
+      "body": "Claude-powered narrative generation, evidence extraction from supplier PDFs, and vendor-to-emission-factor matching. Humans approve every number.",
+      "link": "How the AI works"
+    },
+    "linkedData": {
+      "title": "Linked data, one source of truth",
+      "body": "Change a value once. It propagates to every framework, every disclosure, every chart it appears in. Auditors love it; analysts get their evenings back.",
+      "link": "Explore the data model"
+    }
+  },
+  "testimonial": {
+    "eyebrow": "Customer story",
+    "quote": "Nexus collapsed our disclosure cycle from 6 weeks to 4 days. The linked-data model is exactly the architecture we'd have built in-house — if we had the team.",
+    "author": "Head of Sustainability, Demo Co (placeholder until real customer quote available)"
+  },
+  "capabilities": {
+    "eyebrow": "The full toolkit",
+    "heading": "Everything an ESG team needs in one place.",
+    "workflow": {
+      "title": "Workflow & approvals",
+      "body": "Multi-stage review chains with SO / TL / PM roles and automatic escalation."
+    },
+    "emissionFactors": {
+      "title": "Emission factor library",
+      "body": "DEFRA, EPA, IPCC and custom factors. Versioned. Audit-traced. Always up-to-date."
+    },
+    "blockchain": {
+      "title": "Blockchain audit trail",
+      "body": "Every published figure gets a tamper-evident hash. Anyone can verify with the token."
+    },
+    "sso": {
+      "title": "SAML SSO & SCIM",
+      "body": "Azure AD, Okta, Google Workspace, JumpCloud. SCIM auto-provisioning included."
+    },
+    "spreadsheets": {
+      "title": "Excel-style spreadsheets",
+      "body": "Bulk entry that feels like Excel — with validation, formulas, and one-click import."
+    },
+    "residency": {
+      "title": "Multi-region residency",
+      "body": "EU and US data residency. Self-host with our Terraform module if you need full control."
+    }
+  },
+  "tiers": {
+    "starter": {
+      "description": "For a single team validating the platform.",
+      "f1": "One workspace, up to 3 users",
+      "f2": "GRI framework only",
+      "f3": "Up to 100 disclosures / year"
+    },
+    "team": {
+      "cadence": "/mo, billed yearly",
+      "description": "Production use across all frameworks.",
+      "f1": "Unlimited users",
+      "f2": "All frameworks (CSRD, ISSB, GRI, TCFD, CDP, SEC)",
+      "f3": "SSO, audit trail, evidence library"
+    },
+    "enterprise": {
+      "description": "For groups, regulated industries, and on-prem.",
+      "f1": "Dedicated CSM and onboarding",
+      "f2": "On-prem or private-cloud option",
+      "f3": "Custom DPA, SLA, premium support"
+    }
+  },
+  "faq": {
+    "workiva": {
+      "q": "How does Nexus compare to Workiva?",
+      "a": "We focus narrowly on sustainability reporting — that lets us go deeper on emission factors, supplier data, and framework-specific disclosure logic. Pricing is also a fraction of Workiva for comparable teams. See the full /compare page for an honest head-to-head."
+    },
+    "frameworks": {
+      "q": "Which frameworks are supported?",
+      "a": "CSRD/ESRS, ISSB (IFRS S1 & S2), GRI Universal + sector, TCFD, CDP (Climate, Water, Forests), SEC climate disclosure, and SASB. 24 frameworks in total, with new ones added as they mature."
+    },
+    "timeline": {
+      "q": "What's the implementation timeline?",
+      "a": "Most teams get a CSRD-ready draft in 48 hours, self-serve. No consultants required, no professional services fees. See /how-it-works for the hour-by-hour breakdown."
+    },
+    "storage": {
+      "q": "Where is data stored?",
+      "a": "EU (Frankfurt) by default. US (Virginia) on request. Self-hosted via our Terraform module deploys to your own AWS / Azure / GCP project — your data never leaves your VPC."
+    },
+    "residency": {
+      "q": "Do you support EU and US data residency?",
+      "a": "Yes. Both regions on the Team plan, with regional segregation guaranteed. Enterprise customers can add additional regions or on-prem deployments."
+    },
+    "api": {
+      "q": "Is there an API?",
+      "a": "Yes. REST + JSON, fully versioned. Every action in the UI is available via API, including evidence upload, disclosure publishing, and verification. SDKs for Python and TypeScript are in beta."
+    }
+  },
+  "ctaBand": {
+    "heading": "Stop quoting six months. Start in two days."
+  }
+}

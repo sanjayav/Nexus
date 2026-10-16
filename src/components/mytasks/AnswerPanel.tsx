@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   PencilLine, Calculator as CalcIcon, Plug, Send, Upload,
   CheckCircle2, Loader2,
@@ -6,10 +7,12 @@ import {
 import type { QuestionAssignment, OrgEntity, OrgMember } from '../../lib/orgStore'
 import type { NexusQuestionnaireItem } from '../../lib/api'
 import { findCalculator, type CalcDescriptor, type CalcInputValues } from '../../calculators/registry'
+import { localizeCalc, localizeUnit } from '../../calculators/labels'
 import CommentThread from '../CommentThread'
 import NarrativeAnswerPanel from './NarrativeAnswerPanel'
 import { EvidencePanel, HandoffHint } from './EvidencePanel'
 import { pickConnector } from './shared'
+import { itemLabel } from '../../lib/itemLabel'
 
 export function AnswerPanel({
   assignment, question, onUpdate, entities, members,
@@ -20,11 +23,12 @@ export function AnswerPanel({
   entities: OrgEntity[]
   members: OrgMember[]
 }) {
+  const { t, i18n } = useTranslation()
   if (assignment.response_type === 'narrative') {
     return <NarrativeAnswerPanel assignment={assignment} question={question} onUpdate={onUpdate} entities={entities} members={members} />
   }
   const allowedModes = assignment.entry_modes ?? ['Manual']
-  const calculator: CalcDescriptor | null = findCalculator(question)
+  const calculator: CalcDescriptor | null = useMemo(() => localizeCalc(t, findCalculator(question)), [question, t])
   const availableModes = useMemo(
     () => allowedModes.filter(m => m !== 'Calculator' || calculator != null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -70,7 +74,7 @@ export function AnswerPanel({
   const handleSubmit = async () => {
     if (effectiveValue == null) return
     if (evidence.length === 0 && activeMode !== 'Connector') {
-      alert('Attach at least one piece of evidence before submitting.')
+      alert(t('tasks.answer.needEvidence'))
       return
     }
     setBusy(true)
@@ -102,8 +106,8 @@ export function AnswerPanel({
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-5 mt-3">
       <div className="space-y-4">
         <div className="text-[var(--text-xs)] text-[var(--text-secondary)]">
-          <strong className="text-[var(--text-primary)]">Question:</strong> {question.line_item}
-          {question.unit && <span className="ml-2 text-[var(--text-tertiary)]">· Unit: {question.unit}</span>}
+          <strong className="text-[var(--text-primary)]">{t('tasks.answer.question')}</strong> {itemLabel(question, i18n.language)}
+          {question.unit && <span className="ml-2 text-[var(--text-tertiary)]">· {t('tasks.answer.unit', { unit: question.unit })}</span>}
           {question.scope_split && <span className="ml-2 text-[var(--text-tertiary)]">· {question.scope_split}</span>}
         </div>
 
@@ -126,7 +130,7 @@ export function AnswerPanel({
                       active ? 'bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
-                    <Icon className="w-3.5 h-3.5" /> {m}
+                    <Icon className="w-3.5 h-3.5" /> {t(`tasks.mode.${m}`, { defaultValue: m })}
                   </button>
                 )
               })}
@@ -137,7 +141,7 @@ export function AnswerPanel({
         {activeMode === 'Manual' && (
           <div>
             <label className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">
-              Enter value {question.unit ? `(${question.unit})` : ''}
+              {t('tasks.answer.enterValue')} {question.unit ? `(${question.unit})` : ''}
             </label>
             <input
               type="number"
@@ -145,7 +149,7 @@ export function AnswerPanel({
               value={value}
               onChange={e => setValue(e.target.value)}
               disabled={locked}
-              placeholder="e.g. 12345.67"
+              placeholder={t('tasks.answer.valuePlaceholder')}
               className="w-full px-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-base)] tabular-nums focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none disabled:bg-[var(--bg-secondary)]"
             />
           </div>
@@ -159,7 +163,7 @@ export function AnswerPanel({
               {calculator.inputs.map(input => (
                 <label key={input.key} className="block">
                   <span className="block text-[9px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">
-                    {input.label} {input.unit && <span className="opacity-70">({input.unit})</span>}
+                    {input.label} {input.unit && <span className="opacity-70">({localizeUnit(t, input.unit)})</span>}
                   </span>
                   {input.options ? (
                     <select
@@ -167,7 +171,7 @@ export function AnswerPanel({
                       onChange={e => setCalcValues(s => ({ ...s, [input.key]: e.target.value }))}
                       className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)]"
                     >
-                      <option value="">Select…</option>
+                      <option value="">{t('tasks.answer.select')}</option>
                       {input.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                   ) : (
@@ -183,7 +187,7 @@ export function AnswerPanel({
               ))}
             </div>
             <div className="mt-3 p-3 rounded-[var(--radius-md)] bg-[var(--color-brand-soft)] border border-[var(--color-brand)]/20 flex items-baseline justify-between">
-              <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand-strong)]">Computed</span>
+              <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-brand-strong)]">{t('tasks.answer.computed')}</span>
               <div className="flex items-baseline gap-1">
                 <span className="text-[var(--text-xl)] font-bold tabular-nums text-[var(--color-brand-strong)]">
                   {calcResult != null ? calcResult.toFixed(2) : '—'}
@@ -200,16 +204,16 @@ export function AnswerPanel({
               <Plug className="w-5 h-5 text-[var(--color-brand)]" />
               <div>
                 <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{pickConnector(question)}</div>
-                <div className="text-[10px] text-[var(--text-tertiary)]">Auto-pull · signed with receipt hash</div>
+                <div className="text-[10px] text-[var(--text-tertiary)]">{t('tasks.answer.autoPull')}</div>
               </div>
             </div>
             {assignment.value != null ? (
               <div className="p-3 rounded-[var(--radius-sm)] bg-[var(--accent-green-light)] border border-[var(--status-ok)]/20">
                 <div className="flex items-center gap-2 text-[10px] font-semibold text-[var(--status-ok)] uppercase tracking-wider mb-1">
-                  <CheckCircle2 className="w-3 h-3" /> Pulled
+                  <CheckCircle2 className="w-3 h-3" /> {t('tasks.answer.pulled')}
                 </div>
                 <div className="text-[var(--text-xs)] text-[var(--text-secondary)]">
-                  Value: <strong className="text-[var(--text-primary)] tabular-nums">{assignment.value}</strong> {question.unit ?? ''}
+                  {t('tasks.answer.value')} <strong className="text-[var(--text-primary)] tabular-nums">{assignment.value}</strong> {question.unit ?? ''}
                 </div>
               </div>
             ) : (
@@ -218,7 +222,7 @@ export function AnswerPanel({
                 disabled={locked || busy}
                 className="w-full px-4 py-2.5 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-60 inline-flex items-center justify-center gap-2"
               >
-                {busy ? <><Loader2 className="w-4 h-4 animate-spin" /> Pulling…</> : <><Plug className="w-4 h-4" /> Pull from source</>}
+                {busy ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('tasks.answer.pulling')}</> : <><Plug className="w-4 h-4" /> {t('tasks.answer.pull')}</>}
               </button>
             )}
           </div>
@@ -226,14 +230,14 @@ export function AnswerPanel({
 
         <div>
           <label className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">
-            Comment (optional)
+            {t('tasks.answer.commentLabel')}
           </label>
           <textarea
             value={comment}
             onChange={e => setComment(e.target.value)}
             rows={2}
             disabled={locked}
-            placeholder="Notes, methodology, or caveats for the reviewer."
+            placeholder={t('tasks.answer.commentPlaceholder')}
             className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none disabled:bg-[var(--bg-secondary)] resize-none"
           />
         </div>
@@ -245,7 +249,7 @@ export function AnswerPanel({
               disabled={effectiveValue == null || busy}
               className="px-4 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50 inline-flex items-center gap-1.5"
             >
-              <Upload className="w-3.5 h-3.5" /> Save draft
+              <Upload className="w-3.5 h-3.5" /> {t('tasks.answer.saveDraft')}
             </button>
           )}
           {!locked && (
@@ -254,7 +258,7 @@ export function AnswerPanel({
               disabled={effectiveValue == null || busy}
               className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] disabled:opacity-50 inline-flex items-center gap-1.5"
             >
-              <Send className="w-3.5 h-3.5" /> Submit for review
+              <Send className="w-3.5 h-3.5" /> {t('tasks.answer.submitForReview')}
             </button>
           )}
           {locked && <HandoffHint status={assignment.status} entityId={assignment.entityId} entities={entities} members={members} />}

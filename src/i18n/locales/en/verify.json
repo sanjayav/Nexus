@@ -1,0 +1,54 @@
+{
+  "publicVerification": "Public verification",
+  "loading": {
+    "title": "Verifying…",
+    "body": "Looking up the report by its verification token."
+  },
+  "errors": {
+    "title": "Verification failed",
+    "failedFallback": "Verification failed",
+    "unknownToken": "This verification token is not recognised. The link may be mistyped, or the report may have been withdrawn."
+  },
+  "footer": "Verified via Nexus · Powered by <brand>Aeiforo</brand>",
+  "goToPlatform": "Go to Nexus platform",
+  "result": {
+    "kicker": "Verified",
+    "authentic": "This is an authentic sustainability report, published by <strong>{{by}}</strong> on <strong>{{date}}</strong>. The document hash was anchored to a public timestamp calendar at publication time.",
+    "version": "Version {{version}}",
+    "unauditedDraft": "UNAUDITED DRAFT",
+    "assured": "ASSURED"
+  },
+  "hash": {
+    "title": "Document hash",
+    "copy": "Copy hash",
+    "fileSize": "File size: {{size}} KB",
+    "pages_one": "{{count}} page",
+    "pages_other": "{{count}} pages",
+    "howTo": "Compute <code>sha256sum</code> on the PDF you received — it must equal the hash above. If it differs, the document has been modified."
+  },
+  "anchor": {
+    "title": "External timestamp",
+    "label": "Anchor",
+    "anchored": "Anchored",
+    "anchoredOn": "Anchored on {{date}}",
+    "calendar": "Calendar:",
+    "none": "No external anchor on record. The document hash was stored server-side only."
+  },
+  "assurance": {
+    "statement": "Independent assurance statement",
+    "pending": "Assurance pending",
+    "signedBy": "Signed by <strong>{{signer}}</strong> on {{date}}.",
+    "signedByFirm": "Signed by <strong>{{signer}}</strong> of {{firm}} on {{date}}.",
+    "reasonable": "Reasonable assurance.",
+    "limited": "Limited assurance.",
+    "reasonablePer": "Reasonable assurance per {{standard}}.",
+    "limitedPer": "Limited assurance per {{standard}}.",
+    "none": "This report was published without third-party assurance. The figures are management's representation. The document hash is still timestamped — integrity of the file is guaranteed — but independent opinion on the figures is not yet available."
+  },
+  "manual": {
+    "title": "How to verify this report yourself",
+    "step1": "Open a terminal and run <code>sha256sum report.pdf</code> (or <code>shasum -a 256 report.pdf</code> on macOS). Compare the output to the hash above — they must match.",
+    "step2": "Install the OpenTimestamps client: <code>pip install opentimestamps-client</code>. This lets you independently confirm the anchor against the Bitcoin blockchain.",
+    "step3": "If the hashes match and the OpenTimestamps receipt upgrades to a full Bitcoin proof, this report has not been modified since it was published."
+  }
+}

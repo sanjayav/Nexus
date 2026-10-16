@@ -1,0 +1,298 @@
+{
+  "page": {
+    "failedToLoad": "加载失败",
+    "errorTitle": "无法加载计算器",
+    "retry": "重试",
+    "breadcrumbData": "数据",
+    "title": "计算器",
+    "description": "与特定 GRI 指标项关联的类型化计算器。每个计算器的输入、公式和方法学均与已发布 SPD 中该单元格的推导方式一致。",
+    "searchPlaceholder": "搜索计算器或 GRI 代码…",
+    "summaryCalculators": "个计算器，覆盖",
+    "summaryLineItems": "个指标项",
+    "noMatch": "未找到与「{{query}}」匹配的计算器。",
+    "lineItemCount_one": "{{count}} 个指标项",
+    "lineItemCount_other": "{{count}} 个指标项",
+    "methodology": "方法学：{{notes}}",
+    "listSeparator": "；",
+    "coverageGap_one": "覆盖缺口——{{count}} 项",
+    "coverageGap_other": "覆盖缺口——{{count}} 项",
+    "coverageGapNote": "——在种子数据中标记为计算器模式，但尚未注册类型化公式。",
+    "andMore_one": "……另有 {{count}} 项",
+    "andMore_other": "……另有 {{count}} 项",
+    "openGriTree": "打开 GRI 树",
+    "dataEntry": "数据录入"
+  },
+  "placeholderExample": "例如 {{value}}",
+  "units": {
+    "hours": "小时",
+    "millionTonsCO2e": "百万吨 CO2e",
+    "millionTons": "百万吨",
+    "baht": "泰铢",
+    "tons": "吨",
+    "megaLitres": "百万升",
+    "millionM": "百万 m³",
+    "millionBaht": "百万泰铢",
+    "years": "年",
+    "kgco2eUSDInvested": "kgCO2e/USD 投资额"
+  },
+  "footnotes": {
+    "ipcc2006": "IPCC 2006",
+    "wriGHGProtocol": "WRI 温室气体核算体系",
+    "iso14064": "ISO 14064",
+    "operationalControlApproach": "运营控制法",
+    "locationBasedMarketBasedPerGHG": "依据温室气体核算体系范围二指南，采用基于位置 + 基于市场方法",
+    "thailandGridEFTGOEGAT": "泰国电网排放因子：TGO / EGAT",
+    "perGRI4039RateNormalised": "依据 GRI 403-9——比率按每 1,000,000 工作小时标准化",
+    "iloOSHMSConvention": "ILO 职业安全健康管理体系（OSH-MS）惯例",
+    "gri4011NewHireAnd": "GRI 401-1——新进员工比率与员工流动率",
+    "gri4013ReturnToWork": "GRI 401-3 复工留任率",
+    "gri4052RatioOfBasic": "GRI 405-2——女性与男性基本工资和薪酬之比",
+    "gri221CEOCompensationRatio": "GRI 2-21——CEO 薪酬比率",
+    "gri4051GenderAndAge": "GRI 405-1——性别与年龄多元化",
+    "gri3023EnergyIntensityRatio": "GRI 302-3——能源强度比率",
+    "perMillionTonProductionIntensity": "每百万吨产量强度",
+    "gri3033WaterRecycledAnd": "GRI 303-3——循环和再利用水",
+    "gri3035WaterConsumptionPer": "GRI 303-5——单位产量耗水量",
+    "gri3064WasteDivertedFrom": "GRI 306-4——从处置中转移的废弃物",
+    "gri2011HumanCapitalROI": "GRI 201-1——人力资本投资回报率"
+  },
+  "registry": {
+    "scope-1-fuel": {
+      "title": "范围一——燃料燃烧",
+      "description": "计算固定或移动燃烧产生的直接温室气体排放。排放量 = 活动数据 × 排放因子 × GWP。",
+      "inputs": {
+        "fuel": {
+          "label": "燃料类型",
+          "hint": "用于选择排放因子",
+          "options": {
+            "natural-gas": {
+              "label": "天然气",
+              "note": "IPCC 2006 — 56.1 tCO2e/TJ"
+            },
+            "fuel-gas": {
+              "label": "燃料气（炼厂）",
+              "note": "IPCC 2006 — 57.6 tCO2e/TJ"
+            },
+            "fuel-oil": {
+              "label": "燃料油",
+              "note": "IPCC 2006 — 77.4 tCO2e/TJ"
+            },
+            "diesel": {
+              "label": "柴油",
+              "note": "IPCC 2006 — 74.1 tCO2e/TJ"
+            },
+            "lpg": {
+              "label": "液化石油气（LPG）",
+              "note": "IPCC 2006 — 63.1 tCO2e/TJ"
+            },
+            "naphtha": {
+              "label": "石脑油",
+              "note": "IPCC 2006 — 73.3 tCO2e/TJ"
+            }
+          }
+        },
+        "activity": {
+          "label": "活动数据",
+          "hint": "所消耗燃料的能量含量"
+        },
+        "gwp": {
+          "label": "全球变暖潜势（GWP）",
+          "hint": "对于 CO2e 排放因子，IPCC AR6 默认值为 1"
+        }
+      }
+    },
+    "scope-2-electricity": {
+      "title": "范围二——外购电力",
+      "description": "计算外购电力产生的间接排放。排放量 = kWh × 电网排放因子。",
+      "inputs": {
+        "grid": {
+          "label": "电网 / 采购方式",
+          "options": {
+            "th-location": {
+              "label": "泰国——基于位置",
+              "note": "TGO 2024 — 0.487 kgCO2/kWh"
+            },
+            "th-market": {
+              "label": "泰国——基于市场（剩余组合）",
+              "note": "TGO 2024 市场剩余组合"
+            },
+            "rec-backed": {
+              "label": "有 REC 支持的可再生能源",
+              "note": "持有有效 I-REC 时为零排放"
+            },
+            "ppa-solar": {
+              "label": "企业 PPA——太阳能",
+              "note": "PPA 后的生命周期排放因子"
+            }
+          }
+        },
+        "mwh": {
+          "label": "用电量",
+          "hint": "计量的外购电量"
+        }
+      }
+    },
+    "ghg-intensity": {
+      "title": "温室气体排放强度",
+      "description": "（范围一 + 范围二）÷ 产量。",
+      "inputs": {
+        "scope1": {
+          "label": "范围一排放"
+        },
+        "scope2": {
+          "label": "范围二排放"
+        },
+        "production": {
+          "label": "产量"
+        }
+      }
+    },
+    "injury-rate": {
+      "title": "工伤率（每百万工时）",
+      "description": "标准职业健康安全比率 =（案例数 × 1,000,000）÷ 工作工时。",
+      "inputs": {
+        "cases": {
+          "label": "可记录案例数"
+        },
+        "manhours": {
+          "label": "工作工时"
+        }
+      }
+    },
+    "workforce-rate": {
+      "title": "员工比率",
+      "description": "（事件数 ÷ 员工总数）× 100。",
+      "inputs": {
+        "events": {
+          "label": "事件数（新入职或离职）"
+        },
+        "total": {
+          "label": "员工总数"
+        }
+      }
+    },
+    "retention-rate": {
+      "title": "育儿假复工率",
+      "description": "复工 12 个月后仍在职员工数 ÷ 复工员工数 × 100。",
+      "inputs": {
+        "retained": {
+          "label": "仍在职员工数（12 个月）"
+        },
+        "returned": {
+          "label": "休假后复工员工数"
+        }
+      }
+    },
+    "pay-gap": {
+      "title": "性别薪酬差距",
+      "description": "（女性平均薪酬 ÷ 男性平均薪酬）× 100。低于 100% 表示女性薪酬较低。",
+      "inputs": {
+        "female": {
+          "label": "女性平均薪酬"
+        },
+        "male": {
+          "label": "男性平均薪酬"
+        }
+      }
+    },
+    "ceo-pay-ratio": {
+      "title": "CEO 薪酬比率",
+      "description": "CEO 薪酬总额 ÷ 员工薪酬中位数（或平均数）。",
+      "inputs": {
+        "ceo": {
+          "label": "CEO 薪酬总额"
+        },
+        "employee": {
+          "label": "员工薪酬中位数（或平均数）"
+        }
+      }
+    },
+    "diversity-pct": {
+      "title": "多元化比例",
+      "description": "（群体人数 ÷ 总人数）× 100。",
+      "inputs": {
+        "segment": {
+          "label": "群体人数（如女性）"
+        },
+        "total": {
+          "label": "总人数"
+        }
+      }
+    },
+    "energy-intensity": {
+      "title": "能源强度",
+      "description": "能源消耗总量 ÷ 产量。",
+      "inputs": {
+        "energy": {
+          "label": "能源消耗总量"
+        },
+        "production": {
+          "label": "产量"
+        }
+      }
+    },
+    "emission-intensity": {
+      "title": "排放强度",
+      "description": "污染物质量 ÷ 产量。",
+      "inputs": {
+        "mass": {
+          "label": "污染物质量"
+        },
+        "production": {
+          "label": "产量"
+        }
+      }
+    },
+    "water-recycled-pct": {
+      "title": "循环水占比",
+      "description": "（循环水量 ÷ 取水总量）× 100。",
+      "inputs": {
+        "recycled": {
+          "label": "循环水量"
+        },
+        "withdrawn": {
+          "label": "取水总量"
+        }
+      }
+    },
+    "water-intensity": {
+      "title": "耗水强度",
+      "description": "净淡水消耗量 ÷ 产量。",
+      "inputs": {
+        "water": {
+          "label": "净淡水消耗量"
+        },
+        "production": {
+          "label": "产量"
+        }
+      }
+    },
+    "hazardous-recycled-pct": {
+      "title": "危险废物回收率（%）",
+      "description": "（转移处置的危险废物 ÷ 产生的危险废物）× 100。",
+      "inputs": {
+        "diverted": {
+          "label": "转移处置的危险废物"
+        },
+        "generated": {
+          "label": "产生的危险废物"
+        }
+      }
+    },
+    "hc-roi": {
+      "title": "人力资本投资回报率（ROI）",
+      "description": "（收入 −（运营费用 − 员工费用））÷ 员工费用。",
+      "inputs": {
+        "revenue": {
+          "label": "总收入"
+        },
+        "opex": {
+          "label": "运营费用总额"
+        },
+        "empex": {
+          "label": "员工相关费用总额"
+        }
+      }
+    }
+  }
+}

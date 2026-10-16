@@ -11,6 +11,14 @@ import { FrameworkBadge } from '../components/FrameworkBadge'
 import { useFramework } from '../lib/frameworks'
 import ResetWorkspaceButton from '../components/ResetWorkspaceButton'
 import PageHeader from '../components/PageHeader'
+import { Trans, useTranslation } from 'react-i18next'
+import i18n from '../i18n'
+import { frameworkName } from '../components/FrameworkBadge'
+
+/** Localised entity-type label (TYPE_META.label stays as the English fallback). */
+function typeLabel(type: EntityType): string {
+  return i18n.t(`onboarding.org.types.${type}`, { defaultValue: TYPE_META[type].label })
+}
 
 const TYPE_META: Record<EntityType, { label: string; icon: typeof Building2; tint: string; tintFg: string }> = {
   group:        { label: 'Group',        icon: Landmark,   tint: 'var(--accent-teal)',    tintFg: '#fff' },
@@ -29,6 +37,7 @@ const CHILD_TYPE_FOR: Record<EntityType, EntityType[]> = {
 }
 
 export default function OrgOnboarding() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [entities, setEntities] = useState<OrgEntity[]>([])
   const [members, setMembers] = useState<OrgMember[]>([])
@@ -78,11 +87,11 @@ export default function OrgOnboarding() {
       </div>
       <PageHeader
         breadcrumbs={[
-          { label: 'Setup' },
-          { label: 'Organisation' },
+          { label: t('onboarding.org.breadcrumbSetup') },
+          { label: t('shell.routes.organisation') },
         ]}
-        eyebrow="Organisation onboarding"
-        title="Build your reporting tree"
+        eyebrow={t('onboarding.org.eyebrow')}
+        title={t('onboarding.org.title')}
         actions={entities.length > 0 ? (
           <ResetWorkspaceButton variant="danger" onReset={() => { refresh(); navigate('/dashboard') }} />
         ) : undefined}
@@ -94,10 +103,10 @@ export default function OrgOnboarding() {
       </PageHeader>
 
       <div className="grid grid-cols-4 gap-3 mb-5">
-        <Stat label="Entities" value={stats.total} />
-        <Stat label="Subsidiaries" value={stats.subs} />
-        <Stat label="Reporting plants" value={stats.plants} />
-        <Stat label="Assigned members" value={stats.members} />
+        <Stat label={t('onboarding.org.stats.entities')} value={stats.total} />
+        <Stat label={t('onboarding.org.stats.subsidiaries')} value={stats.subs} />
+        <Stat label={t('onboarding.org.stats.plants')} value={stats.plants} />
+        <Stat label={t('onboarding.org.stats.members')} value={stats.members} />
       </div>
 
       <div className="grid grid-cols-[1fr_400px] gap-5">
@@ -105,14 +114,14 @@ export default function OrgOnboarding() {
         <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-5 min-h-[480px]">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-[var(--text-base)] font-semibold text-[var(--text-primary)]">
-              Reporting entity tree
+              {t('onboarding.org.treeTitle')}
             </h2>
             {roots.length === 0 && (
               <button
                 onClick={() => setAddingUnder('__root__')}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-xs)] font-semibold hover:bg-[var(--color-brand-strong)] transition-colors"
               >
-                <Plus className="w-3 h-3" /> Start with a group
+                <Plus className="w-3 h-3" /> {t('onboarding.org.startWithGroup')}
               </button>
             )}
           </div>
@@ -149,7 +158,7 @@ export default function OrgOnboarding() {
               onAddChild={id => { setAddingUnder(id); setExpanded(new Set([...expanded, id])) }}
               onEdit={setEditingId}
               onDelete={id => {
-                if (confirm('Remove this entity and all descendants?')) { (async () => { await orgStore.removeEntity(id); await refresh() })() }
+                if (confirm(t('onboarding.org.confirmRemove'))) { (async () => { await orgStore.removeEntity(id); await refresh() })() }
               }}
               onSave={async (id, patch) => { await orgStore.updateEntity(id, patch); setEditingId(null); await refresh() }}
               onCancelEdit={() => setEditingId(null)}
@@ -172,23 +181,23 @@ export default function OrgOnboarding() {
             <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)] p-8 text-center">
               <Building2 className="w-8 h-8 text-[var(--text-tertiary)] mx-auto mb-2" />
               <p className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
-                Pick an entity from the tree to view and assign members.
+                {t('onboarding.org.pickEntity')}
               </p>
             </div>
           )}
 
           <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--color-brand-soft)] p-5">
             <h3 className="text-[var(--text-sm)] font-semibold text-[var(--color-brand-strong)] mb-1">
-              Ready to collect data?
+              {t('onboarding.org.readyTitle')}
             </h3>
             <p className="text-[var(--text-xs)] text-[var(--color-brand-strong)]/80 mb-3">
-              Once the tree looks right, jump into assignments — pick a GRI question, pick a user, pick the plant it applies to.
+              {t('onboarding.org.readyBody')}
             </p>
             <button
               onClick={() => navigate('/admin/assignments')}
               className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] transition-colors"
             >
-              Open assignment manager <ArrowRight className="w-3.5 h-3.5" />
+              {t('onboarding.org.openAssignments')} <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </aside>
@@ -207,22 +216,23 @@ function Stat({ label, value }: { label: string; value: number }) {
 }
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
+  const { t } = useTranslation()
   return (
     <div className="text-center py-14">
       <div className="w-14 h-14 mx-auto rounded-2xl bg-[var(--color-brand-soft)] flex items-center justify-center">
         <Landmark className="w-7 h-7 text-[var(--color-brand)]" />
       </div>
       <h3 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)] mt-3">
-        Start with your parent group
+        {t('onboarding.org.emptyTitle')}
       </h3>
       <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1 max-w-sm mx-auto">
-        Then add business units under the group, subsidiaries under each BU, and plants/offices under subsidiaries.
+        {t('onboarding.org.emptyBody')}
       </p>
       <button
         onClick={onAdd}
         className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)]"
       >
-        <Plus className="w-4 h-4" /> Add group
+        <Plus className="w-4 h-4" /> {t('onboarding.org.addGroup')}
       </button>
     </div>
   )
@@ -248,6 +258,7 @@ interface TreeNodeProps {
 }
 
 function TreeNode(p: TreeNodeProps) {
+  const { t } = useTranslation()
   const { entity, byParent, expanded, selectedId, editingId, addingUnder, depth } = p
   const children = byParent.get(entity.id) || []
   const isOpen = expanded.has(entity.id)
@@ -292,10 +303,10 @@ function TreeNode(p: TreeNodeProps) {
             <div className="min-w-0 flex-1">
               <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{entity.name}</div>
               <div className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-2">
-                <span className="uppercase tracking-wider font-semibold">{TYPE_META[entity.type].label}</span>
+                <span className="uppercase tracking-wider font-semibold">{typeLabel(entity.type)}</span>
                 {entity.code && <span>· {entity.code}</span>}
                 {entity.country && <span>· {entity.country}</span>}
-                {entity.equity != null && <span>· {entity.equity}% equity</span>}
+                {entity.equity != null && <span>· {t('onboarding.org.equityPct', { pct: entity.equity })}</span>}
               </div>
             </div>
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -304,7 +315,7 @@ function TreeNode(p: TreeNodeProps) {
                   type="button"
                   onClick={e => { e.stopPropagation(); p.onAddChild(entity.id) }}
                   className="w-6 h-6 rounded hover:bg-[var(--color-brand-soft)] text-[var(--color-brand)] flex items-center justify-center"
-                  title="Add child"
+                  title={t('onboarding.org.addChild')}
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -313,7 +324,7 @@ function TreeNode(p: TreeNodeProps) {
                 type="button"
                 onClick={e => { e.stopPropagation(); p.onEdit(entity.id) }}
                 className="w-6 h-6 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] flex items-center justify-center"
-                title="Edit"
+                title={t('common.edit')}
               >
                 <Pencil className="w-3 h-3" />
               </button>
@@ -321,7 +332,7 @@ function TreeNode(p: TreeNodeProps) {
                 type="button"
                 onClick={e => { e.stopPropagation(); p.onDelete(entity.id) }}
                 className="w-6 h-6 rounded hover:bg-[var(--accent-red-light)] text-[var(--status-reject)] flex items-center justify-center"
-                title="Remove"
+                title={t('onboarding.org.remove')}
               >
                 <Trash2 className="w-3 h-3" />
               </button>
@@ -357,6 +368,7 @@ function AddRow({
   onCancel: () => void
   onSave: (data: Omit<OrgEntity, 'id' | 'createdAt'>) => void
 }) {
+  const { t } = useTranslation()
   const [type, setType] = useState<EntityType>(allowedTypes[0] || 'subsidiary')
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
@@ -383,20 +395,20 @@ function AddRow({
           onChange={e => setType(e.target.value as EntityType)}
           className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)]"
         >
-          {allowedTypes.map(t => <option key={t} value={t}>{TYPE_META[t].label}</option>)}
+          {allowedTypes.map(ty => <option key={ty} value={ty}>{typeLabel(ty)}</option>)}
         </select>
         <input
           autoFocus
           value={name}
           onChange={e => setName(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && submit()}
-          placeholder="Entity name"
+          placeholder={t('onboarding.org.entityName')}
           className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
         />
         <input
           value={code}
           onChange={e => setCode(e.target.value)}
-          placeholder="Code (optional)"
+          placeholder={t('onboarding.org.codeOptional')}
           className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)] font-mono"
         />
       </div>
@@ -404,7 +416,7 @@ function AddRow({
         <input
           value={country}
           onChange={e => setCountry(e.target.value)}
-          placeholder="Country"
+          placeholder={t('onboarding.org.country')}
           className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)]"
         />
         {type === 'subsidiary' ? (
@@ -412,7 +424,7 @@ function AddRow({
             type="number"
             value={equity}
             onChange={e => setEquity(e.target.value)}
-            placeholder="Equity %"
+            placeholder={t('onboarding.org.equityPlaceholder')}
             className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)]"
           />
         ) : <div />}
@@ -422,7 +434,7 @@ function AddRow({
           disabled={!name.trim()}
           className="px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--color-brand)] text-white text-[var(--text-xs)] font-semibold disabled:opacity-50 hover:bg-[var(--color-brand-strong)] inline-flex items-center gap-1"
         >
-          <Check className="w-3 h-3" /> Add
+          <Check className="w-3 h-3" /> {t('onboarding.welcome.step4.add')}
         </button>
         <button
           type="button"
@@ -443,6 +455,7 @@ function EditRow({
   onCancel: () => void
   onSave: (patch: Partial<OrgEntity>) => void
 }) {
+  const { t } = useTranslation()
   const [name, setName] = useState(entity.name)
   const [code, setCode] = useState(entity.code || '')
   const [country, setCountry] = useState(entity.country || '')
@@ -464,10 +477,10 @@ function EditRow({
         onKeyDown={e => e.key === 'Enter' && submit()}
         className="flex-1 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--color-brand)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
       />
-      <input value={code} onChange={e => setCode(e.target.value)} placeholder="Code" className="w-20 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[10px] font-mono" />
-      <input value={country} onChange={e => setCountry(e.target.value)} placeholder="Country" className="w-24 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[10px]" />
+      <input value={code} onChange={e => setCode(e.target.value)} placeholder={t('onboarding.org.code')} className="w-20 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[10px] font-mono" />
+      <input value={country} onChange={e => setCountry(e.target.value)} placeholder={t('onboarding.org.country')} className="w-24 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[10px]" />
       {entity.type === 'subsidiary' && (
-        <input type="number" value={equity} onChange={e => setEquity(e.target.value)} placeholder="Eq%" className="w-16 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[10px]" />
+        <input type="number" value={equity} onChange={e => setEquity(e.target.value)} placeholder={t('onboarding.org.eqShort')} className="w-16 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[10px]" />
       )}
       <button onClick={e => { e.stopPropagation(); submit() }} className="w-6 h-6 rounded bg-[var(--color-brand)] text-white flex items-center justify-center">
         <Check className="w-3 h-3" />
@@ -487,6 +500,7 @@ function DetailPanel({
   members: OrgMember[]
   onUpdated: () => Promise<void> | void
 }) {
+  const { t } = useTranslation()
   const entityMembers = members.filter(m => m.entityId === entity.id)
   const [addOpen, setAddOpen] = useState(false)
   const [form, setForm] = useState<{ name: string; email: string; role: PlatformRole }>({
@@ -510,7 +524,7 @@ function DetailPanel({
       setAddOpen(false)
       await onUpdated()
     } catch (e) {
-      alert(`Could not add member: ${e instanceof Error ? e.message : e}`)
+      alert(t('onboarding.org.addMemberFailed', { error: e instanceof Error ? e.message : String(e) }))
     }
   }
 
@@ -524,7 +538,7 @@ function DetailPanel({
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
-              {TYPE_META[entity.type].label}
+              {typeLabel(entity.type)}
             </div>
             <h3 className="font-display text-[var(--text-base)] font-bold text-[var(--text-primary)] truncate">{entity.name}</h3>
           </div>
@@ -540,29 +554,29 @@ function DetailPanel({
 
       <div className="p-5 space-y-4">
         <div className="grid grid-cols-2 gap-3">
-          {entity.code && <Field label="Code" value={entity.code} mono />}
-          {entity.country && <Field label="Country" value={entity.country} />}
-          {entity.equity != null && <Field label="Equity" value={`${entity.equity}%`} />}
-          {entity.industry && <Field label="Industry" value={entity.industry} />}
+          {entity.code && <Field label={t('onboarding.org.code')} value={entity.code} mono />}
+          {entity.country && <Field label={t('onboarding.org.country')} value={entity.country} />}
+          {entity.equity != null && <Field label={t('onboarding.org.equity')} value={`${entity.equity}%`} />}
+          {entity.industry && <Field label={t('onboarding.org.industry')} value={t(`onboarding.gics.${entity.industry}`, { defaultValue: entity.industry })} />}
         </div>
 
         <div>
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)] uppercase tracking-wider">
               <Users className="w-3 h-3 inline -mt-0.5 mr-1" />
-              Members ({entityMembers.length})
+              {t('onboarding.org.members', { count: entityMembers.length })}
             </h4>
             {!addOpen && (
               <button
                 onClick={() => setAddOpen(true)}
                 className="text-[var(--text-xs)] font-semibold text-[var(--color-brand)] hover:underline inline-flex items-center gap-1"
               >
-                <Plus className="w-3 h-3" /> Add
+                <Plus className="w-3 h-3" /> {t('onboarding.welcome.step4.add')}
               </button>
             )}
           </div>
           {entityMembers.length === 0 && !addOpen && (
-            <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] italic py-2">No members assigned to this entity yet.</div>
+            <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] italic py-2">{t('onboarding.org.noMembers')}</div>
           )}
           <ul className="space-y-1.5">
             {entityMembers.map(m => (
@@ -592,14 +606,14 @@ function DetailPanel({
               <input
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                placeholder="Full name"
+                placeholder={t('auth.register.fullName')}
                 className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
               />
               <input
                 type="email"
                 value={form.email}
                 onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                placeholder="Email"
+                placeholder={t('login.email')}
                 className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
               />
               <select
@@ -608,12 +622,12 @@ function DetailPanel({
                 className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
               >
                 {Object.values(ROLE_CATALOG).map(r => (
-                  <option key={r.slug} value={r.slug}>{r.name}</option>
+                  <option key={r.slug} value={r.slug}>{t(`shell.roles.${r.slug}.name`, { defaultValue: r.name })}</option>
                 ))}
               </select>
               <div className="flex gap-2">
-                <button onClick={save} className="flex-1 px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--color-brand)] text-white text-[var(--text-xs)] font-semibold">Add member</button>
-                <button onClick={() => setAddOpen(false)} className="px-3 py-1.5 rounded-[var(--radius-sm)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-xs)]">Cancel</button>
+                <button onClick={save} className="flex-1 px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--color-brand)] text-white text-[var(--text-xs)] font-semibold">{t('onboarding.org.addMember')}</button>
+                <button onClick={() => setAddOpen(false)} className="px-3 py-1.5 rounded-[var(--radius-sm)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-xs)]">{t('common.cancel')}</button>
               </div>
             </div>
           )}
@@ -624,12 +638,15 @@ function DetailPanel({
 }
 
 function FrameworkScopeNote() {
+  const { i18n: i18nInst } = useTranslation()
   const { active } = useFramework()
   return (
     <p className="text-[var(--text-sm)] text-[var(--text-secondary)] max-w-2xl mt-1">
-      The tree you build here is shared across every reporting framework — you do it once, not per framework.
-      Right now you're preparing to report against <strong className="text-[var(--text-primary)]">{active.name}</strong>;
-      the same entities will power CSRD, CDP, TCFD and ISSB when they come online.
+      <Trans
+        i18nKey="onboarding.org.scopeNote"
+        values={{ framework: frameworkName(active, i18nInst.language) }}
+        components={{ b: <strong className="text-[var(--text-primary)]" /> }}
+      />
     </p>
   )
 }

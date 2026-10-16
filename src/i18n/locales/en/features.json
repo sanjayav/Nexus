@@ -1,0 +1,98 @@
+{
+  "eyebrow": "Features",
+  "title": "Built for every role on the sustainability team.",
+  "intro": "From carbon accountants chasing emission factors to auditors verifying disclosures — Nexus gives each role exactly the surface they need, with the data linked underneath.",
+  "forRole": "For {{role}}",
+  "roleView": "{{role}} VIEW",
+  "roles": {
+    "carbon": {
+      "role": "Carbon accountants",
+      "blurb": "Get every emission factor, every conversion, every Scope 3 category right — and audit-traced.",
+      "calculators": {
+        "title": "GHG Protocol calculators",
+        "body": "10+ modules covering Scope 1, 2, and all 15 Scope 3 categories."
+      },
+      "efLibrary": {
+        "title": "EF library with versioning",
+        "body": "DEFRA, EPA, IPCC, plus custom factors. Older reports stay locked to their original factors."
+      },
+      "bulkEntry": {
+        "title": "Excel-style bulk entry",
+        "body": "Paste from your existing spreadsheet; we map columns and validate units."
+      }
+    },
+    "esg": {
+      "role": "ESG managers",
+      "blurb": "Coordinate dozens of contributors across frameworks without ever leaving the platform.",
+      "assignments": {
+        "title": "Assignments + reminders",
+        "body": "Assign disclosures to subsidiaries, set deadlines, escalate when they slip."
+      },
+      "narrative": {
+        "title": "AI narrative drafts",
+        "body": "Claude drafts disclosure prose from your actual data, ready for human edit."
+      },
+      "mapping": {
+        "title": "Cross-framework mapping",
+        "body": "One GRI disclosure can answer ESRS, ISSB, and SEC questions — automatically."
+      }
+    },
+    "auditors": {
+      "role": "Auditors",
+      "blurb": "Read-only access with full lineage on every number. No screenshare marathons.",
+      "blockchain": {
+        "title": "Blockchain proof per disclosure",
+        "body": "Every published number is hashed and anchored. Tamper-evident on demand."
+      },
+      "custody": {
+        "title": "Evidence chain of custody",
+        "body": "Click any figure → see the source PDF, the contributor, the approver, the timestamps."
+      },
+      "auditRole": {
+        "title": "Audit-only role",
+        "body": "Granular RBAC — auditors see published data, never drafts or in-flight values."
+      }
+    },
+    "plant": {
+      "role": "Plant managers",
+      "blurb": "Answer assigned questions in 5 minutes a month, not 5 hours.",
+      "tasks": {
+        "title": "Plant-scoped tasks",
+        "body": "Only see what you own. No 200-question questionnaires."
+      },
+      "connectors": {
+        "title": "Connector ingestion",
+        "body": "Pull from SAP, Sage, AWS, Azure billing, energy meters — set it once and forget."
+      },
+      "anomaly": {
+        "title": "Anomaly detection",
+        "body": "AI flags unusual values before they reach the group rollup."
+      }
+    }
+  },
+  "platform": {
+    "eyebrow": "Platform-wide",
+    "heading": "Enterprise foundations, included.",
+    "compliance": {
+      "title": "SOC 2 + GDPR",
+      "body": "SOC 2 Type II in progress. ISO 27001 mapping. Full DPA + subprocessor list."
+    },
+    "residency": {
+      "title": "Multi-region residency",
+      "body": "EU (Frankfurt) and US (Virginia). Self-hosted Terraform module available."
+    },
+    "approvals": {
+      "title": "Approvals chain",
+      "body": "Configurable review/approval workflow with delegated permissions."
+    },
+    "aiSafety": {
+      "title": "AI safety layer",
+      "body": "No customer data leaves your tenant to train models. Every AI output is human-reviewed."
+    }
+  },
+  "cta": {
+    "heading": "See it on your own data.",
+    "primary": "Start free trial",
+    "secondary": "Talk to sales"
+  }
+}

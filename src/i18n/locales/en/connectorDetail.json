@@ -1,0 +1,65 @@
+{
+  "errors": {
+    "load": "Failed to load connection",
+    "sync": "Sync failed",
+    "disconnect": "Disconnect failed",
+    "notFound": "Connection not found"
+  },
+  "toast": {
+    "syncResult": "Imported {{imported}} of {{fetched}} rows ({{failed}} failed)",
+    "disconnected": "Disconnected. Tokens cleared from storage."
+  },
+  "loading": "Loading…",
+  "allConnectors": "All connectors",
+  "breadcrumbs": { "data": "Data", "connectors": "Connectors" },
+  "eyebrow": "Live integration",
+  "authTypes": {
+    "oauth2": "OAuth 2.0",
+    "api_key": "API key",
+    "basic": "Basic auth",
+    "jwt": "JWT"
+  },
+  "fields": {
+    "status": "Status",
+    "lastSync": "Last sync",
+    "never": "Never",
+    "account": "Account / Instance"
+  },
+  "connectionStatus": {
+    "pending": "pending",
+    "active": "active",
+    "error": "error",
+    "disabled": "disabled"
+  },
+  "sync": {
+    "heading": "Sync",
+    "fromDate": "From date",
+    "toDate": "To date",
+    "syncNow": "Sync now",
+    "helpBefore": "Leave dates empty to pull the last 12 months. Rows land in activity_data as ",
+    "helpAfter": " and need approval before they roll up into reports."
+  },
+  "history": {
+    "heading": "Sync history",
+    "empty": "No syncs yet. Click \"Sync now\" to fetch your first batch.",
+    "started": "Started",
+    "status": "Status",
+    "fetched": "Fetched",
+    "imported": "Imported",
+    "failed": "Failed",
+    "error": "Error"
+  },
+  "runStatus": {
+    "running": "running",
+    "complete": "complete",
+    "failed": "failed",
+    "cancelled": "cancelled"
+  },
+  "disconnect": {
+    "heading": "Disconnect",
+    "body": "Clears the encrypted access & refresh tokens. Sync history is preserved. You can re-connect at any time.",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "button": "Disconnect"
+  }
+}

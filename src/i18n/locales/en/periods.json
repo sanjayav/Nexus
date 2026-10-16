@@ -1,0 +1,51 @@
+{
+  "header": {
+    "eyebrow": "Reporting periods",
+    "title": "Reporting cycles",
+    "subtitle": "Setup → Active → Locked → Published. Locking freezes assignment edits; publishing stamps a hash and moves the period read-only forever."
+  },
+  "newPeriod": "New period",
+  "empty": {
+    "title": "No reporting periods",
+    "body": "Create a period to open assignments and start collecting data."
+  },
+  "card": {
+    "fy": "FY {{year}}",
+    "start": "Start",
+    "end": "End",
+    "deadline": "Deadline",
+    "framework": "Framework",
+    "lockedAt": "Locked {{date}}",
+    "published": "Published"
+  },
+  "actions": {
+    "start": "Start period",
+    "lock": "Lock",
+    "publish": "Publish",
+    "archive": "Archive"
+  },
+  "confirm": {
+    "lock": "Lock {{label}}? Assignment edits will be blocked.",
+    "publish": "Publish {{label}}? This stamps a hash and makes the period read-only forever.",
+    "archive": "Archive {{label}}?"
+  },
+  "alerts": {
+    "transitionFailed": "Transition failed: {{message}}",
+    "createFailed": "Create failed: {{message}}"
+  },
+  "status": {
+    "setup": "Setup",
+    "active": "Active",
+    "locked": "Locked",
+    "published": "Published",
+    "archived": "Archived"
+  },
+  "drawer": {
+    "title": "New reporting period",
+    "year": "Year",
+    "label": "Label",
+    "deadline": "Submission deadline",
+    "notes": "Notes (optional)",
+    "create": "Create"
+  }
+}

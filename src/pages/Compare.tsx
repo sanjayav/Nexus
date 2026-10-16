@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import MarketingShell from '../components/marketing/MarketingShell'
 import ComparisonTable, { type ComparisonRow } from '../components/marketing/ComparisonTable'
 import CTABand from '../components/marketing/CTABand'
@@ -13,120 +14,44 @@ import { FadeIn } from '../components/MotionPrimitives'
  * 20-row matrix is rendered by <ComparisonTable />.
  */
 
-const ROWS: ComparisonRow[] = [
-  {
-    feature: 'Pricing transparency',
-    nexus: 'yes',
-    competitor: 'no',
-    honest_note: 'Nexus publishes tier pricing. Workiva requires a custom quote.',
-  },
-  {
-    feature: 'Starter tier',
-    nexus: 'Free',
-    competitor: '~$60K avg',
-    honest_note: 'Industry estimate; Workiva does not publish.',
-  },
-  {
-    feature: 'Implementation time',
-    nexus: '~2 days',
-    competitor: '~4 months',
-  },
-  {
-    feature: 'Frameworks supported',
-    nexus: '24',
-    competitor: '18+',
-  },
-  {
-    feature: 'iXBRL tagging',
-    nexus: 'partial',
-    competitor: 'yes',
-    honest_note: 'Honest: Workiva is industry-leading on iXBRL. Nexus is partner-ready, not yet best-in-class.',
-  },
-  {
-    feature: 'ESG-native architecture',
-    nexus: 'yes',
-    competitor: 'no',
-    honest_note: 'Workiva\'s ESG module sits atop a finance/disclosure platform; Nexus was built ESG-first.',
-  },
-  {
-    feature: 'Blockchain audit trail',
-    nexus: 'yes',
-    competitor: 'no',
-  },
-  {
-    feature: 'AI evidence extraction',
-    nexus: 'Claude Sonnet 4.6',
-    competitor: 'yes',
-  },
-  {
-    feature: 'AI gap analysis',
-    nexus: 'yes',
-    competitor: 'yes',
-    honest_note: 'Workiva markets this as "ESRS Intelligence". Both ship a comparable capability.',
-  },
-  {
-    feature: 'AI vendor → emission-factor matcher',
-    nexus: 'yes',
-    competitor: 'yes',
-  },
-  {
-    feature: 'Linked data',
-    nexus: 'yes',
-    competitor: 'yes',
-    honest_note: 'Both platforms propagate values across disclosures from a single source.',
-  },
-  {
-    feature: 'Multi-LLM routing',
-    nexus: 'Anthropic',
-    competitor: 'Gemini + OpenAI + Anthropic',
-    honest_note: 'Workiva claims multi-vendor LLM routing; Nexus uses Anthropic only by design.',
-  },
-  {
-    feature: 'Real-time collaboration',
-    nexus: 'Liveblocks',
-    competitor: 'yes',
-  },
-  {
-    feature: 'Spreadsheet formulas',
-    nexus: 'no',
-    competitor: 'yes',
-    honest_note: 'Honest: Workiva\'s spreadsheet engine is a mature differentiator. Nexus offers bulk entry but not full formulas.',
-  },
-  {
-    feature: '70+ pre-built ERP connectors',
-    nexus: '6 templates',
-    competitor: 'yes',
-    honest_note: 'Honest: Workiva\'s connector library is far broader. Nexus offers 6 templates plus open API.',
-  },
-  {
-    feature: 'PCAF financed emissions',
-    nexus: 'yes',
-    competitor: 'no',
-  },
-  {
-    feature: 'SCIM 2.0',
-    nexus: 'yes',
-    competitor: 'yes',
-  },
-  {
-    feature: 'SAML SSO',
-    nexus: 'yes',
-    competitor: 'yes',
-  },
-  {
-    feature: 'SOC 2 Type II',
-    nexus: 'In progress',
-    competitor: 'yes',
-    honest_note: 'Honest: Workiva holds SOC 2 Type II. Nexus is mid-audit and will publish once attested.',
-  },
-  {
-    feature: 'Self-serve trial',
-    nexus: 'yes',
-    competitor: 'no',
-  },
+/**
+ * Rows keep the English text as the fallback; display copy is looked up by
+ * `id` (and `nexusKey` / `competitorKey` for translatable cell labels) at
+ * render time. 'yes' / 'no' / 'partial' are glyph sentinels — never translated.
+ */
+type RowDef = ComparisonRow & { id: string; nexusKey?: string; competitorKey?: string }
+
+const ROWS: RowDef[] = [
+  { id: 'pricingTransparency', feature: 'Pricing transparency', nexus: 'yes', competitor: 'no', honest_note: 'Nexus publishes tier pricing. Workiva requires a custom quote.' },
+  { id: 'starterTier', feature: 'Starter tier', nexus: 'Free', nexusKey: 'free', competitor: '~$60K avg', competitorKey: 'avg60k', honest_note: 'Industry estimate; Workiva does not publish.' },
+  { id: 'implementationTime', feature: 'Implementation time', nexus: '~2 days', nexusKey: 'twoDays', competitor: '~4 months', competitorKey: 'fourMonths' },
+  { id: 'frameworksSupported', feature: 'Frameworks supported', nexus: '24', competitor: '18+' },
+  { id: 'ixbrl', feature: 'iXBRL tagging', nexus: 'partial', competitor: 'yes', honest_note: 'Honest: Workiva is industry-leading on iXBRL. Nexus is partner-ready, not yet best-in-class.' },
+  { id: 'esgNative', feature: 'ESG-native architecture', nexus: 'yes', competitor: 'no', honest_note: 'Workiva\'s ESG module sits atop a finance/disclosure platform; Nexus was built ESG-first.' },
+  { id: 'blockchainAudit', feature: 'Blockchain audit trail', nexus: 'yes', competitor: 'no' },
+  { id: 'aiEvidence', feature: 'AI evidence extraction', nexus: 'Claude Sonnet 4.6', competitor: 'yes' },
+  { id: 'aiGap', feature: 'AI gap analysis', nexus: 'yes', competitor: 'yes', honest_note: 'Workiva markets this as "ESRS Intelligence". Both ship a comparable capability.' },
+  { id: 'aiFactorMatcher', feature: 'AI vendor → emission-factor matcher', nexus: 'yes', competitor: 'yes' },
+  { id: 'linkedData', feature: 'Linked data', nexus: 'yes', competitor: 'yes', honest_note: 'Both platforms propagate values across disclosures from a single source.' },
+  { id: 'multiLlm', feature: 'Multi-LLM routing', nexus: 'Anthropic', competitor: 'Gemini + OpenAI + Anthropic', honest_note: 'Workiva claims multi-vendor LLM routing; Nexus uses Anthropic only by design.' },
+  { id: 'realtimeCollab', feature: 'Real-time collaboration', nexus: 'Liveblocks', competitor: 'yes' },
+  { id: 'spreadsheetFormulas', feature: 'Spreadsheet formulas', nexus: 'no', competitor: 'yes', honest_note: 'Honest: Workiva\'s spreadsheet engine is a mature differentiator. Nexus offers bulk entry but not full formulas.' },
+  { id: 'erpConnectors', feature: '70+ pre-built ERP connectors', nexus: '6 templates', nexusKey: 'sixTemplates', competitor: 'yes', honest_note: 'Honest: Workiva\'s connector library is far broader. Nexus offers 6 templates plus open API.' },
+  { id: 'pcaf', feature: 'PCAF financed emissions', nexus: 'yes', competitor: 'no' },
+  { id: 'scim', feature: 'SCIM 2.0', nexus: 'yes', competitor: 'yes' },
+  { id: 'samlSso', feature: 'SAML SSO', nexus: 'yes', competitor: 'yes' },
+  { id: 'soc2', feature: 'SOC 2 Type II', nexus: 'In progress', nexusKey: 'inProgress', competitor: 'yes', honest_note: 'Honest: Workiva holds SOC 2 Type II. Nexus is mid-audit and will publish once attested.' },
+  { id: 'selfServeTrial', feature: 'Self-serve trial', nexus: 'yes', competitor: 'no' },
 ]
 
 export default function Compare() {
+  const { t } = useTranslation()
+  const rows: ComparisonRow[] = ROWS.map(({ id, nexusKey, competitorKey, ...r }) => ({
+    feature: t(`compare.rows.${id}.feature`, { defaultValue: r.feature }),
+    nexus: nexusKey ? t(`compare.values.${nexusKey}`, { defaultValue: r.nexus }) : r.nexus,
+    competitor: competitorKey ? t(`compare.values.${competitorKey}`, { defaultValue: r.competitor }) : r.competitor,
+    honest_note: r.honest_note ? t(`compare.rows.${id}.note`, { defaultValue: r.honest_note }) : undefined,
+  }))
   return (
     <MarketingShell>
       {/* ── Hero ── */}
@@ -143,7 +68,7 @@ export default function Compare() {
               className="text-[12px] font-semibold uppercase tracking-[0.18em] mb-5"
               style={{ color: 'var(--accent-600)' }}
             >
-              Compare
+              {t('compare.hero.eyebrow')}
             </p>
             <h1
               className="h-display"
@@ -154,20 +79,19 @@ export default function Compare() {
                 lineHeight: 1.08,
               }}
             >
-              Nexus vs Workiva — honestly.
+              {t('compare.hero.title')}
             </h1>
             <p
               className="mt-5 mx-auto max-w-[640px] text-[17px] leading-relaxed"
               style={{ color: 'var(--text-secondary)' }}
             >
-              We respect Workiva's track record. Here's where each platform wins,
-              including the places Nexus has work to do.
+              {t('compare.hero.subtitle')}
             </p>
           </FadeIn>
         </div>
       </section>
 
-      <ComparisonTable competitorName="Workiva" rows={ROWS} />
+      <ComparisonTable competitorName="Workiva" rows={rows} />
 
       {/* ── The honest take ── */}
       <section className="pb-16 sm:pb-20">
@@ -184,33 +108,28 @@ export default function Compare() {
               className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-3"
               style={{ color: 'var(--accent-600)' }}
             >
-              The honest take
+              {t('compare.honestTake.eyebrow')}
             </p>
             <h2
               className="h-section mb-4"
               style={{ color: 'var(--text-primary)' }}
             >
-              Different teams, different choices.
+              {t('compare.honestTake.title')}
             </h2>
             <p
               className="text-[15px] leading-relaxed"
               style={{ color: 'var(--text-secondary)' }}
             >
-              Workiva is a great choice if you're a Fortune 500 with a 4-month
-              implementation budget, need industry-leading iXBRL tagging, and want
-              every connector pre-built. Nexus is for teams that need to ship CSRD
-              now, want transparent pricing, and value a modern UX without the
-              steep learning curve. Both platforms deliver auditor-ready reports —
-              we take different paths to get there.
+              {t('compare.honestTake.body')}
             </p>
           </div>
         </div>
       </section>
 
       <CTABand
-        heading="Try Nexus free for 14 days."
-        primary={{ label: 'Start free trial', to: '/login?mode=register' }}
-        secondary={{ label: 'See how it works', to: '/how-it-works' }}
+        heading={t('compare.cta.heading')}
+        primary={{ label: t('compare.cta.primary'), to: '/login?mode=register' }}
+        secondary={{ label: t('compare.cta.secondary'), to: '/how-it-works' }}
       />
     </MarketingShell>
   )

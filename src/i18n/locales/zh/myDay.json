@@ -1,0 +1,82 @@
+{
+  "there": "您好",
+  "warn": {
+    "mine": "无法加载您的任务",
+    "all": "无法加载审核队列",
+    "activity": "无法加载动态",
+    "anomalies": "无法加载异常数量",
+    "hash": "无法验证哈希链"
+  },
+  "greeting": {
+    "morning": "早上好",
+    "afternoon": "下午好",
+    "evening": "晚上好"
+  },
+  "greetingLine": "{{name}}，{{greeting}}",
+  "suggested": {
+    "disclosure": "披露项",
+    "overdue_other": "此项 {{code}} 为 {{framework}} 合规所必需，已逾期 {{count}} 天。",
+    "rejected": "此项 {{code}} 已被退回修改 — 请尽快处理，以免影响整体进度。",
+    "default": "这是您队列中影响最大的待办项 — 建议从此处开始，以便后续审核人推进工作。",
+    "eyebrow": "建议下一步",
+    "caughtUp": "所有任务均已处理",
+    "nothingStale": "没有积压的事项，值得庆祝。",
+    "openInEditor": "在编辑器中打开"
+  },
+  "quarterLabel": "第 {{q}} 季度报告期",
+  "daysRemaining_other": "剩余 {{count}} 天",
+  "periodElapsed": "报告期已过 {{pct}}%",
+  "kpi": {
+    "aria": "关键指标概览",
+    "open": "未完成的指派",
+    "approvedWeek": "本周已批准",
+    "critical": "严重异常",
+    "hashChain": "哈希链",
+    "verified": "✓ 已验证",
+    "broken": "已断裂"
+  },
+  "recentActivity": "最近动态",
+  "viewAll": "查看全部",
+  "dueToday": {
+    "eyebrow": "今天到期",
+    "noneShown": "暂无可显示的任务",
+    "nothing": "今天没有到期任务",
+    "tryRefresh": "请尝试刷新页面。",
+    "quiet": "今天比较轻松 — 可以提前处理，也可以稍作休息。",
+    "needValues_other": "{{count}} 项披露待填报数值",
+    "overdue": "已逾期",
+    "due": "{{date}} 到期",
+    "soon": "即将",
+    "startNext": "开始下一项"
+  },
+  "review": {
+    "eyebrow": "审核队列",
+    "nothing": "暂无待审核内容",
+    "inboxZero": "收件箱已清空 — 审核人可以休息一下了。",
+    "awaiting_other": "{{count}} 项提交待审核",
+    "unassigned": "未指派",
+    "openQueue": "打开队列"
+  },
+  "activity": {
+    "none": "最近几天没有动态。",
+    "system": "系统"
+  },
+  "rel": {
+    "today": "今天",
+    "tomorrow": "明天",
+    "daysAgo_other": "{{count}} 天前",
+    "inDays_other": "{{count}} 天后",
+    "justNow": "刚刚",
+    "minsAgo_other": "{{count}} 分钟前",
+    "hrsAgo_other": "{{count}} 小时前"
+  },
+  "action": {
+    "created": "创建了",
+    "updated": "更新了",
+    "deleted": "删除了",
+    "signedIn": "登录了",
+    "approved": "批准了",
+    "rejected": "驳回了",
+    "submitted": "提交了"
+  }
+}

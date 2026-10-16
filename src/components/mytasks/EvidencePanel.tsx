@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Paperclip, Upload, X, FileText, CheckCircle2 } from 'lucide-react'
 import { orgStore, type QuestionAssignment, type OrgEntity, type OrgMember } from '../../lib/orgStore'
 
@@ -8,6 +9,7 @@ export function EvidencePanel({ evidence, locked, onAdd, onRemove }: {
   onAdd: (name: string) => void
   onRemove: (idx: number) => void
 }) {
+  const { t } = useTranslation()
   const [dragOver, setDragOver] = useState(false)
   const handleFiles = (files: FileList | null) => {
     if (!files) return
@@ -17,10 +19,10 @@ export function EvidencePanel({ evidence, locked, onAdd, onRemove }: {
   return (
     <aside className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] p-4 h-fit">
       <h4 className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-primary)] mb-2 flex items-center gap-1">
-        <Paperclip className="w-3 h-3" /> Evidence
+        <Paperclip className="w-3 h-3" /> {t('tasks.evidence.title')}
       </h4>
       <p className="text-[10px] text-[var(--text-tertiary)] mb-3">
-        Attach the source doc the reviewer will need. PDF, XLSX, CSV, PNG.
+        {t('tasks.evidence.hint')}
       </p>
 
       {!locked && (
@@ -37,7 +39,7 @@ export function EvidencePanel({ evidence, locked, onAdd, onRemove }: {
         >
           <Upload className="w-4 h-4 mx-auto text-[var(--text-tertiary)] mb-1" />
           <div className="text-[10px] font-semibold text-[var(--text-primary)]">
-            {evidence.length === 0 ? 'Drop file or browse' : 'Add another'}
+            {evidence.length === 0 ? t('tasks.evidence.drop') : t('tasks.evidence.addAnother')}
           </div>
           <input type="file" multiple className="hidden" onChange={e => handleFiles(e.target.files)} />
         </label>
@@ -72,6 +74,7 @@ export function HandoffHint({
   entities: OrgEntity[]
   members: OrgMember[]
 }) {
+  const { t } = useTranslation()
   const path = orgStore.pathOf(entities, entityId)
   const subsidiaryId = path.find(p => p.type === 'subsidiary')?.id
   const reviewer = subsidiaryId
@@ -82,13 +85,13 @@ export function HandoffHint({
   let label = ''
   let name = ''
   if (status === 'submitted') {
-    label = 'Sent to'
-    name = reviewer?.name ?? 'your subsidiary lead'
+    label = t('tasks.handoff.sentTo')
+    name = reviewer?.name ?? t('tasks.handoff.subsidiaryLead')
   } else if (status === 'reviewed') {
-    label = 'With'
-    name = approver?.name ?? 'the group sustainability officer'
+    label = t('tasks.handoff.with')
+    name = approver?.name ?? t('tasks.handoff.groupSO')
   } else if (status === 'approved') {
-    label = 'Approved — included in the group rollup'
+    label = t('tasks.handoff.approved')
   }
 
   return (
@@ -96,7 +99,7 @@ export function HandoffHint({
       <CheckCircle2 className="w-3.5 h-3.5 text-[var(--status-ok)]" />
       <span className="text-[var(--text-secondary)]">
         {label} {name && <strong className="text-[var(--text-primary)]">{name}</strong>}
-        {status !== 'approved' && <span className="text-[var(--text-tertiary)]"> · you'll get a notification on the decision</span>}
+        {status !== 'approved' && <span className="text-[var(--text-tertiary)]"> · {t('tasks.handoff.notify')}</span>}
       </span>
     </div>
   )

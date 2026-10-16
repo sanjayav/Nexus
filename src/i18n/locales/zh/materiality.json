@@ -1,0 +1,112 @@
+{
+  "topics": {
+    "E1": "E1 气候变化",
+    "E2": "E2 污染",
+    "E3": "E3 水和海洋资源",
+    "E4": "E4 生物多样性和生态系统",
+    "E5": "E5 资源利用和循环经济",
+    "S1": "S1 自有员工",
+    "S2": "S2 价值链中的工人",
+    "S3": "S3 受影响社区",
+    "S4": "S4 消费者和终端用户",
+    "G1": "G1 商业行为"
+  },
+  "errors": {
+    "load": "加载失败：{{message}}",
+    "finalize": "最终确定失败：{{message}}",
+    "create": "创建失败：{{message}}",
+    "update": "更新失败：{{message}}",
+    "iroSave": "IRO 保存失败：{{message}}",
+    "save": "保存失败：{{message}}"
+  },
+  "finalized": "重要性结论已最终确定。",
+  "crumbStrategy": "战略",
+  "crumbSelf": "重要性",
+  "eyebrow": "双重重要性评估",
+  "title": "重要性评估",
+  "description": "识别议题、收集利益相关方关注度、对财务重要性评分（可能性 × 严重程度），并最终确定矩阵 — 实质性议题将纳入报告范围。",
+  "tabs": {
+    "topics": "议题",
+    "iros": "影响、风险和机遇",
+    "stakeholders": "利益相关方",
+    "matrix": "矩阵"
+  },
+  "universe": "CSRD 议题库 — 添加到范围",
+  "topicsCount": "议题（{{count}}）",
+  "customTopic": "自定义议题",
+  "topicName": "议题名称",
+  "topicCategory": "议题类别",
+  "category": {
+    "Environmental": "环境",
+    "Social": "社会",
+    "Governance": "治理",
+    "Economic": "经济"
+  },
+  "col": {
+    "topic": "议题",
+    "category": "类别",
+    "impact": "影响",
+    "financial": "财务",
+    "likelihood": "可能性",
+    "severity": "严重程度",
+    "horizon": "时间范围",
+    "material": "实质性"
+  },
+  "aria": {
+    "impact": "{{topic}} 的影响评分",
+    "financial": "{{topic}} 的财务评分",
+    "likelihood": "{{topic}} 的可能性",
+    "severity": "{{topic}} 的严重程度",
+    "horizon": "{{topic}} 的时间范围",
+    "score": "评分（1 至 5）"
+  },
+  "horizon": {
+    "short": "短期",
+    "medium": "中期",
+    "long": "长期"
+  },
+  "empty": {
+    "title": "暂无实质性议题",
+    "body": "从上方 CSRD 议题库中选择，或添加自定义议题，以开始双重重要性评估。"
+  },
+  "iros": {
+    "addTopicsFirst": "请先在“议题”标签页中添加议题。",
+    "count_other": "{{count}} 项 IRO",
+    "meta": "严重程度 {{sev}} · 可能性 {{lik}} · {{horizon}}",
+    "typeAria": "IRO 类型",
+    "descAria": "IRO 描述",
+    "description": "描述",
+    "sev": "严重",
+    "lik": "可能",
+    "horizonAria": "时间范围",
+    "add": "添加"
+  },
+  "iroType": {
+    "impact": "影响",
+    "risk": "风险",
+    "opportunity": "机遇"
+  },
+  "stakeholders": {
+    "investors": "投资者",
+    "employees": "员工",
+    "customers": "客户",
+    "suppliers": "供应商",
+    "regulators": "监管机构",
+    "civil_society": "公民社会"
+  },
+  "noTopicsToRate": "暂无可评分的议题。",
+  "matrix": {
+    "title": "双重重要性矩阵",
+    "thresholdPrefix": "阈值：",
+    "thresholdSuffix": "（任一轴达到即为实质性）。",
+    "finalize": "最终确定重要性",
+    "financial": "财务重要性",
+    "financialAxis": "财务重要性 →",
+    "impact": "影响重要性",
+    "impactAxis": "↑ 影响重要性",
+    "verdict": "结论",
+    "material": "实质性",
+    "notMaterial": "非实质性",
+    "pending": "待最终确定"
+  }
+}

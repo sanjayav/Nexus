@@ -1,4 +1,5 @@
 import { Check, X, Circle } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * ComparisonTable — Nexus vs <Competitor> matrix.
@@ -28,15 +29,16 @@ interface ComparisonTableProps {
 }
 
 function Glyph({ value, mode }: { value: CellValue; mode: 'nexus' | 'competitor' }) {
+  const { t } = useTranslation()
   if (value === 'yes') {
-    return <Check className="w-5 h-5 mx-auto" style={{ color: 'var(--accent-500)' }} aria-label="yes" />
+    return <Check className="w-5 h-5 mx-auto" style={{ color: 'var(--accent-500)' }} aria-label={t('marketing.comparison.ariaYes')} />
   }
   if (value === 'no') {
     return (
       <X
         className="w-5 h-5 mx-auto"
         style={{ color: 'rgba(248, 113, 113, 0.7)' }}
-        aria-label="no"
+        aria-label={t('marketing.comparison.ariaNo')}
       />
     )
   }
@@ -45,7 +47,7 @@ function Glyph({ value, mode }: { value: CellValue; mode: 'nexus' | 'competitor'
       <Circle
         className="w-4 h-4 mx-auto fill-current"
         style={{ color: 'rgb(251, 191, 36)' }}
-        aria-label="partial"
+        aria-label={t('marketing.comparison.ariaPartial')}
       />
     )
   }
@@ -62,6 +64,7 @@ function Glyph({ value, mode }: { value: CellValue; mode: 'nexus' | 'competitor'
 }
 
 export default function ComparisonTable({ competitorName, rows }: ComparisonTableProps) {
+  const { t } = useTranslation()
   return (
     <section className="py-12 sm:py-16">
       <div className="max-w-[1180px] mx-auto px-5 sm:px-8">
@@ -83,7 +86,7 @@ export default function ComparisonTable({ competitorName, rows }: ComparisonTabl
                   className="py-5 px-6 font-semibold text-[12px] uppercase tracking-[0.1em]"
                   style={{ color: 'var(--text-tertiary)', width: '40%' }}
                 >
-                  Feature
+                  {t('marketing.comparison.feature')}
                 </th>
                 <th
                   className="py-5 px-6 font-semibold text-center text-[14px]"
@@ -221,15 +224,15 @@ export default function ComparisonTable({ competitorName, rows }: ComparisonTabl
         >
           <span className="inline-flex items-center gap-1.5">
             <Check className="w-4 h-4" style={{ color: 'var(--accent-500)' }} />
-            Supported
+            {t('marketing.comparison.supported')}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <X className="w-4 h-4" style={{ color: 'rgba(248, 113, 113, 0.7)' }} />
-            Not supported
+            {t('marketing.comparison.notSupported')}
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Circle className="w-3 h-3 fill-current" style={{ color: 'rgb(251, 191, 36)' }} />
-            Partial
+            {t('marketing.comparison.partial')}
           </span>
         </div>
       </div>

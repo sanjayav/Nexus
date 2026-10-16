@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import i18n from '../../i18n'
 import TimelineGraphic from '../../components/marketing/TimelineGraphic'
 
 /**
@@ -8,6 +9,11 @@ import TimelineGraphic from '../../components/marketing/TimelineGraphic'
  * with their titles intact. The graphic emits both desktop and mobile copies,
  * so each label is expected to appear twice in the DOM.
  */
+
+// Components use react-i18next; the shared test setup doesn't init i18n.
+beforeAll(async () => {
+  await i18n.changeLanguage('en')
+})
 
 describe('<TimelineGraphic />', () => {
   it('renders four milestone labels', () => {

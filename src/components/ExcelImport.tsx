@@ -11,6 +11,7 @@ import {
   Database,
   ArrowRight,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Card, Badge } from '../design-system'
 import { COLUMN_ALIASES, PTTEP_DEMO_DATA } from '../data/pttepDemoData'
 import type { ExcelRow } from '../data/pttepDemoData'
@@ -57,6 +58,12 @@ function autoMapColumns(headers: string[]): ColumnMapping {
    Component
    ═══════════════════════════════════════════ */
 export default function ExcelImport({ onImport, onClose }: Props) {
+  const { t } = useTranslation()
+  /** Display label for a scope bucket ('Scope 1' etc. stay as data keys). */
+  const scopeLabel = (scope: string) => {
+    const m = /^Scope ([123])$/.exec(scope)
+    return m ? t(`components.excel.scope${m[1]}`) : scope === 'Unknown' ? t('components.excel.unknown') : scope
+  }
   const [step, setStep] = useState<ImportStep>('upload')
   const [fileName, setFileName] = useState('')
   const [headers, setHeaders] = useState<string[]>([])
@@ -82,7 +89,7 @@ export default function ExcelImport({ onImport, onClose }: Props) {
         await workbook.xlsx.load(data)
         const sheet = workbook.worksheets[0]
         if (!sheet) {
-          setError('The spreadsheet appears to be empty.')
+          setError(t('components.excel.empty'))
           setParsing(false)
           return
         }
@@ -115,7 +122,7 @@ export default function ExcelImport({ onImport, onClose }: Props) {
         })
 
         if (json.length === 0) {
-          setError('The spreadsheet appears to be empty.')
+          setError(t('components.excel.empty'))
           setParsing(false)
           return
         }
@@ -125,12 +132,12 @@ export default function ExcelImport({ onImport, onClose }: Props) {
         setMapping(autoMapColumns(hdrs))
         setStep('mapping')
       } catch {
-        setError('Could not parse the file. Please ensure it is a valid .xlsx or .csv file.')
+        setError(t('components.excel.parseError'))
       }
       setParsing(false)
     }
     reader.readAsArrayBuffer(file)
-  }, [])
+  }, [t])
 
   /* ── Drag & drop handlers ── */
   const onDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true) }
@@ -201,8 +208,8 @@ export default function ExcelImport({ onImport, onClose }: Props) {
               <FileSpreadsheet className="w-5 h-5 text-[var(--accent-teal)]" />
             </div>
             <div>
-              <h2 className="font-display text-[var(--text-base)] font-bold text-[var(--text-primary)]">Import Emission Data</h2>
-              <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">Upload Excel / CSV or load PTTEP demo data</p>
+              <h2 className="font-display text-[var(--text-base)] font-bold text-[var(--text-primary)]">{t('components.excel.title')}</h2>
+              <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">{t('components.excel.subtitle')}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -219,7 +226,7 @@ export default function ExcelImport({ onImport, onClose }: Props) {
                 )
               })}
             </div>
-            <button onClick={onClose} aria-label="Close Excel import" title="Close" className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer">
+            <button onClick={onClose} aria-label={t('components.excel.closeAria')} title={t('common.close')} className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -254,10 +261,10 @@ export default function ExcelImport({ onImport, onClose }: Props) {
                 )}
                 <div className="text-center">
                   <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">
-                    {parsing ? 'Parsing spreadsheet...' : 'Drop your Excel or CSV file here'}
+                    {parsing ? t('components.excel.parsing') : t('components.excel.drop')}
                   </p>
                   <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-1">
-                    Supports .xlsx, .xls, .csv — columns are auto-detected
+                    {t('components.excel.supports')}
                   </p>
                 </div>
                 {error && (
@@ -271,7 +278,7 @@ export default function ExcelImport({ onImport, onClose }: Props) {
               {/* Divider */}
               <div className="flex items-center gap-4">
                 <div className="flex-1 h-px bg-[var(--border-default)]" />
-                <span className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)]">or</span>
+                <span className="text-[var(--text-xs)] font-medium text-[var(--text-tertiary)]">{t('components.excel.or')}</span>
                 <div className="flex-1 h-px bg-[var(--border-default)]" />
               </div>
 
@@ -284,9 +291,9 @@ export default function ExcelImport({ onImport, onClose }: Props) {
                   <Database className="w-6 h-6 text-[var(--accent-teal)]" />
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">Load PTTEP Demo Data</p>
+                  <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('components.excel.loadDemo')}</p>
                   <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-                    Pre-loaded GHG inventory: {PTTEP_DEMO_DATA.length} emission sources across Scope 1, 2, 3 — Arthit, Bongkot, S1, Zawtika assets
+                    {t('components.excel.demoBody', { count: PTTEP_DEMO_DATA.length })}
                   </p>
                 </div>
                 <ArrowRight className="w-5 h-5 text-[var(--text-tertiary)] group-hover:text-[var(--accent-teal)] group-hover:translate-x-0.5 transition-all" />
@@ -294,13 +301,13 @@ export default function ExcelImport({ onImport, onClose }: Props) {
 
               {/* Template hint */}
               <div className="p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-                <p className="text-[var(--text-xs)] font-semibold text-[var(--text-secondary)] mb-2">Expected columns</p>
+                <p className="text-[var(--text-xs)] font-semibold text-[var(--text-secondary)] mb-2">{t('components.excel.expectedColumns')}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {['Scope', 'Category', 'Source / Facility', 'Fuel / Factor', 'Quantity', 'Unit'].map(col => (
                     <Badge key={col} variant="gray">{col}</Badge>
                   ))}
                 </div>
-                <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-2">Column names are flexibly matched — "Fuel Type", "Energy Type", "Emission Factor" all map correctly.</p>
+                <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-2">{t('components.excel.flexible')}</p>
               </div>
             </div>
           )}
@@ -312,16 +319,16 @@ export default function ExcelImport({ onImport, onClose }: Props) {
                 <FileSpreadsheet className="w-5 h-5 text-[var(--accent-teal)]" />
                 <div className="flex-1">
                   <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{fileName}</p>
-                  <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">{rawRows.length} rows &middot; {headers.length} columns detected</p>
+                  <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">{t('components.excel.detected', { rows: rawRows.length, cols: headers.length })}</p>
                 </div>
-                <Badge variant="teal" dot>Auto-mapped</Badge>
+                <Badge variant="teal" dot>{t('components.excel.autoMapped')}</Badge>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 {(Object.keys(mapping) as (keyof ColumnMapping)[]).map(field => (
                   <div key={field}>
                     <label className="block text-[var(--text-xs)] font-medium text-[var(--text-secondary)] mb-1.5 capitalize">
-                      {field === 'fuelOrFactor' ? 'Fuel / Factor' : field}
+                      {t(`components.excel.fields.${field}`)}
                       {field === 'quantity' && <span className="text-[var(--accent-red)]"> *</span>}
                     </label>
                     <div className="relative">
@@ -330,7 +337,7 @@ export default function ExcelImport({ onImport, onClose }: Props) {
                         onChange={e => setMapping(prev => ({ ...prev, [field]: e.target.value }))}
                         className="w-full h-10 px-3 pr-8 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)] text-[var(--text-primary)] appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)] focus:ring-offset-1"
                       >
-                        <option value="">— skip —</option>
+                        <option value="">{t('components.excel.skip')}</option>
                         {headers.map(h => <option key={h} value={h}>{h}</option>)}
                       </select>
                       <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)] pointer-events-none" />
@@ -341,7 +348,7 @@ export default function ExcelImport({ onImport, onClose }: Props) {
 
               {/* Preview of first 3 raw rows */}
               <div>
-                <p className="text-[var(--text-xs)] font-semibold text-[var(--text-secondary)] mb-2">Raw data preview (first 3 rows)</p>
+                <p className="text-[var(--text-xs)] font-semibold text-[var(--text-secondary)] mb-2">{t('components.excel.rawPreview')}</p>
                 <div className="overflow-x-auto rounded-lg border border-[var(--border-subtle)]">
                   <table className="w-full text-[var(--text-xs)]">
                     <thead>
@@ -372,15 +379,15 @@ export default function ExcelImport({ onImport, onClose }: Props) {
               {/* Summary cards */}
               <div className="grid grid-cols-4 gap-4">
                 <Card padding="sm">
-                  <p className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Total Rows</p>
+                  <p className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">{t('components.excel.totalRows')}</p>
                   <p className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tabular-nums">{mappedRows.length}</p>
                 </Card>
                 {['Scope 1', 'Scope 2', 'Scope 3'].map(scope => (
                   <Card key={scope} padding="sm" className="relative overflow-hidden">
                     <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-xl opacity-60" style={{ background: `linear-gradient(90deg, ${scopeColors[scope]}, transparent)` }} />
-                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: scopeColors[scope] }}>{scope}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: scopeColors[scope] }}>{scopeLabel(scope)}</p>
                     <p className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tabular-nums">{grouped[scope]?.length ?? 0}</p>
-                    <p className="text-[10px] text-[var(--text-tertiary)]">sources</p>
+                    <p className="text-[10px] text-[var(--text-tertiary)]">{t('components.excel.sources')}</p>
                   </Card>
                 ))}
               </div>
@@ -390,18 +397,18 @@ export default function ExcelImport({ onImport, onClose }: Props) {
                 <div key={scope}>
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: scopeColors[scope] ?? 'var(--text-tertiary)' }} />
-                    <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{scope}</p>
-                    <Badge variant={scope === 'Scope 1' ? 'teal' : scope === 'Scope 2' ? 'blue' : 'purple'}>{rows.length} rows</Badge>
+                    <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{scopeLabel(scope)}</p>
+                    <Badge variant={scope === 'Scope 1' ? 'teal' : scope === 'Scope 2' ? 'blue' : 'purple'}>{t('components.excel.rows', { count: rows.length })}</Badge>
                   </div>
                   <div className="overflow-x-auto rounded-lg border border-[var(--border-subtle)]">
                     <table className="w-full text-[var(--text-xs)]">
                       <thead>
                         <tr className="bg-[var(--bg-secondary)]">
-                          <th className="px-3 py-2 text-left font-semibold text-[var(--text-secondary)] whitespace-nowrap border-b border-[var(--border-subtle)]">Category</th>
-                          <th className="px-3 py-2 text-left font-semibold text-[var(--text-secondary)] whitespace-nowrap border-b border-[var(--border-subtle)]">Source</th>
-                          <th className="px-3 py-2 text-left font-semibold text-[var(--text-secondary)] whitespace-nowrap border-b border-[var(--border-subtle)]">Fuel / Factor</th>
-                          <th className="px-3 py-2 text-right font-semibold text-[var(--text-secondary)] whitespace-nowrap border-b border-[var(--border-subtle)]">Quantity</th>
-                          <th className="px-3 py-2 text-left font-semibold text-[var(--text-secondary)] whitespace-nowrap border-b border-[var(--border-subtle)]">Unit</th>
+                          <th className="px-3 py-2 text-left font-semibold text-[var(--text-secondary)] whitespace-nowrap border-b border-[var(--border-subtle)]">{t('components.excel.fields.category')}</th>
+                          <th className="px-3 py-2 text-left font-semibold text-[var(--text-secondary)] whitespace-nowrap border-b border-[var(--border-subtle)]">{t('components.excel.fields.source')}</th>
+                          <th className="px-3 py-2 text-left font-semibold text-[var(--text-secondary)] whitespace-nowrap border-b border-[var(--border-subtle)]">{t('components.excel.fields.fuelOrFactor')}</th>
+                          <th className="px-3 py-2 text-right font-semibold text-[var(--text-secondary)] whitespace-nowrap border-b border-[var(--border-subtle)]">{t('components.excel.fields.quantity')}</th>
+                          <th className="px-3 py-2 text-left font-semibold text-[var(--text-secondary)] whitespace-nowrap border-b border-[var(--border-subtle)]">{t('components.excel.fields.unit')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -429,9 +436,9 @@ export default function ExcelImport({ onImport, onClose }: Props) {
                 <CheckCircle2 className="w-8 h-8 text-emerald-500" />
               </div>
               <div className="text-center">
-                <h3 className="font-display text-[var(--text-lg)] font-bold text-[var(--text-primary)]">Data Imported Successfully</h3>
+                <h3 className="font-display text-[var(--text-lg)] font-bold text-[var(--text-primary)]">{t('components.excel.successTitle')}</h3>
                 <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1">
-                  {mappedRows.length} emission sources loaded into calculators. Open any calculator to see the pre-populated data.
+                  {t('components.excel.successBody', { count: mappedRows.length })}
                 </p>
               </div>
             </div>
@@ -441,29 +448,29 @@ export default function ExcelImport({ onImport, onClose }: Props) {
         {/* Footer */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--border-default)] flex-shrink-0 bg-[var(--bg-secondary)]">
           <div className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-            {step === 'upload' && 'Drag a file or use demo data to get started'}
-            {step === 'mapping' && `${rawRows.length} rows from ${fileName}`}
-            {step === 'preview' && `${mappedRows.length} rows ready to import`}
+            {step === 'upload' && t('components.excel.footerUpload')}
+            {step === 'mapping' && t('components.excel.footerMapping', { count: rawRows.length, file: fileName })}
+            {step === 'preview' && t('components.excel.footerPreview', { count: mappedRows.length })}
           </div>
           <div className="flex items-center gap-2">
             {step !== 'upload' && step !== 'done' && (
               <button onClick={() => setStep(step === 'preview' ? (rawRows.length > 0 ? 'mapping' : 'upload') : 'upload')} className="h-9 px-4 rounded-lg text-[var(--text-sm)] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer">
-                Back
+                {t('common.back')}
               </button>
             )}
             {step === 'mapping' && (
               <button onClick={applyMapping} disabled={!mapping.quantity} className="h-9 px-5 rounded-lg bg-[var(--bg-inverse)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--bg-inverse-soft)] active:scale-[0.98] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5">
-                Preview Data <ArrowRight className="w-3.5 h-3.5" />
+                {t('components.excel.previewData')} <ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}
             {step === 'preview' && (
               <button onClick={confirmImport} className="h-9 px-5 rounded-lg bg-[var(--accent-teal)] text-white text-[var(--text-sm)] font-semibold hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer inline-flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Import {mappedRows.length} Rows
+                <CheckCircle2 className="w-3.5 h-3.5" /> {t('components.excel.importRows', { count: mappedRows.length })}
               </button>
             )}
             {step === 'done' && (
               <button onClick={onClose} className="h-9 px-5 rounded-lg bg-[var(--bg-inverse)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--bg-inverse-soft)] active:scale-[0.98] transition-all cursor-pointer">
-                Done
+                {t('components.demoSeed.done')}
               </button>
             )}
           </div>

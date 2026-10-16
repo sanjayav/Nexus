@@ -1,0 +1,50 @@
+{
+  "breadcrumbAdmin": "管理",
+  "breadcrumb": "API 密钥",
+  "eyebrow": "管理 · 集成",
+  "title": "API 密钥",
+  "subtitle": "为 CI 流水线、BI 工具和 ERP 推送连接器签发程序化访问令牌。作用域沿用与用户角色相同的权限模型。",
+  "generateKey": "生成密钥",
+  "errors": {
+    "load": "加载 API 密钥失败",
+    "nameRequired": "请填写名称",
+    "pickScope": "请至少选择一个作用域",
+    "create": "创建 API 密钥失败",
+    "revoke": "吊销密钥失败"
+  },
+  "confirmRevoke": "确定吊销此密钥吗？所有使用该密钥的客户端将立即失去访问权限。",
+  "reveal": {
+    "warning": "请立即复制此令牌——它不会再次显示。我们仅存储其 SHA-256 哈希值。",
+    "dismiss": "关闭",
+    "copied": "已复制",
+    "copy": "复制",
+    "scopes": "作用域：{{scopes}}"
+  },
+  "table": {
+    "heading": "有效密钥",
+    "emptyTitle": "暂无 API 密钥",
+    "emptyBody": "在上方生成令牌，即可开始以程序化方式推送数据。请为每个密钥仅授予所需的最小权限。",
+    "name": "名称",
+    "prefix": "前缀",
+    "scopes": "作用域",
+    "expires": "过期时间",
+    "lastUsed": "最近使用",
+    "status": "状态",
+    "actions": "操作",
+    "never": "从不",
+    "active": "有效",
+    "revoked": "已吊销",
+    "revoke": "吊销"
+  },
+  "modal": {
+    "title": "生成 API 密钥",
+    "close": "关闭",
+    "name": "名称",
+    "namePlaceholder": "例如：CI 流水线推送",
+    "scopes": "作用域",
+    "expiresIn": "有效期（天）",
+    "expiresPlaceholder": "留空表示永不过期",
+    "cancel": "取消",
+    "generate": "生成"
+  }
+}

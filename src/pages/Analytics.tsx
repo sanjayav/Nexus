@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   TrendingUp, TrendingDown, Minus, AlertTriangle,
   CheckCircle2, Clock, Factory, Target as TargetIcon, Scale,
@@ -20,6 +21,7 @@ import { riseIn, popIn, slideInLeft } from '../components/motion'
 import SectionHeader from '../design-system/components/SectionHeader'
 import { SkeletonCard } from '../design-system/components/Skeleton'
 import EmptyState from '../components/EmptyState'
+import { itemLabel } from '../lib/itemLabel'
 
 /**
  * Analytics — every chart and table is computed from live org data.
@@ -27,6 +29,7 @@ import EmptyState from '../components/EmptyState'
  * Materiality coverage, Emissions decomposition.
  */
 export default function Analytics() {
+  const { t, i18n } = useTranslation()
   const { user } = useAuth()
   const navigate = useNavigate()
   const { active: framework } = useFramework()
@@ -120,11 +123,11 @@ export default function Analytics() {
     return {
       composite,
       components: [
-        { key: 'completeness', label: 'Completeness',    value: Math.round(completeness),     weight: 35, hint: `${approved}/${total} approved` },
-        { key: 'timeliness',   label: 'On-time',          value: Math.round(timeliness),       weight: 15, hint: `${onTime}/${dueEligible} met deadline` },
-        { key: 'evidence',     label: 'Evidence',         value: Math.round(evidenceRate),     weight: 20, hint: `${withEvidence}/${needsEvidence} attached` },
-        { key: 'rework',       label: 'Low rework',       value: Math.round(rejectionPenalty), weight: 15, hint: `${rejected} rejected` },
-        { key: 'variance',     label: 'Variance pass',    value: Math.round(varianceScore),    weight: 15, hint: `${variancePass}/${approvedNum.length} within ±20% YoY` },
+        { key: 'completeness', value: Math.round(completeness),     weight: 35, hintVars: { approved, total } },
+        { key: 'timeliness',   value: Math.round(timeliness),       weight: 15, hintVars: { onTime, dueEligible } },
+        { key: 'evidence',     value: Math.round(evidenceRate),     weight: 20, hintVars: { withEvidence, needsEvidence } },
+        { key: 'rework',       value: Math.round(rejectionPenalty), weight: 15, hintVars: { rejected } },
+        { key: 'variance',     value: Math.round(varianceScore),    weight: 15, hintVars: { variancePass, approvedNum: approvedNum.length } },
       ],
       counts: { total, approved, submitted, rejected },
     }
@@ -259,32 +262,40 @@ export default function Analytics() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Analytics"
-        title="Signals across your data"
-        subtitle="Data quality, variance, target gap, plant performance, materiality coverage — computed live from your approved figures and the historical baseline."
+        eyebrow={t('analytics.header.eyebrow')}
+        title={t('analytics.header.title')}
+        subtitle={t('analytics.header.subtitle')}
         actions={<FrameworkBadge size="md" />}
       />
 
       {/* ── Data Quality Index ── */}
       <section>
         <SectionHeader
-          kicker="Quality"
-          title="Data Quality Index"
-          subtitle="Weighted composite score (0–100) across completeness, timeliness, evidence, rework, and variance."
+          kicker={t('analytics.dqi.kicker')}
+          title={t('analytics.dqi.title')}
+          subtitle={t('analytics.dqi.subtitle')}
         />
         <motion.div {...popIn(0)} className="surface-paper overflow-hidden">
           {!dqi ? (
             <EmptyState
               icon={CheckCircle2}
-              title="DQI is empty"
-              body="Your Data Quality Index lights up once approved assignments start coming in. Head to My tasks to file the first one."
-              cta={{ label: 'Open my tasks', onClick: () => navigate('/my-tasks') }}
+              title={t('analytics.dqi.emptyTitle')}
+              body={t('analytics.dqi.emptyBody')}
+              cta={{ label: t('analytics.dqi.emptyCta'), onClick: () => navigate('/my-tasks') }}
             />
           ) : (
             <div className="p-6 grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-8 items-center">
               <DqiRing score={dqi.composite} />
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                {dqi.components.map(c => { const { key, ...rest } = c; return <DqiComponent key={key} {...rest} /> })}
+                {dqi.components.map(c => (
+                  <DqiComponent
+                    key={c.key}
+                    label={t(`analytics.dqi.components.${c.key}.label`)}
+                    value={c.value}
+                    weight={c.weight}
+                    hint={t(`analytics.dqi.components.${c.key}.hint`, c.hintVars)}
+                  />
+                ))}
               </div>
             </div>
           )}
@@ -294,9 +305,9 @@ export default function Analytics() {
       {/* ── Target gap + Emissions decomp ── */}
       <section>
         <SectionHeader
-          kicker="Pathway"
-          title="Climate target & emissions decomposition"
-          subtitle="Where you are vs. where you committed to be, and which plants drive the total."
+          kicker={t('analytics.pathway.kicker')}
+          title={t('analytics.pathway.title')}
+          subtitle={t('analytics.pathway.subtitle')}
         />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <motion.div {...popIn(0)}>
@@ -311,22 +322,22 @@ export default function Analytics() {
       {/* ── YoY Variance Investigator ── */}
       <section>
         <SectionHeader
-          kicker="Variance"
-          title="Year-over-year investigator"
-          subtitle="Approved numeric figures vs. most recent historical baseline — sorted by absolute change."
+          kicker={t('analytics.variance.kicker')}
+          title={t('analytics.variance.title')}
+          subtitle={t('analytics.variance.subtitle')}
         />
         <motion.div {...riseIn(0)} className="surface-paper overflow-hidden">
           {varianceRows.length === 0 ? (
-            <div className="p-12 text-center text-[13px] text-[var(--text-tertiary)]">No approved numeric assignments to compare yet.</div>
+            <div className="p-12 text-center text-[13px] text-[var(--text-tertiary)]">{t('analytics.variance.empty')}</div>
           ) : (
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="text-[10.5px] uppercase tracking-[0.1em] text-[var(--text-tertiary)] bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)]">
-                  <th className="text-left px-5 py-3 font-semibold">Disclosure</th>
-                  <th className="text-right px-3 py-3 font-semibold">Prior</th>
-                  <th className="text-right px-3 py-3 font-semibold">Current</th>
-                  <th className="text-right px-3 py-3 font-semibold">Δ vs prior</th>
-                  <th className="text-left px-3 py-3 font-semibold">Assessment</th>
+                  <th className="text-left px-5 py-3 font-semibold">{t('analytics.variance.columns.disclosure')}</th>
+                  <th className="text-right px-3 py-3 font-semibold">{t('analytics.variance.columns.prior')}</th>
+                  <th className="text-right px-3 py-3 font-semibold">{t('analytics.variance.columns.current')}</th>
+                  <th className="text-right px-3 py-3 font-semibold">{t('analytics.variance.columns.delta')}</th>
+                  <th className="text-left px-3 py-3 font-semibold">{t('analytics.variance.columns.assessment')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border-subtle)]">
@@ -337,13 +348,13 @@ export default function Analytics() {
                     <motion.tr key={r.assignment.id} {...slideInLeft(i)} className="hover:bg-[var(--bg-secondary)] transition-colors">
                       <td className="px-5 py-3.5">
                         <div className="text-[10.5px] font-bold text-[var(--color-brand)] tracking-[0.05em] uppercase">{r.assignment.gri_code}</div>
-                        <div className="text-[13px] text-[var(--text-primary)] truncate max-w-[420px] font-medium mt-0.5">{r.assignment.line_item}</div>
+                        <div className="text-[13px] text-[var(--text-primary)] truncate max-w-[420px] font-medium mt-0.5">{itemLabel(r.assignment, i18n.language)}</div>
                       </td>
                       <td className="px-3 py-3.5 text-right tabular-nums">
                         {r.priorValue != null ? (
                           <>
                             <div className="text-[13px] text-[var(--text-secondary)] font-medium">{formatBig(r.priorValue)}</div>
-                            <div className="text-[10px] text-[var(--text-tertiary)] mt-0.5">FY{r.priorYear}</div>
+                            <div className="text-[10px] text-[var(--text-tertiary)] mt-0.5">{t('analytics.variance.fy', { year: r.priorYear })}</div>
                           </>
                         ) : <span className="text-[var(--text-tertiary)] italic">—</span>}
                       </td>
@@ -375,9 +386,9 @@ export default function Analytics() {
       {/* ── Plant scorecard + Materiality coverage ── */}
       <section>
         <SectionHeader
-          kicker="Performance"
-          title="Plant scorecards & topic coverage"
-          subtitle="Who's leading, where gaps sit, and whether your material topics are being reported."
+          kicker={t('analytics.performance.kicker')}
+          title={t('analytics.performance.title')}
+          subtitle={t('analytics.performance.subtitle')}
         />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <motion.div {...popIn(0)}>
@@ -395,10 +406,11 @@ export default function Analytics() {
 // ─── DQI ring + components ─────────────────────────────────────
 
 function DqiRing({ score }: { score: number }) {
+  const { t } = useTranslation()
   const radius = 80
   const c = 2 * Math.PI * radius
   const color = score >= 85 ? '#10B981' : score >= 65 ? '#F59E0B' : '#EF4444'
-  const label = score >= 85 ? 'Strong' : score >= 65 ? 'Improving' : 'Needs work'
+  const label = score >= 85 ? t('analytics.dqi.ring.strong') : score >= 65 ? t('analytics.dqi.ring.improving') : t('analytics.dqi.ring.needsWork')
   return (
     <div className="relative w-[200px] h-[200px] mx-auto">
       <svg width={200} height={200} viewBox="0 0 200 200">
@@ -418,7 +430,7 @@ function DqiRing({ score }: { score: number }) {
           <AnimatedNumber value={score} />
         </div>
         <div className="text-[10px] uppercase tracking-wider font-bold mt-1" style={{ color }}>{label}</div>
-        <div className="text-[9px] text-[var(--text-tertiary)] mt-0.5">composite · 0–100</div>
+        <div className="text-[9px] text-[var(--text-tertiary)] mt-0.5">{t('analytics.dqi.ring.composite')}</div>
       </div>
     </div>
   )
@@ -448,6 +460,7 @@ function DqiComponent({ label, value, weight, hint }: { label: string; value: nu
 // ─── Target gap ───────────────────────────────────────────
 
 function TargetGapCard({ gap, navigate }: { gap: ReturnType<typeof useMemo> extends infer T ? T : never; navigate: (p: string) => void }) {
+  const { t } = useTranslation()
   if (!gap) {
     return (
       <div className="surface-outlined p-6 h-full">
@@ -455,10 +468,10 @@ function TargetGapCard({ gap, navigate }: { gap: ReturnType<typeof useMemo> exte
           <span className="w-8 h-8 rounded-[9px] flex items-center justify-center" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)' }}>
             <TargetIcon className="w-4 h-4" />
           </span>
-          <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">Target gap analysis</h3>
+          <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">{t('analytics.target.emptyTitle')}</h3>
         </div>
         <p className="text-[12.5px] text-[var(--text-tertiary)] leading-relaxed mt-3">
-          No climate target set. Commit to an SBTi target in Settings to see gap-to-pathway analysis here.
+          {t('analytics.target.emptyBody')}
         </p>
       </div>
     )
@@ -476,10 +489,10 @@ function TargetGapCard({ gap, navigate }: { gap: ReturnType<typeof useMemo> exte
           <span className="w-7 h-7 rounded-[8px] flex items-center justify-center" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)' }}>
             <TargetIcon className="w-3.5 h-3.5" />
           </span>
-          <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">Target gap</h3>
+          <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">{t('analytics.target.title')}</h3>
         </div>
         <span className={`text-[10px] font-bold uppercase tracking-[0.1em] px-2 py-0.5 rounded-full ${g.onTrack ? 'bg-[var(--accent-green-light)] text-[var(--status-ok)]' : 'bg-[var(--accent-red-light)] text-[var(--status-reject)]'}`}>
-          {g.onTrack ? 'On pathway' : 'Behind pathway'}
+          {g.onTrack ? t('analytics.target.onPathway') : t('analytics.target.behindPathway')}
         </span>
       </header>
 
@@ -497,26 +510,26 @@ function TargetGapCard({ gap, navigate }: { gap: ReturnType<typeof useMemo> exte
               <XAxis dataKey="year" tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} tickFormatter={v => formatBig(v)} width={38} />
               <Tooltip formatter={(v: number) => formatBig(v) + ' ' + g.target.baseline_unit} contentStyle={{ fontSize: 11, border: '1px solid var(--border-default)', borderRadius: 4 }} />
-              <Area type="monotone" dataKey="linear" name="Pathway" stroke="var(--color-brand)" strokeWidth={2} fill="url(#linear-grad)" strokeDasharray="4 4" />
-              <Area type="monotone" dataKey="actual" name="Actual" stroke="#EF4444" strokeWidth={3} fill="transparent" dot={{ r: 4, fill: '#EF4444' }} connectNulls />
-              <ReferenceLine y={g.targetValue} stroke="var(--status-ok)" strokeDasharray="2 2" label={{ value: 'Target', position: 'right', fill: 'var(--status-ok)', fontSize: 9 }} />
+              <Area type="monotone" dataKey="linear" name={t('analytics.target.series.pathway')} stroke="var(--color-brand)" strokeWidth={2} fill="url(#linear-grad)" strokeDasharray="4 4" />
+              <Area type="monotone" dataKey="actual" name={t('analytics.target.series.actual')} stroke="#EF4444" strokeWidth={3} fill="transparent" dot={{ r: 4, fill: '#EF4444' }} connectNulls />
+              <ReferenceLine y={g.targetValue} stroke="var(--status-ok)" strokeDasharray="2 2" label={{ value: t('analytics.target.series.target'), position: 'right', fill: 'var(--status-ok)', fontSize: 9 }} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
 
         <div className="grid grid-cols-3 gap-2 mt-3">
-          <Stat label="Current gap"            value={g.gap > 0 ? `+${formatBig(g.gap)}` : formatBig(-g.gap)} tone={g.gap <= 0 ? 'ok' : 'reject'} suffix={g.target.baseline_unit} />
-          <Stat label="Required annual abatement" value={formatBig(Math.max(0, g.requiredAnnualAbatement))} tone="neutral" suffix={g.target.baseline_unit + '/yr'} />
-          <Stat label="Years to target"          value={String(g.yearsRemaining)} tone="neutral" />
+          <Stat label={t('analytics.target.stats.currentGap')}            value={g.gap > 0 ? `+${formatBig(g.gap)}` : formatBig(-g.gap)} tone={g.gap <= 0 ? 'ok' : 'reject'} suffix={g.target.baseline_unit} />
+          <Stat label={t('analytics.target.stats.requiredAbatement')} value={formatBig(Math.max(0, g.requiredAnnualAbatement))} tone="neutral" suffix={t('analytics.target.perYear', { unit: g.target.baseline_unit })} />
+          <Stat label={t('analytics.target.stats.yearsToTarget')}          value={String(g.yearsRemaining)} tone="neutral" />
         </div>
         {!g.onTrack && (
           <div className="mt-3 p-2.5 rounded-[var(--radius-sm)] bg-[var(--accent-red-light)]/50 border border-[var(--status-reject)]/20 text-[11px] text-[var(--status-reject)]">
             <AlertTriangle className="w-3 h-3 inline -mt-0.5 mr-1" />
-            Currently {formatBig(g.gap)} above the linear pathway. Need to abate {formatBig(Math.max(0, g.requiredAnnualAbatement))} {g.target.baseline_unit} per year to close the gap.
+            {t('analytics.target.behindWarning', { gap: formatBig(g.gap), abatement: formatBig(Math.max(0, g.requiredAnnualAbatement)), unit: g.target.baseline_unit })}
           </div>
         )}
         <div className="mt-3">
-          <button onClick={() => navigate('/admin/materiality')} className="text-[10px] text-[var(--color-brand)] hover:underline">Manage target + scope coverage →</button>
+          <button onClick={() => navigate('/admin/materiality')} className="text-[10px] text-[var(--color-brand)] hover:underline">{t('analytics.target.manageLink')}</button>
         </div>
       </div>
     </div>
@@ -536,6 +549,7 @@ function Stat({ label, value, tone, suffix }: { label: string; value: string; to
 // ─── Emissions decomposition ──────────────────────────────
 
 function EmissionsDecomp({ data }: { data: Array<{ plant: string; s1: number; s2: number; s3: number; total: number }> }) {
+  const { t } = useTranslation()
   if (data.length === 0) {
     return (
       <div className="surface-outlined p-6 h-full">
@@ -543,10 +557,10 @@ function EmissionsDecomp({ data }: { data: Array<{ plant: string; s1: number; s2
           <span className="w-8 h-8 rounded-[9px] flex items-center justify-center" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)' }}>
             <Factory className="w-4 h-4" />
           </span>
-          <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">Emissions by plant × scope</h3>
+          <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">{t('analytics.emissions.title')}</h3>
         </div>
         <p className="text-[12.5px] text-[var(--text-tertiary)] leading-relaxed mt-3">
-          No approved GRI 305 figures yet. Once plants submit and you approve Scope 1/2/3 data, this decomposition populates.
+          {t('analytics.emissions.empty')}
         </p>
       </div>
     )
@@ -557,7 +571,7 @@ function EmissionsDecomp({ data }: { data: Array<{ plant: string; s1: number; s2
         <span className="w-7 h-7 rounded-[8px] flex items-center justify-center" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)' }}>
           <Factory className="w-3.5 h-3.5" />
         </span>
-        <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">Emissions by plant × scope</h3>
+        <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">{t('analytics.emissions.title')}</h3>
       </header>
       <div className="p-5">
         <div className="h-[240px]">
@@ -567,16 +581,16 @@ function EmissionsDecomp({ data }: { data: Array<{ plant: string; s1: number; s2
               <XAxis dataKey="plant" tick={{ fontSize: 9, fill: 'var(--text-tertiary)' }} angle={-20} textAnchor="end" height={50} interval={0} />
               <YAxis tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} tickFormatter={v => formatBig(v)} width={42} />
               <Tooltip formatter={(v: number) => formatBig(v) + ' tCO₂e'} contentStyle={{ fontSize: 11, border: '1px solid var(--border-default)', borderRadius: 4 }} />
-              <Bar dataKey="s1" stackId="s" fill="#0F7B6F" name="Scope 1" />
-              <Bar dataKey="s2" stackId="s" fill="#2563EB" name="Scope 2" />
-              <Bar dataKey="s3" stackId="s" fill="#7C3AED" name="Scope 3" />
+              <Bar dataKey="s1" stackId="s" fill="#0F7B6F" name={t('analytics.emissions.scope1')} />
+              <Bar dataKey="s2" stackId="s" fill="#2563EB" name={t('analytics.emissions.scope2')} />
+              <Bar dataKey="s3" stackId="s" fill="#7C3AED" name={t('analytics.emissions.scope3')} />
             </BarChart>
           </ResponsiveContainer>
         </div>
         <div className="flex items-center gap-4 mt-2 text-[10px] text-[var(--text-tertiary)]">
-          <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ background: '#0F7B6F' }} /> Scope 1</span>
-          <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ background: '#2563EB' }} /> Scope 2</span>
-          <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ background: '#7C3AED' }} /> Scope 3</span>
+          <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ background: '#0F7B6F' }} /> {t('analytics.emissions.scope1')}</span>
+          <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ background: '#2563EB' }} /> {t('analytics.emissions.scope2')}</span>
+          <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ background: '#7C3AED' }} /> {t('analytics.emissions.scope3')}</span>
         </div>
       </div>
     </div>
@@ -586,11 +600,12 @@ function EmissionsDecomp({ data }: { data: Array<{ plant: string; s1: number; s2
 // ─── Variance flag pill ──────────────────────────────────
 
 function VarianceFlag({ flag }: { flag: 'ok' | 'watch' | 'warn' | 'no-baseline' }) {
+  const { t } = useTranslation()
   const map: Record<typeof flag, { label: string; bg: string; fg: string; icon: typeof CheckCircle2 }> = {
-    ok:            { label: 'In range',      bg: 'var(--accent-green-light)', fg: 'var(--status-ok)',     icon: CheckCircle2 },
-    watch:         { label: 'Watch',          bg: 'var(--accent-amber-light)', fg: 'var(--status-draft)',  icon: Clock },
-    warn:          { label: 'Investigate',    bg: 'var(--accent-red-light)',   fg: 'var(--status-reject)', icon: AlertTriangle },
-    'no-baseline': { label: 'No prior year',  bg: 'var(--bg-tertiary)',        fg: 'var(--text-tertiary)', icon: Minus },
+    ok:            { label: t('analytics.variance.flags.ok'),         bg: 'var(--accent-green-light)', fg: 'var(--status-ok)',     icon: CheckCircle2 },
+    watch:         { label: t('analytics.variance.flags.watch'),      bg: 'var(--accent-amber-light)', fg: 'var(--status-draft)',  icon: Clock },
+    warn:          { label: t('analytics.variance.flags.warn'),       bg: 'var(--accent-red-light)',   fg: 'var(--status-reject)', icon: AlertTriangle },
+    'no-baseline': { label: t('analytics.variance.flags.noBaseline'), bg: 'var(--bg-tertiary)',        fg: 'var(--text-tertiary)', icon: Minus },
   }
   const m = map[flag]
   const Icon = m.icon
@@ -607,6 +622,7 @@ function PlantScorecard({ rows, navigate }: {
   rows: Array<{ plant: { id: string; name: string; country?: string }; total: number; approved: number; rejected: number; overdue: number; avgDays: number | null; completion: number; score: number }>
   navigate: (p: string) => void
 }) {
+  const { t } = useTranslation()
   return (
     <div className="surface-paper overflow-hidden h-full">
       <header className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between">
@@ -614,22 +630,22 @@ function PlantScorecard({ rows, navigate }: {
           <span className="w-7 h-7 rounded-[8px] flex items-center justify-center" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)' }}>
             <Factory className="w-3.5 h-3.5" />
           </span>
-          <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">Plant scorecard</h3>
+          <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">{t('analytics.plant.title')}</h3>
         </div>
-        <button onClick={() => navigate('/aggregator')} className="text-[12px] font-semibold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] link-underline">Rollup →</button>
+        <button onClick={() => navigate('/aggregator')} className="text-[12px] font-semibold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] link-underline">{t('analytics.plant.rollup')}</button>
       </header>
       {rows.length === 0 ? (
-        <div className="p-10 text-center text-[13px] text-[var(--text-tertiary)]">No plants yet. Add them via Onboarding.</div>
+        <div className="p-10 text-center text-[13px] text-[var(--text-tertiary)]">{t('analytics.plant.empty')}</div>
       ) : (
         <table className="w-full text-[13px]">
           <thead>
             <tr className="text-[10px] uppercase tracking-[0.1em] text-[var(--text-tertiary)] bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)]">
-              <th className="text-left px-5 py-3 font-semibold">Plant</th>
-              <th className="text-center px-2 py-3 font-semibold">Score</th>
-              <th className="text-center px-2 py-3 font-semibold">Complete</th>
-              <th className="text-center px-2 py-3 font-semibold">Reject</th>
-              <th className="text-center px-2 py-3 font-semibold">Overdue</th>
-              <th className="text-center px-3 py-3 font-semibold">Days</th>
+              <th className="text-left px-5 py-3 font-semibold">{t('analytics.plant.columns.plant')}</th>
+              <th className="text-center px-2 py-3 font-semibold">{t('analytics.plant.columns.score')}</th>
+              <th className="text-center px-2 py-3 font-semibold">{t('analytics.plant.columns.complete')}</th>
+              <th className="text-center px-2 py-3 font-semibold">{t('analytics.plant.columns.reject')}</th>
+              <th className="text-center px-2 py-3 font-semibold">{t('analytics.plant.columns.overdue')}</th>
+              <th className="text-center px-3 py-3 font-semibold">{t('analytics.plant.columns.days')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border-subtle)]">
@@ -650,7 +666,7 @@ function PlantScorecard({ rows, navigate }: {
                   {r.overdue === 0 ? <span className="text-[var(--text-quaternary)]">—</span> : <span className="text-[var(--status-reject)] font-bold">{r.overdue}</span>}
                 </td>
                 <td className="px-3 py-3 text-center text-[11.5px] tabular-nums text-[var(--text-secondary)] font-medium">
-                  {r.avgDays != null ? r.avgDays.toFixed(0) + 'd' : '—'}
+                  {r.avgDays != null ? t('analytics.plant.daysValue', { days: r.avgDays.toFixed(0) }) : '—'}
                 </td>
               </motion.tr>
             ))}
@@ -673,6 +689,7 @@ function MaterialityCoverage({ rows, navigate }: {
   rows: Array<{ topic: MaterialTopic; total: number; covered: number; approved: number; coveragePct: number; approvedPct: number }>
   navigate: (p: string) => void
 }) {
+  const { t } = useTranslation()
   return (
     <div className="surface-paper overflow-hidden h-full">
       <header className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between">
@@ -680,13 +697,13 @@ function MaterialityCoverage({ rows, navigate }: {
           <span className="w-7 h-7 rounded-[8px] flex items-center justify-center" style={{ background: 'var(--accent-purple-light)', color: 'var(--accent-purple)' }}>
             <Scale className="w-3.5 h-3.5" />
           </span>
-          <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">Material topic coverage</h3>
+          <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">{t('analytics.materiality.title')}</h3>
         </div>
-        <button onClick={() => navigate('/admin/materiality')} className="text-[12px] font-semibold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] link-underline">Manage →</button>
+        <button onClick={() => navigate('/admin/materiality')} className="text-[12px] font-semibold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] link-underline">{t('analytics.materiality.manage')}</button>
       </header>
       {rows.length === 0 ? (
         <div className="p-10 text-center text-[13px] text-[var(--text-tertiary)]">
-          No material topics declared yet. Run a GRI 3 materiality assessment.
+          {t('analytics.materiality.empty')}
         </div>
       ) : (
         <ul className="divide-y divide-[var(--border-subtle)]">
@@ -710,7 +727,7 @@ function MaterialityCoverage({ rows, navigate }: {
               </div>
               {r.coveragePct < 100 && (
                 <div className="text-[10.5px] text-[var(--status-draft)] mt-1.5 font-medium">
-                  {r.total - r.covered} GRI code{r.total - r.covered > 1 ? 's' : ''} not yet assigned
+                  {t('analytics.materiality.unassigned', { count: r.total - r.covered })}
                 </div>
               )}
             </motion.li>

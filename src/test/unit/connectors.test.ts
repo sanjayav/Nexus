@@ -12,7 +12,10 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { encrypt, decrypt } from '../../../api/_crypto'
-import { CONNECTORS, getConnector, listConnectors } from '../../../api/_connectors/registry'
+import {
+  CONNECTORS, getConnector, listConnectors,
+  COMING_SOON_CONNECTORS, listConnectorCatalogue, getCatalogueEntry,
+} from '../../../api/_connectors/registry'
 import type { ConnectorConnection, SyncOptions } from '../../../api/_connectors/index'
 
 const fetchMock = vi.fn()
@@ -87,6 +90,52 @@ describe('connector registry', () => {
       expect(c.apiKeyFields).toBeDefined()
       expect((c.apiKeyFields ?? []).length).toBeGreaterThan(0)
     }
+  })
+})
+
+describe('China connector catalogue (coming soon)', () => {
+  const CN_IDS = [
+    'aliyun_iot',
+    'cn_carbon_market_export',
+    'dingtalk_hr',
+    'feishu_people',
+    'kingdee_galaxy',
+    'state_grid_metering',
+    'wecom_directory',
+    'yonyou_bip',
+  ]
+
+  it('registers the 8 China catalogue entries as coming soon', () => {
+    expect(Object.keys(COMING_SOON_CONNECTORS).sort()).toEqual(CN_IDS)
+    for (const c of Object.values(COMING_SOON_CONNECTORS)) {
+      expect(c.status).toBe('coming_soon')
+      expect(c.market).toBe('cn')
+      expect(c.nameZh).toBeTruthy()
+      expect(c.descriptionZh).toBeTruthy()
+      expect(c.fieldMappings.length).toBeGreaterThan(0)
+      expect(c.iconKey).toBeTruthy()
+    }
+  })
+
+  it('keeps coming-soon entries out of the live registry', () => {
+    for (const id of CN_IDS) {
+      expect(getConnector(id)).toBeUndefined()
+      expect(CONNECTORS[id]).toBeUndefined()
+      expect(getCatalogueEntry(id)?.id).toBe(id)
+    }
+    expect(listConnectors().every(c => (c.status ?? 'live') === 'live')).toBe(true)
+    expect(listConnectorCatalogue()).toHaveLength(listConnectors().length + CN_IDS.length)
+  })
+
+  it('never reports a live connection or sync, and never calls the network', async () => {
+    for (const c of Object.values(COMING_SOON_CONNECTORS)) {
+      const conn = makeConnection(c.id)
+      const t = await c.testConnection(conn)
+      expect(t.ok).toBe(false)
+      expect(t.details).toEqual({ status: 'coming_soon' })
+      await expect(c.fetchData({} as never, conn, {})).rejects.toThrow(/coming soon/)
+    }
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 })
 

@@ -1,0 +1,45 @@
+{
+  "title": "Activity History",
+  "description": "Immutable record of authentication, role, assignment and configuration events. Use the filters below to narrow the view; export filtered results as CSV for evidence packs.",
+  "exportCsv": "Export CSV",
+  "exporting": "Exporting…",
+  "errors": {
+    "load": "Failed to load audit log",
+    "export": "Export failed"
+  },
+  "filters": {
+    "title": "Filters",
+    "from": "From",
+    "to": "To",
+    "actor": "Actor",
+    "anyone": "Anyone",
+    "results": "Results",
+    "loading": "Loading…",
+    "events_one": "{{formattedCount}} event",
+    "events_other": "{{formattedCount}} events",
+    "actionType": "Action type",
+    "resourceType": "Resource type",
+    "clearAll": "Clear all filters"
+  },
+  "table": {
+    "timestamp": "Timestamp",
+    "actor": "Actor",
+    "action": "Action",
+    "resource": "Resource",
+    "target": "Target",
+    "ip": "IP",
+    "details": "Details",
+    "system": "system",
+    "hide": "Hide",
+    "show": "Show"
+  },
+  "empty": {
+    "title": "No audit events match",
+    "body": "Try widening your date range or clearing filters. Every change in the workspace is recorded here for assurance."
+  },
+  "pagination": {
+    "pageOf": "Page {{page}} of {{total}}",
+    "prev": "Prev",
+    "next": "Next"
+  }
+}

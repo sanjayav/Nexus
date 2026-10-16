@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Trans, useTranslation } from 'react-i18next'
 import {
   Bot,
   Play,
@@ -24,40 +25,42 @@ import { useIntegrationStatus } from '../lib/integrations'
 // Curated catalogue of sections the user can draft. v1 hard-coded list; once
 // the questionnaire tree endpoint surfaces section labels this could load
 // dynamically from /api/org?view=tree.
-const SECTIONS_BY_FRAMEWORK: Record<string, { value: string; label: string }[]> = {
+// `value` is sent to the AI backend and must stay English; `key` maps to the
+// localised display label (aiReport.sections.<key>).
+const SECTIONS_BY_FRAMEWORK: Record<string, { value: string; key: string; label: string }[]> = {
   gri: [
-    { value: 'GRI 302 Energy', label: 'GRI 302 — Energy' },
-    { value: 'GRI 303 Water', label: 'GRI 303 — Water & Effluents' },
-    { value: 'GRI 305 Emissions', label: 'GRI 305 — Emissions' },
-    { value: 'GRI 306 Waste', label: 'GRI 306 — Waste' },
-    { value: 'GRI 401 Employment', label: 'GRI 401 — Employment' },
-    { value: 'GRI 403 Occupational Health', label: 'GRI 403 — Occupational H&S' },
+    { value: 'GRI 302 Energy', key: 'gri302', label: 'GRI 302 — Energy' },
+    { value: 'GRI 303 Water', key: 'gri303', label: 'GRI 303 — Water & Effluents' },
+    { value: 'GRI 305 Emissions', key: 'gri305', label: 'GRI 305 — Emissions' },
+    { value: 'GRI 306 Waste', key: 'gri306', label: 'GRI 306 — Waste' },
+    { value: 'GRI 401 Employment', key: 'gri401', label: 'GRI 401 — Employment' },
+    { value: 'GRI 403 Occupational Health', key: 'gri403', label: 'GRI 403 — Occupational H&S' },
   ],
   csrd: [
-    { value: 'ESRS E1 Climate Change', label: 'ESRS E1 — Climate Change' },
-    { value: 'ESRS E2 Pollution', label: 'ESRS E2 — Pollution' },
-    { value: 'ESRS E3 Water', label: 'ESRS E3 — Water & Marine Resources' },
-    { value: 'ESRS E5 Resource Use', label: 'ESRS E5 — Circular Economy' },
-    { value: 'ESRS S1 Own Workforce', label: 'ESRS S1 — Own Workforce' },
-    { value: 'ESRS G1 Business Conduct', label: 'ESRS G1 — Business Conduct' },
+    { value: 'ESRS E1 Climate Change', key: 'esrsE1', label: 'ESRS E1 — Climate Change' },
+    { value: 'ESRS E2 Pollution', key: 'esrsE2', label: 'ESRS E2 — Pollution' },
+    { value: 'ESRS E3 Water', key: 'esrsE3', label: 'ESRS E3 — Water & Marine Resources' },
+    { value: 'ESRS E5 Resource Use', key: 'esrsE5', label: 'ESRS E5 — Circular Economy' },
+    { value: 'ESRS S1 Own Workforce', key: 'esrsS1', label: 'ESRS S1 — Own Workforce' },
+    { value: 'ESRS G1 Business Conduct', key: 'esrsG1', label: 'ESRS G1 — Business Conduct' },
   ],
   tcfd: [
-    { value: 'TCFD Governance', label: 'TCFD — Governance' },
-    { value: 'TCFD Strategy', label: 'TCFD — Strategy' },
-    { value: 'TCFD Risk Management', label: 'TCFD — Risk Management' },
-    { value: 'TCFD Metrics and Targets', label: 'TCFD — Metrics & Targets' },
+    { value: 'TCFD Governance', key: 'tcfdGovernance', label: 'TCFD — Governance' },
+    { value: 'TCFD Strategy', key: 'tcfdStrategy', label: 'TCFD — Strategy' },
+    { value: 'TCFD Risk Management', key: 'tcfdRisk', label: 'TCFD — Risk Management' },
+    { value: 'TCFD Metrics and Targets', key: 'tcfdMetrics', label: 'TCFD — Metrics & Targets' },
   ],
   cdp: [
-    { value: 'CDP C1 Governance', label: 'CDP C1 — Governance' },
-    { value: 'CDP C2 Risks and Opportunities', label: 'CDP C2 — Risks & Opportunities' },
-    { value: 'CDP C6 Emissions Data', label: 'CDP C6 — Emissions Data' },
-    { value: 'CDP C11 Carbon Pricing', label: 'CDP C11 — Carbon Pricing' },
+    { value: 'CDP C1 Governance', key: 'cdpC1', label: 'CDP C1 — Governance' },
+    { value: 'CDP C2 Risks and Opportunities', key: 'cdpC2', label: 'CDP C2 — Risks & Opportunities' },
+    { value: 'CDP C6 Emissions Data', key: 'cdpC6', label: 'CDP C6 — Emissions Data' },
+    { value: 'CDP C11 Carbon Pricing', key: 'cdpC11', label: 'CDP C11 — Carbon Pricing' },
   ],
   issb: [
-    { value: 'IFRS S2 Governance', label: 'IFRS S2 — Governance' },
-    { value: 'IFRS S2 Strategy', label: 'IFRS S2 — Strategy' },
-    { value: 'IFRS S2 Risk Management', label: 'IFRS S2 — Risk Management' },
-    { value: 'IFRS S2 Metrics and Targets', label: 'IFRS S2 — Metrics & Targets' },
+    { value: 'IFRS S2 Governance', key: 'issbGovernance', label: 'IFRS S2 — Governance' },
+    { value: 'IFRS S2 Strategy', key: 'issbStrategy', label: 'IFRS S2 — Strategy' },
+    { value: 'IFRS S2 Risk Management', key: 'issbRisk', label: 'IFRS S2 — Risk Management' },
+    { value: 'IFRS S2 Metrics and Targets', key: 'issbMetrics', label: 'IFRS S2 — Metrics & Targets' },
   ],
 }
 
@@ -69,6 +72,7 @@ const FRAMEWORK_OPTIONS = [
   { value: 'issb', label: 'ISSB IFRS S2' },
 ]
 
+// `value` is sent to the AI backend; display labels come from aiReport.tones.<value>.
 const TONE_OPTIONS = [
   { value: 'formal', label: 'Formal' },
   { value: 'narrative', label: 'Narrative' },
@@ -83,6 +87,9 @@ interface UsageStats {
 
 export default function AIReport() {
   const navigate = useNavigate()
+  const { t, i18n } = useTranslation()
+  const isZh = i18n.language?.startsWith('zh') ?? false
+  const numLocale = isZh ? 'zh-CN' : undefined
   const integrations = useIntegrationStatus()
   const aiReady = integrations.ai
   const aiUnavailable = !integrations.loading && !aiReady
@@ -98,6 +105,13 @@ export default function AIReport() {
   const [inserted, setInserted] = useState(false)
 
   const sectionOptions = SECTIONS_BY_FRAMEWORK[framework] ?? []
+  const sectionSelectOptions = sectionOptions.map(o => ({ value: o.value, label: t(`aiReport.sections.${o.key}`, { defaultValue: o.label }) }))
+  const toneSelectOptions = TONE_OPTIONS.map(o => ({ value: o.value, label: t(`aiReport.tones.${o.value}`, { defaultValue: o.label }) }))
+  const currentSectionMeta = sectionOptions.find(o => o.value === section)
+  // English keeps showing the raw section value; Chinese shows the localised label.
+  const sectionHeading = isZh && currentSectionMeta
+    ? t(`aiReport.sections.${currentSectionMeta.key}`, { defaultValue: section })
+    : section
 
   // Update section when framework changes so we never end up with a stale label.
   const onFrameworkChange = (next: string) => {
@@ -120,9 +134,9 @@ export default function AIReport() {
     } catch (e) {
       if (isUnconfiguredError(e)) {
         setErrorIsUnconfigured(true)
-        setError('AI is not configured in this environment. Ask an admin to set ANTHROPIC_API_KEY in Vercel.')
+        setError(t('aiReport.errors.notConfigured'))
       } else {
-        const msg = e instanceof Error ? e.message : 'Failed to generate draft'
+        const msg = e instanceof Error ? e.message : t('aiReport.errors.generateFailed')
         setError(msg)
       }
     } finally {
@@ -167,11 +181,14 @@ export default function AIReport() {
     const parts: string[] = []
     if (usage.tokensIn != null) {
       const cached = usage.cached ?? 0
-      parts.push(`${usage.tokensIn.toLocaleString()} tokens in${cached ? ` (${cached.toLocaleString()} cached)` : ''}`)
+      parts.push(
+        t('aiReport.usage.tokensIn', { n: usage.tokensIn.toLocaleString(numLocale) }) +
+          (cached ? t('aiReport.usage.cached', { n: cached.toLocaleString(numLocale) }) : ''),
+      )
     }
-    if (usage.tokensOut != null) parts.push(`${usage.tokensOut.toLocaleString()} out`)
+    if (usage.tokensOut != null) parts.push(t('aiReport.usage.out', { n: usage.tokensOut.toLocaleString(numLocale) }))
     return parts.join(' · ')
-  }, [usage])
+  }, [usage, t, numLocale])
 
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-[1200px] mx-auto">
@@ -182,10 +199,9 @@ export default function AIReport() {
         <div className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4 flex items-start gap-3" role="status">
           <Sparkles className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
           <div className="min-w-0">
-            <div className="text-[var(--text-sm)] font-semibold text-amber-300">AI features disabled</div>
+            <div className="text-[var(--text-sm)] font-semibold text-amber-300">{t('aiReport.banner.title')}</div>
             <div className="text-[var(--text-xs)] text-amber-300/80 mt-1 leading-relaxed">
-              Set <code className="font-mono">ANTHROPIC_API_KEY</code> in your Vercel environment to enable
-              AI report drafting, evidence extraction, vendor → EF matching, and anomaly narration.
+              <Trans i18nKey="aiReport.banner.body" components={{ code: <code className="font-mono" /> }} />
             </div>
           </div>
         </div>
@@ -224,11 +240,10 @@ export default function AIReport() {
                 <Badge variant="purple">Claude Sonnet 4.6</Badge>
               </div>
               <h1 className="font-display text-[var(--text-3xl)] font-bold text-[var(--text-primary)] tracking-tight">
-                AI Report Drafting
+                {t('aiReport.title')}
               </h1>
               <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1 max-w-xl leading-relaxed">
-                Draft framework-aligned narrative from your verified disclosure data. Anchored to your
-                approved values — missing inputs are flagged, never invented.
+                {t('aiReport.subtitle')}
               </p>
             </div>
           </div>
@@ -257,24 +272,24 @@ export default function AIReport() {
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Select
-            label="Framework"
+            label={t('aiReport.fields.framework')}
             value={framework}
             onChange={(e) => onFrameworkChange(e.target.value)}
             options={FRAMEWORK_OPTIONS}
             disabled={generating}
           />
           <Select
-            label="Section"
+            label={t('aiReport.fields.section')}
             value={section}
             onChange={(e) => setSection(e.target.value)}
-            options={sectionOptions}
+            options={sectionSelectOptions}
             disabled={generating || sectionOptions.length === 0}
           />
           <Select
-            label="Tone"
+            label={t('aiReport.fields.tone')}
             value={tone}
             onChange={(e) => setTone(e.target.value)}
-            options={TONE_OPTIONS}
+            options={toneSelectOptions}
             disabled={generating}
           />
         </div>
@@ -282,7 +297,7 @@ export default function AIReport() {
         <div className="mt-5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-[var(--text-xs)] text-[var(--text-tertiary)]">
             <Shield className="w-3.5 h-3.5" />
-            <span>Grounded in approved data values for the current reporting year</span>
+            <span>{t('aiReport.grounded')}</span>
           </div>
           <Button
             onClick={handleGenerate}
@@ -292,10 +307,10 @@ export default function AIReport() {
               aiUnavailable ? <Lock className="w-4 h-4" /> :
               !generating ? <Play className="w-4 h-4" /> : undefined
             }
-            title={aiUnavailable ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : undefined}
-            aria-label={aiUnavailable ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : undefined}
+            title={aiUnavailable ? t('aiReport.notConfiguredHint') : undefined}
+            aria-label={aiUnavailable ? t('aiReport.notConfiguredHint') : undefined}
           >
-            {aiUnavailable ? 'AI unavailable' : generating ? 'Drafting...' : 'Draft with AI'}
+            {aiUnavailable ? t('aiReport.buttons.unavailable') : generating ? t('aiReport.buttons.drafting') : t('aiReport.buttons.draft')}
           </Button>
         </div>
       </div>
@@ -315,10 +330,10 @@ export default function AIReport() {
             </div>
             <div>
               <h2 className="text-[var(--text-base)] font-semibold font-display text-[var(--text-primary)]">
-                {section || 'Draft preview'}
+                {sectionHeading || t('aiReport.draftPreview')}
               </h2>
               <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-                {framework.toUpperCase()} · {tone}
+                {framework.toUpperCase()} · {t(`aiReport.toneInline.${tone}`, { defaultValue: tone })}
               </p>
             </div>
           </div>
@@ -333,7 +348,7 @@ export default function AIReport() {
                 ) : (
                   <Copy className="w-3.5 h-3.5" />
                 )}
-                {copied ? 'Copied' : 'Copy'}
+                {copied ? t('aiReport.buttons.copied') : t('aiReport.buttons.copy')}
               </button>
               <button
                 onClick={handleGenerate}
@@ -341,22 +356,22 @@ export default function AIReport() {
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border-default)] text-[var(--text-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-all duration-200 disabled:opacity-50"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                Regenerate
+                {t('aiReport.buttons.regenerate')}
               </button>
               <button
                 onClick={handleReset}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[var(--border-default)] text-[var(--text-sm)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-all duration-200"
               >
-                Clear
+                {t('aiReport.buttons.clear')}
               </button>
               <Button onClick={handleInsert} size="md">
                 {inserted ? (
                   <>
-                    <Check className="w-4 h-4" /> Inserted
+                    <Check className="w-4 h-4" /> {t('aiReport.buttons.inserted')}
                   </>
                 ) : (
                   <>
-                    <FileText className="w-4 h-4" /> Insert into Report
+                    <FileText className="w-4 h-4" /> {t('aiReport.buttons.insert')}
                   </>
                 )}
               </Button>
@@ -381,7 +396,7 @@ export default function AIReport() {
                 <AlertCircle className="w-4 h-4 text-[var(--accent-red)] mt-0.5 flex-shrink-0" />
               )}
               <div className={errorIsUnconfigured ? 'text-[var(--text-sm)] text-amber-300' : 'text-[var(--text-sm)] text-[var(--accent-red)]'}>
-                <p className="font-semibold">{errorIsUnconfigured ? 'AI is not configured' : 'Draft failed'}</p>
+                <p className="font-semibold">{errorIsUnconfigured ? t('aiReport.errors.notConfiguredTitle') : t('aiReport.errors.draftFailed')}</p>
                 <p className="text-[var(--text-xs)] opacity-90 mt-0.5">{error}</p>
               </div>
             </div>
@@ -413,20 +428,19 @@ export default function AIReport() {
                   <Sparkles className="w-7 h-7" style={{ color: '#7C3AED', opacity: 0.5 }} />
                 </div>
                 <h3 className="text-[var(--text-base)] font-semibold font-display text-[var(--text-primary)] mb-1">
-                  Ready to draft
+                  {t('aiReport.empty.title')}
                 </h3>
                 <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] max-w-md mx-auto">
-                  Pick a framework and section, then click <span className="font-medium">Draft with AI</span> to
-                  generate an audit-ready narrative from your approved data.
+                  <Trans i18nKey="aiReport.empty.body" components={{ bold: <span className="font-medium" /> }} />
                 </p>
                 <div className="flex items-center justify-center gap-4 mt-5">
                   {[
-                    { icon: Database, label: 'Anchored in your data' },
-                    { icon: Shield, label: 'Framework-aligned' },
-                    { icon: Lock, label: 'No hallucinated numbers' },
+                    { icon: Database, id: 'anchored', label: t('aiReport.empty.anchored') },
+                    { icon: Shield, id: 'aligned', label: t('aiReport.empty.aligned') },
+                    { icon: Lock, id: 'noHallucination', label: t('aiReport.empty.noHallucination') },
                   ].map((item) => (
                     <div
-                      key={item.label}
+                      key={item.id}
                       className="flex items-center gap-1.5 text-[var(--text-xs)] text-[var(--text-tertiary)]"
                     >
                       <item.icon className="w-3 h-3" />
@@ -453,7 +467,7 @@ export default function AIReport() {
                   />
                 </div>
                 <span className="text-[var(--text-xs)] text-[var(--accent-purple)] font-medium">
-                  Claude is drafting...
+                  {t('aiReport.drafting')}
                 </span>
               </div>
               <div className="space-y-2">

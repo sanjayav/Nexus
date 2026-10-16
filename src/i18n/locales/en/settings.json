@@ -1,0 +1,63 @@
+{
+  "title": "Settings",
+  "description": "Personal preferences for this Nexus workspace. Changes apply instantly and persist per user.",
+  "themes": {
+    "demoFlat": { "label": "Demo Flat", "description": "Default. Teal brand, 8px grid, flat surfaces, WCAG 2.1 AA." },
+    "glass": { "label": "Glass UI", "description": "Nexus legacy. Soft shadows, blurred surfaces, rounded corners." }
+  },
+  "frameworks": {
+    "heading": "Report templates",
+    "phase": "Phase 1",
+    "intro": "Pick which frameworks this workspace reports against. We're shipping {{name}} first; additional frameworks become available as they clear validation.",
+    "currentlyActive": "Currently active",
+    "comingSoon": "Coming soon",
+    "lineItems_one": "{{count}} line item",
+    "lineItems_other": "{{count}} line items",
+    "requestEarlyAccess": "Request early access",
+    "on": "On",
+    "off": "Off"
+  },
+  "theme": {
+    "heading": "Theme",
+    "intro": "Switch between the demo flat theme and the legacy Nexus Glass UI."
+  },
+  "display": {
+    "heading": "Display",
+    "intro": "Tune appearance and information density. Light is paper-clean for daytime; dark is easier on the eyes after hours. Comfortable suits review; Compact lets power users squeeze more rows into a single view.",
+    "appearance": "Appearance",
+    "appearanceHint": "Light is paper-clean for daytime work. Auto follows your OS preference and switches when your system flips between light and dark.",
+    "density": "Density",
+    "densityHint": "Applies instantly across the whole workspace.",
+    "densityAria": "Display density",
+    "comfortable": "Comfortable",
+    "compact": "Compact"
+  },
+  "reportingYear": {
+    "heading": "Reporting Year",
+    "active": "Active reporting year",
+    "inherits": "FY2026 — inherits structure from FY2025",
+    "badge": "FY2026 · Active"
+  },
+  "export": {
+    "heading": "Data export (GDPR)",
+    "body": "Download a portable zip of everything we hold for this workspace — users, facilities, activity data, assignments, data values, workflow tasks, notifications, reports, and the audit log. Password hashes, MFA secrets, and SCIM/API token hashes are never included.",
+    "lastExport": "Last export: {{date}}",
+    "none": "No exports yet.",
+    "building": "Building zip…",
+    "download": "Download data export"
+  },
+  "notifications": {
+    "heading": "Notification preferences",
+    "intro": "Decide which email alerts you receive about your tasks. Changes save automatically.",
+    "loadFailed": "Load failed",
+    "saveFailed": "Save failed",
+    "assignment": { "label": "Email me when I'm assigned a new disclosure", "description": "Triggered whenever an admin assigns you a GRI/ESRS item." },
+    "review": { "label": "Email me when a submission needs my review", "description": "Triggered when subordinates submit a value waiting on you to approve." },
+    "anomaly": { "label": "Email me about anomalies in my scope", "description": "Triggered when the anomaly engine flags a value you own." },
+    "digest": "Digest frequency",
+    "digestHint": "How often Nexus rolls your notifications into a single summary email.",
+    "digestAria": "Digest frequency",
+    "digestOptions": { "none": "none", "daily": "daily", "weekly": "weekly" },
+    "saved": "Saved {{time}}"
+  }
+}

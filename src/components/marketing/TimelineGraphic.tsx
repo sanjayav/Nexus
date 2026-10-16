@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { UserPlus, Building2, ClipboardCheck, FileCheck2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 /**
  * TimelineGraphic — the "time-to-disclosure" story.
@@ -13,40 +14,21 @@ import { UserPlus, Building2, ClipboardCheck, FileCheck2 } from 'lucide-react'
  */
 
 interface Milestone {
-  when: string
-  title: string
-  body: string
+  /** Stable id; also the i18n sub-key under `marketing.timeline.<id>`. */
+  id: 'signUp' | 'firstFacility' | 'valuesEntered' | 'draftDisclosure'
   Icon: typeof UserPlus
 }
 
+// Copy (when / title / body) lives in locales/<lang>/marketing.json.
 const MILESTONES: Milestone[] = [
-  {
-    when: 'HOUR 1',
-    title: 'Sign up',
-    body: 'Self-serve. No sales call. Land in the workspace with one click.',
-    Icon: UserPlus,
-  },
-  {
-    when: 'HOUR 4',
-    title: 'First facility',
-    body: 'Add an entity, pick frameworks (24 pre-loaded), invite teammates.',
-    Icon: Building2,
-  },
-  {
-    when: 'HOUR 24',
-    title: 'Values entered',
-    body: 'Upload evidence, let AI extract figures, approve the numbers.',
-    Icon: ClipboardCheck,
-  },
-  {
-    when: 'HOUR 48',
-    title: 'Draft disclosure',
-    body: 'CSRD-ready draft, auditor-trail, blockchain anchor, ready to publish.',
-    Icon: FileCheck2,
-  },
+  { id: 'signUp', Icon: UserPlus },
+  { id: 'firstFacility', Icon: Building2 },
+  { id: 'valuesEntered', Icon: ClipboardCheck },
+  { id: 'draftDisclosure', Icon: FileCheck2 },
 ]
 
 export default function TimelineGraphic() {
+  const { t } = useTranslation()
   const reduce = useReducedMotion()
   const ref = useRef<HTMLDivElement>(null)
   const [inView, setInView] = useState(false)
@@ -112,7 +94,7 @@ export default function TimelineGraphic() {
           <div className="grid grid-cols-4 gap-6 relative">
             {MILESTONES.map((m, i) => (
               <motion.div
-                key={m.when}
+                key={m.id}
                 className="flex flex-col items-center text-center"
                 initial={reduce ? false : { opacity: 0, y: 12 }}
                 animate={inView || reduce ? { opacity: 1, y: 0 } : {}}
@@ -133,19 +115,19 @@ export default function TimelineGraphic() {
                   className="mt-5 text-[11px] font-semibold uppercase tracking-[0.18em]"
                   style={{ color: 'var(--accent-600)' }}
                 >
-                  {m.when}
+                  {t(`marketing.timeline.${m.id}.when`)}
                 </p>
                 <h3
                   className="mt-2 text-[18px] font-semibold"
                   style={{ color: 'var(--text-primary)' }}
                 >
-                  {m.title}
+                  {t(`marketing.timeline.${m.id}.title`)}
                 </h3>
                 <p
                   className="mt-2 text-[13px] leading-relaxed max-w-[220px]"
                   style={{ color: 'var(--text-secondary)' }}
                 >
-                  {m.body}
+                  {t(`marketing.timeline.${m.id}.body`)}
                 </p>
               </motion.div>
             ))}
@@ -156,7 +138,7 @@ export default function TimelineGraphic() {
         <div className="md:hidden flex flex-col gap-0 relative">
           {MILESTONES.map((m, i) => (
             <motion.div
-              key={m.when}
+              key={m.id}
               className="flex gap-4 relative"
               initial={reduce ? false : { opacity: 0, x: -8 }}
               animate={inView || reduce ? { opacity: 1, x: 0 } : {}}
@@ -191,19 +173,19 @@ export default function TimelineGraphic() {
                   className="text-[10px] font-semibold uppercase tracking-[0.18em]"
                   style={{ color: 'var(--accent-600)' }}
                 >
-                  {m.when}
+                  {t(`marketing.timeline.${m.id}.when`)}
                 </p>
                 <h3
                   className="mt-1 text-[17px] font-semibold"
                   style={{ color: 'var(--text-primary)' }}
                 >
-                  {m.title}
+                  {t(`marketing.timeline.${m.id}.title`)}
                 </h3>
                 <p
                   className="mt-1.5 text-[13px] leading-relaxed"
                   style={{ color: 'var(--text-secondary)' }}
                 >
-                  {m.body}
+                  {t(`marketing.timeline.${m.id}.body`)}
                 </p>
               </div>
             </motion.div>
@@ -214,8 +196,8 @@ export default function TimelineGraphic() {
           className="mt-12 text-center text-[14px] leading-relaxed mx-auto max-w-[640px]"
           style={{ color: 'var(--text-secondary)' }}
         >
-          All without a sales call. All without an implementation consultant.
-          All published pricing. <strong style={{ color: 'var(--text-primary)' }}>£500/month Team tier.</strong>
+          {t('marketing.timeline.closing')}{' '}
+          <strong style={{ color: 'var(--text-primary)' }}>{t('marketing.timeline.closingStrong')}</strong>
         </p>
       </div>
     </section>

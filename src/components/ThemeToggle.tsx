@@ -1,4 +1,5 @@
 import { Sun, Monitor, Moon } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useColorMode, type ColorMode } from '../theme/ThemeContext'
 
 interface ThemeToggleProps {
@@ -20,6 +21,7 @@ const OPTIONS: { value: ColorMode; icon: typeof Sun; label: string }[] = [
  * from the theme token system rather than hardcoding white-on-black.
  */
 export default function ThemeToggle({ size = 'default', className }: ThemeToggleProps) {
+  const { t } = useTranslation()
   const { colorMode, setColorMode } = useColorMode()
   const dim = size === 'compact' ? 'w-7 h-7' : 'w-9 h-9'
   const icon = size === 'compact' ? 'w-3.5 h-3.5' : 'w-4 h-4'
@@ -27,22 +29,23 @@ export default function ThemeToggle({ size = 'default', className }: ThemeToggle
   return (
     <div
       role="group"
-      aria-label="Color theme"
+      aria-label={t('components.theme.label')}
       className={[
         'inline-flex items-center gap-0.5 p-1 rounded-[var(--radius-md)]',
         'bg-[var(--bg-card-premium)] border border-[var(--border-card-premium)]',
         className ?? '',
       ].join(' ')}
     >
-      {OPTIONS.map(({ value, icon: Icon, label }) => {
+      {OPTIONS.map(({ value, icon: Icon, label: fallback }) => {
         const active = colorMode === value
+        const label = t(`components.theme.${value}`, { defaultValue: fallback })
         return (
           <button
             key={value}
             type="button"
             onClick={() => setColorMode(value)}
             aria-pressed={active}
-            aria-label={`Switch to ${label} theme`}
+            aria-label={t('components.theme.switchTo', { label })}
             title={label}
             className={[
               dim,

@@ -1,0 +1,105 @@
+{
+  "eventType": {
+    "submitted": "已提交",
+    "approved": "已批准",
+    "anchored": "已锚定",
+    "reportGenerated": "已生成报告",
+    "corrected": "已更正"
+  },
+  "status": {
+    "verified": "已验证",
+    "pending": "待处理",
+    "inReview": "审核中"
+  },
+  "unknownFacility": "未知",
+  "system": "系统",
+  "chain": {
+    "title": "监管链可视化",
+    "tracing": "追溯 <hl>{{facility}}</hl> 的 <hl>{{dataPoint}}</hl>"
+  },
+  "faqTitle": "了解区块链验证",
+  "faq": {
+    "merkleRoot": {
+      "question": "什么是 Merkle 根？",
+      "answer": "Merkle 根是概括 Merkle 树中全部数据的单一加密哈希。采集可持续发展数据点时，每个数据点都会单独计算哈希；这些哈希再两两配对并逐层重新计算，直至只剩一个根哈希。该根哈希存储在链上，任何人都可以在无需访问全部数据的情况下验证某个数据点是否包含在该批次中。哪怕只有一个数据点发生变化，Merkle 根也会完全改变，从而能够立即发现篡改。"
+    },
+    "txHash": {
+      "question": "交易哈希代表什么？",
+      "answer": "交易哈希（Tx Hash）是特定区块链交易的唯一标识符。当可持续发展数据锚定上链时，锚定操作会生成一笔被永久记录的交易。交易哈希相当于一张回执：任何人都可以在区块浏览器中查询，以验证数据的锚定时间、处理该操作的智能合约，以及所存储的 Merkle 根与原始数据批次是否一致。它为该操作提供了不可篡改、可公开验证的证明。"
+    },
+    "whyBlockchain": {
+      "question": "为什么用区块链管理可持续发展数据？",
+      "answer": "可持续发展报告正受到监管机构、投资者和社会各界日益严格的审视。传统数据库可能被悄然修改，造成信任缺口。通过将数据哈希锚定到区块链上，每一次提交、批准和更正都会被永久加盖时间戳，且任何篡改都可被发现。由此形成从数据录入到报告发布的可审计监管链。审计师无需依赖报告企业的内部系统即可独立验证数据完整性，从而大幅降低鉴证成本和“漂绿”风险。"
+    }
+  },
+  "hero": {
+    "title": "防篡改审计轨迹",
+    "subtitle": "每一次任务提交、批准、评论和发布都经过哈希链接。对任何历史记录的修改都会破坏哈希链。",
+    "live": "实时"
+  },
+  "actions": {
+    "verify": "验证哈希链",
+    "verifying": "正在验证…",
+    "anchor": "锚定至比特币",
+    "anchoring": "正在锚定…",
+    "anchorTitle": "将当前链尖提交至 OpenTimestamps，以进行比特币公证"
+  },
+  "alerts": {
+    "verifyFailed": "验证失败：{{error}}",
+    "downloadFailed": "下载失败"
+  },
+  "flash": {
+    "alreadyAnchored": "该链尖已在一分钟内完成锚定。",
+    "submitted": "已将 {{hash}}… 提交至 OpenTimestamps · {{size}} 字节 · 比特币确认需 1–6 小时",
+    "failed": "锚定失败：{{error}}"
+  },
+  "verifyResult": {
+    "intact": "哈希链完整",
+    "recordsVerified_one": "已验证 {{count}} 条记录。链尖：<mono>{{tip}}…</mono>",
+    "recordsVerified_other": "已验证 {{count}} 条记录。链尖：<mono>{{tip}}…</mono>",
+    "broken": "哈希链已断裂",
+    "brokenAt": "断裂于区块 #{{block}}。"
+  },
+  "kpi": {
+    "totalRecords": "记录总数",
+    "verified": "已验证",
+    "pending": "待处理",
+    "blockHeight": "区块高度"
+  },
+  "anchors": {
+    "title": "比特币锚定 · OpenTimestamps",
+    "refresh": "刷新",
+    "cols": {
+      "anchored": "锚定时间",
+      "tipHash": "链尖哈希",
+      "block": "区块",
+      "status": "状态",
+      "receipt": "回执"
+    },
+    "btcBlock": "BTC 区块 #{{height}}",
+    "pendingSubmitted": "待确认 · 已提交",
+    "failed": "失败",
+    "footnote": "每次锚定都会将链尖的 SHA-256 提交至公共 OpenTimestamps 日历网络。部分回执在数分钟内确认；比特币区块确认需 1–6 小时。下载 <code>.ots</code> 文件，即可通过 <link>opentimestamps.org</link> 独立验证。"
+  },
+  "filters": {
+    "label": "筛选",
+    "allFacilities": "全部设施",
+    "allEventTypes": "全部事件类型",
+    "searchPlaceholder": "按哈希、Merkle 根或数据点搜索…",
+    "resultCount_one": "{{shown}} / {{count}} 条记录",
+    "resultCount_other": "{{shown}} / {{count}} 条记录"
+  },
+  "table": {
+    "timestamp": "时间戳",
+    "eventType": "事件类型",
+    "facility": "设施",
+    "dataPoint": "数据点",
+    "submitter": "提交人（DID）",
+    "approver": "批准人（DID）",
+    "merkleRoot": "Merkle 根",
+    "txHash": "交易哈希",
+    "block": "区块号",
+    "status": "状态",
+    "empty": "没有符合当前筛选条件的记录。"
+  }
+}

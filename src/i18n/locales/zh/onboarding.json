@@ -1,0 +1,137 @@
+{
+  "welcome": {
+    "errors": {
+      "workspaceName": "工作区名称至少需要 2 个字符。",
+      "industry": "请选择最接近的 GICS 行业。",
+      "country": "请选择国家/地区。",
+      "name": "设施名称至少需要 2 个字符。",
+      "location": "请填写位置。"
+    },
+    "saveFailed": "无法保存工作区设置。",
+    "invalidInvite": "邀请无效。",
+    "inviteLimit": "此处最多可邀请 3 名团队成员——之后可在“用户与角色”中添加更多。",
+    "inviteDuplicate": "该邮箱已在列表中。",
+    "title": "开始设置您的工作区",
+    "subtitle": "只需五个简单步骤。暂时没有的信息可以稍后补充。",
+    "skip": "暂时跳过",
+    "continue": "继续",
+    "goToDashboard": "前往仪表盘",
+    "steps": {
+      "s0": "欢迎",
+      "s1": "首个设施",
+      "s2": "框架",
+      "s3": "邀请成员",
+      "s4": "完成"
+    },
+    "step1": {
+      "title": "介绍一下您的组织",
+      "workspaceName": "工作区名称",
+      "industry": "行业（GICS 分类）",
+      "pickSector": "选择行业…",
+      "country": "国家/地区",
+      "pickCountry": "选择国家/地区…"
+    },
+    "step2": {
+      "title": "添加首个设施",
+      "body": "其余组织架构可稍后在仪表盘中添加。",
+      "name": "设施名称",
+      "namePlaceholder": "例如：上海炼化基地",
+      "location": "位置",
+      "locationPlaceholder": "例如：中国上海",
+      "type": "类型",
+      "volume": "产量（可选）",
+      "volumeHint": "年产吨数、件数、兆瓦时等…",
+      "volumePlaceholder": "例如：420 万吨/年"
+    },
+    "facilityTypes": {
+      "refinery": "炼油厂",
+      "factory": "工厂 / 生产基地",
+      "office": "办公室",
+      "warehouse": "仓库 / 配送中心"
+    },
+    "step3": {
+      "title": "选择您要遵循的报告框架",
+      "preselected": "我们已预选一组推荐的入门框架——",
+      "endSentence": "。",
+      "tweak": "可按需调整，之后也可随时在设置中更改。",
+      "recommended": "推荐"
+    },
+    "listSep": "、",
+    "step4": {
+      "title": "邀请最多 3 名团队成员",
+      "body": "可选。设置完成后可在“用户与角色”中邀请其他团队成员。",
+      "add": "添加",
+      "remove": "移除 {{email}}"
+    },
+    "step5": {
+      "title": "一切就绪",
+      "body": "完成后将保存以下内容。",
+      "workspace": "工作区",
+      "facility": "首个设施",
+      "frameworks": "框架",
+      "invites": "邀请",
+      "notSet": "未设置",
+      "noneSelected": "未选择",
+      "none": "无",
+      "teammates_one": "{{count}} 名成员",
+      "teammates_other": "{{count}} 名成员"
+    }
+  },
+  "gics": {
+    "Energy": "能源",
+    "Materials": "原材料",
+    "Industrials": "工业",
+    "Consumer Discretionary": "非必需消费品",
+    "Consumer Staples": "必需消费品",
+    "Health Care": "医疗保健",
+    "Financials": "金融",
+    "Information Technology": "信息技术",
+    "Communication Services": "通信服务",
+    "Utilities": "公用事业",
+    "Real Estate": "房地产"
+  },
+  "org": {
+    "types": {
+      "group": "集团",
+      "business_unit": "业务单元",
+      "subsidiary": "子公司",
+      "plant": "工厂",
+      "office": "办公室"
+    },
+    "breadcrumbSetup": "设置",
+    "eyebrow": "组织入门设置",
+    "title": "构建报告架构",
+    "stats": {
+      "entities": "实体",
+      "subsidiaries": "子公司",
+      "plants": "报告工厂",
+      "members": "已指派成员"
+    },
+    "treeTitle": "报告实体架构",
+    "startWithGroup": "从集团开始",
+    "confirmRemove": "确定移除此实体及其所有下级吗？",
+    "pickEntity": "从架构中选择一个实体以查看并指派成员。",
+    "readyTitle": "准备好收集数据了吗？",
+    "readyBody": "架构确认无误后，即可进入任务指派——选择 GRI 问题、选择用户、选择适用的工厂。",
+    "openAssignments": "打开指派管理",
+    "emptyTitle": "从母公司集团开始",
+    "emptyBody": "然后在集团下添加业务单元，在各业务单元下添加子公司，在子公司下添加工厂/办公室。",
+    "addGroup": "添加集团",
+    "equityPct": "持股 {{pct}}%",
+    "addChild": "添加下级",
+    "remove": "移除",
+    "entityName": "实体名称",
+    "codeOptional": "代码（可选）",
+    "country": "国家/地区",
+    "equityPlaceholder": "持股比例 %",
+    "code": "代码",
+    "eqShort": "持股%",
+    "addMemberFailed": "无法添加成员：{{error}}",
+    "equity": "持股比例",
+    "industry": "行业",
+    "members": "成员（{{count}}）",
+    "noMembers": "此实体尚未指派成员。",
+    "addMember": "添加成员",
+    "scopeNote": "您在此构建的架构适用于所有报告框架——只需构建一次，无需按框架重复。当前您正在准备按 <b>{{framework}}</b> 进行报告；CSRD、CDP、TCFD 和 ISSB 上线后也将沿用这些实体。"
+  }
+}

@@ -1,4 +1,5 @@
 import { forwardRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Calendar, ChevronDown, ChevronUp, Factory, PencilLine,
   Calculator as CalcIcon, Plug,
@@ -6,6 +7,8 @@ import {
 import type { QuestionAssignment, OrgEntity, OrgMember } from '../../lib/orgStore'
 import type { NexusQuestionnaireItem } from '../../lib/api'
 import { getFramework } from '../../lib/frameworks'
+import { itemLabel } from '../../lib/itemLabel'
+import { capitalLabelKey } from '../../reports/spdTemplate'
 import StatusPill from './StatusPill'
 import AnswerPanel from './AnswerPanel'
 import { isOverdue, daysUntilDue, deadlineLabel, synthesizeQuestion } from './shared'
@@ -29,6 +32,7 @@ export interface TaskRowProps {
 const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(function TaskRow({
   assignment: a, question, entity, expanded, focused, onToggle, onUpdate, entities, members,
 }, ref) {
+  const { t, i18n } = useTranslation()
   const statusColor = {
     not_started: 'var(--text-tertiary)',
     in_progress: 'var(--status-draft)',
@@ -55,7 +59,7 @@ const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(function TaskRow({
       }`}
     >
       <Calendar className="w-3 h-3" />
-      {deadlineLabel(a.due_date, a.status)}
+      {deadlineLabel(a.due_date, a.status, t, i18n.language)}
     </span>
   )
 
@@ -74,7 +78,12 @@ const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(function TaskRow({
         type="button"
         onClick={onToggle}
         aria-expanded={expanded}
-        aria-label={`${a.gri_code} ${a.line_item} for ${entity?.name ?? 'unknown entity'}, status ${a.status}${overdue ? ', overdue' : ''}${a.due_date ? `, ${deadlineLabel(a.due_date, a.status)}` : ''}`}
+        aria-label={t('tasks.row.aria', {
+          code: a.gri_code,
+          item: itemLabel(a, i18n.language),
+          entity: entity?.name ?? t('tasks.row.unknownEntityLower'),
+          status: t(`workflowStatus.status.${a.status}`),
+        }) + (overdue ? t('tasks.row.ariaOverdue') : '') + (a.due_date ? `, ${deadlineLabel(a.due_date, a.status, t, i18n.language)}` : '')}
         className="w-full text-left p-4 min-h-[64px] flex items-center gap-3 sm:gap-4 flex-wrap sm:flex-nowrap"
       >
         <span className="w-1 h-10 rounded-full flex-shrink-0" style={{ background: statusColor }} />
@@ -90,19 +99,19 @@ const TaskRow = forwardRef<HTMLDivElement, TaskRowProps>(function TaskRow({
             )}
             <span className="text-[10px] font-bold text-[var(--color-brand)] tabular-nums">{a.gri_code}</span>
             {question?.section && (
-              <span className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">· {question.section}</span>
+              <span className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">· {t(capitalLabelKey(question.section), { defaultValue: question.section })}</span>
             )}
           </div>
-          <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{a.line_item}</div>
+          <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{itemLabel(a, i18n.language)}</div>
           <div className="flex items-center gap-3 mt-1 text-[10px] text-[var(--text-tertiary)] flex-wrap">
-            <span className="inline-flex items-center gap-1"><Factory className="w-3 h-3" /> {entity?.name ?? 'Unknown entity'}</span>
+            <span className="inline-flex items-center gap-1"><Factory className="w-3 h-3" /> {entity?.name ?? t('tasks.row.unknownEntity')}</span>
             <span className="inline-flex items-center gap-1">
               {modes.map((m, i) => {
                 const Icon = m === 'Manual' ? PencilLine : m === 'Calculator' ? CalcIcon : Plug
                 return (
                   <span key={m} className="inline-flex items-center gap-0.5">
                     {i > 0 && <span className="mx-0.5">·</span>}
-                    <Icon className="w-3 h-3" /> {m}
+                    <Icon className="w-3 h-3" /> {t(`tasks.mode.${m}`, { defaultValue: m })}
                   </span>
                 )
               })}

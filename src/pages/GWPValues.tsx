@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Search,
   Plus,
@@ -102,24 +103,37 @@ const CATEGORY_ICONS: Record<string, typeof Flame> = {
   'Natural Refrigerant': Leaf,
 }
 
-const TABS_CONFIG = [
-  { id: 'all', label: 'All Gases', count: GWP_DATA.length },
-  { id: 'common', label: 'Common GHGs' },
-  { id: 'hfc', label: 'HFCs' },
-  { id: 'pfc', label: 'PFCs' },
-  { id: 'blends', label: 'Blends' },
-  { id: 'natural', label: 'Natural' },
+/** Stable category value → i18n key under `gwp.categories`. */
+const CATEGORY_KEYS: Record<string, string> = {
+  'Common GHG': 'commonGhg',
+  'HFC': 'hfc',
+  'PFC': 'pfc',
+  'Fluorinated': 'fluorinated',
+  'Refrigerant Blend': 'refrigerantBlend',
+  'Natural Refrigerant': 'naturalRefrigerant',
+}
+
+const TABS_CONFIG: { id: string; labelKey: string; count?: number }[] = [
+  { id: 'all', labelKey: 'gwp.tabs.all', count: GWP_DATA.length },
+  { id: 'common', labelKey: 'gwp.tabs.common' },
+  { id: 'hfc', labelKey: 'gwp.tabs.hfc' },
+  { id: 'pfc', labelKey: 'gwp.tabs.pfc' },
+  { id: 'blends', labelKey: 'gwp.tabs.blends' },
+  { id: 'natural', labelKey: 'gwp.tabs.natural' },
 ]
+
+const numLocale = (lng: string | undefined) => (lng?.startsWith('zh') ? 'zh-CN' : undefined)
 
 /* ═══════════════════════════════════════════
    GWP bar helper — visual comparison
    ═══════════════════════════════════════════ */
 function GWPBar({ value, max }: { value: number; max: number }) {
+  const { i18n } = useTranslation()
   const pct = Math.min((value / max) * 100, 100)
   const color = value > 10000 ? 'var(--accent-red)' : value > 1000 ? 'var(--accent-amber)' : value > 100 ? 'var(--accent-blue)' : 'var(--accent-teal)'
   return (
     <div className="flex items-center gap-2">
-      <span className="font-mono font-bold text-[var(--text-primary)] tabular-nums w-16 text-right">{value.toLocaleString()}</span>
+      <span className="font-mono font-bold text-[var(--text-primary)] tabular-nums w-16 text-right">{value.toLocaleString(numLocale(i18n.language))}</span>
       <div className="flex-1 h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
         <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
       </div>
@@ -131,6 +145,18 @@ function GWPBar({ value, max }: { value: number; max: number }) {
    Component
    ═══════════════════════════════════════════ */
 export default function GWPValues() {
+  const { t, i18n } = useTranslation()
+  const locale = numLocale(i18n.language)
+  const catLabel = (c: string) => t(`gwp.categories.${CATEGORY_KEYS[c] ?? c}`, { defaultValue: c })
+  const lifetimeLabel = (s: string) => {
+    if (s === 'Variable') return t('gwp.lifetime.variable')
+    if (s === 'N/A') return t('gwp.na')
+    if (s === 'Days') return t('gwp.lifetime.days')
+    const m = /^([\d.,]+) (years|days)$/.exec(s)
+    if (m) return t(m[2] === 'years' ? 'gwp.lifetime.years' : 'gwp.lifetime.nDays', { n: m[1] })
+    return s
+  }
+  const tabs = TABS_CONFIG.map(({ labelKey, ...tb }) => ({ ...tb, label: t(labelKey) }))
   const [tab, setTab] = useState('all')
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
@@ -188,25 +214,25 @@ export default function GWPValues() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">GWP Values</h1>
+          <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">{t('gwp.title')}</h1>
           <p className="mt-1 text-[var(--text-sm)] text-[var(--text-tertiary)]">
-            Global Warming Potential reference table. IPCC AR5 & AR6 values for GHG inventory calculations.
+            {t('gwp.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" icon={<Download className="w-3.5 h-3.5" />}>Export CSV</Button>
-          <Button size="sm" icon={<Plus className="w-3.5 h-3.5" />} onClick={() => setShowAddModal(true)}>Add Gas</Button>
+          <Button variant="secondary" size="sm" icon={<Download className="w-3.5 h-3.5" />}>{t('gwp.actions.exportCsv')}</Button>
+          <Button size="sm" icon={<Plus className="w-3.5 h-3.5" />} onClick={() => setShowAddModal(true)}>{t('gwp.actions.addGas')}</Button>
         </div>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-5 gap-4">
         {[
-          { label: 'Total Gases', value: GWP_DATA.length.toString(), icon: Atom, accent: 'var(--accent-teal)' },
-          { label: 'High GWP (>1000)', value: highGWP.toString(), icon: AlertTriangle, accent: 'var(--accent-red)' },
-          { label: 'Kigali Regulated', value: kigaliCount.toString(), icon: Thermometer, accent: 'var(--accent-amber)' },
-          { label: 'Categories', value: CATEGORIES.length.toString(), icon: Beaker, accent: 'var(--accent-blue)' },
-          { label: 'Highest GWP', value: maxGWP.toLocaleString(), icon: Flame, accent: 'var(--accent-purple)' },
+          { label: t('gwp.kpi.totalGases'), value: GWP_DATA.length.toString(), icon: Atom, accent: 'var(--accent-teal)' },
+          { label: t('gwp.kpi.highGwp'), value: highGWP.toString(), icon: AlertTriangle, accent: 'var(--accent-red)' },
+          { label: t('gwp.kpi.kigali'), value: kigaliCount.toString(), icon: Thermometer, accent: 'var(--accent-amber)' },
+          { label: t('gwp.kpi.categories'), value: CATEGORIES.length.toString(), icon: Beaker, accent: 'var(--accent-blue)' },
+          { label: t('gwp.kpi.highestGwp'), value: maxGWP.toLocaleString(locale), icon: Flame, accent: 'var(--accent-purple)' },
         ].map(kpi => {
           const Icon = kpi.icon
           return (
@@ -226,7 +252,7 @@ export default function GWPValues() {
       </div>
 
       {/* Tabs */}
-      <Tabs tabs={TABS_CONFIG} activeTab={tab} onChange={setTab} />
+      <Tabs tabs={tabs} activeTab={tab} onChange={setTab} />
 
       {/* Filter & Toggle Bar */}
       <Card padding="sm">
@@ -236,7 +262,7 @@ export default function GWPValues() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
             <input
               type="text"
-              placeholder="Search by name, formula, or CAS number..."
+              placeholder={t('gwp.searchPlaceholder')}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full h-9 pl-10 pr-4 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-sm)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)]/30 focus:border-[var(--accent-teal)]"
@@ -248,8 +274,8 @@ export default function GWPValues() {
             onChange={e => setCategoryFilter(e.target.value)}
             className="h-9 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 text-[var(--text-xs)] text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)]/30 cursor-pointer"
           >
-            <option value="all">All Categories</option>
-            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            <option value="all">{t('gwp.allCategories')}</option>
+            {CATEGORIES.map(c => <option key={c} value={c}>{catLabel(c)}</option>)}
           </select>
           {/* Time horizon toggle */}
           <div className="flex rounded-lg border border-[var(--border-default)] overflow-hidden">
@@ -305,8 +331,10 @@ export default function GWPValues() {
       {/* Results count */}
       <div className="flex items-center justify-between">
         <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-          Showing <span className="font-semibold text-[var(--text-secondary)]">{filtered.length}</span> of {GWP_DATA.length} gases
-          {timeHorizon === 'gwp100' ? ` (GWP-100, ${arVersion.toUpperCase()})` : ' (GWP-20, AR6)'}
+          {t('gwp.showingPrefix')}<span className="font-semibold text-[var(--text-secondary)]">{filtered.length}</span>{t('gwp.showingSuffix', { total: GWP_DATA.length })}
+          {timeHorizon === 'gwp100'
+            ? t('gwp.horizonSuffix', { horizon: 'GWP-100', ar: arVersion.toUpperCase() })
+            : t('gwp.horizonSuffix', { horizon: 'GWP-20', ar: 'AR6' })}
         </p>
       </div>
 
@@ -316,17 +344,17 @@ export default function GWPValues() {
           <table className="w-full text-[var(--text-xs)]">
             <thead>
               <tr className="border-b border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                <th className="text-left py-3 px-4 font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">Substance</th>
-                <th className="text-left py-3 px-4 font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">Formula</th>
-                <th className="text-left py-3 px-4 font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">CAS No.</th>
-                <th className="text-left py-3 px-4 font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">Category</th>
+                <th className="text-left py-3 px-4 font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">{t('gwp.table.substance')}</th>
+                <th className="text-left py-3 px-4 font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">{t('gwp.table.formula')}</th>
+                <th className="text-left py-3 px-4 font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">{t('gwp.table.cas')}</th>
+                <th className="text-left py-3 px-4 font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">{t('gwp.table.category')}</th>
                 <th className="text-left py-3 px-4 font-semibold text-[var(--text-tertiary)] uppercase tracking-wider min-w-[260px]">
                   {timeHorizon === 'gwp100'
                     ? `GWP-100 (${arVersion.toUpperCase()})`
                     : 'GWP-20 (AR6)'}
                 </th>
-                <th className="text-left py-3 px-4 font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">Lifetime</th>
-                <th className="text-center py-3 px-4 font-semibold text-[var(--text-tertiary)] uppercase tracking-wider w-[80px]">Actions</th>
+                <th className="text-left py-3 px-4 font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">{t('gwp.table.lifetime')}</th>
+                <th className="text-center py-3 px-4 font-semibold text-[var(--text-tertiary)] uppercase tracking-wider w-[80px]">{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -350,7 +378,7 @@ export default function GWPValues() {
                           <div>
                             <span className="font-semibold text-[var(--text-primary)]">{g.name}</span>
                             {g.isCommon && (
-                              <span className="ml-1.5 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">Common</span>
+                              <span className="ml-1.5 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">{t('gwp.commonBadge')}</span>
                             )}
                           </div>
                         </div>
@@ -364,18 +392,18 @@ export default function GWPValues() {
                           g.category === 'PFC' ? 'purple' :
                           g.category === 'Fluorinated' ? 'amber' :
                           g.category === 'Natural Refrigerant' ? 'green' : 'blue'
-                        }>{g.category}</Badge>
+                        }>{catLabel(g.category)}</Badge>
                       </td>
                       <td className="py-3 px-4">
                         <GWPBar value={gwpVal} max={maxGWP} />
                       </td>
-                      <td className="py-3 px-4 font-mono text-[var(--text-tertiary)]">{g.lifetime}</td>
+                      <td className="py-3 px-4 font-mono text-[var(--text-tertiary)]">{lifetimeLabel(g.lifetime)}</td>
                       <td className="py-3 px-4 text-center">
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={e => { e.stopPropagation(); handleCopy(g.id, gwpVal) }}
                             className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] cursor-pointer"
-                            title="Copy GWP"
+                            title={t('gwp.copyGwp')}
                           >
                             {copiedId === g.id ? <Check className="w-3.5 h-3.5 text-[var(--accent-teal)]" /> : <Copy className="w-3.5 h-3.5" />}
                           </button>
@@ -398,7 +426,7 @@ export default function GWPValues() {
                               <CompareCell label="GWP-100 (AR5)" value={g.gwp100_ar5} />
                               <CompareCell label="GWP-20 (AR6)" value={g.gwp20_ar6} />
                               <div>
-                                <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-semibold">AR5 → AR6 Change</p>
+                                <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-semibold">{t('gwp.ar5ToAr6Change')}</p>
                                 {g.gwp100_ar5 > 0 ? (
                                   <p className={`text-[var(--text-sm)] font-bold mt-0.5 tabular-nums ${
                                     g.gwp100_ar6 > g.gwp100_ar5 ? 'text-[var(--accent-red)]' : 'text-[var(--accent-teal)]'
@@ -407,18 +435,18 @@ export default function GWPValues() {
                                     {(((g.gwp100_ar6 - g.gwp100_ar5) / g.gwp100_ar5) * 100).toFixed(1)}%
                                   </p>
                                 ) : (
-                                  <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-0.5">N/A</p>
+                                  <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-0.5">{t('gwp.na')}</p>
                                 )}
                               </div>
                               <div>
-                                <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-semibold">Source</p>
+                                <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-semibold">{t('gwp.source')}</p>
                                 <p className="text-[var(--text-xs)] text-[var(--text-primary)] font-medium mt-0.5">{g.source}</p>
                               </div>
                             </div>
                             {g.notes && (
                               <div className="flex items-start gap-2 rounded-lg p-3 border" style={{ backgroundColor: 'color-mix(in srgb, var(--accent-blue) 6%, transparent)', borderColor: 'color-mix(in srgb, var(--accent-blue) 15%, transparent)' }}>
                                 <Info className="w-3.5 h-3.5 text-[var(--accent-blue)] mt-0.5 flex-shrink-0" />
-                                <p className="text-[var(--text-xs)] text-[var(--text-secondary)]">{g.notes}</p>
+                                <p className="text-[var(--text-xs)] text-[var(--text-secondary)]">{t(`gwp.notes.${g.id}`, { defaultValue: g.notes })}</p>
                               </div>
                             )}
                           </div>
@@ -435,7 +463,7 @@ export default function GWPValues() {
         {filtered.length === 0 && (
           <div className="text-center py-12">
             <Atom className="w-10 h-10 text-[var(--text-tertiary)] mx-auto mb-3 opacity-40" />
-            <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">No gases match your search.</p>
+            <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">{t('gwp.empty')}</p>
           </div>
         )}
       </Card>
@@ -445,14 +473,14 @@ export default function GWPValues() {
         <div className="flex items-start gap-3">
           <Info className="w-5 h-5 text-[var(--accent-teal)] flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mb-1">GWP Reference Notes</h3>
+            <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mb-1">{t('gwp.reference.title')}</h3>
             <div className="grid grid-cols-3 gap-4 mt-3">
               {[
-                { title: 'GWP-100 vs GWP-20', desc: 'GWP-100 is the standard for GHG inventories (GHG Protocol, CDP). GWP-20 shows short-term warming impact — methane is 82.5x CO₂ over 20 years vs 29.8x over 100 years.' },
-                { title: 'AR5 vs AR6', desc: 'IPCC AR6 (2021) updated GWP values. Most frameworks still accept AR5, but CDP 2025+ and CSRD/ESRS require AR6. Check framework guidance.' },
-                { title: 'Kigali Amendment', desc: 'HFCs are being phased down under the Kigali Amendment to the Montreal Protocol. Report HFC usage for compliance tracking and transition planning.' },
+                { id: 'horizon', title: t('gwp.reference.horizonTitle'), desc: t('gwp.reference.horizonDesc') },
+                { id: 'ar', title: t('gwp.reference.arTitle'), desc: t('gwp.reference.arDesc') },
+                { id: 'kigali', title: t('gwp.reference.kigaliTitle'), desc: t('gwp.reference.kigaliDesc') },
               ].map(note => (
-                <div key={note.title} className="text-[var(--text-xs)] text-[var(--text-secondary)] leading-relaxed">
+                <div key={note.id} className="text-[var(--text-xs)] text-[var(--text-secondary)] leading-relaxed">
                   <p className="font-semibold text-[var(--text-primary)] mb-1">{note.title}</p>
                   <p>{note.desc}</p>
                 </div>
@@ -467,22 +495,22 @@ export default function GWPValues() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fade-in">
           <div className="bg-[var(--bg-primary)] rounded-2xl border border-[var(--border-default)] shadow-xl w-full max-w-lg mx-4">
             <div className="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
-              <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">Add Greenhouse Gas</h2>
+              <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">{t('gwp.modal.title')}</h2>
               <button onClick={() => setShowAddModal(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer">
                 <X className="w-4 h-4 text-[var(--text-tertiary)]" />
               </button>
             </div>
             <div className="p-5 space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <Input label="Gas Name" placeholder="e.g. HFC-32" />
-                <Input label="Chemical Formula" placeholder="e.g. CH₂F₂" />
+                <Input label={t('gwp.modal.gasName')} placeholder={t('gwp.modal.gasNamePlaceholder')} />
+                <Input label={t('gwp.modal.formula')} placeholder={t('gwp.modal.formulaPlaceholder')} />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <Input label="CAS Number" placeholder="e.g. 75-10-5" />
+                <Input label={t('gwp.modal.cas')} placeholder={t('gwp.modal.casPlaceholder')} />
                 <div>
-                  <label className="block text-[var(--text-xs)] font-medium text-[var(--text-secondary)] mb-1.5">Category</label>
+                  <label className="block text-[var(--text-xs)] font-medium text-[var(--text-secondary)] mb-1.5">{t('gwp.modal.category')}</label>
                   <select className="w-full h-9 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 text-[var(--text-xs)] text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)]/30 cursor-pointer">
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {CATEGORIES.map(c => <option key={c} value={c}>{catLabel(c)}</option>)}
                   </select>
                 </div>
               </div>
@@ -491,11 +519,11 @@ export default function GWPValues() {
                 <Input label="GWP-100 (AR5)" type="number" placeholder="0" />
                 <Input label="GWP-20 (AR6)" type="number" placeholder="0" />
               </div>
-              <Input label="Atmospheric Lifetime" placeholder="e.g. 11.8 years" />
+              <Input label={t('gwp.modal.lifetime')} placeholder={t('gwp.modal.lifetimePlaceholder')} />
             </div>
             <div className="flex items-center justify-end gap-2 p-5 border-t border-[var(--border-subtle)]">
-              <Button variant="secondary" onClick={() => setShowAddModal(false)}>Cancel</Button>
-              <Button onClick={() => setShowAddModal(false)}>Add Gas</Button>
+              <Button variant="secondary" onClick={() => setShowAddModal(false)}>{t('common.cancel')}</Button>
+              <Button onClick={() => setShowAddModal(false)}>{t('gwp.modal.submit')}</Button>
             </div>
           </div>
         </div>
@@ -508,10 +536,11 @@ export default function GWPValues() {
    Compare cell helper
    ═══════════════════════════════════════════ */
 function CompareCell({ label, value }: { label: string; value: number }) {
+  const { i18n } = useTranslation()
   return (
     <div>
       <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-semibold">{label}</p>
-      <p className="text-[var(--text-sm)] font-bold text-[var(--text-primary)] mt-0.5 tabular-nums">{value.toLocaleString()}</p>
+      <p className="text-[var(--text-sm)] font-bold text-[var(--text-primary)] mt-0.5 tabular-nums">{value.toLocaleString(numLocale(i18n.language))}</p>
     </div>
   )
 }

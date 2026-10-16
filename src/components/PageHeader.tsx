@@ -2,6 +2,7 @@ import { ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import JourneyBar from './JourneyBar'
 import type { StageKey } from '../lib/journey'
 import { SPRING } from './motion'
@@ -47,6 +48,7 @@ export default function PageHeader({
   children,
   variant = 'default',
 }: PageHeaderProps) {
+  const { t } = useTranslation()
   const shouldShowPipeline = showPipeline ?? stage != null
   // `description` is the canonical IA-reset name; `subtitle` kept as a synonym for back-compat.
   const sub = description ?? subtitle
@@ -54,7 +56,7 @@ export default function PageHeader({
     <div className={`mb-7 ${variant === 'hero' ? 'relative backdrop-mesh -mx-8 -mt-7 pt-7 px-8 pb-7 mb-7' : ''}`}>
       {breadcrumbs && breadcrumbs.length > 0 && (
         <motion.nav
-          aria-label="Breadcrumb"
+          aria-label={t('components.breadcrumb')}
           initial={{ opacity: 0, y: -2 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...SPRING, delay: 0.02 }}

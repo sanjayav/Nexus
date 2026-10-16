@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Mail, ArrowRight, Loader2, Leaf, ArrowLeft, AlertCircle } from 'lucide-react'
 import { z } from 'zod'
+import { useTranslation } from 'react-i18next'
 import { auth as authApi } from '../lib/api'
 
 const emailSchema = z.string().trim().email('Enter a valid email address.')
@@ -12,6 +13,7 @@ const emailSchema = z.string().trim().email('Enter a valid email address.')
  * whether the email is registered, to prevent user-enumeration.
  */
 export default function ForgotPassword() {
+  const { t } = useTranslation()
   const [email, setEmail] = useState('')
   const [touched, setTouched] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -22,7 +24,7 @@ export default function ForgotPassword() {
   // isn't yelled at while still typing.
   const fieldError: string | null = (() => {
     const r = emailSchema.safeParse(email)
-    return r.success ? null : r.error.issues[0]?.message ?? 'Invalid email.'
+    return r.success ? null : t('auth.register.errors.email')
   })()
   const showFieldError = touched && fieldError
 
@@ -36,7 +38,7 @@ export default function ForgotPassword() {
       await authApi.forgotPassword(email.trim().toLowerCase())
       setSubmitted(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Try again.')
+      setError(err instanceof Error ? err.message : t('auth.forgot.genericError'))
     } finally {
       setLoading(false)
     }
@@ -67,26 +69,26 @@ export default function ForgotPassword() {
 
           {submitted ? (
             <div className="space-y-4">
-              <h2 className="text-[20px] font-display font-bold text-white tracking-tight">Check your email</h2>
+              <h2 className="text-[20px] font-display font-bold text-white tracking-tight">{t('auth.forgot.checkEmail')}</h2>
               <p className="text-[13px] text-white/60 leading-relaxed">
-                If an account exists for that address, we've sent reset instructions. The link is valid for 30 minutes.
+                {t('auth.forgot.sentBody')}
               </p>
               <p className="text-[12px] text-white/40">
-                Didn't get anything? Check your spam folder, or try again in a few minutes.
+                {t('auth.forgot.spamHint')}
               </p>
               <Link
                 to="/login"
                 className="inline-flex items-center gap-2 text-[12px] text-emerald-400 hover:text-emerald-300 transition-colors"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
-                Back to sign in
+                {t('auth.backToSignIn')}
               </Link>
             </div>
           ) : (
             <>
-              <h2 className="text-[20px] font-display font-bold text-white tracking-tight mb-1">Forgot your password?</h2>
+              <h2 className="text-[20px] font-display font-bold text-white tracking-tight mb-1">{t('auth.forgot.title')}</h2>
               <p className="text-[12px] text-white/50 mb-6">
-                Enter your email and we'll send you a link to set a new one.
+                {t('auth.forgot.subtitle')}
               </p>
 
               {error && (
@@ -99,7 +101,7 @@ export default function ForgotPassword() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label htmlFor="email" className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">
-                    Email
+                    {t('login.email')}
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
@@ -132,7 +134,7 @@ export default function ForgotPassword() {
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
                     <>
-                      <span>Send reset link</span>
+                      <span>{t('auth.forgot.send')}</span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
@@ -142,7 +144,7 @@ export default function ForgotPassword() {
                   to="/login"
                   className="block text-center text-[12px] text-white/40 hover:text-emerald-400 transition-colors"
                 >
-                  Back to sign in
+                  {t('auth.backToSignIn')}
                 </Link>
               </form>
             </>

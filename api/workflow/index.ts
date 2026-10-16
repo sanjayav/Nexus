@@ -30,10 +30,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // When more frameworks come online, the client passes &framework_id=<id>.
       const frameworkId = String(req.query.framework_id || 'gri')
       try {
+        // line_item_zh is read via to_jsonb(row) so the query keeps working on a
+        // database where /api/setup has not yet added the column (it yields NULL).
         const items = await sql`
           SELECT id, section, subsection, gri_code, line_item, unit, scope_split,
                  default_workflow_role, entry_mode_default, target_fy2026,
-                 footnote_refs, reporting_scope, framework_id
+                 footnote_refs, reporting_scope, framework_id,
+                 to_jsonb(questionnaire_item) ->> 'line_item_zh' AS line_item_zh
           FROM questionnaire_item
           WHERE framework_id = ${frameworkId}
           ORDER BY reporting_scope, section, subsection, gri_code, line_item
@@ -83,7 +86,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const rows = seesAll
           ? await sql`
-              SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section
+              SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section,
+                     to_jsonb(qi) ->> 'line_item_zh' AS line_item_zh
               FROM data_value dv
               JOIN questionnaire_item qi ON qi.id = dv.questionnaire_item_id
               WHERE dv.status = 'submitted'
@@ -95,7 +99,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 UNION ALL
                 SELECT e.id FROM org_entities e JOIN subtree s ON e.parent_id = s.id
               )
-              SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section
+              SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section,
+                     to_jsonb(qi) ->> 'line_item_zh' AS line_item_zh
               FROM data_value dv
               JOIN questionnaire_item qi ON qi.id = dv.questionnaire_item_id
               WHERE dv.status = 'submitted'
@@ -163,7 +168,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const rows = seesAll
           ? await sql`
-              SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section
+              SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section,
+                     to_jsonb(qi) ->> 'line_item_zh' AS line_item_zh
               FROM data_value dv
               JOIN questionnaire_item qi ON qi.id = dv.questionnaire_item_id
               WHERE dv.status = 'reviewed'
@@ -175,7 +181,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 UNION ALL
                 SELECT e.id FROM org_entities e JOIN subtree s ON e.parent_id = s.id
               )
-              SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section
+              SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section,
+                     to_jsonb(qi) ->> 'line_item_zh' AS line_item_zh
               FROM data_value dv
               JOIN questionnaire_item qi ON qi.id = dv.questionnaire_item_id
               WHERE dv.status = 'reviewed'

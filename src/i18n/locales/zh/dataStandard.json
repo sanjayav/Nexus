@@ -1,0 +1,54 @@
+{
+  "header": {
+    "eyebrow": "数据治理",
+    "title": "ESG 数据标准",
+    "subtitle": "每项披露采用统一的全公司定义、计算方法、报送频率和责任链，以此确保各工厂数据的可比性。"
+  },
+  "loadFailed": "加载失败",
+  "stats": {
+    "disclosures": "披露项",
+    "definitions": "已备定义",
+    "ofTotal": "{{n}}／{{total}}",
+    "calcMethods": "计算方法",
+    "ownershipChains": "责任链"
+  },
+  "searchPlaceholder": "按代码、条目或定义搜索…",
+  "allCadences": "全部频率",
+  "cadence": {
+    "daily": "每日",
+    "monthly": "每月",
+    "quarterly": "每季度",
+    "annual": "每年"
+  },
+  "catalog": {
+    "kicker": "目录",
+    "title_one": "{{count}} 项披露 · {{code}}",
+    "title_other": "{{count}} 项披露 · {{code}}",
+    "subtitle": "点击任意行，查看完整定义、计算方法及责任链。"
+  },
+  "otherSection": "其他",
+  "sectionCount_one": "{{count}} 项披露",
+  "sectionCount_other": "{{count}} 项披露",
+  "row": {
+    "definition": "定义",
+    "method": "方法",
+    "canonicalDefinition": "标准定义",
+    "calcMethod": "计算方法"
+  },
+  "chain": {
+    "title": "责任链",
+    "dataOwner": "数据负责人",
+    "reviewer": "审核人",
+    "approver": "批准人",
+    "unassigned": "未分配",
+    "note": "提交内容按顺序流经各角色，每次流转均以哈希链记录，以供审计。"
+  },
+  "roles": {
+    "plant_manager": "工厂经理",
+    "subsidiary_lead": "子公司负责人",
+    "group_sustainability_officer": "集团可持续发展官",
+    "data_contributor": "数据填报人",
+    "narrative_owner": "叙述负责人",
+    "platform_admin": "管理员"
+  }
+}

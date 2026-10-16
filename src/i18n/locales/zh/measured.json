@@ -1,0 +1,146 @@
+{
+  "title": "实测与报告数据",
+  "subtitle": "4 类实测数据源，提供直接与混合两种处理路径，并在汇总器中统一核对。",
+  "live": "实时",
+  "lastSync": "上次同步：2 分钟前",
+  "tabs": {
+    "overview": "概览",
+    "paths": "处理路径",
+    "reconciliation": "数据核对"
+  },
+  "sources": {
+    "cems": {
+      "title": "CEMS",
+      "fullTitle": "烟气排放连续监测系统",
+      "badge": "连续监测",
+      "desc": "烟囱实时监测，数据间隔 15 分钟，直接测量温室气体排放。"
+    },
+    "utility": {
+      "title": "公用事业计量表",
+      "fullTitle": "公用事业计量与分项计量",
+      "badge": "公用事业",
+      "desc": "电、气、水及蒸汽计量表，自动采集读数。"
+    },
+    "verified": {
+      "title": "第三方核证",
+      "fullTitle": "第三方核证数据",
+      "badge": "第三方",
+      "desc": "经认证核证机构（SGS、Bureau Veritas 等）外部审核的数据。"
+    },
+    "lab": {
+      "title": "烟囱测试 / 实验室",
+      "fullTitle": "烟囱测试与实验室分析",
+      "badge": "烟囱测试",
+      "desc": "定期排放采样、燃料分析及物料成分检测。"
+    }
+  },
+  "frequency": {
+    "continuous": "连续",
+    "hourly": "每小时",
+    "monthly": "每月",
+    "quarterly": "每季度"
+  },
+  "pipeline": {
+    "normalise": {
+      "title": "格式标准化",
+      "desc": "单位换算、时间戳标准化、时间间隔对齐"
+    },
+    "qa": {
+      "title": "质量保证",
+      "desc": "异常值检测、缺口填补、完整性评分"
+    },
+    "classify": {
+      "title": "分类与范围标记",
+      "desc": "映射至温室气体范围，分配排放源类别"
+    }
+  },
+  "paths": {
+    "direct": {
+      "title": "直接路径",
+      "subtitle": "跳过计算器",
+      "desc": "预先计算或直接测量的排放量，无需计算器模块。CEMS 数据与核证总量经由此路径处理。"
+    },
+    "hybrid": {
+      "title": "混合路径",
+      "subtitle": "需部分计算",
+      "desc": "实测活动数据仍需通过计算器模块应用排放因子或进行单位换算。"
+    }
+  },
+  "rules": {
+    "cemsVsCalc": "CEMS 与计算值对比：差异 < 5% 时优先采用 CEMS",
+    "meterVsInvoice": "公用事业计量表与发票对比：差异 > 2% 时标记",
+    "verifiedOverride": "经认证的核证总量优先于计算值",
+    "labOverride": "已检测燃料批次以实验室结果替代排放因子",
+    "gapFill": "缺口填补规则：对不超过 72 小时的 CEMS 数据缺口进行插值"
+  },
+  "metrics": {
+    "completeness": "数据完整性",
+    "temporal": "时间覆盖率",
+    "sourceCoverage": "数据源覆盖",
+    "anomalyRate": "异常率"
+  },
+  "units": {
+    "sources": "个数据源"
+  },
+  "overview": {
+    "target": "目标：{{value}}",
+    "sourceTypes": "数据源类型",
+    "readings": "读数",
+    "sources": "数据源",
+    "quality": "质量",
+    "frequency": "频率",
+    "processingPipeline": "处理流程",
+    "sourcesCount": "{{count}} 个数据源",
+    "repository": "数据仓库"
+  },
+  "processing": {
+    "records": "记录数",
+    "share": "占比",
+    "routingTitle": "数据源至路径的路由",
+    "direct": "直接",
+    "hybrid": "混合",
+    "routing": {
+      "cems": {
+        "source": "CEMS — 烟囱监测仪",
+        "reason": "直接测量温室气体，无需计算"
+      },
+      "electricity": {
+        "source": "公用事业计量表 — 电力",
+        "reason": "已测得 kWh，需应用电网排放因子"
+      },
+      "gas": {
+        "source": "公用事业计量表 — 天然气",
+        "reason": "体积与成分已知，直接得出 CO2e"
+      },
+      "verified": {
+        "source": "第三方核证总量",
+        "reason": "经认证的 tCO2e 数值跳过计算"
+      },
+      "fuel": {
+        "source": "实验室 — 燃料分析",
+        "reason": "成分数据路由至燃烧排放计算"
+      },
+      "process": {
+        "source": "实验室 — 工艺样品",
+        "reason": "物料平衡 → 工艺排放计算"
+      }
+    }
+  },
+  "reconciliation": {
+    "activeRules": "启用规则",
+    "matchesApplied": "已应用匹配",
+    "conflictsFlagged": "已标记冲突",
+    "rulesTitle": "汇总器核对规则",
+    "autoApplied": "自动应用",
+    "active": "启用",
+    "review": "待审核",
+    "howTitle": "数据核对流程",
+    "step": "第 {{n}} 步",
+    "steps": {
+      "1": "实测与计算数据进入汇总器",
+      "2": "规则比对重叠数据源",
+      "3": "采用质量最佳的数据源，并记录差异",
+      "4": "冲突标记后转人工审核"
+    }
+  }
+}

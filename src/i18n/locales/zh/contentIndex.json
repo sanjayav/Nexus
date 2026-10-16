@@ -1,0 +1,53 @@
+{
+  "breadcrumbs": {
+    "reports": "报告",
+    "library": "披露库"
+  },
+  "header": {
+    "eyebrow": "披露库",
+    "title": "披露库",
+    "description": "根据您的任务自动生成。列出每项 GRI 披露、其状态、所属章节及对应的重要议题。这是每份符合 GRI 标准的报告开篇所需的内容索引表。"
+  },
+  "actions": {
+    "print": "打印",
+    "savePdf": "另存为 PDF"
+  },
+  "summary": {
+    "total": "披露总数",
+    "totalHint": "{{pct}}% 已完整报告",
+    "fully": "完整报告",
+    "fullyHint": "所有必需数据均已批准",
+    "partially": "部分报告",
+    "partiallyHint": "部分数据已录入 / 审核中",
+    "omitted": "省略",
+    "omittedHint": "无数据 · 需分配任务"
+  },
+  "filters": {
+    "searchAria": "搜索披露",
+    "searchPlaceholder": "搜索 GRI 代码、条目、章节…",
+    "statusAria": "按状态筛选",
+    "allStatuses": "全部状态",
+    "fully": "完整报告",
+    "partially": "部分报告",
+    "omitted": "省略",
+    "materialOnly": "仅显示重要议题"
+  },
+  "print": {
+    "title": "GRI 内容索引——{{framework}}",
+    "generated_one": "生成于 {{date}} · 共 {{count}} 项披露",
+    "generated_other": "生成于 {{date}} · 共 {{count}} 项披露"
+  },
+  "columns": {
+    "code": "代码",
+    "disclosure": "披露",
+    "section": "章节",
+    "materialTopic": "重要议题",
+    "status": "状态",
+    "approved": "已批准"
+  },
+  "status": {
+    "fully": "完整",
+    "partially": "部分",
+    "omitted": "省略"
+  }
+}

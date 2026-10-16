@@ -12,7 +12,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { cors, requirePermission } from '../_auth.js'
 import { getDb } from '../_db.js'
-import { listConnectors } from '../_connectors/registry.js'
+import { listConnectorCatalogue } from '../_connectors/registry.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   cors(res, req)
@@ -33,9 +33,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ORDER BY created_at DESC
   `
 
-  const adapters = listConnectors().map(a => ({
+  // Live adapters plus coming-soon catalogue entries (e.g. mainland China
+  // systems). Coming-soon entries carry status 'coming_soon'; the page shows
+  // them disabled and OAuth/sync endpoints still only resolve live adapters.
+  const adapters = listConnectorCatalogue().map(a => ({
     id: a.id,
     name: a.name,
+    nameZh: a.nameZh ?? null,
+    descriptionZh: a.descriptionZh ?? null,
+    market: a.market ?? null,
+    status: a.status ?? 'live',
     category: a.category,
     description: a.description,
     iconKey: a.iconKey,
@@ -45,7 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     docsUrl: a.docsUrl ?? null,
     apiKeyFields: a.apiKeyFields ?? null,
     /** Whether the server has the env vars necessary to start an OAuth flow. */
-    serverConfigured: a.authType === 'oauth2'
+    serverConfigured: a.status === 'coming_soon' ? false : a.authType === 'oauth2'
       ? Boolean(a.oauth && process.env[a.oauth.clientIdEnv] && process.env[a.oauth.clientSecretEnv])
       : true,
   }))

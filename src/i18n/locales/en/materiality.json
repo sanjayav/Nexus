@@ -1,0 +1,113 @@
+{
+  "topics": {
+    "E1": "E1 Climate Change",
+    "E2": "E2 Pollution",
+    "E3": "E3 Water and Marine Resources",
+    "E4": "E4 Biodiversity and Ecosystems",
+    "E5": "E5 Resource Use and Circular Economy",
+    "S1": "S1 Own Workforce",
+    "S2": "S2 Workers in Value Chain",
+    "S3": "S3 Affected Communities",
+    "S4": "S4 Consumers and End-Users",
+    "G1": "G1 Business Conduct"
+  },
+  "errors": {
+    "load": "Load failed: {{message}}",
+    "finalize": "Finalize failed: {{message}}",
+    "create": "Create failed: {{message}}",
+    "update": "Update failed: {{message}}",
+    "iroSave": "IRO save failed: {{message}}",
+    "save": "Save failed: {{message}}"
+  },
+  "finalized": "Materiality verdict finalized.",
+  "crumbStrategy": "Strategy",
+  "crumbSelf": "Materiality",
+  "eyebrow": "Double Materiality Assessment",
+  "title": "Materiality assessment",
+  "description": "Identify topics, capture stakeholder concern, score financial materiality (likelihood × severity), and finalize the matrix — material topics flow into report scope.",
+  "tabs": {
+    "topics": "Topics",
+    "iros": "IROs",
+    "stakeholders": "Stakeholders",
+    "matrix": "Matrix"
+  },
+  "universe": "CSRD topic universe — add to scope",
+  "topicsCount": "Topics ({{count}})",
+  "customTopic": "Custom topic",
+  "topicName": "Topic name",
+  "topicCategory": "Topic category",
+  "category": {
+    "Environmental": "Environmental",
+    "Social": "Social",
+    "Governance": "Governance",
+    "Economic": "Economic"
+  },
+  "col": {
+    "topic": "Topic",
+    "category": "Category",
+    "impact": "Impact",
+    "financial": "Financial",
+    "likelihood": "Likelihood",
+    "severity": "Severity",
+    "horizon": "Horizon",
+    "material": "Material"
+  },
+  "aria": {
+    "impact": "Impact score for {{topic}}",
+    "financial": "Financial score for {{topic}}",
+    "likelihood": "Likelihood for {{topic}}",
+    "severity": "Severity for {{topic}}",
+    "horizon": "Time horizon for {{topic}}",
+    "score": "Score (1 to 5)"
+  },
+  "horizon": {
+    "short": "Short",
+    "medium": "Medium",
+    "long": "Long"
+  },
+  "empty": {
+    "title": "No material topics yet",
+    "body": "Pick from the CSRD topic universe above or add a custom topic to start your double-materiality assessment."
+  },
+  "iros": {
+    "addTopicsFirst": "Add topics on the Topics tab first.",
+    "count_one": "{{count}} IRO",
+    "count_other": "{{count}} IROs",
+    "meta": "sev {{sev}} · lik {{lik}} · {{horizon}}",
+    "typeAria": "IRO type",
+    "descAria": "IRO description",
+    "description": "Description",
+    "sev": "Sev",
+    "lik": "Lik",
+    "horizonAria": "Time horizon",
+    "add": "Add"
+  },
+  "iroType": {
+    "impact": "Impact",
+    "risk": "Risk",
+    "opportunity": "Opportunity"
+  },
+  "stakeholders": {
+    "investors": "investors",
+    "employees": "employees",
+    "customers": "customers",
+    "suppliers": "suppliers",
+    "regulators": "regulators",
+    "civil_society": "civil society"
+  },
+  "noTopicsToRate": "No topics to rate.",
+  "matrix": {
+    "title": "Double materiality matrix",
+    "thresholdPrefix": "Threshold: ",
+    "thresholdSuffix": " on either axis = material.",
+    "finalize": "Finalize materiality",
+    "financial": "Financial materiality",
+    "financialAxis": "Financial materiality →",
+    "impact": "Impact materiality",
+    "impactAxis": "↑ Impact materiality",
+    "verdict": "Verdict",
+    "material": "Material",
+    "notMaterial": "Not material",
+    "pending": "Pending finalize"
+  }
+}

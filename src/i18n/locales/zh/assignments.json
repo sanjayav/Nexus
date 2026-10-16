@@ -1,0 +1,123 @@
+{
+  "errors": {
+    "create": "无法创建指派：{{message}}",
+    "remove": "无法移除：{{message}}"
+  },
+  "confirmRemove": "确定移除此指派？",
+  "crumbData": "数据",
+  "title": "数值",
+  "description": "每项 {{framework}} 披露都会指派给最接近数据的人员，并由 <rbac></rbac> 控制。填报人下次登录时即可在<b>任务</b>中看到。",
+  "bulkAssign": "批量指派",
+  "newAssignment": "新建指派",
+  "frameworkDisclosures": "{{framework}} 披露项",
+  "stats": {
+    "total": "合计",
+    "approved": "已批准",
+    "inReview": "审核中",
+    "notStarted": "未开始"
+  },
+  "searchPlaceholder": "按 GRI 代码、指标项或填报人搜索…",
+  "allStatuses": "全部状态",
+  "allEntities": "全部实体",
+  "view": {
+    "list": "列表",
+    "kanban": "看板",
+    "tree": "树状",
+    "network": "网络"
+  },
+  "empty": {
+    "noneTitle": "暂无指派",
+    "noResults": "没有符合筛选条件的结果",
+    "noneBody": "点击“批量指派”将披露项分配给团队成员，或逐项创建。",
+    "noResultsBody": "请清除上方筛选条件，或选择其他框架 / 状态。",
+    "create": "创建指派"
+  },
+  "table": {
+    "lineItem": "GRI · 指标项",
+    "entity": "工厂 / 实体",
+    "assignee": "填报人",
+    "mode": "方式",
+    "due": "截止",
+    "status": "状态"
+  },
+  "mode": {
+    "Manual": "手动",
+    "Calculator": "计算器",
+    "Connector": "连接器",
+    "usedTitle": "用于记录此数值",
+    "allowedTitle": "允许"
+  },
+  "remove": "移除",
+  "drawer": {
+    "step1": "选择 GRI 问题",
+    "step2": "此披露项需要哪种类型的回答？",
+    "numeric": "数值型",
+    "numericDesc": "带单位的数值（例如 tCO₂e、MWh）",
+    "narrative": "叙述型",
+    "narrativeDesc": "长篇文字（GRI 2/3 管理方法）",
+    "step3": "该数据来自哪个工厂 / 实体？",
+    "selectEntity": "选择实体…",
+    "step4": "由谁填报？",
+    "pickEntityFirst": "请先选择实体。",
+    "step5": "可以通过哪些方式填报？",
+    "modesHint": "勾选填报人可使用的所有方式，填报时由其选择其一。",
+    "noCalculator": "无计算器",
+    "tabSwitcher": "填报人将看到标签切换器，可在 {{modes}} 之间选择。",
+    "step6": "截止日期（可选）"
+  },
+  "picker": {
+    "change": "更换问题",
+    "search": "搜索 GRI 代码或指标项…",
+    "noMatches": "无匹配结果",
+    "noMembers": "该实体下暂无成员，请先在<b>入驻设置</b>中添加。",
+    "selectAssignee": "选择填报人…"
+  },
+  "kanban": {
+    "emptyLane": "此列暂无指派"
+  },
+  "counts": {
+    "approved_other": "已批准 {{count}}",
+    "inReview_other": "审核中 {{count}}",
+    "review_other": "审核 {{count}}",
+    "open_other": "未完成 {{count}}",
+    "rejected_other": "已驳回 {{count}}"
+  },
+  "entityType": {
+    "group": "集团",
+    "business_unit": "业务单元",
+    "subsidiary": "子公司",
+    "plant": "工厂",
+    "office": "办公室"
+  },
+  "network": {
+    "empty": "暂无可绘制的实体树。",
+    "nodesLinks": "{{nodes}} 个节点 · {{links}} 条连线",
+    "bu": "业务单元",
+    "orgRoot": "组织根节点",
+    "hoverHint": "将鼠标悬停在节点上以查看详情。"
+  },
+  "bulk": {
+    "pickAssignee": "请选择填报人",
+    "capError": "请缩小筛选范围 — 批量指派上限为 500 项。",
+    "eyebrow": "设置助手",
+    "title": "批量指派问卷条目",
+    "intro": "一键将整个章节指派给一人。已有指派将被跳过（不会覆盖）。每次上限 500 项。",
+    "done": "已完成",
+    "result_other": "已创建 <b>{{count}}</b> 项指派；跳过 {{skipped}} 项已有指派。已向填报人发送汇总通知。",
+    "entity": "实体（可选 — 默认为根节点）",
+    "orgRoot": "— 组织根节点 —",
+    "assignee": "填报人 *",
+    "pickPerson": "— 选择人员 —",
+    "dueDate": "截止日期",
+    "sections_other": "章节（留空则为整个框架 — 共 {{count}} 项）",
+    "noSections": "已加载的问卷中没有章节。",
+    "reviewer": "审核人邮箱（可选）",
+    "approver": "批准人邮箱（可选）",
+    "matched_other": "已匹配 <b>{{count}}</b> 项。",
+    "capHint": "每次上限 500 项 — 请缩小章节筛选范围。",
+    "assign": "指派"
+  },
+  "tree": {
+    "empty": "暂无实体树 — 请先完成入驻设置。"
+  }
+}

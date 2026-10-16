@@ -150,7 +150,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const disclosures = await sql`
       SELECT dv.id AS data_value_id, dv.value, dv.unit, dv.source_type,
              qi.id AS questionnaire_item_id, qi.framework_id, qi.gri_code,
-             qi.line_item, qi.section, qi.subsection, qi.reporting_scope,
+             qi.line_item, to_jsonb(qi) ->> 'line_item_zh' AS line_item_zh,
+             qi.section, qi.subsection, qi.reporting_scope,
              dv.created_at, dv.updated_at
       FROM data_value dv
       JOIN questionnaire_item qi ON qi.id = dv.questionnaire_item_id

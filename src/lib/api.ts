@@ -613,6 +613,8 @@ export interface NexusQuestionnaireItem {
   subsection: string
   gri_code: string
   line_item: string
+  /** Simplified Chinese wording, when the framework provides it. Display via itemLabel(). */
+  line_item_zh?: string | null
   unit: string | null
   scope_split: string | null
   default_workflow_role: 'AUTO' | 'FM' | 'SO' | 'TL'
@@ -651,6 +653,8 @@ export interface NexusDataValue {
   approved_at: string | null
   // joined from questionnaire_item when returned by queue views
   line_item?: string
+  /** Simplified Chinese wording, when the framework provides it. Display via itemLabel(). */
+  line_item_zh?: string | null
   gri_code?: string
   section?: string
 }
@@ -824,6 +828,8 @@ export interface ConceptPeer {
   unit_conversion: number
   gri_code: string | null
   line_item: string | null
+  /** Simplified Chinese wording, when the framework provides it. Display via itemLabel(). */
+  line_item_zh?: string | null
   unit: string | null
   section: string | null
 }

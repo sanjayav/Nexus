@@ -2,6 +2,7 @@ import { Calendar } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Calendar — placeholder route.
@@ -16,20 +17,21 @@ import { useNavigate } from 'react-router-dom'
  */
 export default function WorkCalendar() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   return (
     <div className="page-container">
       <PageHeader
         breadcrumbs={[
-          { label: 'Work', to: '/' },
-          { label: 'Calendar' },
+          { label: t('calendar.crumbWork'), to: '/' },
+          { label: t('calendar.title') },
         ]}
-        title="Calendar"
+        title={t('calendar.title')}
       />
       <EmptyState
         icon={Calendar}
-        title="Calendar view coming soon"
-        body="In the meantime, see all your due dates and overdue items in My Tasks."
-        cta={{ label: 'Open My Tasks', onClick: () => navigate('/my-tasks') }}
+        title={t('calendar.comingSoon')}
+        body={t('calendar.body')}
+        cta={{ label: t('calendar.openMyTasks'), onClick: () => navigate('/my-tasks') }}
       />
     </div>
   )

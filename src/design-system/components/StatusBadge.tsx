@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import Badge from './Badge'
 
 type Status = 'draft' | 'pending' | 'in_progress' | 'approved' | 'overdue' | 'returned'
@@ -17,10 +18,11 @@ const statusConfig: Record<Status, { label: string; variant: 'gray' | 'amber' | 
 }
 
 export default function StatusBadge({ status, className }: StatusBadgeProps) {
+  const { t } = useTranslation()
   const config = statusConfig[status]
   return (
     <Badge variant={config.variant} dot className={className}>
-      {config.label}
+      {t(`ui.status.${status}`, { defaultValue: config.label })}
     </Badge>
   )
 }

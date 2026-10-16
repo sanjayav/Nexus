@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ClipboardList, AlertTriangle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import { showWarning } from '../lib/toast'
 import { useAuth } from '../auth/AuthContext'
@@ -34,6 +35,7 @@ export default function MyTasks() {
   const { user } = useAuth()
   const { active: framework } = useFramework()
   const navigate = useNavigate()
+  const { t, i18n } = useTranslation()
 
   const [assignments, setAssignments] = useState<QuestionAssignment[]>([])
   const [questions, setQuestions] = useState<NexusQuestionnaireItem[]>([])
@@ -80,9 +82,9 @@ export default function MyTasks() {
         if (!cancelled) { setQuestions(t); setTreeWarning(null) }
       } catch (e) {
         if (!cancelled) {
-          const msg = e instanceof Error ? e.message : 'Could not load question definitions'
+          const msg = e instanceof Error ? e.message : t('tasks.page.treeLoadFailed')
           setTreeWarning(msg)
-          showWarning('Could not load question definitions — values may be missing context')
+          showWarning(t('tasks.page.treeLoadWarning'))
         }
       }
       if (!cancelled) setLoading(false)
@@ -131,8 +133,11 @@ export default function MyTasks() {
 
   const role = resolveRole(user)
   const { data: orgData } = useOrgData()
-  const pipeline = useMemo(() => computePipeline(user, orgData ?? null), [user, orgData])
-  const focus = useMemo(() => focusStage(user, orgData ?? null), [user, orgData])
+  // i18n.language: computePipeline returns translated labels — recompute on a live language switch.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const pipeline = useMemo(() => computePipeline(user, orgData ?? null), [user, orgData, i18n.language])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const focus = useMemo(() => focusStage(user, orgData ?? null), [user, orgData, i18n.language])
   const openCount = useMemo(() =>
     assignments.filter(a => a.status === 'not_started' || a.status === 'in_progress' || a.status === 'rejected').length
   , [assignments])
@@ -202,12 +207,12 @@ export default function MyTasks() {
   return (
     <div className="animate-fade-in space-y-6">
       <PageHeader
-        breadcrumbs={[{ label: 'Work', to: '/' }, { label: 'Tasks' }]}
-        title="My tasks"
+        breadcrumbs={[{ label: t('tasks.page.crumbWork'), to: '/' }, { label: t('tasks.page.crumbTasks') }]}
+        title={t('tasks.page.title')}
         description={
           stats.total === 0
-            ? 'Disclosures assigned to you will appear here.'
-            : `${stats.overdue} overdue · ${stats.dueThisWeek} due this week · ${stats.total} total`
+            ? t('tasks.page.descriptionEmpty')
+            : t('tasks.page.descriptionStats', { overdue: stats.overdue, week: stats.dueThisWeek, total: stats.total })
         }
       />
 
@@ -217,11 +222,11 @@ export default function MyTasks() {
             stage={focus}
             reason={
               openCount === 0
-                ? `All your disclosures are submitted, ${user?.name?.split(' ')[0] ?? ''}. Good work.`
-                : `You have ${openCount} disclosure${openCount === 1 ? '' : 's'} open. Start with the one closest to its deadline.`
+                ? t('tasks.page.allSubmitted', { name: user?.name?.split(' ')[0] ?? '' })
+                : t('tasks.page.openCount', { count: openCount })
             }
-            cta={openCount === 0 ? 'Browse all tasks' : 'Start working'}
-            secondary={openCount > 0 ? 'See approved history' : undefined}
+            cta={openCount === 0 ? t('tasks.page.browseAll') : t('tasks.page.startWorking')}
+            secondary={openCount > 0 ? t('tasks.focus.seeApproved') : undefined}
             onPrimary={() => {
               const first = assignments.find(a => a.status === 'not_started' || a.status === 'in_progress' || a.status === 'rejected')
               if (first) navigate(`/data/entry/${first.questionId}`)
@@ -254,7 +259,7 @@ export default function MyTasks() {
 
       {dayFilter && (
         <div className="flex items-center gap-2 text-[var(--text-xs)]">
-          <span className="text-[var(--text-tertiary)]">Filtered to</span>
+          <span className="text-[var(--text-tertiary)]">{t('tasks.page.filteredTo')}</span>
           <span className="px-2 py-0.5 rounded-full bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)] font-semibold tabular-nums">
             {dayFilter}
           </span>
@@ -262,7 +267,7 @@ export default function MyTasks() {
             onClick={() => setDayFilter(null)}
             className="text-[var(--color-brand)] hover:underline"
           >
-            Clear
+            {t('tasks.page.clear')}
           </button>
         </div>
       )}
@@ -287,7 +292,7 @@ export default function MyTasks() {
           className="flex items-start gap-2 px-3 py-2 rounded-[var(--radius-md)] bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[12px]"
         >
           <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-          <span>Could not load question definitions — assignment values may be missing context. {treeWarning}</span>
+          <span>{t('tasks.page.treeWarningBanner')} {treeWarning}</span>
         </div>
       )}
 
@@ -325,15 +330,16 @@ export default function MyTasks() {
 }
 
 function EmptyList({ total, filter }: { total: number; filter: FilterState }) {
+  const { t } = useTranslation()
   return (
     <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)]">
       <EmptyState
         illustration={total === 0 ? EmptyTasksIllustration : undefined}
         icon={ClipboardList}
-        title={total === 0 ? 'No assignments yet' : `Nothing ${filter === 'all' ? 'in view' : 'in this bucket'}`}
+        title={total === 0 ? t('tasks.empty.noneTitle') : filter === 'all' ? t('tasks.empty.nothingInView') : t('tasks.empty.nothingInBucket')}
         body={total === 0
-          ? "Your admin hasn't assigned you GRI line items yet. They will land here as soon as they do."
-          : 'Switch tabs or clear filters to see other items.'}
+          ? t('tasks.empty.noneBody')
+          : t('tasks.empty.filteredBody')}
       />
     </div>
   )

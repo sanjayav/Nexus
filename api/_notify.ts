@@ -1,7 +1,22 @@
 import { getDb } from './_db.js'
 import { sendEmail } from './_email.js'
+import { sendImNotifications, shouldForwardKind, imChannelConfigForOrg } from './_notifyChannels.js'
 
-// Single entry point: writes a notification row AND fires an email.
+export {
+  sendImNotifications,
+  sendDingTalk,
+  sendFeishu,
+  sendWeCom,
+  imChannelConfigFromEnv,
+  imChannelConfigForOrg,
+} from './_notifyChannels.js'
+export type { ImChannel, ImChannelConfig, ImMessage, ImSendResult } from './_notifyChannels.js'
+
+// Single entry point: writes a notification row AND fires an email, plus any
+// configured China group-bot channels (DingTalk / Feishu / WeCom — see
+// _notifyChannels.ts; each is opt-in via its *_WEBHOOK_URL env var, like
+// email is opt-in via RESEND_API_KEY, and only for orgs listed in
+// NOTIFY_IM_ORG_IDS since a group-bot URL is a single shared destination).
 // Existing column names (recipient_user_id, recipient_email, kind, subject, body,
 // route, related_assignment_id) are preserved; email_sent_at / email_error are
 // additive columns ensured in setup.ts.
@@ -34,12 +49,26 @@ export async function notify(args: NotifyArgs): Promise<void> {
     </div>
   `
 
+  const imConfig = imChannelConfigForOrg(args.orgId)
+  const imJob = (imConfig.dingtalk || imConfig.feishu || imConfig.wecom) && shouldForwardKind(args.kind)
+    ? sendImNotifications({ title: args.subject, body: args.body, link: fullLink }, imConfig)
+    : Promise.resolve([])
+
   const result = await sendEmail({
     to: args.toEmail,
     subject: args.subject,
     html,
     text: `${args.subject}${args.body ? '\n\n' + args.body : ''}\n\n${fullLink}`,
   })
+
+  // Group-bot delivery is best-effort and never affects the email result or
+  // the notification row; failures are logged only.
+  for (const r of await imJob) {
+    if (!r.ok) {
+      // eslint-disable-next-line no-console
+      console.error(`[notify] ${r.channel} failed:`, r.error)
+    }
+  }
 
   try {
     await sql`

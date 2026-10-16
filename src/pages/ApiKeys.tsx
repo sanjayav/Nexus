@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { KeyRound, Copy, Check, Trash2, AlertTriangle, Plus, X } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
 import { SkeletonTable } from '../components/Skeleton'
@@ -6,6 +7,7 @@ import EmptyState from '../components/EmptyState'
 import { Card, Button, Badge } from '../design-system'
 import { apiKeys, type ApiKey, type ApiKeyCreated } from '../lib/api'
 
+// Scope identifiers are API values — shown verbatim (monospace), never translated.
 const DEFAULT_SCOPES = [
   'data.view',
   'data.upload',
@@ -17,6 +19,10 @@ const DEFAULT_SCOPES = [
 ]
 
 export default function ApiKeys() {
+  const { t, i18n } = useTranslation()
+  const isZh = i18n.language?.startsWith('zh') ?? false
+  // Keep the browser-default locale for English; switch only for zh.
+  const dateLocale = isZh ? 'zh-CN' : undefined
   const [keys, setKeys] = useState<ApiKey[]>([])
   const [standardScopes, setStandardScopes] = useState<string[]>(DEFAULT_SCOPES)
   const [loading, setLoading] = useState(true)
@@ -40,10 +46,12 @@ export default function ApiKeys() {
       setKeys(data.keys)
       if (data.standardScopes?.length) setStandardScopes(data.standardScopes)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load API keys')
+      setError(e instanceof Error ? e.message : i18n.t('apiKeys.errors.load'))
     } finally {
       setLoading(false)
     }
+    // i18n.t (not t) so a language switch doesn't refetch the list.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => { void load() }, [load])
@@ -55,8 +63,8 @@ export default function ApiKeys() {
   }
 
   const handleCreate = async () => {
-    if (!name.trim()) { setError('Name is required'); return }
-    if (selectedScopes.size === 0) { setError('Pick at least one scope'); return }
+    if (!name.trim()) { setError(t('apiKeys.errors.nameRequired')); return }
+    if (selectedScopes.size === 0) { setError(t('apiKeys.errors.pickScope')); return }
     setCreating(true)
     setError(null)
     try {
@@ -71,7 +79,7 @@ export default function ApiKeys() {
       resetModal()
       await load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create API key')
+      setError(e instanceof Error ? e.message : t('apiKeys.errors.create'))
     } finally {
       setCreating(false)
     }
@@ -87,13 +95,13 @@ export default function ApiKeys() {
   }
 
   const handleRevoke = async (id: string) => {
-    if (!window.confirm('Revoke this key? Any client using it will lose access immediately.')) return
+    if (!window.confirm(t('apiKeys.confirmRevoke'))) return
     setRevoking(id)
     try {
       await apiKeys.revoke(id)
       await load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to revoke key')
+      setError(e instanceof Error ? e.message : t('apiKeys.errors.revoke'))
     } finally {
       setRevoking(null)
     }
@@ -112,15 +120,15 @@ export default function ApiKeys() {
     <div className="page-container">
       <PageHeader
         breadcrumbs={[
-          { label: 'Admin' },
-          { label: 'API keys' },
+          { label: t('apiKeys.breadcrumbAdmin') },
+          { label: t('apiKeys.breadcrumb') },
         ]}
-        eyebrow="Admin · Integrations"
-        title="API keys"
-        subtitle="Issue programmatic tokens for CI pipelines, BI tools, and ERP push connectors. Scopes follow the same permission model as user roles."
+        eyebrow={t('apiKeys.eyebrow')}
+        title={t('apiKeys.title')}
+        subtitle={t('apiKeys.subtitle')}
         actions={
           <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setShowModal(true)}>
-            Generate key
+            {t('apiKeys.generateKey')}
           </Button>
         }
       />
@@ -142,11 +150,11 @@ export default function ApiKeys() {
             <div className="flex-1">
               <div className="font-semibold text-[var(--text-primary)] text-[14px]">{created.key.name}</div>
               <div className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">
-                {created.warning}
+                {isZh ? t('apiKeys.reveal.warning') : created.warning}
               </div>
             </div>
             <button onClick={() => setCreated(null)} className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
-              Dismiss
+              {t('apiKeys.reveal.dismiss')}
             </button>
           </div>
           <div className="flex gap-2">
@@ -159,11 +167,11 @@ export default function ApiKeys() {
               onClick={handleCopy}
               icon={copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             >
-              {copied ? 'Copied' : 'Copy'}
+              {copied ? t('apiKeys.reveal.copied') : t('apiKeys.reveal.copy')}
             </Button>
           </div>
           <div className="mt-3 text-[12px] text-[var(--text-tertiary)]">
-            Scopes: {created.key.scopes.join(', ') || '—'}
+            {t('apiKeys.reveal.scopes', { scopes: created.key.scopes.join(', ') || '—' })}
           </div>
         </Card>
       )}
@@ -172,7 +180,7 @@ export default function ApiKeys() {
       <Card variant="paper">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-[14px] font-semibold text-[var(--text-primary)] flex items-center gap-2">
-            <KeyRound className="w-4 h-4" /> Active keys
+            <KeyRound className="w-4 h-4" /> {t('apiKeys.table.heading')}
           </h3>
           <Badge variant="gray">{keys.length}</Badge>
         </div>
@@ -181,8 +189,8 @@ export default function ApiKeys() {
         ) : keys.length === 0 ? (
           <EmptyState
             icon={KeyRound}
-            title="No API keys yet"
-            body="Generate a token above to start pushing data programmatically. Scope each key to the minimum permissions it needs."
+            title={t('apiKeys.table.emptyTitle')}
+            body={t('apiKeys.table.emptyBody')}
             density="compact"
           />
         ) : (
@@ -190,13 +198,13 @@ export default function ApiKeys() {
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="text-left text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] border-b border-[var(--border-default)]">
-                  <th className="py-2 pr-3">Name</th>
-                  <th className="py-2 pr-3">Prefix</th>
-                  <th className="py-2 pr-3">Scopes</th>
-                  <th className="py-2 pr-3">Expires</th>
-                  <th className="py-2 pr-3">Last used</th>
-                  <th className="py-2 pr-3">Status</th>
-                  <th className="py-2 pr-3 text-right">Actions</th>
+                  <th className="py-2 pr-3">{t('apiKeys.table.name')}</th>
+                  <th className="py-2 pr-3">{t('apiKeys.table.prefix')}</th>
+                  <th className="py-2 pr-3">{t('apiKeys.table.scopes')}</th>
+                  <th className="py-2 pr-3">{t('apiKeys.table.expires')}</th>
+                  <th className="py-2 pr-3">{t('apiKeys.table.lastUsed')}</th>
+                  <th className="py-2 pr-3">{t('apiKeys.table.status')}</th>
+                  <th className="py-2 pr-3 text-right">{t('apiKeys.table.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -213,15 +221,15 @@ export default function ApiKeys() {
                       </div>
                     </td>
                     <td className="py-2.5 pr-3 text-[var(--text-secondary)]">
-                      {k.expiresAt ? new Date(k.expiresAt).toLocaleDateString() : 'never'}
+                      {k.expiresAt ? new Date(k.expiresAt).toLocaleDateString(dateLocale) : t('apiKeys.table.never')}
                     </td>
                     <td className="py-2.5 pr-3 text-[var(--text-secondary)]">
-                      {k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleString() : 'never'}
+                      {k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleString(dateLocale) : t('apiKeys.table.never')}
                     </td>
                     <td className="py-2.5 pr-3">
                       {k.isActive
-                        ? <Badge variant="green">active</Badge>
-                        : <Badge variant="gray">revoked</Badge>}
+                        ? <Badge variant="green">{t('apiKeys.table.active')}</Badge>
+                        : <Badge variant="gray">{t('apiKeys.table.revoked')}</Badge>}
                     </td>
                     <td className="py-2.5 pr-3 text-right">
                       {k.isActive && (
@@ -232,7 +240,7 @@ export default function ApiKeys() {
                           loading={revoking === k.id}
                           onClick={() => handleRevoke(k.id)}
                         >
-                          Revoke
+                          {t('apiKeys.table.revoke')}
                         </Button>
                       )}
                     </td>
@@ -249,9 +257,10 @@ export default function ApiKeys() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-lg shadow-xl">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-default)]">
-              <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">Generate API key</h2>
+              <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">{t('apiKeys.modal.title')}</h2>
               <button
                 onClick={() => { setShowModal(false); resetModal() }}
+                aria-label={t('apiKeys.modal.close')}
                 className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
               >
                 <X className="w-4 h-4" />
@@ -259,17 +268,17 @@ export default function ApiKeys() {
             </div>
             <div className="px-5 py-4 space-y-4">
               <div>
-                <label className="block text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">Name</label>
+                <label className="block text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('apiKeys.modal.name')}</label>
                 <input
                   type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  placeholder="e.g. CI pipeline push"
+                  placeholder={t('apiKeys.modal.namePlaceholder')}
                   className="w-full h-9 px-3 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13px] text-[var(--text-primary)]"
                 />
               </div>
               <div>
-                <label className="block text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-2">Scopes</label>
+                <label className="block text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-2">{t('apiKeys.modal.scopes')}</label>
                 <div className="grid grid-cols-2 gap-2">
                   {standardScopes.map(scope => (
                     <label key={scope} className="flex items-center gap-2 cursor-pointer">
@@ -284,21 +293,21 @@ export default function ApiKeys() {
                 </div>
               </div>
               <div>
-                <label className="block text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">Expires in (days)</label>
+                <label className="block text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">{t('apiKeys.modal.expiresIn')}</label>
                 <input
                   type="number"
                   min="1"
                   max="3650"
                   value={expiresInDays}
                   onChange={e => setExpiresInDays(e.target.value)}
-                  placeholder="leave blank = never"
+                  placeholder={t('apiKeys.modal.expiresPlaceholder')}
                   className="w-full h-9 px-3 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13px] text-[var(--text-primary)]"
                 />
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[var(--border-default)]">
-              <Button variant="secondary" onClick={() => { setShowModal(false); resetModal() }}>Cancel</Button>
-              <Button variant="primary" loading={creating} onClick={handleCreate}>Generate</Button>
+              <Button variant="secondary" onClick={() => { setShowModal(false); resetModal() }}>{t('apiKeys.modal.cancel')}</Button>
+              <Button variant="primary" loading={creating} onClick={handleCreate}>{t('apiKeys.modal.generate')}</Button>
             </div>
           </div>
         </div>

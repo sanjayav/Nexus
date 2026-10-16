@@ -1,0 +1,462 @@
+{
+  "page": {
+    "title": "PCAF Portfolio",
+    "titleWithYear": "PCAF Portfolio — Financed Emissions FY{{year}}",
+    "lockedDescription": "Financed-emissions tracking for financial institutions.",
+    "lockedBefore": "You need the ",
+    "lockedAfter": " permission to view or update PCAF assets. Please ask your platform admin to assign the appropriate role.",
+    "breadcrumbData": "Data",
+    "breadcrumbCalculators": "Calculators",
+    "eyebrow": "PCAF · Scope 3 Category 15",
+    "description": "Track Scope 3 Category 15 emissions across your investment portfolio. Per-asset attribution × counterparty emissions, with PCAF data-quality scores 1–5.",
+    "fyOption": "FY {{year}}",
+    "refresh": "Refresh",
+    "addAsset": "Add asset",
+    "loadFailed": "Failed to load portfolio",
+    "loadingPortfolio": "Loading portfolio…"
+  },
+  "kpi": {
+    "totalFinanced": "Total financed emissions",
+    "totalFinancedSubtle": "Scope 3 Cat 15",
+    "weightedDq": "Weighted PCAF DQ",
+    "weightedDqSubtle": "1 (best) – 5 (worst)",
+    "coverage": "Coverage with reported emissions",
+    "coverageSubtle": "of outstanding",
+    "outstanding": "Portfolio outstanding",
+    "assetCount_one": "{{count}} asset",
+    "assetCount_other": "{{count}} assets"
+  },
+  "charts": {
+    "byAssetClass": "Financed emissions by asset class",
+    "contribution": "Asset-class contribution (tCO₂e)",
+    "empty": "No assets in this reporting year yet."
+  },
+  "summaryTable": {
+    "assetClass": "Asset class",
+    "assets": "Assets",
+    "outstanding": "Outstanding",
+    "financedEmissions": "Financed emissions",
+    "weightedDq": "Weighted DQ"
+  },
+  "sync": {
+    "title": "Sync to Scope 3",
+    "description": "Writes one draft activity_data row (Cat 15 — Investments) for FY{{year}} to flow into ESRS E1-6 / GRI 305-3 / TCFD / SEC disclosures.",
+    "noFacilities": "No facilities",
+    "button": "Sync to Scope 3",
+    "pickFacility": "Pick a facility to attach the Scope 3 row to",
+    "failed": "Sync failed",
+    "success": "Synced {{total}} CO₂e (weighted DQ {{dq}}) — activity_data id {{id}}…"
+  },
+  "drawer": {
+    "title": "Add PCAF asset",
+    "pickDifferent": "← Pick a different asset class",
+    "close": "Close"
+  },
+  "grid": {
+    "searchPlaceholder": "Search counterparty…",
+    "allAssetClasses": "All asset classes",
+    "countSummary_one": "{{shown}} of {{count}} asset",
+    "countSummary_other": "{{shown}} of {{count}} assets",
+    "counterparty": "Counterparty",
+    "assetClass": "Asset class",
+    "outstanding": "Outstanding",
+    "attribution": "Attribution",
+    "financed": "Financed",
+    "dq": "DQ",
+    "emptyBefore": "No assets match your filter. Click ",
+    "emptyAction": "Add asset",
+    "emptyAfter": " to add the first one.",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "delete": "Delete"
+  },
+  "calculator": {
+    "methodology": "PCAF methodology",
+    "warnings": "Warnings",
+    "verifyServer": "Verify server compute",
+    "saved": "Saved",
+    "saving": "Saving",
+    "saveAsset": "Save asset",
+    "yes": "Yes",
+    "serverComputeFailed": "Server compute failed",
+    "saveFailed": "Save failed",
+    "counterpartyRequired": "Counterparty / borrower name is required",
+    "outstandingRequired": "Outstanding amount must be > 0",
+    "result": {
+      "attributionFactor": "Attribution factor",
+      "financedS1": "Financed S1",
+      "financedS2": "Financed S2",
+      "financedS3": "Financed S3",
+      "totalFinanced": "Total financed",
+      "dataQuality": "Data quality",
+      "dqValue": "DQ {{score}} / 5",
+      "rationale": "Rationale"
+    }
+  },
+  "assetClasses": {
+    "listed_equity": {
+      "label": "Listed equity",
+      "name": "Listed Equity & Corporate Bonds",
+      "description": "PCAF Standard A. Attribution factor = outstanding investment value / company EVIC. Use reported emissions where available; fall back to sector intensity × revenue proxy.",
+      "inputs": {
+        "counterpartyName": {
+          "label": "Counterparty (issuer)"
+        },
+        "counterpartySector": {
+          "label": "GICS sector"
+        },
+        "outstandingAmount": {
+          "label": "Outstanding investment value"
+        },
+        "evic": {
+          "label": "Counterparty EVIC",
+          "help": "Enterprise Value Including Cash. Leave blank to estimate (lower data quality)."
+        },
+        "reportedEmissions": {
+          "label": "Reported S1+S2 emissions"
+        },
+        "reportedScope3": {
+          "label": "Reported Scope 3 emissions"
+        },
+        "verifiedByThirdParty": {
+          "label": "Emissions independently verified?"
+        }
+      }
+    },
+    "corporate_bond": {
+      "label": "Corporate bonds",
+      "name": "Corporate Bonds",
+      "description": "PCAF Standard A. Same EVIC-based attribution as listed equity, applied to held bond face value.",
+      "inputs": {
+        "counterpartyName": {
+          "label": "Issuer"
+        },
+        "counterpartySector": {
+          "label": "GICS sector"
+        },
+        "outstandingAmount": {
+          "label": "Bond holding value"
+        },
+        "evic": {
+          "label": "Issuer EVIC",
+          "help": "Enterprise Value Including Cash of the issuer."
+        },
+        "reportedEmissions": {
+          "label": "Reported S1+S2 emissions"
+        },
+        "reportedScope3": {
+          "label": "Reported Scope 3 emissions"
+        },
+        "verifiedByThirdParty": {
+          "label": "Emissions independently verified?"
+        }
+      }
+    },
+    "business_loan": {
+      "label": "Business loans",
+      "name": "Business Loans",
+      "description": "PCAF Standard B. Attribution = outstanding loan / (borrower equity + debt). Use reported emissions where available; otherwise estimate from sector intensity × revenue.",
+      "inputs": {
+        "counterpartyName": {
+          "label": "Borrower"
+        },
+        "counterpartySector": {
+          "label": "GICS sector"
+        },
+        "outstandingAmount": {
+          "label": "Outstanding loan amount"
+        },
+        "borrowerEquity": {
+          "label": "Borrower equity"
+        },
+        "borrowerDebt": {
+          "label": "Borrower total debt"
+        },
+        "reportedEmissions": {
+          "label": "Reported S1+S2 emissions"
+        },
+        "reportedScope3": {
+          "label": "Reported Scope 3 emissions"
+        },
+        "verifiedByThirdParty": {
+          "label": "Emissions independently verified?"
+        }
+      }
+    },
+    "unlisted_equity": {
+      "label": "Unlisted equity",
+      "name": "Unlisted / Private Equity",
+      "description": "PCAF Standard B. Attribution = investment / (investee equity + debt). Use reported emissions where available; otherwise estimate from sector intensity.",
+      "inputs": {
+        "counterpartyName": {
+          "label": "Investee"
+        },
+        "counterpartySector": {
+          "label": "GICS sector"
+        },
+        "outstandingAmount": {
+          "label": "Investment value"
+        },
+        "investeeEquity": {
+          "label": "Investee equity"
+        },
+        "investeeDebt": {
+          "label": "Investee total debt"
+        },
+        "reportedEmissions": {
+          "label": "Reported S1+S2 emissions"
+        },
+        "reportedScope3": {
+          "label": "Reported Scope 3 emissions"
+        },
+        "verifiedByThirdParty": {
+          "label": "Emissions independently verified?"
+        }
+      }
+    },
+    "project_finance": {
+      "label": "Project finance",
+      "name": "Project Finance",
+      "description": "PCAF Standard C. Attribution = loan amount / (project equity + project debt). Uses project-level annual emissions where available.",
+      "inputs": {
+        "counterpartyName": {
+          "label": "Project name"
+        },
+        "projectType": {
+          "label": "Project type"
+        },
+        "outstandingAmount": {
+          "label": "Loan amount outstanding"
+        },
+        "projectEquity": {
+          "label": "Project equity"
+        },
+        "projectDebt": {
+          "label": "Project total debt"
+        },
+        "reportedEmissions": {
+          "label": "Project annual emissions"
+        },
+        "verifiedByThirdParty": {
+          "label": "Emissions independently verified?"
+        }
+      }
+    },
+    "commercial_real_estate": {
+      "label": "Commercial real estate",
+      "name": "Commercial Real Estate",
+      "description": "PCAF Standard D. Financed emissions = building annual emissions × (loan / property value). Prefer measured energy; fall back to certificates, then floor-area × type intensity.",
+      "inputs": {
+        "counterpartyName": {
+          "label": "Building / borrower"
+        },
+        "buildingType": {
+          "label": "Building type"
+        },
+        "outstandingAmount": {
+          "label": "Loan outstanding"
+        },
+        "propertyValue": {
+          "label": "Property value"
+        },
+        "floorAreaM2": {
+          "label": "Floor area"
+        },
+        "measuredAnnualEmissions": {
+          "label": "Measured annual emissions",
+          "help": "From utility bills or energy certificate (DQ ≤ 2)."
+        },
+        "verifiedByThirdParty": {
+          "label": "Energy data independently verified?"
+        }
+      }
+    },
+    "mortgage": {
+      "label": "Mortgages",
+      "name": "Residential Mortgages",
+      "description": "PCAF Standard E. Financed emissions = (floor area × country residential intensity) × (loan / property value).",
+      "inputs": {
+        "counterpartyName": {
+          "label": "Borrower / property reference"
+        },
+        "counterpartyCountry": {
+          "label": "Country"
+        },
+        "outstandingAmount": {
+          "label": "Outstanding mortgage balance"
+        },
+        "propertyValue": {
+          "label": "Property appraised value"
+        },
+        "floorAreaM2": {
+          "label": "Property floor area"
+        },
+        "measuredAnnualEmissions": {
+          "label": "Measured household emissions",
+          "help": "From utility bills if available (DQ ≤ 2)."
+        },
+        "verifiedByThirdParty": {
+          "label": "Energy / property data independently verified?"
+        }
+      }
+    },
+    "motor_vehicle_loan": {
+      "label": "Motor vehicle loans",
+      "name": "Motor Vehicle Loans",
+      "description": "PCAF Standard F. Financed emissions = annual vehicle emissions × (loan / vehicle value). Prefer measured odometer × EF, fall back to fleet averages.",
+      "inputs": {
+        "counterpartyName": {
+          "label": "Borrower / vehicle ID"
+        },
+        "vehicleType": {
+          "label": "Vehicle type / drivetrain"
+        },
+        "outstandingAmount": {
+          "label": "Loan outstanding"
+        },
+        "vehicleValue": {
+          "label": "Vehicle value"
+        },
+        "measuredAnnualEmissions": {
+          "label": "Measured annual emissions",
+          "help": "From odometer × vehicle-specific EF (DQ ≤ 2)."
+        },
+        "annualDistanceKm": {
+          "label": "Annual distance driven",
+          "help": "Used to compute emissions when measured value not available."
+        },
+        "verifiedByThirdParty": {
+          "label": "Odometer / EF independently verified?"
+        }
+      }
+    },
+    "sovereign_debt": {
+      "label": "Sovereign debt",
+      "name": "Sovereign Debt",
+      "description": "PCAF Standard G. Financed emissions = country emissions × (investment / country GDP-PPP).",
+      "inputs": {
+        "counterpartyName": {
+          "label": "Issuer (country)"
+        },
+        "counterpartyCountry": {
+          "label": "Country code"
+        },
+        "outstandingAmount": {
+          "label": "Investment value"
+        },
+        "gdpPppMillions": {
+          "label": "Country GDP-PPP",
+          "help": "GDP in PPP terms (USD millions). Used as the denominator."
+        },
+        "reportedCountryEmissionsMt": {
+          "label": "Country annual emissions",
+          "help": "From NDC inventory if available; else uses country-emissions-per-GDP table."
+        },
+        "verifiedByThirdParty": {
+          "label": "Country emissions from official inventory?"
+        }
+      }
+    }
+  },
+  "options": {
+    "counterpartySector": {
+      "Energy": "Energy",
+      "Materials": "Materials",
+      "Industrials": "Industrials",
+      "Utilities": "Utilities",
+      "Real Estate": "Real Estate",
+      "Financials": "Financials",
+      "IT": "IT",
+      "Healthcare": "Healthcare",
+      "Consumer Staples": "Consumer Staples",
+      "Consumer Discretionary": "Consumer Discretionary",
+      "Communication": "Communication"
+    },
+    "buildingType": {
+      "Office": "Office",
+      "Retail": "Retail",
+      "Industrial": "Industrial",
+      "Warehouse": "Warehouse",
+      "Hotel": "Hotel",
+      "Healthcare": "Healthcare",
+      "Mixed": "Mixed"
+    },
+    "counterpartyCountry": {
+      "US": "US",
+      "UK": "UK",
+      "EU": "EU",
+      "CN": "CN",
+      "IN": "IN",
+      "JP": "JP",
+      "DE": "DE",
+      "FR": "FR",
+      "AU": "AU",
+      "CA": "CA",
+      "GLOBAL": "GLOBAL"
+    },
+    "vehicleType": {
+      "car_petrol": "car_petrol",
+      "car_diesel": "car_diesel",
+      "car_hybrid": "car_hybrid",
+      "car_ev": "car_ev",
+      "motorcycle": "motorcycle",
+      "van": "van",
+      "truck": "truck",
+      "unknown": "unknown"
+    },
+    "projectType": {
+      "renewable_power": "renewable_power",
+      "fossil_power": "fossil_power",
+      "transmission": "transmission",
+      "transport_infrastructure": "transport_infrastructure",
+      "oil_gas_upstream": "oil_gas_upstream",
+      "oil_gas_midstream": "oil_gas_midstream",
+      "mining": "mining",
+      "industrial_plant": "industrial_plant",
+      "other": "other"
+    }
+  },
+  "warnings": {
+    "evicEstimatedIssuer": "EVIC estimated — supply issuer EVIC for higher data quality",
+    "evicEstimated": "EVIC estimated — provide actual EVIC for higher data quality",
+    "sectorIssuer": "Emissions estimated from sector intensity — replace with issuer disclosure for DQ ≤3",
+    "sectorBorrower": "Emissions estimated from sector intensity — request borrower disclosure for DQ ≤3",
+    "sectorCounterparty": "Emissions estimated from sector intensity — replace with counterparty disclosure for DQ ≤3",
+    "sectorEstimate": "Emissions estimated from sector intensity",
+    "borrowerValueUnknown": "Borrower equity + debt unknown — using loan × 8 proxy. Provide actual balance-sheet figures for DQ ≤3.",
+    "investeeValueUnknown": "Investee equity + debt unknown — using investment × 8 proxy",
+    "creValueMissing": "Property value missing — using loan × 1.4 proxy (assumes ~70% LTV)",
+    "creFloorArea": "Floor-area intensity estimate — provide measured energy data for DQ ≤2",
+    "creNoData": "Provide measured emissions or floor area + building type",
+    "totalValueMissing": "Total value missing or zero — attribution set to 0; provide enterprise value or property value",
+    "attrCapped": "Attribution factor {{value}} >1.5 capped to 1.5 — outstanding may exceed total value",
+    "attrNegative": "Attribution factor negative — outstanding/total_value must be ≥0",
+    "vehicleValueMissing": "Vehicle value missing — using loan × 1.15 proxy",
+    "distanceUnknown": "Annual distance unknown — using fleet average for drivetrain",
+    "projectStackUnknown": "Project capital stack unknown — using loan × 1.3 proxy",
+    "projectTypeEstimate": "Project emissions estimated from project-type intensity",
+    "mortgageValueMissing": "Property value missing — using loan × 1.25 proxy (~80% LTV)",
+    "householdEstimate": "Household emissions estimated from country residential intensity",
+    "floorAreaMissing": "Floor area missing — using typical 100 m² household",
+    "gdpMissing": "GDP-PPP missing — using outstanding as denominator (attribution will be ~1, expect low DQ)",
+    "countryEstimate": "Country emissions estimated from per-GDP intensity table — replace with NDC inventory data"
+  },
+  "rationale": {
+    "awaitingInputs": "Awaiting inputs",
+    "reported": "Reported emissions × attribution factor ({{attr}})",
+    "measuredAnnual": "Measured annual emissions × attribution factor ({{attr}})",
+    "measuredHousehold": "Measured household emissions × attribution factor ({{attr}})",
+    "projectAnnual": "Project annual emissions × attribution factor ({{attr}})",
+    "sectorEstRevenue": "Sector intensity ({{intensity}} kgCO2e/USD revenue, {{sector}}) × est. revenue × attribution",
+    "sectorEstRevenueNoSector": "Sector intensity ({{intensity}} kgCO2e/USD revenue) × est. revenue × attribution",
+    "sectorRevenueProxy": "Sector intensity ({{intensity}} kgCO2e/USD, {{sector}}) × revenue proxy × attribution",
+    "floorArea": "Floor area {{area}} m² × {{intensity}} kgCO2e/m² ({{type}}) × attribution",
+    "noData": "No measured emissions, no floor area — cannot compute building emissions",
+    "typicalHousehold": "Typical 100 m² × {{intensity}} kgCO2e/m² ({{type}}) × attribution",
+    "distance": "{{km}} km × {{ef}} kgCO2e/km ({{type}}) × attribution",
+    "fleetAverage": "Fleet average {{tons}} tCO2e/year ({{type}}) × attribution",
+    "projectType": "Project-type intensity ({{intensity}} kgCO2e/USD, {{type}}) × project value × attribution",
+    "reportedCountry": "Reported country emissions {{mt}} MtCO2e × attribution ({{attr}})",
+    "countryEf": "Country EF {{rate}} tCO2e/USDm ({{type}}) × GDP-PPP × attribution"
+  }
+}

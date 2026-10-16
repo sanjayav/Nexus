@@ -1,4 +1,5 @@
 import { List, LayoutGrid, Calendar } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { ViewMode } from './shared'
 
 interface ViewToggleProps {
@@ -7,16 +8,17 @@ interface ViewToggleProps {
 }
 
 export default function ViewToggle({ view, onChange }: ViewToggleProps) {
+  const { t } = useTranslation()
   const opts: { key: ViewMode; label: string; icon: typeof List; sk: string }[] = [
-    { key: 'list',     label: 'List',     icon: List,       sk: '1' },
-    { key: 'board',    label: 'Board',    icon: LayoutGrid, sk: '2' },
-    { key: 'calendar', label: 'Calendar', icon: Calendar,   sk: '3' },
+    { key: 'list',     label: t('tasks.view.list'),     icon: List,       sk: '1' },
+    { key: 'board',    label: t('tasks.view.board'),    icon: LayoutGrid, sk: '2' },
+    { key: 'calendar', label: t('tasks.view.calendar'), icon: Calendar,   sk: '3' },
   ]
 
   return (
     <div
       role="tablist"
-      aria-label="Switch view"
+      aria-label={t('tasks.view.switchAria')}
       className="inline-flex items-center rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-card-premium)] p-0.5"
     >
       {opts.map(o => {

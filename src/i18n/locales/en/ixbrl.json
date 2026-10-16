@@ -1,0 +1,63 @@
+{
+  "breadcrumb": "iXBRL Filing",
+  "title": "iXBRL Preview · FY{{year}}",
+  "summary": "{{concepts}} concept facts · {{contexts}} contexts · {{units}} units · {{warnings}} warnings",
+  "emptyDescription": "Generate an inline XBRL draft for downstream filing or validator review.",
+  "errors": {
+    "generate": "Failed to generate iXBRL",
+    "validate": "Validation failed"
+  },
+  "actions": {
+    "generating": "Generating…",
+    "generate": "Generate",
+    "validate": "Validate",
+    "download": "Download .xhtml"
+  },
+  "filters": {
+    "year": "Year",
+    "frameworks": "Frameworks",
+    "includeUnapproved": "Include unapproved"
+  },
+  "stats": {
+    "concepts": "Concepts",
+    "contexts": "Contexts",
+    "units": "Units",
+    "mapped": "Mapped",
+    "gaps": "Gaps",
+    "warnings": "Warnings",
+    "errors": "Errors",
+    "validated": "Validated",
+    "ok": "OK"
+  },
+  "tabs": {
+    "preview": "Preview",
+    "coverage": "Concept Coverage",
+    "validation": "Validation"
+  },
+  "iframeTitle": "iXBRL Preview",
+  "generatingPreview": "Generating preview…",
+  "noPreview": "No preview yet — click Generate.",
+  "coverage": {
+    "concept": "Concept",
+    "label": "Label",
+    "framework": "Framework",
+    "source": "Source",
+    "status": "Status",
+    "mapped": "Mapped",
+    "missing": "Missing (required)",
+    "empty": "No mappings yet — generate first."
+  },
+  "validation": {
+    "promptPrefix": "Click ",
+    "promptAction": "Validate",
+    "promptSuffix": " to run structural checks on the generated document.",
+    "valid": "Document is structurally valid",
+    "failed": "Validation failed",
+    "stats": "{{facts}} facts · {{contexts}} contexts · {{units}} units",
+    "unknownConcepts": " · {{count}} unknown concepts",
+    "errors": "Errors ({{count}})",
+    "warnings": "Warnings ({{count}})",
+    "line": "line {{line}}: ",
+    "footnote": "Structural validation only — production filing also requires the full EFRAG ESRS linkbase via a certified validator (CoreFiling, ParsePort, IRIS Carbon)."
+  }
+}

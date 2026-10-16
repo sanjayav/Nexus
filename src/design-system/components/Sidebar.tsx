@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   // Section icons
   Briefcase, FileBarChart, Database, BarChart3 as AnalyticsIcon, Cog,
@@ -21,6 +22,7 @@ import NexusBrandCard from '../../components/NexusBrandCard'
 
 type NavItem = {
   path: string
+  /** i18n key — rendered with t(). */
   label: string
   icon: typeof LayoutDashboard
   roles?: PlatformRole[]
@@ -31,6 +33,7 @@ type NavItem = {
 
 type NavGroup = {
   key: string
+  /** i18n key — rendered with t(). */
   label: string
   icon: typeof Briefcase
   items: NavItem[]
@@ -45,51 +48,51 @@ type NavGroup = {
  */
 const NAV: NavGroup[] = [
   {
-    key: 'work', label: 'Work', icon: Briefcase,
+    key: 'work', label: 'shell.nav.groups.work', icon: Briefcase,
     items: [
-      { path: '/',                label: 'My Day',     icon: LayoutDashboard },
-      { path: '/my-tasks',        label: 'Tasks',      icon: ClipboardList, badgeKey: 'myTasks' },
-      { path: '/inbox',           label: 'Inbox',      icon: Inbox },
+      { path: '/',                label: 'shell.nav.items.myDay',     icon: LayoutDashboard },
+      { path: '/my-tasks',        label: 'shell.nav.items.tasks',      icon: ClipboardList, badgeKey: 'myTasks' },
+      { path: '/inbox',           label: 'shell.nav.items.inbox',      icon: Inbox },
       // Calendar removed from the sidebar — the page itself stays as a
       // "coming soon" placeholder so bookmarks don't 404, but until the
       // event-scheduling layer is real we don't promote it in the nav.
     ],
   },
   {
-    key: 'reports', label: 'Reports', icon: FileBarChart,
+    key: 'reports', label: 'shell.nav.groups.reports', icon: FileBarChart,
     items: [
-      { path: '/reports',           label: 'Active Reports',      icon: FileText,
+      { path: '/reports',           label: 'shell.nav.items.activeReports',      icon: FileText,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner', 'auditor'] },
-      { path: '/reports/templates', label: 'Templates',           icon: BookMarked,
+      { path: '/reports/templates', label: 'shell.nav.items.templates',           icon: BookMarked,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner', 'auditor'] },
-      { path: '/reports/library',   label: 'Disclosures Library', icon: Library,
+      { path: '/reports/library',   label: 'shell.nav.items.disclosuresLibrary', icon: Library,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner', 'auditor'] },
     ],
   },
   {
-    key: 'data', label: 'Data', icon: Database,
+    key: 'data', label: 'shell.nav.groups.data', icon: Database,
     roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'plant_manager', 'data_contributor'],
     items: [
-      { path: '/data',                label: 'Values',            icon: UserCog,
+      { path: '/data',                label: 'shell.nav.items.values',            icon: UserCog,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead'] },
-      { path: '/data/spreadsheet',    label: 'Spreadsheet',       icon: ClipboardList,
+      { path: '/data/spreadsheet',    label: 'shell.nav.items.spreadsheet',       icon: ClipboardList,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'plant_manager', 'data_contributor'] },
-      { path: '/data/evidence',       label: 'Evidence',          icon: Paperclip },
-      { path: '/calculators',         label: 'Calculators',       icon: CalcIcon },
-      { path: '/calculators/pcaf',    label: 'PCAF Portfolio',    icon: Scale, pin: true,
+      { path: '/data/evidence',       label: 'shell.nav.items.evidence',          icon: Paperclip },
+      { path: '/calculators',         label: 'shell.nav.items.calculators',       icon: CalcIcon },
+      { path: '/calculators/pcaf',    label: 'shell.nav.items.pcafPortfolio',    icon: Scale, pin: true,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead'] },
-      { path: '/data/connectors',     label: 'Connectors',        icon: Plug },
-      { path: '/data/ef-library',     label: 'Emission factors',  icon: BookOpen,
+      { path: '/data/connectors',     label: 'shell.nav.items.connectors',        icon: Plug },
+      { path: '/data/ef-library',     label: 'shell.nav.items.emissionFactors',  icon: BookOpen,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead'] },
-      { path: '/data/anomalies',      label: 'Anomalies',         icon: AlertTriangle, badgeKey: 'anomalies' },
+      { path: '/data/anomalies',      label: 'shell.nav.items.anomalies',         icon: AlertTriangle, badgeKey: 'anomalies' },
     ],
   },
   {
-    key: 'analytics', label: 'Analytics', icon: AnalyticsIcon,
+    key: 'analytics', label: 'shell.nav.groups.analytics', icon: AnalyticsIcon,
     roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'plant_manager', 'auditor'],
     items: [
-      { path: '/analytics',   label: 'Analytics', icon: AnalyticsIcon },
-      { path: '/reports/ai',  label: 'AI Report', icon: Sparkles, pin: true,
+      { path: '/analytics',   label: 'shell.nav.items.analytics', icon: AnalyticsIcon },
+      { path: '/reports/ai',  label: 'shell.nav.items.aiReport', icon: Sparkles, pin: true,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner'] },
     ],
   },
@@ -100,16 +103,16 @@ const ADMIN_TRAY: NavItem[] = [
   // surfaced as a duplicate "Organisation" link. The onboarding flow is
   // still reachable from the workspace setup card; the legacy org tree
   // editor lives on at /admin/org/legacy.
-  { path: '/admin/users',         label: 'Users & Roles',   icon: Users,        roles: ['platform_admin'] },
-  { path: '/admin/materiality',   label: 'Materiality',     icon: Scale,        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner'] },
-  { path: '/admin/targets',       label: 'Climate Targets', icon: TargetIcon,   roles: ['platform_admin', 'group_sustainability_officer'] },
-  { path: '/admin/data-standard', label: 'Data Standard',   icon: BookOpen,     roles: ['platform_admin', 'group_sustainability_officer'] },
-  { path: '/admin/audit',         label: 'Activity History', icon: ShieldCheck, roles: ['platform_admin', 'auditor'] },
-  { path: '/admin/api-keys',      label: 'API Keys',        icon: KeyRound,     roles: ['platform_admin'] },
-  { path: '/admin/scim',          label: 'SCIM',            icon: KeyRound,     roles: ['platform_admin'] },
-  { path: '/admin/blockchain',    label: 'Blockchain',      icon: ShieldCheck,  roles: ['platform_admin', 'auditor'] },
-  { path: '/admin/system-status', label: 'System Status',   icon: Activity,     roles: ['platform_admin'] },
-  { path: '/admin/settings',      label: 'Settings',        icon: SettingsIcon, roles: ['platform_admin'] },
+  { path: '/admin/users',         label: 'shell.nav.items.usersRoles',   icon: Users,        roles: ['platform_admin'] },
+  { path: '/admin/materiality',   label: 'shell.nav.items.materiality',     icon: Scale,        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner'] },
+  { path: '/admin/targets',       label: 'shell.nav.items.climateTargets', icon: TargetIcon,   roles: ['platform_admin', 'group_sustainability_officer'] },
+  { path: '/admin/data-standard', label: 'shell.nav.items.dataStandard',   icon: BookOpen,     roles: ['platform_admin', 'group_sustainability_officer'] },
+  { path: '/admin/audit',         label: 'shell.nav.items.activityHistory', icon: ShieldCheck, roles: ['platform_admin', 'auditor'] },
+  { path: '/admin/api-keys',      label: 'shell.nav.items.apiKeys',        icon: KeyRound,     roles: ['platform_admin'] },
+  { path: '/admin/scim',          label: 'shell.nav.items.scim',            icon: KeyRound,     roles: ['platform_admin'] },
+  { path: '/admin/blockchain',    label: 'shell.nav.items.blockchain',      icon: ShieldCheck,  roles: ['platform_admin', 'auditor'] },
+  { path: '/admin/system-status', label: 'shell.nav.items.systemStatus',   icon: Activity,     roles: ['platform_admin'] },
+  { path: '/admin/settings',      label: 'shell.nav.items.settings',        icon: SettingsIcon, roles: ['platform_admin'] },
 ]
 
 function canSee(role: PlatformRole, required?: PlatformRole[]): boolean {
@@ -126,6 +129,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
+  const { t } = useTranslation()
   const location = useLocation()
   const { user, logout } = useAuth()
   const role = resolveRole(user)
@@ -244,11 +248,11 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <>
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] font-semibold text-white/90 truncate leading-tight">{user?.name}</p>
-                <p className="text-[10px] text-white/45 truncate leading-tight mt-0.5 font-medium">{roleMeta.name}</p>
+                <p className="text-[10px] text-white/45 truncate leading-tight mt-0.5 font-medium">{t(`shell.roles.${role}.name`, { defaultValue: roleMeta.name })}</p>
               </div>
               <button
                 onClick={logout}
-                title="Sign out"
+                title={t('nav.logout')}
                 className="w-7 h-7 rounded-[6px] flex items-center justify-center text-white/35 hover:text-white/85 hover:bg-white/[0.06] transition-all"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -260,7 +264,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <button
           onClick={onToggle}
           className="w-full flex items-center justify-center h-7 rounded-[6px] text-white/30 hover:text-white/60 hover:bg-white/[0.04] transition-all"
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={collapsed ? t('shell.sidebar.expand') : t('shell.sidebar.collapse')}
         >
           {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
         </button>
@@ -324,6 +328,7 @@ function ExpandedSection({
   badges: BadgeMap
   pathname: string
 }) {
+  const { t } = useTranslation()
   const isActive = activeKey === group.key
   const SectIcon = group.icon
   const aggBadge = items.reduce((s, it) => it.badgeKey ? s + (badges[it.badgeKey] ?? 0) : s, 0)
@@ -339,7 +344,7 @@ function ExpandedSection({
           }`}
       >
         <SectIcon className={`w-[14px] h-[14px] flex-shrink-0 transition-colors ${isActive ? 'text-[#2fa98e]' : ''}`} />
-        <span className="flex-1 text-left">{group.label}</span>
+        <span className="flex-1 text-left">{t(group.label)}</span>
         {aggBadge > 0 && !expanded && (
           <span
             className="text-[10px] font-bold px-1.5 min-w-[18px] h-[18px] rounded-full leading-none inline-flex items-center justify-center tabular-nums"
@@ -381,6 +386,7 @@ function AdminTray({
   items: NavItem[]
   pathname: string
 }) {
+  const { t } = useTranslation()
   if (collapsed) {
     // Icon-only rail: the items render in the collapsed gap; render the
     // gear at the bottom of the nav to keep parity.
@@ -399,7 +405,7 @@ function AdminTray({
         className="w-full flex items-center gap-2.5 px-2.5 h-10 rounded-[6px] text-[12.5px] font-semibold text-white/55 hover:text-white/85 hover:bg-white/[0.04] transition-colors"
       >
         <Cog className="w-[15px] h-[15px] flex-shrink-0" />
-        <span className="flex-1 text-left uppercase tracking-[0.08em] text-[11px] font-bold">Admin</span>
+        <span className="flex-1 text-left uppercase tracking-[0.08em] text-[11px] font-bold">{t('shell.nav.groups.admin')}</span>
         <ChevronDown className={`w-3 h-3 text-white/35 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       <div
@@ -425,6 +431,7 @@ function tourTagFor(path: string): string | undefined {
 }
 
 function ChildItem({ item, badges, pathname }: { item: NavItem; badges: BadgeMap; pathname: string }) {
+  const { t } = useTranslation()
   const Icon = item.icon
   const isActive = isMatch(pathname, item.path)
   const badge = item.badgeKey ? badges[item.badgeKey] : 0
@@ -448,9 +455,9 @@ function ChildItem({ item, badges, pathname }: { item: NavItem; badges: BadgeMap
         />
       )}
       <Icon className={`w-[14px] h-[14px] flex-shrink-0 transition-colors ${isActive ? 'text-[#2fa98e]' : 'group-hover:text-white/80'}`} />
-      <span className="truncate flex-1">{item.label}</span>
+      <span className="truncate flex-1">{t(item.label)}</span>
       {item.pin && !isActive && (
-        <span className="w-1.5 h-1.5 rounded-full bg-[#E6A817] flex-shrink-0" title="Flagship feature" />
+        <span className="w-1.5 h-1.5 rounded-full bg-[#E6A817] flex-shrink-0" title={t('shell.sidebar.flagship')} />
       )}
       {badge > 0 && (
         <span
@@ -473,6 +480,7 @@ function ChildItem({ item, badges, pathname }: { item: NavItem; badges: BadgeMap
 // ─── IconOnlyItem (for collapsed sidebar: flat icon rail) ─────
 
 function IconOnlyItem({ item, badges, pathname }: { item: NavItem; badges: BadgeMap; pathname: string }) {
+  const { t } = useTranslation()
   const Icon = item.icon
   const isActive = isMatch(pathname, item.path)
   const badge = item.badgeKey ? badges[item.badgeKey] : 0
@@ -482,7 +490,7 @@ function IconOnlyItem({ item, badges, pathname }: { item: NavItem; badges: Badge
     <NavLink
       to={item.path}
       end={item.path === '/'}
-      title={item.label}
+      title={t(item.label)}
       data-tour={tourTag}
       className={`group relative flex items-center justify-center h-9 w-full rounded-[8px] my-0.5 transition-all duration-150
         ${isActive
@@ -500,7 +508,7 @@ function IconOnlyItem({ item, badges, pathname }: { item: NavItem; badges: Badge
       {item.pin && !isActive && (
         <span
           className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[#E6A817]"
-          title="Flagship feature"
+          title={t('shell.sidebar.flagship')}
         />
       )}
       {badge > 0 && (

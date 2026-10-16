@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   Gauge,
   Zap,
@@ -32,7 +33,7 @@ const SOURCE_TYPES = [
     readings: '4.2M',
     sources: 14,
     quality: 'A+',
-    frequency: 'Continuous',
+    frequency: 'continuous',
   },
   {
     id: 'utility',
@@ -45,7 +46,7 @@ const SOURCE_TYPES = [
     readings: '892K',
     sources: 47,
     quality: 'A',
-    frequency: 'Hourly',
+    frequency: 'hourly',
   },
   {
     id: 'verified',
@@ -58,7 +59,7 @@ const SOURCE_TYPES = [
     readings: '156K',
     sources: 8,
     quality: 'A+',
-    frequency: 'Monthly',
+    frequency: 'monthly',
   },
   {
     id: 'lab',
@@ -71,7 +72,7 @@ const SOURCE_TYPES = [
     readings: '2,847',
     sources: 22,
     quality: 'B+',
-    frequency: 'Quarterly',
+    frequency: 'quarterly',
   },
 ]
 
@@ -110,22 +111,23 @@ const DATA_PATHS = [
 
 /* ── Reconciliation rules ── */
 const RECON_RULES = [
-  { rule: 'CEMS vs calculated: prefer CEMS when delta < 5%', status: 'active' as const, matches: 342 },
-  { rule: 'Utility meter vs invoice: flag if delta > 2%', status: 'active' as const, matches: 89 },
-  { rule: 'Verified totals override calculated when certified', status: 'active' as const, matches: 156 },
-  { rule: 'Lab results override EFs for tested fuel batches', status: 'active' as const, matches: 47 },
-  { rule: 'Gap-fill rule: interpolate up to 72hr CEMS gaps', status: 'warning' as const, matches: 18 },
+  { id: 'cemsVsCalc', rule: 'CEMS vs calculated: prefer CEMS when delta < 5%', status: 'active' as const, matches: 342 },
+  { id: 'meterVsInvoice', rule: 'Utility meter vs invoice: flag if delta > 2%', status: 'active' as const, matches: 89 },
+  { id: 'verifiedOverride', rule: 'Verified totals override calculated when certified', status: 'active' as const, matches: 156 },
+  { id: 'labOverride', rule: 'Lab results override EFs for tested fuel batches', status: 'active' as const, matches: 47 },
+  { id: 'gapFill', rule: 'Gap-fill rule: interpolate up to 72hr CEMS gaps', status: 'warning' as const, matches: 18 },
 ]
 
 /* ── Quality metrics ── */
 const QUALITY_METRICS = [
-  { label: 'Data Completeness', value: 98.4, target: 95, unit: '%' },
-  { label: 'Temporal Coverage', value: 99.1, target: 98, unit: '%' },
-  { label: 'Source Coverage', value: 91, target: 90, unit: 'sources' },
-  { label: 'Anomaly Rate', value: 0.3, target: 1.0, unit: '%', inverted: true },
+  { id: 'completeness', label: 'Data Completeness', value: 98.4, target: 95, unit: '%' },
+  { id: 'temporal', label: 'Temporal Coverage', value: 99.1, target: 98, unit: '%' },
+  { id: 'sourceCoverage', label: 'Source Coverage', value: 91, target: 90, unit: 'sources' },
+  { id: 'anomalyRate', label: 'Anomaly Rate', value: 0.3, target: 1.0, unit: '%', inverted: true },
 ]
 
 export default function MeasuredData() {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState('overview')
 
   return (
@@ -134,26 +136,26 @@ export default function MeasuredData() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">
-            Measured & Reported Data
+            {t('measured.title')}
           </h1>
           <p className="mt-1 text-[var(--text-sm)] text-[var(--text-tertiary)]">
-            4 measured data source types with direct and hybrid processing paths. Reconciled at the aggregator.
+            {t('measured.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--accent-green-light)] border border-green-200">
             <Radio className="w-3 h-3 text-[var(--accent-green)] animate-pulse-soft" />
-            <span className="text-[var(--text-xs)] font-semibold text-[var(--accent-green)]">Live</span>
+            <span className="text-[var(--text-xs)] font-semibold text-[var(--accent-green)]">{t('measured.live')}</span>
           </div>
-          <Badge variant="gray">Last sync: 2 min ago</Badge>
+          <Badge variant="gray">{t('measured.lastSync')}</Badge>
         </div>
       </div>
 
       <Tabs
         tabs={[
-          { id: 'overview', label: 'Overview' },
-          { id: 'paths', label: 'Processing Paths' },
-          { id: 'reconciliation', label: 'Reconciliation', count: RECON_RULES.length },
+          { id: 'overview', label: t('measured.tabs.overview') },
+          { id: 'paths', label: t('measured.tabs.paths') },
+          { id: 'reconciliation', label: t('measured.tabs.reconciliation'), count: RECON_RULES.length },
         ]}
         activeTab={activeTab}
         onChange={setActiveTab}
@@ -171,6 +173,7 @@ export default function MeasuredData() {
    Overview tab
    ═══════════════════════════════════ */
 function OverviewTab() {
+  const { t } = useTranslation()
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ── Quality metric cards ── */}
@@ -183,10 +186,10 @@ function OverviewTab() {
             <Card key={metric.label} hover className="group relative overflow-hidden">
               <div className={`absolute top-0 left-0 right-0 h-[3px] rounded-t-xl opacity-60 group-hover:opacity-100 transition-opacity`}
                 style={{ background: `linear-gradient(90deg, ${isGood ? 'var(--accent-green)' : 'var(--accent-amber)'}, transparent)` }} />
-              <p className="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.06em]">{metric.label}</p>
+              <p className="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.06em]">{t(`measured.metrics.${metric.id}`)}</p>
               <div className="flex items-end gap-1 mt-1">
                 <span className="font-display text-[var(--text-3xl)] font-bold text-[var(--text-primary)] tabular-nums">{metric.value}</span>
-                <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] mb-1">{metric.unit}</span>
+                <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] mb-1">{metric.unit === '%' ? '%' : t(`measured.units.${metric.unit}`)}</span>
               </div>
               <div className="flex items-center gap-2 mt-2">
                 <div className="flex-1 h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
@@ -199,7 +202,7 @@ function OverviewTab() {
                   />
                 </div>
                 <span className="text-[10px] text-[var(--text-tertiary)] tabular-nums">
-                  target: {metric.target}{metric.unit === '%' ? '%' : ''}
+                  {t('measured.overview.target', { value: `${metric.target}${metric.unit === '%' ? '%' : ''}` })}
                 </span>
               </div>
             </Card>
@@ -209,7 +212,7 @@ function OverviewTab() {
 
       {/* ── Source type cards ── */}
       <div>
-        <h2 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)] mb-3">Source Types</h2>
+        <h2 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)] mb-3">{t('measured.overview.sourceTypes')}</h2>
         <div className="grid grid-cols-2 gap-4">
           {SOURCE_TYPES.map((src) => {
             const Icon = src.icon
@@ -227,28 +230,28 @@ function OverviewTab() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{src.title}</h3>
-                      <Badge variant={src.color}>{src.fullTitle.split(' ')[0]}</Badge>
+                      <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t(`measured.sources.${src.id}.title`)}</h3>
+                      <Badge variant={src.color}>{t(`measured.sources.${src.id}.badge`)}</Badge>
                     </div>
-                    <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-1 leading-relaxed">{src.desc}</p>
+                    <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-1 leading-relaxed">{t(`measured.sources.${src.id}.desc`)}</p>
 
                     {/* Stats row */}
                     <div className="grid grid-cols-4 gap-3 mt-3 pt-3 border-t border-[var(--border-subtle)]">
                       <div>
-                        <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">Readings</p>
+                        <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">{t('measured.overview.readings')}</p>
                         <p className="text-[var(--text-sm)] font-bold text-[var(--text-primary)] tabular-nums">{src.readings}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">Sources</p>
+                        <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">{t('measured.overview.sources')}</p>
                         <p className="text-[var(--text-sm)] font-bold text-[var(--text-primary)] tabular-nums">{src.sources}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">Quality</p>
+                        <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">{t('measured.overview.quality')}</p>
                         <p className="text-[var(--text-sm)] font-bold text-[var(--accent-green)]">{src.quality}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">Frequency</p>
-                        <p className="text-[var(--text-sm)] font-bold text-[var(--text-primary)]">{src.frequency}</p>
+                        <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">{t('measured.overview.frequency')}</p>
+                        <p className="text-[var(--text-sm)] font-bold text-[var(--text-primary)]">{t(`measured.frequency.${src.frequency}`)}</p>
                       </div>
                     </div>
                   </div>
@@ -261,7 +264,7 @@ function OverviewTab() {
 
       {/* ── Processing pipeline ── */}
       <div>
-        <h2 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)] mb-3">Processing Pipeline</h2>
+        <h2 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)] mb-3">{t('measured.overview.processingPipeline')}</h2>
         <Card padding="lg">
           <div className="flex items-center gap-0">
             {/* Source input */}
@@ -269,7 +272,7 @@ function OverviewTab() {
               <div className="w-12 h-12 rounded-xl bg-[var(--bg-tertiary)] border border-[var(--border-default)] flex items-center justify-center mx-auto">
                 <Database className="w-5 h-5 text-[var(--text-tertiary)]" />
               </div>
-              <p className="text-[10px] font-semibold text-[var(--text-tertiary)] mt-2">4 Sources</p>
+              <p className="text-[10px] font-semibold text-[var(--text-tertiary)] mt-2">{t('measured.overview.sourcesCount', { count: 4 })}</p>
             </div>
 
             <div className="flex items-center px-2 flex-shrink-0">
@@ -285,8 +288,8 @@ function OverviewTab() {
                     <div className="w-12 h-12 rounded-xl bg-[var(--accent-blue-light)] border border-blue-100 flex items-center justify-center mx-auto">
                       <Icon className="w-5 h-5 text-[var(--accent-blue)]" />
                     </div>
-                    <h4 className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)] mt-2">{stage.title}</h4>
-                    <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5 max-w-[140px] mx-auto">{stage.desc}</p>
+                    <h4 className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)] mt-2">{t(`measured.pipeline.${stage.id}.title`)}</h4>
+                    <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5 max-w-[140px] mx-auto">{t(`measured.pipeline.${stage.id}.desc`)}</p>
                   </div>
                   {i < MEASURED_PIPELINE.length - 1 && (
                     <div className="flex items-center px-1 flex-shrink-0">
@@ -316,7 +319,7 @@ function OverviewTab() {
                   >
                     <PathIcon className="w-4 h-4" style={{ color: path.accent }} />
                     <div>
-                      <p className="text-[10px] font-semibold text-[var(--text-primary)]">{path.title}</p>
+                      <p className="text-[10px] font-semibold text-[var(--text-primary)]">{t(`measured.paths.${path.id}.title`)}</p>
                       <p className="text-[9px] text-[var(--text-tertiary)]">{path.pct}%</p>
                     </div>
                   </div>
@@ -333,7 +336,7 @@ function OverviewTab() {
               <div className="w-12 h-12 rounded-xl bg-[var(--accent-green-light)] border border-green-100 flex items-center justify-center mx-auto">
                 <Database className="w-5 h-5 text-[var(--accent-green)]" />
               </div>
-              <p className="text-[10px] font-semibold text-[var(--accent-green)] mt-2">Repository</p>
+              <p className="text-[10px] font-semibold text-[var(--accent-green)] mt-2">{t('measured.overview.repository')}</p>
             </div>
           </div>
         </Card>
@@ -347,6 +350,7 @@ function OverviewTab() {
    Processing Paths tab
    ═══════════════════════════════════ */
 function ProcessingPathsTab() {
+  const { t } = useTranslation()
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Path cards */}
@@ -370,21 +374,21 @@ function ProcessingPathsTab() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-[var(--text-base)] font-bold text-[var(--text-primary)]">{path.title}</h3>
-                    <Badge variant={path.color}>{path.subtitle}</Badge>
+                    <h3 className="text-[var(--text-base)] font-bold text-[var(--text-primary)]">{t(`measured.paths.${path.id}.title`)}</h3>
+                    <Badge variant={path.color}>{t(`measured.paths.${path.id}.subtitle`)}</Badge>
                   </div>
-                  <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-1 leading-relaxed">{path.desc}</p>
+                  <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-1 leading-relaxed">{t(`measured.paths.${path.id}.desc`)}</p>
                 </div>
               </div>
 
               <div className="flex items-center gap-4 mt-5 pt-4 border-t border-[var(--border-subtle)]">
                 <div className="flex-1">
-                  <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">Records</p>
+                  <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider">{t('measured.processing.records')}</p>
                   <p className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tabular-nums">{path.records}</p>
                 </div>
                 <div className="w-24">
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] text-[var(--text-tertiary)]">Share</span>
+                    <span className="text-[10px] text-[var(--text-tertiary)]">{t('measured.processing.share')}</span>
                     <span className="text-[var(--text-xs)] font-bold tabular-nums" style={{ color: path.accent }}>{path.pct}%</span>
                   </div>
                   <div className="w-full h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
@@ -405,25 +409,25 @@ function ProcessingPathsTab() {
 
       {/* Detailed routing table */}
       <Card>
-        <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mb-4">Source-to-Path Routing</h3>
+        <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mb-4">{t('measured.processing.routingTitle')}</h3>
         <div className="space-y-2">
           {[
-            { source: 'CEMS — Stack Monitors', path: 'Direct', reason: 'Direct GHG measurement, no calculation needed', records: '4.2M', color: 'teal' as const },
-            { source: 'Utility Meters — Electricity', path: 'Hybrid', reason: 'kWh measured, needs grid EF application', records: '620K', color: 'amber' as const },
-            { source: 'Utility Meters — Natural Gas', path: 'Direct', reason: 'Volume + composition known, direct CO2e', records: '272K', color: 'teal' as const },
-            { source: '3rd-Party Verified Totals', path: 'Direct', reason: 'Certified tCO2e values bypass calculation', records: '156K', color: 'teal' as const },
-            { source: 'Lab — Fuel Analysis', path: 'Hybrid', reason: 'Composition data routes to combustion calc', records: '1,847', color: 'amber' as const },
-            { source: 'Lab — Process Samples', path: 'Hybrid', reason: 'Material balance → process emission calc', records: '1,000', color: 'amber' as const },
+            { id: 'cems', source: 'CEMS — Stack Monitors', path: 'direct', reason: 'Direct GHG measurement, no calculation needed', records: '4.2M', color: 'teal' as const },
+            { id: 'electricity', source: 'Utility Meters — Electricity', path: 'hybrid', reason: 'kWh measured, needs grid EF application', records: '620K', color: 'amber' as const },
+            { id: 'gas', source: 'Utility Meters — Natural Gas', path: 'direct', reason: 'Volume + composition known, direct CO2e', records: '272K', color: 'teal' as const },
+            { id: 'verified', source: '3rd-Party Verified Totals', path: 'direct', reason: 'Certified tCO2e values bypass calculation', records: '156K', color: 'teal' as const },
+            { id: 'fuel', source: 'Lab — Fuel Analysis', path: 'hybrid', reason: 'Composition data routes to combustion calc', records: '1,847', color: 'amber' as const },
+            { id: 'process', source: 'Lab — Process Samples', path: 'hybrid', reason: 'Material balance → process emission calc', records: '1,000', color: 'amber' as const },
           ].map((row) => (
             <div
               key={row.source}
               className="flex items-center gap-4 p-3 rounded-lg border border-[var(--border-subtle)] hover:bg-[var(--bg-hover)] transition-colors"
             >
               <div className="flex-1 min-w-0">
-                <span className="text-[var(--text-sm)] font-medium text-[var(--text-primary)]">{row.source}</span>
-                <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5">{row.reason}</p>
+                <span className="text-[var(--text-sm)] font-medium text-[var(--text-primary)]">{t(`measured.processing.routing.${row.id}.source`)}</span>
+                <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5">{t(`measured.processing.routing.${row.id}.reason`)}</p>
               </div>
-              <Badge variant={row.color}>{row.path}</Badge>
+              <Badge variant={row.color}>{t(`measured.processing.${row.path}`)}</Badge>
               <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] tabular-nums w-16 text-right">{row.records}</span>
             </div>
           ))}
@@ -438,14 +442,15 @@ function ProcessingPathsTab() {
    Reconciliation tab
    ═══════════════════════════════════ */
 function ReconciliationTab() {
+  const { t } = useTranslation()
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Reconciliation overview */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Active Rules', value: '5', icon: GitMerge, accent: 'var(--accent-teal)' },
-          { label: 'Matches Applied', value: '652', icon: CheckCircle2, accent: 'var(--accent-green)' },
-          { label: 'Conflicts Flagged', value: '18', icon: AlertTriangle, accent: 'var(--accent-amber)' },
+          { id: 'activeRules', label: 'Active Rules', value: '5', icon: GitMerge, accent: 'var(--accent-teal)' },
+          { id: 'matchesApplied', label: 'Matches Applied', value: '652', icon: CheckCircle2, accent: 'var(--accent-green)' },
+          { id: 'conflictsFlagged', label: 'Conflicts Flagged', value: '18', icon: AlertTriangle, accent: 'var(--accent-amber)' },
         ].map((stat) => {
           const Icon = stat.icon
           return (
@@ -461,7 +466,7 @@ function ReconciliationTab() {
                   <Icon className="w-5 h-5" style={{ color: stat.accent }} />
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">{stat.label}</p>
+                  <p className="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">{t(`measured.reconciliation.${stat.id}`)}</p>
                   <p className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tabular-nums">{stat.value}</p>
                 </div>
               </div>
@@ -473,8 +478,8 @@ function ReconciliationTab() {
       {/* Reconciliation rules */}
       <Card>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">Aggregator Reconciliation Rules</h3>
-          <Badge variant="teal" dot>Auto-applied</Badge>
+          <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('measured.reconciliation.rulesTitle')}</h3>
+          <Badge variant="teal" dot>{t('measured.reconciliation.autoApplied')}</Badge>
         </div>
         <div className="space-y-2">
           {RECON_RULES.map((rule) => (
@@ -494,10 +499,10 @@ function ReconciliationTab() {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-[var(--text-sm)] font-medium text-[var(--text-primary)]">{rule.rule}</span>
+                <span className="text-[var(--text-sm)] font-medium text-[var(--text-primary)]">{t(`measured.rules.${rule.id}`)}</span>
               </div>
               <Badge variant={rule.status === 'active' ? 'green' : 'amber'} dot>
-                {rule.status === 'active' ? 'Active' : 'Review'}
+                {rule.status === 'active' ? t('measured.reconciliation.active') : t('measured.reconciliation.review')}
               </Badge>
               <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] tabular-nums w-12 text-right">{rule.matches}</span>
             </div>
@@ -507,7 +512,7 @@ function ReconciliationTab() {
 
       {/* How it works */}
       <Card className="bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
-        <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mb-3">How Reconciliation Works</h3>
+        <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mb-3">{t('measured.reconciliation.howTitle')}</h3>
         <div className="flex items-center gap-4">
           {[
             { step: 1, label: 'Measured + calculated data enters aggregator', icon: Database },
@@ -522,8 +527,8 @@ function ReconciliationTab() {
                   <div className="w-10 h-10 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-default)] flex items-center justify-center mx-auto shadow-[var(--shadow-xs)]">
                     <Icon className="w-4 h-4 text-[var(--text-secondary)]" />
                   </div>
-                  <p className="text-[10px] font-semibold text-[var(--text-primary)] mt-2">Step {step.step}</p>
-                  <p className="text-[9px] text-[var(--text-tertiary)] mt-0.5 max-w-[120px] mx-auto leading-relaxed">{step.label}</p>
+                  <p className="text-[10px] font-semibold text-[var(--text-primary)] mt-2">{t('measured.reconciliation.step', { n: step.step })}</p>
+                  <p className="text-[9px] text-[var(--text-tertiary)] mt-0.5 max-w-[120px] mx-auto leading-relaxed">{t(`measured.reconciliation.steps.${step.step}`)}</p>
                 </div>
                 {i < 3 && (
                   <ChevronRight className="w-4 h-4 text-[var(--text-tertiary)] flex-shrink-0" />

@@ -1,5 +1,6 @@
 import type { QuestionAssignment } from '../../lib/orgStore'
 import type { NexusQuestionnaireItem } from '../../lib/api'
+import type { TFunction } from 'i18next'
 
 export type FilterState = 'all' | 'overdue' | 'pending' | 'in_progress' | 'submitted' | 'approved'
 export type ViewMode = 'list' | 'board' | 'calendar'
@@ -25,19 +26,25 @@ export function daysUntilDue(due_date: string | null): number | null {
   return Math.ceil(ms / (1000 * 60 * 60 * 24))
 }
 
-/** Human, plain-English deadline label. */
-export function deadlineLabel(due_date: string | null, status: string): string {
-  if (!due_date) return 'No deadline'
+/** Locale for Intl date formatting: zh → 'zh-CN', otherwise the browser default. */
+export function dateLocale(language: string | undefined): string | undefined {
+  return language?.startsWith('zh') ? 'zh-CN' : undefined
+}
+
+/** Human, plain-language deadline label (translated via `t`). */
+export function deadlineLabel(due_date: string | null, status: string, t: TFunction, language?: string): string {
+  if (!due_date) return t('workflowStatus.deadline.none')
   const closed = status === 'approved' || status === 'submitted' || status === 'reviewed'
   const d = daysUntilDue(due_date)
-  if (d == null) return 'No deadline'
-  if (closed) return new Date(due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-  if (d < 0) return `Overdue ${Math.abs(d)} day${Math.abs(d) === 1 ? '' : 's'}`
-  if (d === 0) return 'Due today'
-  if (d === 1) return 'Due tomorrow'
-  if (d <= 7) return `Due in ${d} days`
-  if (d <= 30) return `Due in ${Math.ceil(d / 7)} weeks`
-  return new Date(due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  if (d == null) return t('workflowStatus.deadline.none')
+  const locale = dateLocale(language)
+  if (closed) return new Date(due_date).toLocaleDateString(locale, { month: 'short', day: 'numeric' })
+  if (d < 0) return t('workflowStatus.deadline.overdueDays', { count: Math.abs(d) })
+  if (d === 0) return t('workflowStatus.deadline.today')
+  if (d === 1) return t('workflowStatus.deadline.tomorrow')
+  if (d <= 7) return t('workflowStatus.deadline.inDays', { count: d })
+  if (d <= 30) return t('workflowStatus.deadline.inWeeks', { count: Math.ceil(d / 7) })
+  return new Date(due_date).toLocaleDateString(locale, { month: 'short', day: 'numeric' })
 }
 
 /** Group bucket key for the date-grouped list. */
@@ -54,26 +61,27 @@ export function groupKeyFor(a: QuestionAssignment): DateGroupKey {
   return 'later'
 }
 
+/** i18n keys for each group bucket — resolve with `t(GROUP_LABELS[k])`. */
 export const GROUP_LABELS: Record<DateGroupKey, string> = {
-  overdue: 'Overdue',
-  today: 'Due today',
-  week: 'This week',
-  month: 'This month',
-  later: 'Later',
-  none: 'No deadline',
+  overdue: 'tasks.group.overdue',
+  today: 'tasks.group.today',
+  week: 'tasks.group.week',
+  month: 'tasks.group.month',
+  later: 'tasks.group.later',
+  none: 'tasks.group.none',
 }
 
 export const GROUP_ORDER: DateGroupKey[] = ['overdue', 'today', 'week', 'month', 'later', 'none']
 
-/** Status columns for the Board view. */
+/** Status columns for the Board view. `label` is an i18n key — resolve with `t(label)`. */
 export type BoardColumnKey = 'not_started' | 'in_progress' | 'submitted' | 'approved' | 'rejected'
 
 export const BOARD_COLUMNS: { key: BoardColumnKey; label: string }[] = [
-  { key: 'not_started', label: 'Not started' },
-  { key: 'in_progress', label: 'In progress' },
-  { key: 'submitted', label: 'Submitted' },
-  { key: 'approved', label: 'Approved' },
-  { key: 'rejected', label: 'Rejected' },
+  { key: 'not_started', label: 'workflowStatus.status.not_started' },
+  { key: 'in_progress', label: 'workflowStatus.status.in_progress' },
+  { key: 'submitted', label: 'workflowStatus.status.submitted' },
+  { key: 'approved', label: 'workflowStatus.status.approved' },
+  { key: 'rejected', label: 'workflowStatus.status.rejected' },
 ]
 
 /** Build a minimal NexusQuestionnaireItem from an assignment. */
@@ -85,6 +93,7 @@ export function synthesizeQuestion(a: QuestionAssignment): NexusQuestionnaireIte
     subsection: 'Emissions',
     gri_code: a.gri_code,
     line_item: a.line_item,
+    line_item_zh: a.line_item_zh ?? null,
     unit: a.unit ?? null,
     scope_split: a.gri_code.startsWith('305-1') ? 'Scope 1'
       : a.gri_code.startsWith('305-2') ? 'Scope 2'

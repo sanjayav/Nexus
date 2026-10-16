@@ -17,6 +17,7 @@
     "patch-roles": "tsx scripts/patch-roles.ts",
     "seed-org": "tsx scripts/seed-org.ts",
     "seed-client": "tsx scripts/seed-client-demo.ts",
+    "seed-cn": "tsx scripts/seed-cn-demo.ts",
     "seed-all": "tsx scripts/seed-all.ts",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",

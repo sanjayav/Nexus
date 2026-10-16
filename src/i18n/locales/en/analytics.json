@@ -1,0 +1,121 @@
+{
+  "header": {
+    "eyebrow": "Analytics",
+    "title": "Signals across your data",
+    "subtitle": "Data quality, variance, target gap, plant performance, materiality coverage — computed live from your approved figures and the historical baseline."
+  },
+  "dqi": {
+    "kicker": "Quality",
+    "title": "Data Quality Index",
+    "subtitle": "Weighted composite score (0–100) across completeness, timeliness, evidence, rework, and variance.",
+    "emptyTitle": "DQI is empty",
+    "emptyBody": "Your Data Quality Index lights up once approved assignments start coming in. Head to My tasks to file the first one.",
+    "emptyCta": "Open my tasks",
+    "ring": {
+      "strong": "Strong",
+      "improving": "Improving",
+      "needsWork": "Needs work",
+      "composite": "composite · 0–100"
+    },
+    "components": {
+      "completeness": {
+        "label": "Completeness",
+        "hint": "{{approved}}/{{total}} approved"
+      },
+      "timeliness": {
+        "label": "On-time",
+        "hint": "{{onTime}}/{{dueEligible}} met deadline"
+      },
+      "evidence": {
+        "label": "Evidence",
+        "hint": "{{withEvidence}}/{{needsEvidence}} attached"
+      },
+      "rework": {
+        "label": "Low rework",
+        "hint": "{{rejected}} rejected"
+      },
+      "variance": {
+        "label": "Variance pass",
+        "hint": "{{variancePass}}/{{approvedNum}} within ±20% YoY"
+      }
+    }
+  },
+  "pathway": {
+    "kicker": "Pathway",
+    "title": "Climate target & emissions decomposition",
+    "subtitle": "Where you are vs. where you committed to be, and which plants drive the total."
+  },
+  "variance": {
+    "kicker": "Variance",
+    "title": "Year-over-year investigator",
+    "subtitle": "Approved numeric figures vs. most recent historical baseline — sorted by absolute change.",
+    "empty": "No approved numeric assignments to compare yet.",
+    "columns": {
+      "disclosure": "Disclosure",
+      "prior": "Prior",
+      "current": "Current",
+      "delta": "Δ vs prior",
+      "assessment": "Assessment"
+    },
+    "fy": "FY{{year}}",
+    "flags": {
+      "ok": "In range",
+      "watch": "Watch",
+      "warn": "Investigate",
+      "noBaseline": "No prior year"
+    }
+  },
+  "performance": {
+    "kicker": "Performance",
+    "title": "Plant scorecards & topic coverage",
+    "subtitle": "Who's leading, where gaps sit, and whether your material topics are being reported."
+  },
+  "target": {
+    "emptyTitle": "Target gap analysis",
+    "emptyBody": "No climate target set. Commit to an SBTi target in Settings to see gap-to-pathway analysis here.",
+    "title": "Target gap",
+    "onPathway": "On pathway",
+    "behindPathway": "Behind pathway",
+    "series": {
+      "pathway": "Pathway",
+      "actual": "Actual",
+      "target": "Target"
+    },
+    "stats": {
+      "currentGap": "Current gap",
+      "requiredAbatement": "Required annual abatement",
+      "yearsToTarget": "Years to target"
+    },
+    "perYear": "{{unit}}/yr",
+    "behindWarning": "Currently {{gap}} above the linear pathway. Need to abate {{abatement}} {{unit}} per year to close the gap.",
+    "manageLink": "Manage target + scope coverage →"
+  },
+  "emissions": {
+    "title": "Emissions by plant × scope",
+    "empty": "No approved GRI 305 figures yet. Once plants submit and you approve Scope 1/2/3 data, this decomposition populates.",
+    "scope1": "Scope 1",
+    "scope2": "Scope 2",
+    "scope3": "Scope 3"
+  },
+  "plant": {
+    "title": "Plant scorecard",
+    "rollup": "Rollup →",
+    "empty": "No plants yet. Add them via Onboarding.",
+    "columns": {
+      "plant": "Plant",
+      "score": "Score",
+      "complete": "Complete",
+      "reject": "Reject",
+      "overdue": "Overdue",
+      "days": "Days"
+    },
+    "daysValue": "{{days}}d"
+  },
+  "materiality": {
+    "title": "Material topic coverage",
+    "manage": "Manage →",
+    "empty": "No material topics declared yet. Run a GRI 3 materiality assessment.",
+    "unassigned_one": "{{count}} GRI code not yet assigned",
+    "unassigned_other": "{{count}} GRI codes not yet assigned"
+  }
+}

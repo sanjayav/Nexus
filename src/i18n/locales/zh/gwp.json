@@ -1,0 +1,89 @@
+{
+  "title": "GWP 值",
+  "subtitle": "全球变暖潜势（GWP）参考表，提供用于温室气体清单计算的 IPCC AR5 与 AR6 数值。",
+  "actions": {
+    "exportCsv": "导出 CSV",
+    "addGas": "新增气体"
+  },
+  "kpi": {
+    "totalGases": "气体总数",
+    "highGwp": "高 GWP（>1000）",
+    "kigali": "受基加利修正案管控",
+    "categories": "类别",
+    "highestGwp": "最高 GWP"
+  },
+  "tabs": {
+    "all": "全部气体",
+    "common": "常见温室气体",
+    "hfc": "HFC 类",
+    "pfc": "PFC 类",
+    "blends": "混合制冷剂",
+    "natural": "天然制冷剂"
+  },
+  "categories": {
+    "commonGhg": "常见温室气体",
+    "hfc": "HFC",
+    "pfc": "PFC",
+    "fluorinated": "含氟气体",
+    "refrigerantBlend": "混合制冷剂",
+    "naturalRefrigerant": "天然制冷剂"
+  },
+  "searchPlaceholder": "按名称、化学式或 CAS 号搜索……",
+  "allCategories": "全部类别",
+  "showingPrefix": "显示 ",
+  "showingSuffix": " / 共 {{total}} 种气体",
+  "horizonSuffix": "（{{horizon}}，{{ar}}）",
+  "table": {
+    "substance": "物质",
+    "formula": "化学式",
+    "cas": "CAS 号",
+    "category": "类别",
+    "lifetime": "寿命"
+  },
+  "commonBadge": "常见",
+  "copyGwp": "复制 GWP",
+  "ar5ToAr6Change": "AR5 → AR6 变化",
+  "na": "不适用",
+  "source": "来源",
+  "lifetime": {
+    "variable": "可变",
+    "days": "数天",
+    "years": "{{n}} 年",
+    "nDays": "{{n}} 天"
+  },
+  "notes": {
+    "gwp-002": "AR6 纳入了气候-碳循环反馈，并首次区分化石源与生物源甲烷。",
+    "gwp-003": "由于碳循环核算方式不同，生物源甲烷的 GWP 略低。",
+    "gwp-006": "用于 R-410A 混合制冷剂，是 R-22 的低 GWP 替代品。",
+    "gwp-008": "使用最广泛的汽车制冷剂，正根据《基加利修正案》逐步削减。",
+    "gwp-013": "大气寿命极长，是铝冶炼过程中产生的主要 PFC。",
+    "gwp-016": "已测气体中 GWP 最高，用于电气开关设备，适用含氟气体（F-gas）法规。",
+    "gwp-018": "HFC-125/143a/134a（44/52/4%）。常用于商业制冷，正在逐步削减。",
+    "gwp-019": "HFC-32/125（50/50%）。空调领域的标准制冷剂；R-32 是 GWP 更低的单一组分替代品。",
+    "gwp-022": "GWP 接近于零的天然制冷剂，可燃（A3 安全等级）。",
+    "gwp-024": "GWP 为零。有毒且可燃，但广泛用于工业制冷。"
+  },
+  "empty": "没有与搜索条件匹配的气体。",
+  "reference": {
+    "title": "GWP 参考说明",
+    "horizonTitle": "GWP-100 与 GWP-20",
+    "horizonDesc": "GWP-100 是温室气体清单的标准口径（GHG Protocol、CDP）。GWP-20 反映短期增温影响——甲烷在 20 年尺度上为 CO₂ 的 82.5 倍，在 100 年尺度上为 29.8 倍。",
+    "arTitle": "AR5 与 AR6",
+    "arDesc": "IPCC AR6（2021）更新了 GWP 数值。多数框架仍接受 AR5，但 CDP 2025+ 及 CSRD/ESRS 要求采用 AR6。请参阅相应框架指引。",
+    "kigaliTitle": "基加利修正案",
+    "kigaliDesc": "根据《蒙特利尔议定书》的《基加利修正案》，HFC 正在逐步削减。请报告 HFC 使用情况，用于合规跟踪和转型规划。"
+  },
+  "modal": {
+    "title": "新增温室气体",
+    "gasName": "气体名称",
+    "gasNamePlaceholder": "例如：HFC-32",
+    "formula": "化学式",
+    "formulaPlaceholder": "例如：CH₂F₂",
+    "cas": "CAS 号",
+    "casPlaceholder": "例如：75-10-5",
+    "category": "类别",
+    "lifetime": "大气寿命",
+    "lifetimePlaceholder": "例如：11.8 年",
+    "submit": "新增气体"
+  }
+}

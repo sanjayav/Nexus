@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export interface NexusBrandProps {
   size?: 'sm' | 'md' | 'lg' | 'xl'
@@ -49,6 +50,7 @@ export default function NexusBrand({
   showAttribution = true,
   variant = 'dark',
 }: NexusBrandProps) {
+  const { t } = useTranslation()
   const prefersReducedMotion = useReducedMotion()
   const shouldAnimate = animated && !prefersReducedMotion
   const dims = SIZES[size]
@@ -201,7 +203,7 @@ export default function NexusBrand({
         marginTop: 2,
       }}
     >
-      Sustainability Intelligence Platform
+      {t('components.brand.tagline')}
     </motion.span>
   ) : null
 

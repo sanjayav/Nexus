@@ -1,4 +1,5 @@
 import { Clock, PencilLine, Send, CheckCircle2, AlertTriangle, LayoutGrid } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import type { FilterState } from './shared'
 
 interface Stats {
@@ -22,17 +23,18 @@ interface StatsStripProps {
  * filter chip. Active tile gets a thicker border + brand-tinted background.
  */
 export default function StatsStrip({ stats, approvedThisWeek, filter, onChange }: StatsStripProps) {
+  const { t: tr } = useTranslation()
   const tiles: { key: FilterState; label: string; value: number; icon: typeof Clock; tone?: 'danger' }[] = [
-    { key: 'all',         label: 'Total',         value: stats.total,       icon: LayoutGrid },
-    { key: 'overdue',     label: 'Overdue',       value: stats.overdue,     icon: AlertTriangle, tone: 'danger' },
-    { key: 'pending',     label: 'Open',          value: stats.notStarted,  icon: Clock },
-    { key: 'in_progress', label: 'In progress',   value: stats.inProgress,  icon: PencilLine },
-    { key: 'submitted',   label: 'Submitted',     value: stats.submitted,   icon: Send },
-    { key: 'approved',    label: `Approved · 7d`, value: approvedThisWeek,  icon: CheckCircle2 },
+    { key: 'all',         label: tr('tasks.stats.total'),         value: stats.total,       icon: LayoutGrid },
+    { key: 'overdue',     label: tr('tasks.stats.overdue'),       value: stats.overdue,     icon: AlertTriangle, tone: 'danger' },
+    { key: 'pending',     label: tr('tasks.stats.open'),          value: stats.notStarted,  icon: Clock },
+    { key: 'in_progress', label: tr('tasks.stats.inProgress'),   value: stats.inProgress,  icon: PencilLine },
+    { key: 'submitted',   label: tr('tasks.stats.submitted'),     value: stats.submitted,   icon: Send },
+    { key: 'approved',    label: tr('tasks.stats.approved7d'), value: approvedThisWeek,  icon: CheckCircle2 },
   ]
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2" role="toolbar" aria-label="Filter by status">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2" role="toolbar" aria-label={tr('tasks.stats.filterAria')}>
       {tiles.map(t => {
         const active = filter === t.key
         const danger = t.tone === 'danger' && t.value > 0

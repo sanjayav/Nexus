@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 interface Column<T> {
   key: string
   label: string
@@ -21,8 +22,9 @@ export default function Table<T extends Record<string, any>>({
   keyField,
   onRowClick,
   className = '',
-  emptyMessage = 'No data',
+  emptyMessage,
 }: TableProps<T>) {
+  const { t } = useTranslation()
   const alignClass = (align?: string) =>
     align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'
 
@@ -49,7 +51,7 @@ export default function Table<T extends Record<string, any>>({
           {data.length === 0 ? (
             <tr>
               <td colSpan={columns.length} className="px-4 py-12 text-center text-[var(--text-tertiary)] text-[var(--text-sm)]">
-                {emptyMessage}
+                {emptyMessage ?? t('ui.noData')}
               </td>
             </tr>
           ) : (

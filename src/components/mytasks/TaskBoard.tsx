@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
   useDraggable, useDroppable,
@@ -7,6 +8,7 @@ import {
 import { Calendar, Factory, GripVertical } from 'lucide-react'
 import type { QuestionAssignment, OrgEntity } from '../../lib/orgStore'
 import { getFramework } from '../../lib/frameworks'
+import { itemLabel } from '../../lib/itemLabel'
 import StatusPill from './StatusPill'
 import {
   BOARD_COLUMNS, type BoardColumnKey, isOverdue, deadlineLabel,
@@ -29,6 +31,7 @@ interface TaskBoardProps {
  *   3. onDragEnd: if dropped on a different column id, call onUpdate({ status }).
  */
 export default function TaskBoard({ assignments, entityById, onUpdate, onOpen }: TaskBoardProps) {
+  const { t } = useTranslation()
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
   const [activeId, setActiveId] = useState<string | null>(null)
 
@@ -67,7 +70,7 @@ export default function TaskBoard({ assignments, entityById, onUpdate, onOpen }:
           <BoardColumn
             key={col.key}
             columnKey={col.key}
-            label={col.label}
+            label={t(col.label)}
             items={col.items}
             entityById={entityById}
             onOpen={onOpen}
@@ -93,6 +96,7 @@ function BoardColumn({
   entityById: Map<string, OrgEntity>
   onOpen: (id: string) => void
 }) {
+  const { t } = useTranslation()
   const { setNodeRef, isOver } = useDroppable({ id: columnKey })
 
   return (
@@ -114,7 +118,7 @@ function BoardColumn({
         ))}
         {items.length === 0 && (
           <div className="text-[10px] text-[var(--text-tertiary)] text-center py-6 italic">
-            Drop tasks here
+            {t('tasks.board.dropHere')}
           </div>
         )}
       </div>
@@ -150,6 +154,7 @@ function BoardCard({
   dragHandle?: Record<string, any>
   onOpen?: (id: string) => void
 }) {
+  const { t, i18n } = useTranslation()
   const fw = getFramework(a.framework_id)
   const entity = entityById.get(a.entityId)
   const overdue = isOverdue(a)
@@ -167,7 +172,7 @@ function BoardCard({
           <button
             {...dragHandle}
             className="mt-0.5 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] cursor-grab active:cursor-grabbing flex-shrink-0"
-            aria-label="Drag to change status"
+            aria-label={t('tasks.board.dragAria')}
           >
             <GripVertical className="w-3.5 h-3.5" />
           </button>
@@ -189,11 +194,11 @@ function BoardCard({
             onClick={() => onOpen?.(a.id)}
             className="text-left text-[var(--text-sm)] font-semibold text-[var(--text-primary)] line-clamp-2 leading-snug hover:text-[var(--color-brand)] transition-colors"
           >
-            {a.line_item}
+            {itemLabel(a, i18n.language)}
           </button>
           <div className="flex items-center gap-2 mt-2 text-[10px] text-[var(--text-tertiary)] flex-wrap">
             <span className="inline-flex items-center gap-1 truncate max-w-[120px]">
-              <Factory className="w-3 h-3 flex-shrink-0" /> {entity?.name ?? 'Unknown'}
+              <Factory className="w-3 h-3 flex-shrink-0" /> {entity?.name ?? t('tasks.board.unknown')}
             </span>
             {a.due_date && (
               <span
@@ -201,7 +206,7 @@ function BoardCard({
                   overdue ? 'text-[var(--status-reject)] font-semibold' : ''
                 }`}
               >
-                <Calendar className="w-3 h-3" /> {deadlineLabel(a.due_date, a.status)}
+                <Calendar className="w-3 h-3" /> {deadlineLabel(a.due_date, a.status, t, i18n.language)}
               </span>
             )}
           </div>

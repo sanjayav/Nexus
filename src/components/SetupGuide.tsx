@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, Check, ArrowRight, Sparkles, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { orgStore, type OrgTarget, type MaterialTopic, type ReportingPeriod } from '../lib/orgStore'
 import { useOrgData } from '../lib/useOrgData'
 import { useAuth } from '../auth/AuthContext'
@@ -52,6 +53,7 @@ const STEPS: StepDef[] = [
 ]
 
 export default function SetupGuide({ collapsed }: { collapsed: boolean }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const { user } = useAuth()
   const { data: orgData } = useOrgData()
@@ -80,9 +82,9 @@ export default function SetupGuide({ collapsed }: { collapsed: boolean }) {
       orgStore.listMaterialTopics().catch(() => []),
       orgStore.listPeriods().catch(() => []),
       orgStore.listPublishedReports().catch(() => []),
-    ]).then(([t, m, p, r]) => {
+    ]).then(([tg, m, p, r]) => {
       if (cancelled) return
-      setTargets(t); setTopics(m); setPeriods(p); setPublishedCount(r.length)
+      setTargets(tg); setTopics(m); setPeriods(p); setPublishedCount(r.length)
     })
     return () => { cancelled = true }
   }, [isSetupOwner])
@@ -117,7 +119,7 @@ export default function SetupGuide({ collapsed }: { collapsed: boolean }) {
     return (
       <button
         onClick={() => navigate(nextStep?.route ?? '/onboarding')}
-        title={`Setup ${completed}/${total}`}
+        title={t('components.setupGuide.collapsedTitle', { completed, total })}
         className="mx-auto my-3 w-11 h-11 rounded-[10px] flex items-center justify-center relative group"
         style={{
           background: 'rgba(255,255,255,0.05)',
@@ -154,10 +156,10 @@ export default function SetupGuide({ collapsed }: { collapsed: boolean }) {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
               <Sparkles className="w-3 h-3 text-[#2fa98e]" />
-              <span className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-white/90">Setup guide</span>
+              <span className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-white/90">{t('components.setupGuide.title')}</span>
             </div>
             <div className="text-[11px] text-white/65 mt-0.5 truncate">
-              {completed} of {total} steps complete
+              {t('components.setupGuide.progress', { completed, total })}
             </div>
           </div>
           <ChevronDown className={`w-3.5 h-3.5 text-white/50 transition-transform flex-shrink-0 ${expanded ? 'rotate-180' : ''}`} />
@@ -171,7 +173,7 @@ export default function SetupGuide({ collapsed }: { collapsed: boolean }) {
             setDismissed(true)
           }}
           className="absolute top-1.5 right-1.5 w-5 h-5 rounded-[4px] flex items-center justify-center text-white/30 hover:text-white/80 hover:bg-white/10 transition-colors"
-          title="Dismiss — can be restored from Settings"
+          title={t('components.setupGuide.dismiss')}
         >
           <X className="w-3 h-3" />
         </button>
@@ -202,6 +204,7 @@ export default function SetupGuide({ collapsed }: { collapsed: boolean }) {
 }
 
 function StepRow({ step, isNext, index, onClick }: { step: StepDef & { done: boolean }; isNext: boolean; index: number; onClick: () => void }) {
+  const { t } = useTranslation()
   return (
     <motion.button
       initial={{ opacity: 0, x: -8 }}
@@ -230,10 +233,10 @@ function StepRow({ step, isNext, index, onClick }: { step: StepDef & { done: boo
       </span>
       <div className="flex-1 min-w-0">
         <div className={`text-[11.5px] font-semibold truncate ${step.done ? 'text-white/40 line-through' : isNext ? 'text-white/95' : 'text-white/75'}`}>
-          {step.title}
+          {t(`components.setupGuide.steps.${step.key}.title`, { defaultValue: step.title })}
         </div>
         {isNext && (
-          <div className="text-[10px] text-white/50 mt-0.5 truncate">{step.helper}</div>
+          <div className="text-[10px] text-white/50 mt-0.5 truncate">{t(`components.setupGuide.steps.${step.key}.helper`, { defaultValue: step.helper })}</div>
         )}
       </div>
       {isNext && !step.done && (

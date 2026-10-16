@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import Sidebar from '../design-system/components/Sidebar'
 import TopBar from '../design-system/components/TopBar'
 import PageTransition from './PageTransition'
@@ -25,6 +26,7 @@ const MobileNavContext = createContext<MobileNavCtx>({ isMobile: false, open: fa
 export const useMobileNav = () => useContext(MobileNavContext)
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [open, openPalette, closePalette] = useCommandPalette()
@@ -65,7 +67,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:px-3 focus:py-2 focus:rounded-md focus:bg-[var(--color-brand)] focus:text-white focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-white"
         >
-          Skip to main content
+          {t('shell.skipToContent')}
         </a>
         <div className="flex h-screen overflow-hidden bg-[var(--bg-app)]">
           {/* Desktop sidebar — always present at lg+. */}
@@ -102,6 +104,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
  * tabbing through the drawer doesn't leak to the page underneath.
  */
 function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation()
   const drawerRef = useRef<HTMLDivElement | null>(null)
   const lastFocusRef = useRef<HTMLElement | null>(null)
 
@@ -166,7 +169,7 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
             ref={drawerRef}
             role="dialog"
             aria-modal="true"
-            aria-label="Navigation menu"
+            aria-label={t('shell.navMenu')}
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}

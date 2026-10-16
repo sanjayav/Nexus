@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom'
+import { Trans, useTranslation } from 'react-i18next'
 import { ArrowRight, Calendar, CheckCircle2, Sparkles, SkipForward } from 'lucide-react'
 import type { QuestionAssignment } from '../../lib/orgStore'
 import { getFramework } from '../../lib/frameworks'
+import { itemLabel } from '../../lib/itemLabel'
 import { deadlineLabel, isOverdue, daysUntilDue } from './shared'
 
 interface FocusCardProps {
@@ -19,6 +21,7 @@ interface FocusCardProps {
  */
 export default function FocusCard({ focus, totalApproved, onSkip, onSeeApproved }: FocusCardProps) {
   const navigate = useNavigate()
+  const { t, i18n } = useTranslation()
 
   if (!focus) {
     return (
@@ -28,17 +31,21 @@ export default function FocusCard({ focus, totalApproved, onSkip, onSeeApproved 
             <CheckCircle2 className="w-5 h-5 text-[var(--status-ok)]" />
           </span>
           <div>
-            <div className="h-section text-[var(--text-primary)]">You're caught up.</div>
+            <div className="h-section text-[var(--text-primary)]">{t('tasks.focus.caughtUp')}</div>
             <p className="body text-[var(--text-secondary)] text-[var(--text-sm)] mt-0.5">
-              No open disclosures right now. {totalApproved > 0 && (
-                <>You have <strong className="tabular-nums text-[var(--text-primary)]">{totalApproved}</strong> approved this period.</>
+              {t('tasks.focus.noOpen')} {totalApproved > 0 && (
+                <Trans
+                  i18nKey="tasks.focus.approvedThisPeriod"
+                  values={{ count: totalApproved }}
+                  components={{ b: <strong className="tabular-nums text-[var(--text-primary)]" /> }}
+                />
               )}
             </p>
           </div>
         </div>
         {totalApproved > 0 && (
           <button onClick={onSeeApproved} className="btn-secondary inline-flex items-center gap-1.5 text-[var(--text-sm)]">
-            See approved history <ArrowRight className="w-3.5 h-3.5" />
+            {t('tasks.focus.seeApproved')} <ArrowRight className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
@@ -49,7 +56,8 @@ export default function FocusCard({ focus, totalApproved, onSkip, onSeeApproved 
   const overdue = isOverdue(focus)
   const d = daysUntilDue(focus.due_date)
   const dueSoon = !overdue && d != null && d <= 7
-  const preview = (focus.comment || focus.narrative_body || focus.line_item || '').slice(0, 140)
+  const label = itemLabel(focus, i18n.language)
+  const preview = (focus.comment || focus.narrative_body || label || '').slice(0, 140)
 
   const deadlineTone = overdue
     ? 'bg-[var(--accent-red-light)] text-[var(--status-reject)] border border-[var(--status-reject)]/30'
@@ -68,7 +76,7 @@ export default function FocusCard({ focus, totalApproved, onSkip, onSeeApproved 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
-              <Sparkles className="w-3 h-3" /> Up next
+              <Sparkles className="w-3 h-3" /> {t('tasks.focus.upNext')}
             </span>
             {fw && (
               <span
@@ -82,14 +90,14 @@ export default function FocusCard({ focus, totalApproved, onSkip, onSeeApproved 
             <span
               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold tabular-nums ${deadlineTone}`}
             >
-              <Calendar className="w-3 h-3" /> {deadlineLabel(focus.due_date, focus.status)}
+              <Calendar className="w-3 h-3" /> {deadlineLabel(focus.due_date, focus.status, t, i18n.language)}
             </span>
           </div>
 
           <h2 className="h-section text-[var(--text-primary)] leading-snug">
-            {focus.line_item}
+            {label}
           </h2>
-          {preview && preview !== focus.line_item && (
+          {preview && preview !== label && (
             <p className="body text-[var(--text-secondary)] text-[var(--text-sm)] mt-1.5 line-clamp-2 max-w-2xl">
               {preview}
             </p>
@@ -100,15 +108,15 @@ export default function FocusCard({ focus, totalApproved, onSkip, onSeeApproved 
           <button
             onClick={onSkip}
             className="btn-secondary inline-flex items-center gap-1.5 text-[var(--text-sm)]"
-            aria-label="Skip this task for now"
+            aria-label={t('tasks.focus.skipAria')}
           >
-            <SkipForward className="w-3.5 h-3.5" /> Skip for now
+            <SkipForward className="w-3.5 h-3.5" /> {t('tasks.focus.skip')}
           </button>
           <button
             onClick={() => navigate(`/data/entry/${focus.questionId}`)}
             className="btn-primary inline-flex items-center gap-1.5 text-[var(--text-sm)]"
           >
-            Open <ArrowRight className="w-3.5 h-3.5" />
+            {t('tasks.focus.open')} <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>

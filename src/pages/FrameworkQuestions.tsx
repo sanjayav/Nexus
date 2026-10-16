@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import {
   ChevronDown,
   ChevronRight,
@@ -38,19 +40,21 @@ const frameworkTabs: { id: FrameworkTab; label: string }[] = [
   { id: 'csrd', label: 'CSRD' },
 ]
 
+/** `label` is an i18n key. */
 const statusOptions: { value: StatusFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'in-review', label: 'In Review' },
-  { value: 'approved', label: 'Approved' },
+  { value: 'all', label: 'common.all' },
+  { value: 'draft', label: 'frameworkQuestions.status.draft' },
+  { value: 'in-review', label: 'frameworkQuestions.status.inReview' },
+  { value: 'approved', label: 'frameworkQuestions.status.approved' },
 ]
 
+/** `label` is an i18n key. */
 const roleOptions: { value: RoleFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'site-owner', label: 'Site Owner' },
-  { value: 'facility-manager', label: 'Facility Manager' },
-  { value: 'team-lead', label: 'Team Lead' },
-  { value: 'auto', label: 'Auto' },
+  { value: 'all', label: 'common.all' },
+  { value: 'site-owner', label: 'workflowStatus.role.siteOwner' },
+  { value: 'facility-manager', label: 'workflowStatus.role.facilityManager' },
+  { value: 'team-lead', label: 'workflowStatus.role.teamLead' },
+  { value: 'auto', label: 'workflowStatus.role.AUTO' },
 ]
 
 function roleBadgeClasses(role: string) {
@@ -68,12 +72,12 @@ function roleBadgeClasses(role: string) {
   }
 }
 
-function roleLabel(role: string) {
+function roleLabel(role: string, t: TFunction) {
   switch (role) {
-    case 'site-owner': return 'Site Owner'
-    case 'facility-manager': return 'Facility Mgr'
-    case 'team-lead': return 'Team Lead'
-    case 'auto': return 'Auto'
+    case 'site-owner': return t('workflowStatus.role.siteOwner')
+    case 'facility-manager': return t('frameworkQuestions.role.facilityMgr')
+    case 'team-lead': return t('workflowStatus.role.teamLead')
+    case 'auto': return t('workflowStatus.role.AUTO')
     default: return role
   }
 }
@@ -91,11 +95,11 @@ function statusBadgeClasses(status: string) {
   }
 }
 
-function statusLabel(status: string) {
+function statusLabel(status: string, t: TFunction) {
   switch (status) {
-    case 'draft': return 'Draft'
-    case 'in-review': return 'In Review'
-    case 'approved': return 'Approved'
+    case 'draft': return t('frameworkQuestions.status.draft')
+    case 'in-review': return t('frameworkQuestions.status.inReview')
+    case 'approved': return t('frameworkQuestions.status.approved')
     default: return status
   }
 }
@@ -108,6 +112,7 @@ function StatusIcon({ status }: { status: string }) {
 
 export default function FrameworkQuestions() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<FrameworkTab>('cdp')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
@@ -151,7 +156,7 @@ export default function FrameworkQuestions() {
 
   function handleSubmitForReview(questionId: string) {
     setSubmittedIds((prev) => new Set(prev).add(questionId))
-    setToastMessage('Question submitted for review')
+    setToastMessage(t('frameworkQuestions.toastSubmitted'))
     setTimeout(() => setToastMessage(null), 2500)
   }
 
@@ -169,11 +174,11 @@ export default function FrameworkQuestions() {
     <div className="page-container space-y-6">
       <PageHeader
         breadcrumbs={[
-          { label: 'Reports', to: '/reports' },
-          { label: 'Framework questions' },
+          { label: t('frameworkQuestions.crumbReports'), to: '/reports' },
+          { label: t('frameworkQuestions.crumbSelf') },
         ]}
-        title="Framework Questions"
-        description="Regulatory framework questionnaires with role-based assignment. Manage CDP, TCFD, GRI, and CSRD disclosures from a unified workspace."
+        title={t('frameworkQuestions.title')}
+        description={t('frameworkQuestions.description')}
       />
 
       {/* Framework Tab Selector */}
@@ -203,23 +208,23 @@ export default function FrameworkQuestions() {
           <FileText className="w-5 h-5 text-accent-400" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-white">Open in editor</div>
+          <div className="text-sm font-semibold text-white">{t('frameworkQuestions.openInEditor')}</div>
           <p className="text-xs text-dark-300 mt-0.5">
-            Edit, review and publish {frameworkTabs.find(t => t.id === activeTab)?.label} disclosures in one document-centric workspace — left tree, middle document, right detail rail.
+            {t('frameworkQuestions.editorCta', { framework: frameworkTabs.find(tab => tab.id === activeTab)?.label })}
           </p>
         </div>
         <span className="inline-flex items-center gap-1 px-3 h-8 rounded-lg bg-accent-500 text-white text-xs font-semibold group-hover:bg-accent-600 transition-colors">
-          Open <ArrowRight className="w-3.5 h-3.5" />
+          {t('frameworkQuestions.open')} <ArrowRight className="w-3.5 h-3.5" />
         </span>
       </button>
 
       {/* Summary Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Total Questions', value: totalCount, color: 'dark-300' },
-          { label: 'Approved', value: approvedCount, color: 'teal-400' },
-          { label: 'In Review', value: inReviewCount, color: 'blue-400' },
-          { label: 'Draft', value: draftCount, color: 'amber-400' },
+          { label: t('frameworkQuestions.stats.total'), value: totalCount, color: 'dark-300' },
+          { label: t('frameworkQuestions.status.approved'), value: approvedCount, color: 'teal-400' },
+          { label: t('frameworkQuestions.status.inReview'), value: inReviewCount, color: 'blue-400' },
+          { label: t('frameworkQuestions.status.draft'), value: draftCount, color: 'amber-400' },
         ].map((stat) => (
           <div key={stat.label} className="bg-dark-800 rounded-2xl border border-dark-600 shadow-card p-4">
             <p className="text-xs font-semibold text-dark-400 uppercase tracking-wider">{stat.label}</p>
@@ -232,10 +237,10 @@ export default function FrameworkQuestions() {
       <div className="bg-dark-800 rounded-2xl border border-dark-600 shadow-card p-4 flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2 text-dark-400">
           <Filter className="w-4 h-4" />
-          <span className="text-xs font-semibold uppercase tracking-wider">Filters</span>
+          <span className="text-xs font-semibold uppercase tracking-wider">{t('frameworkQuestions.filters')}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-dark-400">Status:</span>
+          <span className="text-xs text-dark-400">{t('frameworkQuestions.statusLabel')}</span>
           {statusOptions.map((opt) => (
             <button
               key={opt.value}
@@ -246,12 +251,12 @@ export default function FrameworkQuestions() {
                   : 'bg-dark-700 text-dark-300 border border-dark-600 hover:bg-dark-600'
               }`}
             >
-              {opt.label}
+              {t(opt.label)}
             </button>
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-dark-400">Role:</span>
+          <span className="text-xs text-dark-400">{t('frameworkQuestions.roleLabel')}</span>
           {roleOptions.map((opt) => (
             <button
               key={opt.value}
@@ -262,7 +267,7 @@ export default function FrameworkQuestions() {
                   : 'bg-dark-700 text-dark-300 border border-dark-600 hover:bg-dark-600'
               }`}
             >
-              {opt.label}
+              {t(opt.label)}
             </button>
           ))}
         </div>
@@ -292,7 +297,7 @@ export default function FrameworkQuestions() {
                     <h3 className="text-sm font-heading font-semibold text-white">
                       {getSectionDisplayName(sectionId, sectionName)}
                     </h3>
-                    <span className="text-xs text-dark-400">{questions.length} question{questions.length !== 1 ? 's' : ''}</span>
+                    <span className="text-xs text-dark-400">{t('frameworkQuestions.questionCount', { count: questions.length })}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">
@@ -341,14 +346,14 @@ export default function FrameworkQuestions() {
                           {q.autoPopulated && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-teal-500/15 text-teal-400 border border-teal-500/20">
                               <Zap className="w-2.5 h-2.5" />
-                              Auto
+                              {t('workflowStatus.role.AUTO')}
                             </span>
                           )}
 
                           {/* Role badge */}
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold ${roleBadgeClasses(q.assignedRole)}`}>
                             {q.assignedRole === 'auto' ? <Zap className="w-2.5 h-2.5" /> : <User className="w-2.5 h-2.5" />}
-                            {roleLabel(q.assignedRole)}
+                            {roleLabel(q.assignedRole, t)}
                           </span>
 
                           {/* Assigned to */}
@@ -358,7 +363,7 @@ export default function FrameworkQuestions() {
 
                           {/* Status badge */}
                           <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${statusBadgeClasses(effectiveStatus)}`}>
-                            {statusLabel(effectiveStatus)}
+                            {statusLabel(effectiveStatus, t)}
                           </span>
 
                           {/* Submit for Review button (only for draft, not yet submitted) */}
@@ -367,7 +372,7 @@ export default function FrameworkQuestions() {
                               onClick={() => handleSubmitForReview(q.id)}
                               className="px-3 py-1 rounded-lg bg-accent-500 hover:bg-accent-600 text-white text-[10px] font-semibold transition-colors whitespace-nowrap"
                             >
-                              Submit for Review
+                              {t('frameworkQuestions.submitForReview')}
                             </button>
                           )}
                         </div>
@@ -382,7 +387,7 @@ export default function FrameworkQuestions() {
 
         {sectionMap.size === 0 && (
           <div className="bg-dark-800 rounded-2xl border border-dark-600 shadow-card p-12 text-center">
-            <p className="text-sm text-dark-400">No questions match the current filters.</p>
+            <p className="text-sm text-dark-400">{t('frameworkQuestions.noMatch')}</p>
           </div>
         )}
       </div>

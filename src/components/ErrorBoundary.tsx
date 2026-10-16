@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { AlertCircle, RotateCcw, Home } from 'lucide-react'
 import { captureError } from '../lib/sentry'
+import i18n from '../i18n'
 
 /**
  * Top-level error boundary. Catches any uncaught render error in the React
@@ -47,7 +48,8 @@ export default class ErrorBoundary extends Component<Props, State> {
   render() {
     if (!this.state.error) return this.props.children
 
-    const message = this.state.error.message || 'An unexpected error occurred'
+    const t = i18n.t.bind(i18n)
+    const message = this.state.error.message || t('components.errorBoundary.unexpected')
     const stack = import.meta.env.DEV ? this.state.error.stack : null
 
     return (
@@ -67,10 +69,10 @@ export default class ErrorBoundary extends Component<Props, State> {
             <AlertCircle className="w-6 h-6" />
           </div>
           <h1 className="font-display text-[22px] font-bold text-[var(--text-primary)] tracking-[-0.01em]">
-            Something went wrong
+            {t('common.error')}
           </h1>
           <p className="text-[13.5px] text-[var(--text-secondary)] mt-2 leading-relaxed">
-            The page hit an unexpected error. Your data is safe — try the action again, return home, or refresh.
+            {t('components.errorBoundary.body')}
           </p>
 
           <div className="mt-4 p-3 rounded-[8px] bg-[var(--bg-secondary)] border border-[var(--border-subtle)] font-mono text-[11.5px] text-[var(--text-secondary)] break-words">
@@ -80,7 +82,7 @@ export default class ErrorBoundary extends Component<Props, State> {
           {stack && (
             <details className="mt-3">
               <summary className="text-[11px] text-[var(--text-tertiary)] cursor-pointer hover:text-[var(--text-secondary)]">
-                Stack trace (dev only)
+                {t('components.errorBoundary.stack')}
               </summary>
               <pre className="mt-2 p-3 rounded-[8px] bg-[var(--bg-secondary)] border border-[var(--border-subtle)] font-mono text-[10.5px] text-[var(--text-tertiary)] overflow-auto max-h-[200px]">
                 {stack}
@@ -93,13 +95,13 @@ export default class ErrorBoundary extends Component<Props, State> {
               onClick={this.reset}
               className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[8px] bg-[var(--color-brand)] text-white text-[13px] font-semibold hover:bg-[var(--color-brand-strong)] active:scale-[0.98] transition-all cursor-pointer"
             >
-              <RotateCcw className="w-3.5 h-3.5" /> Try again
+              <RotateCcw className="w-3.5 h-3.5" /> {t('components.errorBoundary.tryAgain')}
             </button>
             <button
               onClick={this.goHome}
               className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-[13px] font-semibold hover:bg-[var(--bg-secondary)] transition-all cursor-pointer"
             >
-              <Home className="w-3.5 h-3.5" /> Go home
+              <Home className="w-3.5 h-3.5" /> {t('components.errorBoundary.goHome')}
             </button>
           </div>
         </div>

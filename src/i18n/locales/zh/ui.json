@@ -1,0 +1,11 @@
+{
+  "noData": "暂无数据",
+  "status": {
+    "draft": "草稿",
+    "pending": "待审核",
+    "in_progress": "进行中",
+    "approved": "已审批",
+    "overdue": "已逾期",
+    "returned": "已退回"
+  }
+}

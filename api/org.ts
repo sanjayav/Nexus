@@ -285,6 +285,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const rows = frameworkId
           ? await sql`
               SELECT gri_code, line_item,
+                MIN(to_jsonb(questionnaire_item) ->> 'line_item_zh') AS line_item_zh,
                 MIN(section) AS section,
                 MIN(subsection) AS subsection,
                 MIN(unit) AS unit,
@@ -303,6 +304,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             `
           : await sql`
               SELECT gri_code, line_item,
+                MIN(to_jsonb(questionnaire_item) ->> 'line_item_zh') AS line_item_zh,
                 MIN(section) AS section,
                 MIN(subsection) AS subsection,
                 MIN(unit) AS unit,
@@ -364,6 +366,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (view === 'assignments') {
         const rows = await sql`
           SELECT id, framework_id, questionnaire_item_id AS question_id, gri_code, line_item,
+                 (SELECT to_jsonb(qi) ->> 'line_item_zh' FROM questionnaire_item qi
+                   WHERE qi.id = question_assignments.questionnaire_item_id) AS line_item_zh,
                  unit, entity_id, assignee_email, assignee_name, assignee_user_id,
                  entry_modes, used_mode, due_date, status, value, comment, evidence_ids,
                  response_type, narrative_body, period_id, disclosure_position,
@@ -383,6 +387,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const rows = overdueOnly
           ? await sql`
               SELECT id, framework_id, questionnaire_item_id AS question_id, gri_code, line_item,
+                     (SELECT to_jsonb(qi) ->> 'line_item_zh' FROM questionnaire_item qi
+                       WHERE qi.id = question_assignments.questionnaire_item_id) AS line_item_zh,
                      unit, entity_id, assignee_email, assignee_name, assignee_user_id,
                      entry_modes, used_mode, due_date, status, value, comment, evidence_ids,
                      response_type, narrative_body, period_id, disclosure_position,
@@ -399,6 +405,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             `
           : await sql`
               SELECT id, framework_id, questionnaire_item_id AS question_id, gri_code, line_item,
+                     (SELECT to_jsonb(qi) ->> 'line_item_zh' FROM questionnaire_item qi
+                       WHERE qi.id = question_assignments.questionnaire_item_id) AS line_item_zh,
                      unit, entity_id, assignee_email, assignee_name, assignee_user_id,
                      entry_modes, used_mode, due_date, status, value, comment, evidence_ids,
                      response_type, narrative_body, period_id, disclosure_position,
@@ -424,11 +432,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // content index), we want one row per distinct (gri_code, line_item).
         // DISTINCT ON keeps the first UUID per pair so the frontend still has
         // a stable `id` to pass to add-assignment.
+        // line_item_zh (Simplified Chinese wording) is read via to_jsonb(row) so it
+        // is NULL — not an error — on a database where the column doesn't exist yet.
         const frameworkId = String(req.query.framework_id || 'gri')
         const rows = await sql`
           SELECT DISTINCT ON (gri_code, line_item)
                  id, section, subsection, gri_code, line_item, unit, scope_split,
-                 default_workflow_role, entry_mode_default, target_fy2026, footnote_refs, reporting_scope, framework_id
+                 default_workflow_role, entry_mode_default, target_fy2026, footnote_refs, reporting_scope, framework_id,
+                 to_jsonb(questionnaire_item) ->> 'line_item_zh' AS line_item_zh
           FROM questionnaire_item
           WHERE framework_id = ${frameworkId}
           ORDER BY gri_code, line_item, id
@@ -526,6 +537,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               MIN(subsection)      AS subsection,
               MIN(unit)            AS unit,
               MIN(reporting_scope) AS reporting_scope,
+              MIN(to_jsonb(questionnaire_item) ->> 'line_item_zh') AS line_item_zh,
               array_agg(id)        AS item_ids
             FROM questionnaire_item
             WHERE framework_id = ${frameworkId}
@@ -544,7 +556,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           )
           SELECT
             (s.gri_code || '|' || s.line_item) AS id,
-            s.gri_code, s.line_item, s.section, s.subsection, s.unit, s.reporting_scope,
+            s.gri_code, s.line_item, s.line_item_zh, s.section, s.subsection, s.unit, s.reporting_scope,
             COALESCE(a.total, 0)     AS total,
             COALESCE(a.approved, 0)  AS approved,
             COALESCE(a.in_review, 0) AS in_review,
@@ -675,10 +687,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Historical values are per-item and may be seeded across subsidiaries; we return the row set.
         const qiMeta = await sql`
           SELECT id, gri_code, line_item, unit, section, subsection, reporting_scope, target_fy2026,
-                 definition, calc_method, cadence, data_owner_role, reviewer_role, approver_role
+                 definition, calc_method, cadence, data_owner_role, reviewer_role, approver_role,
+                 to_jsonb(questionnaire_item) ->> 'line_item_zh' AS line_item_zh
           FROM questionnaire_item WHERE id = ${questionnaire_item_id}
         ` as Array<{
-          id: string; gri_code: string; line_item: string; unit: string | null;
+          id: string; gri_code: string; line_item: string; line_item_zh: string | null; unit: string | null;
           section: string | null; subsection: string | null; reporting_scope: string | null;
           target_fy2026: number | null;
           definition: string | null; calc_method: string | null; cadence: string | null;
@@ -1116,6 +1129,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
              ${JSON.stringify(entry_modes || ['Manual'])}::jsonb, ${due_date || null}, ${assigned_by || token.email},
              ${response_type || 'numeric'}, ${resolvedPeriodId})
           RETURNING id, framework_id, questionnaire_item_id AS question_id, gri_code, line_item,
+                    (SELECT to_jsonb(qi) ->> 'line_item_zh' FROM questionnaire_item qi
+                      WHERE qi.id = question_assignments.questionnaire_item_id) AS line_item_zh,
                     unit, entity_id, assignee_email, assignee_name, assignee_user_id,
                     entry_modes, used_mode, due_date, status, value, comment, evidence_ids,
                     response_type, narrative_body, period_id, disclosure_position,
@@ -1404,6 +1419,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const rows = await sql`
           SELECT id, framework_id, questionnaire_item_id AS question_id, gri_code, line_item,
+                 (SELECT to_jsonb(qi) ->> 'line_item_zh' FROM questionnaire_item qi
+                   WHERE qi.id = question_assignments.questionnaire_item_id) AS line_item_zh,
                  unit, entity_id, assignee_email, assignee_name, assignee_user_id,
                  entry_modes, used_mode, due_date, status, value, comment, evidence_ids,
                  response_type, narrative_body, period_id, disclosure_position,

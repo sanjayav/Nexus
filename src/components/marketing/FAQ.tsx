@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Plus, Minus } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 export interface FAQItem {
   q: string
@@ -15,7 +16,8 @@ interface FAQProps {
  * Accessible accordion. Uses native <button> semantics + aria-expanded for
  * screen readers. Single-open behaviour keeps the visual rhythm clean.
  */
-export default function FAQ({ items, heading = 'Frequently asked questions' }: FAQProps) {
+export default function FAQ({ items, heading }: FAQProps) {
+  const { t } = useTranslation()
   const [openIdx, setOpenIdx] = useState<number | null>(0)
 
   return (
@@ -28,7 +30,7 @@ export default function FAQ({ items, heading = 'Frequently asked questions' }: F
             color: 'var(--text-primary)',
           }}
         >
-          {heading}
+          {heading ?? t('marketing.faq.heading')}
         </h2>
 
         <div className="divide-y" style={{ borderTop: '1px solid var(--border-default)', borderBottom: '1px solid var(--border-default)' }}>

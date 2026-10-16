@@ -4,7 +4,9 @@ import {
   BookOpen, Search, Filter, Calendar, User as UserIcon, ShieldCheck, Award,
   ChevronDown, ChevronRight, Clock, Scale, FileText, Ruler, Calculator as CalcIcon,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { orgStore, type DisclosureStandard } from '../lib/orgStore'
+import { itemLabel } from '../lib/itemLabel'
 import { useFramework, FRAMEWORKS } from '../lib/frameworks'
 import PageHeader from '../components/PageHeader'
 import SectionHeader from '../design-system/components/SectionHeader'
@@ -38,6 +40,7 @@ const ROLE_LABEL: Record<string, string> = {
 }
 
 export default function DataStandard() {
+  const { t } = useTranslation()
   const { active: framework, setActive } = useFramework()
   const [rows, setRows] = useState<DisclosureStandard[] | null>(null)
   const [err, setErr] = useState<string | null>(null)
@@ -50,7 +53,7 @@ export default function DataStandard() {
     setRows(null); setErr(null)
     orgStore.disclosureStandard(framework.id)
       .then(d => { if (!cancelled) setRows(d) })
-      .catch(e => { if (!cancelled) setErr(e instanceof Error ? e.message : 'Load failed') })
+      .catch(e => { if (!cancelled) setErr(e instanceof Error ? e.message : t('dataStandard.loadFailed')) })
     return () => { cancelled = true }
   }, [framework.id])
 
@@ -92,9 +95,9 @@ export default function DataStandard() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Data Governance"
-        title="ESG Data Standard"
-        subtitle="One company-wide definition, one calculation method, one cadence, one ownership chain per disclosure. This is how comparability is enforced across plants."
+        eyebrow={t('dataStandard.header.eyebrow')}
+        title={t('dataStandard.header.title')}
+        subtitle={t('dataStandard.header.subtitle')}
         actions={
           <div className="flex gap-1.5 flex-wrap">
             {FRAMEWORKS.filter(f => f.status === 'active').map(f => (
@@ -114,10 +117,10 @@ export default function DataStandard() {
       {/* Standard coverage stats */}
       {stats && (
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-          <StatTile icon={FileText} label="Disclosures" value={stats.total} tone="teal" />
-          <StatTile icon={BookOpen} label="Definitions on file" value={`${stats.defPct}%`} sub={`${stats.withDef} of ${stats.total}`} tone="blue" />
-          <StatTile icon={CalcIcon} label="Calc methods" value={stats.withMethod} tone="purple" />
-          <StatTile icon={UserIcon} label="Ownership chains" value={stats.withOwner} tone="green" />
+          <StatTile icon={FileText} label={t('dataStandard.stats.disclosures')} value={stats.total} tone="teal" />
+          <StatTile icon={BookOpen} label={t('dataStandard.stats.definitions')} value={`${stats.defPct}%`} sub={t('dataStandard.stats.ofTotal', { n: stats.withDef, total: stats.total })} tone="blue" />
+          <StatTile icon={CalcIcon} label={t('dataStandard.stats.calcMethods')} value={stats.withMethod} tone="purple" />
+          <StatTile icon={UserIcon} label={t('dataStandard.stats.ownershipChains')} value={stats.withOwner} tone="green" />
         </div>
       )}
 
@@ -128,7 +131,7 @@ export default function DataStandard() {
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search by code, line item, or definition…"
+            placeholder={t('dataStandard.searchPlaceholder')}
             className="w-full pl-9 pr-3 h-10 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13px] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/15 outline-none transition-all"
           />
         </div>
@@ -139,11 +142,11 @@ export default function DataStandard() {
             onChange={e => setCadenceFilter(e.target.value)}
             className="pl-9 pr-8 h-10 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[12.5px] font-medium appearance-none cursor-pointer"
           >
-            <option value="all">All cadences</option>
-            <option value="daily">Daily</option>
-            <option value="monthly">Monthly</option>
-            <option value="quarterly">Quarterly</option>
-            <option value="annual">Annual</option>
+            <option value="all">{t('dataStandard.allCadences')}</option>
+            <option value="daily">{t('dataStandard.cadence.daily')}</option>
+            <option value="monthly">{t('dataStandard.cadence.monthly')}</option>
+            <option value="quarterly">{t('dataStandard.cadence.quarterly')}</option>
+            <option value="annual">{t('dataStandard.cadence.annual')}</option>
           </select>
         </div>
       </div>
@@ -159,9 +162,9 @@ export default function DataStandard() {
       {rows && filtered && (
         <section>
           <SectionHeader
-            kicker="Catalog"
-            title={`${filtered.length} disclosures · ${framework.code}`}
-            subtitle="Click any row to open the full definition, calculation method, and ownership chain."
+            kicker={t('dataStandard.catalog.kicker')}
+            title={t('dataStandard.catalog.title', { count: filtered.length, code: framework.code })}
+            subtitle={t('dataStandard.catalog.subtitle')}
           />
           <div className="space-y-6">
             {bySection.map(sec => (
@@ -174,10 +177,10 @@ export default function DataStandard() {
               >
                 <header className="px-5 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)] flex items-center justify-between">
                   <h3 className="font-display text-[14px] font-bold text-[var(--text-primary)] tracking-[-0.01em]">
-                    {sec.section}
+                    {sec.section === 'Other' ? t('dataStandard.otherSection') : sec.section}
                   </h3>
                   <span className="text-[11px] text-[var(--text-tertiary)] font-semibold uppercase tracking-[0.12em] tabular-nums">
-                    {sec.rows.length} disclosure{sec.rows.length !== 1 ? 's' : ''}
+                    {t('dataStandard.sectionCount', { count: sec.rows.length })}
                   </span>
                 </header>
                 <ul className="divide-y divide-[var(--border-subtle)]">
@@ -233,6 +236,7 @@ function StatTile({ icon: Icon, label, value, sub, tone }: { icon: typeof FileTe
 }
 
 function StandardRow({ row, open, toggle, index }: { row: DisclosureStandard; open: boolean; toggle: () => void; index: number }) {
+  const { t, i18n } = useTranslation()
   const cad = row.cadence ? CADENCE_META[row.cadence] : null
 
   return (
@@ -248,7 +252,7 @@ function StandardRow({ row, open, toggle, index }: { row: DisclosureStandard; op
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-mono text-[10.5px] font-bold text-[var(--color-brand)] tracking-[0.02em]">{row.gri_code}</span>
-            <span className="text-[13.5px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{row.line_item}</span>
+            <span className="text-[13.5px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{itemLabel(row, i18n.language)}</span>
           </div>
           <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
             {row.unit && (
@@ -260,19 +264,19 @@ function StandardRow({ row, open, toggle, index }: { row: DisclosureStandard; op
             {cad && (
               <span className="chip" style={{ background: cad.bg, color: cad.color, borderColor: cad.color + '33' }}>
                 <Calendar className="w-3 h-3" />
-                {cad.label}
+                {t(`dataStandard.cadence.${row.cadence}`, { defaultValue: cad.label })}
               </span>
             )}
             {row.definition && (
               <span className="chip" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)', borderColor: 'rgba(27,107,123,0.2)' }}>
                 <BookOpen className="w-3 h-3" />
-                Definition
+                {t('dataStandard.row.definition')}
               </span>
             )}
             {row.calc_method && (
               <span className="chip" style={{ background: 'var(--accent-purple-light)', color: 'var(--accent-purple)', borderColor: 'rgba(94,53,177,0.2)' }}>
                 <CalcIcon className="w-3 h-3" />
-                Method
+                {t('dataStandard.row.method')}
               </span>
             )}
           </div>
@@ -290,10 +294,10 @@ function StandardRow({ row, open, toggle, index }: { row: DisclosureStandard; op
           >
             <div className="px-5 pb-5 pl-[44px] space-y-4">
               {row.definition && (
-                <DetailBlock icon={BookOpen} label="Canonical definition" color="#1B6B7B" body={row.definition} />
+                <DetailBlock icon={BookOpen} label={t('dataStandard.row.canonicalDefinition')} color="#1B6B7B" body={row.definition} />
               )}
               {row.calc_method && (
-                <DetailBlock icon={CalcIcon} label="Calculation method" color="#5E35B1" body={row.calc_method} />
+                <DetailBlock icon={CalcIcon} label={t('dataStandard.row.calcMethod')} color="#5E35B1" body={row.calc_method} />
               )}
               <OwnershipChain row={row} />
             </div>
@@ -318,16 +322,17 @@ function DetailBlock({ icon: Icon, label, color, body }: { icon: typeof BookOpen
 }
 
 function OwnershipChain({ row }: { row: DisclosureStandard }) {
+  const { t } = useTranslation()
   const steps = [
-    { role: row.data_owner_role, label: 'Data owner', icon: UserIcon, color: '#1B6B7B' },
-    { role: row.reviewer_role,   label: 'Reviewer',   icon: ShieldCheck, color: '#1565C0' },
-    { role: row.approver_role,   label: 'Approver',   icon: Award, color: '#2E7D32' },
+    { role: row.data_owner_role, label: t('dataStandard.chain.dataOwner'), icon: UserIcon, color: '#1B6B7B' },
+    { role: row.reviewer_role,   label: t('dataStandard.chain.reviewer'),  icon: ShieldCheck, color: '#1565C0' },
+    { role: row.approver_role,   label: t('dataStandard.chain.approver'),  icon: Award, color: '#2E7D32' },
   ]
   return (
     <div>
       <div className="flex items-center gap-2 mb-2">
         <Scale className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-        <span className="text-[10.5px] uppercase tracking-[0.12em] font-bold text-[var(--text-tertiary)]">Ownership chain</span>
+        <span className="text-[10.5px] uppercase tracking-[0.12em] font-bold text-[var(--text-tertiary)]">{t('dataStandard.chain.title')}</span>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
         {steps.map((s, i) => {
@@ -344,7 +349,7 @@ function OwnershipChain({ row }: { row: DisclosureStandard }) {
                 <div>
                   <div className="text-[9.5px] uppercase tracking-[0.1em] font-bold" style={{ color: s.color }}>{s.label}</div>
                   <div className="text-[12px] font-semibold text-[var(--text-primary)] -mt-0.5">
-                    {s.role ? ROLE_LABEL[s.role] ?? s.role : <span className="italic text-[var(--text-tertiary)]">unassigned</span>}
+                    {s.role ? t(`dataStandard.roles.${s.role}`, { defaultValue: ROLE_LABEL[s.role] ?? s.role }) : <span className="italic text-[var(--text-tertiary)]">{t('dataStandard.chain.unassigned')}</span>}
                   </div>
                 </div>
               </div>
@@ -359,7 +364,7 @@ function OwnershipChain({ row }: { row: DisclosureStandard }) {
       </div>
       <p className="text-[10.5px] text-[var(--text-tertiary)] mt-2.5 flex items-center gap-1">
         <Clock className="w-3 h-3" />
-        Submissions route through each role in order. Every transition is hash-chained for audit.
+        {t('dataStandard.chain.note')}
       </p>
     </div>
   )

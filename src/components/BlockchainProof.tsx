@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { X, Shield, Clock, User, Hash, Link2, CheckCircle2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface BlockchainProofProps {
   isOpen: boolean
@@ -9,12 +10,13 @@ interface BlockchainProofProps {
 }
 
 export default function BlockchainProof({ isOpen, onClose, dataPoint, facility }: BlockchainProofProps) {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<'proof' | 'chain'>('proof')
 
   if (!isOpen) return null
 
   const proof = {
-    dataPoint: dataPoint || 'Scope 1 Emissions - Q1 2026',
+    dataPoint: dataPoint || t('components.blockchain.sampleDataPoint'),
     facility: facility || 'Map Ta Phut Olefins',
     submitter: 'Somchai Prasert',
     submitterDID: 'did:nexus:gc:0x7a3b...4f2e',
@@ -28,14 +30,14 @@ export default function BlockchainProof({ isOpen, onClose, dataPoint, facility }
     blockNumber: 18945438,
     network: 'Polygon zkEVM',
     gasUsed: '47,293',
-    status: 'Verified & Anchored',
+    status: t('components.blockchain.status'),
   }
 
   const chain = [
-    { step: 1, label: 'Data Submitted', actor: proof.submitter, did: proof.submitterDID, time: proof.submittedAt, icon: User, color: 'blue' },
-    { step: 2, label: 'Peer Review', actor: proof.approver, did: proof.approverDID, time: proof.approvedAt, icon: CheckCircle2, color: 'amber' },
-    { step: 3, label: 'Blockchain Anchored', actor: 'System', did: 'did:nexus:system:anchor', time: proof.anchoredAt, icon: Link2, color: 'accent' },
-    { step: 4, label: 'Included in CDP Report', actor: 'Report Engine', did: 'did:nexus:system:report', time: '2026-04-03 08:00:00 UTC', icon: Shield, color: 'teal' },
+    { step: 1, label: t('components.blockchain.chain.submitted'), actor: proof.submitter, did: proof.submitterDID, time: proof.submittedAt, icon: User, color: 'blue' },
+    { step: 2, label: t('components.blockchain.chain.review'), actor: proof.approver, did: proof.approverDID, time: proof.approvedAt, icon: CheckCircle2, color: 'amber' },
+    { step: 3, label: t('components.blockchain.chain.anchored'), actor: t('components.blockchain.chain.system'), did: 'did:nexus:system:anchor', time: proof.anchoredAt, icon: Link2, color: 'accent' },
+    { step: 4, label: t('components.blockchain.chain.included'), actor: t('components.blockchain.chain.reportEngine'), did: 'did:nexus:system:report', time: '2026-04-03 08:00:00 UTC', icon: Shield, color: 'teal' },
   ]
 
   return (
@@ -49,11 +51,11 @@ export default function BlockchainProof({ isOpen, onClose, dataPoint, facility }
               <Shield className="w-4 h-4 text-accent-400" />
             </div>
             <div>
-              <h3 className="text-sm font-heading font-bold text-white">Blockchain Verification</h3>
-              <p className="text-xs text-dark-400">Immutable audit proof</p>
+              <h3 className="text-sm font-heading font-bold text-white">{t('components.blockchain.title')}</h3>
+              <p className="text-xs text-dark-400">{t('components.blockchain.subtitle')}</p>
             </div>
           </div>
-          <button onClick={onClose} aria-label="Close blockchain verification" title="Close" className="p-2 rounded-lg hover:bg-dark-700 transition-colors">
+          <button onClick={onClose} aria-label={t('components.blockchain.closeAria')} title={t('common.close')} className="p-2 rounded-lg hover:bg-dark-700 transition-colors">
             <X className="w-4 h-4 text-dark-400" />
           </button>
         </div>
@@ -63,7 +65,7 @@ export default function BlockchainProof({ isOpen, onClose, dataPoint, facility }
           <CheckCircle2 className="w-5 h-5 text-teal-400" />
           <div>
             <p className="text-sm font-semibold text-teal-400">{proof.status}</p>
-            <p className="text-xs text-teal-400/70">This data point has a complete chain of custody on-chain.</p>
+            <p className="text-xs text-teal-400/70">{t('components.blockchain.verifiedBody')}</p>
           </div>
         </div>
 
@@ -73,13 +75,13 @@ export default function BlockchainProof({ isOpen, onClose, dataPoint, facility }
             onClick={() => setActiveTab('proof')}
             className={`flex-1 py-2 text-xs font-semibold rounded-md transition-colors ${activeTab === 'proof' ? 'bg-dark-700 text-white' : 'text-dark-400 hover:text-dark-300'}`}
           >
-            Proof Details
+            {t('components.blockchain.tabProof')}
           </button>
           <button
             onClick={() => setActiveTab('chain')}
             className={`flex-1 py-2 text-xs font-semibold rounded-md transition-colors ${activeTab === 'chain' ? 'bg-dark-700 text-white' : 'text-dark-400 hover:text-dark-300'}`}
           >
-            Chain of Custody
+            {t('components.blockchain.tabChain')}
           </button>
         </div>
 
@@ -88,31 +90,28 @@ export default function BlockchainProof({ isOpen, onClose, dataPoint, facility }
           {activeTab === 'proof' ? (
             <div className="space-y-4">
               <div className="space-y-3">
-                <ProofRow label="Data Point" value={proof.dataPoint} />
-                <ProofRow label="Facility" value={proof.facility} />
-                <ProofRow label="Submitted By" value={proof.submitter} sub={proof.submitterDID} />
-                <ProofRow label="Submitted At" value={proof.submittedAt} icon={Clock} />
-                <ProofRow label="Approved By" value={proof.approver} sub={proof.approverDID} />
-                <ProofRow label="Approved At" value={proof.approvedAt} icon={Clock} />
-                <ProofRow label="Anchored At" value={proof.anchoredAt} icon={Clock} />
+                <ProofRow label={t('components.blockchain.rows.dataPoint')} value={proof.dataPoint} />
+                <ProofRow label={t('components.blockchain.rows.facility')} value={proof.facility} />
+                <ProofRow label={t('components.blockchain.rows.submittedBy')} value={proof.submitter} sub={proof.submitterDID} />
+                <ProofRow label={t('components.blockchain.rows.submittedAt')} value={proof.submittedAt} icon={Clock} />
+                <ProofRow label={t('components.blockchain.rows.approvedBy')} value={proof.approver} sub={proof.approverDID} />
+                <ProofRow label={t('components.blockchain.rows.approvedAt')} value={proof.approvedAt} icon={Clock} />
+                <ProofRow label={t('components.blockchain.rows.anchoredAt')} value={proof.anchoredAt} icon={Clock} />
               </div>
 
               <div className="border-t border-dark-600 pt-4 space-y-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-dark-400">On-Chain Data</p>
-                <ProofRow label="Merkle Root" value={proof.merkleRoot} mono icon={Hash} />
-                <ProofRow label="Transaction Hash" value={proof.txHash} mono icon={Hash} />
-                <ProofRow label="Block Number" value={proof.blockNumber.toLocaleString()} />
-                <ProofRow label="Network" value={proof.network} />
-                <ProofRow label="Gas Used" value={proof.gasUsed} />
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-dark-400">{t('components.blockchain.onChain')}</p>
+                <ProofRow label={t('components.blockchain.rows.merkleRoot')} value={proof.merkleRoot} mono icon={Hash} />
+                <ProofRow label={t('components.blockchain.rows.txHash')} value={proof.txHash} mono icon={Hash} />
+                <ProofRow label={t('components.blockchain.rows.blockNumber')} value={proof.blockNumber.toLocaleString()} />
+                <ProofRow label={t('components.blockchain.rows.network')} value={proof.network} />
+                <ProofRow label={t('components.blockchain.rows.gasUsed')} value={proof.gasUsed} />
               </div>
 
               <div className="bg-dark-800 rounded-xl p-4 border border-dark-600">
-                <p className="text-xs font-semibold text-dark-300 mb-2">What does this mean?</p>
+                <p className="text-xs font-semibold text-dark-300 mb-2">{t('components.blockchain.whatMeans')}</p>
                 <p className="text-xs text-dark-400 leading-relaxed">
-                  This data point was submitted by a facility engineer, reviewed and approved by a data approver,
-                  then cryptographically anchored to the Polygon zkEVM blockchain. The Merkle root proves this data
-                  was included in a batch of verified sustainability records. The transaction hash can be independently
-                  verified on the public blockchain explorer. Once anchored, this record cannot be altered or deleted.
+                  {t('components.blockchain.explanation')}
                 </p>
               </div>
             </div>
