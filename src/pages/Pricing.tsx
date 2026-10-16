@@ -6,7 +6,8 @@ import MarketingShell from '../components/marketing/MarketingShell'
 import PricingTable, { type PricingTier } from '../components/marketing/PricingTable'
 import FAQ from '../components/marketing/FAQ'
 import CTABand from '../components/marketing/CTABand'
-import { FadeIn } from '../components/MotionPrimitives'
+import PageHero, { SectionHeading } from '../components/marketing/PageHero'
+import { Reveal } from '../components/marketing/motion'
 
 /**
  * /pricing — full pricing page.
@@ -96,135 +97,70 @@ const FAQ_IDS = ['changePlans', 'nonProfit', 'payment', 'setupFee'] as const
 function Cell({ value }: { value: MatrixValue }) {
   const { t } = useTranslation()
   if (value === true) {
-    return <Check className="w-4 h-4 mx-auto" style={{ color: 'var(--accent-600)' }} />
+    return <Check className="w-4 h-4 mx-auto" style={{ color: 'var(--color-brand)' }} aria-label={t('marketing.comparison.ariaYes')} />
   }
   if (value === false) {
-    return <Minus className="w-4 h-4 mx-auto" style={{ color: 'var(--text-quaternary)' }} />
+    return <Minus className="w-4 h-4 mx-auto" style={{ color: 'var(--text-quaternary)' }} aria-label={t('marketing.comparison.ariaNo')} />
   }
-  return <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{t(`pricing.matrix.values.${value}`)}</span>
+  return <span className="type-small" style={{ color: 'var(--text-secondary)' }}>{t(`pricing.matrix.values.${value}`)}</span>
 }
 
 export default function Pricing() {
   const { t } = useTranslation()
   return (
     <MarketingShell>
-      {/* Header */}
-      <section className="pt-16 pb-8 sm:pt-24 sm:pb-12">
-        <div className="max-w-[920px] mx-auto px-5 sm:px-8 text-center">
-          <FadeIn>
-            <p
-              className="text-[12px] font-semibold uppercase tracking-[0.18em] mb-4"
-              style={{ color: 'var(--accent-600)' }}
-            >
-              {t('pricing.header.eyebrow')}
-            </p>
-            <h1
-              className="h-display"
-              style={{
-                fontSize: 'clamp(2rem, 4.5vw, 3rem)',
-                color: 'var(--text-primary)',
-                lineHeight: 1.1,
-              }}
-            >
-              {t('pricing.header.title')}
-            </h1>
-            <p
-              className="mt-5 text-[17px] leading-relaxed mx-auto max-w-[680px]"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              {t('pricing.header.intro')}
-            </p>
-          </FadeIn>
-        </div>
-      </section>
+      <PageHero kicker={t('pricing.header.eyebrow')} title={t('pricing.header.title')} intro={t('pricing.header.intro')} />
 
       <PricingTable tiers={buildTiers(t)} />
 
       {/* Why we publish our pricing */}
-      <section className="pt-4 pb-16 sm:pb-20">
-        <div className="max-w-[920px] mx-auto px-5 sm:px-8">
-          <div
-            className="rounded-[16px] border p-7 sm:p-10"
-            style={{
-              background: 'var(--bg-primary)',
-              borderColor: 'var(--border-default)',
-              boxShadow: 'var(--shadow-card)',
-            }}
-          >
-            <p
-              className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-3"
-              style={{ color: 'var(--accent-600)' }}
-            >
-              {t('pricing.why.eyebrow')}
-            </p>
-            <h2
-              className="h-section mb-5"
-              style={{ color: 'var(--text-primary)' }}
-            >
+      <section className="pt-4 pb-16 sm:pb-24">
+        <Reveal className="max-w-[920px] mx-auto px-4 sm:px-8">
+          <div className="surface-hero !rounded-[20px] p-7 sm:p-12">
+            <h2 className="type-h1" style={{ color: 'var(--text-primary)', textWrap: 'balance' }}>
               {t('pricing.why.heading')}
             </h2>
-            <div
-              className="space-y-4 text-[15px] leading-relaxed"
-              style={{ color: 'var(--text-secondary)' }}
-            >
+            <div className="mt-5 space-y-4 text-[16px] leading-[1.7] max-w-[680px]" style={{ color: 'var(--text-secondary)' }}>
               <p>{t('pricing.why.p1')}</p>
               <p>{t('pricing.why.p2')}</p>
               <p>
                 <Trans
                   i18nKey="pricing.why.p3"
                   components={{
-                    link: <Link to="/compare" className="underline" style={{ color: 'var(--accent-600)' }} />,
+                    link: <Link to="/compare" className="underline underline-offset-4" style={{ color: 'var(--text-link)' }} />,
                   }}
                 />
               </p>
             </div>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* Comparison matrix */}
       <section className="pb-20 sm:pb-24">
-        <div className="max-w-[1180px] mx-auto px-5 sm:px-8">
-          <h2
-            className="h-display text-center mb-10"
-            style={{
-              fontSize: 'clamp(1.5rem, 3vw, 2rem)',
-              color: 'var(--text-primary)',
-            }}
-          >
-            {t('pricing.matrix.heading')}
-          </h2>
-
-          <div
-            className="overflow-x-auto rounded-[12px] border"
-            style={{ borderColor: 'var(--border-default)', background: 'var(--bg-primary)' }}
-          >
-            <table className="w-full text-left text-[14px] min-w-[640px]">
-              <thead>
+        <div className="max-w-[1180px] mx-auto px-4 sm:px-8">
+          <Reveal>
+            <SectionHeading title={t('pricing.matrix.heading')} className="mb-10" />
+          </Reveal>
+          <Reveal className="surface-paper !rounded-[20px] overflow-x-auto">
+            <table className="w-full text-left min-w-[600px]">
+              <caption className="sr-only">{t('pricing.matrix.heading')}</caption>
+              <thead className="sticky top-0">
                 <tr style={{ borderBottom: '1px solid var(--border-default)' }}>
-                  <th className="py-4 px-5 font-semibold" style={{ color: 'var(--text-tertiary)' }}>{t('pricing.matrix.feature')}</th>
-                  <th className="py-4 px-5 font-semibold text-center" style={{ color: 'var(--text-primary)' }}>{t('marketing.plans.starter')}</th>
-                  <th
-                    className="py-4 px-5 font-semibold text-center"
-                    style={{
-                      color: 'var(--accent-600)',
-                      background: 'color-mix(in srgb, var(--accent-500) 5%, transparent)',
-                    }}
-                  >
+                  <th scope="col" className="py-4 px-5 type-small font-semibold" style={{ color: 'var(--text-tertiary)' }}>{t('pricing.matrix.feature')}</th>
+                  <th scope="col" className="py-4 px-5 type-small font-semibold text-center" style={{ color: 'var(--text-primary)' }}>{t('marketing.plans.starter')}</th>
+                  <th scope="col" className="py-4 px-5 type-small font-semibold text-center" style={{ color: 'var(--text-link)', background: 'var(--color-brand-soft)' }}>
                     {t('marketing.plans.team')}
                   </th>
-                  <th className="py-4 px-5 font-semibold text-center" style={{ color: 'var(--text-primary)' }}>{t('marketing.plans.enterprise')}</th>
+                  <th scope="col" className="py-4 px-5 type-small font-semibold text-center" style={{ color: 'var(--text-primary)' }}>{t('marketing.plans.enterprise')}</th>
                 </tr>
               </thead>
               <tbody>
                 {MATRIX.map((row, i) => (
-                  <tr
-                    key={row.id}
-                    style={{ borderBottom: i === MATRIX.length - 1 ? 'none' : '1px solid var(--border-subtle)' }}
-                  >
-                    <td className="py-3 px-5" style={{ color: 'var(--text-primary)' }}>{t(`pricing.matrix.rows.${row.id}`)}</td>
+                  <tr key={row.id} className="transition-colors hover:bg-[var(--bg-hover)]" style={{ borderBottom: i === MATRIX.length - 1 ? 'none' : '1px solid var(--border-subtle)' }}>
+                    <th scope="row" className="py-3 px-5 type-small font-normal" style={{ color: 'var(--text-primary)' }}>{t(`pricing.matrix.rows.${row.id}`)}</th>
                     <td className="py-3 px-5 text-center"><Cell value={row.starter} /></td>
-                    <td className="py-3 px-5 text-center" style={{ background: 'color-mix(in srgb, var(--accent-500) 3%, transparent)' }}>
+                    <td className="py-3 px-5 text-center" style={{ background: 'color-mix(in srgb, var(--color-brand-soft) 55%, transparent)' }}>
                       <Cell value={row.team} />
                     </td>
                     <td className="py-3 px-5 text-center"><Cell value={row.enterprise} /></td>
@@ -232,7 +168,7 @@ export default function Pricing() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Reveal>
         </div>
       </section>
 

@@ -2,12 +2,18 @@
   "header": {
     "eyebrow": "Reporting periods",
     "title": "Reporting cycles",
-    "subtitle": "Setup → Active → Locked → Published. Locking freezes assignment edits; publishing stamps a hash and moves the period read-only forever."
+    "subtitle": "Each cycle moves from setup to active, locked and published. Locking freezes assignment edits; publishing stamps a hash and makes the cycle read-only for good.",
+    "framework": "Framework"
   },
   "newPeriod": "New period",
   "empty": {
     "title": "No reporting periods",
-    "body": "Create a period to open assignments and start collecting data."
+    "body": "Create a period for this framework to open assignments and start collecting data.",
+    "cta": "Create reporting period"
+  },
+  "error": {
+    "title": "Reporting cycles didn't load",
+    "body": "We couldn't reach the server, so nothing is shown rather than an empty list. Try again."
   },
   "card": {
     "fy": "FY {{year}}",
@@ -16,7 +22,21 @@
     "deadline": "Deadline",
     "framework": "Framework",
     "lockedAt": "Locked {{date}}",
-    "published": "Published"
+    "published": "Published",
+    "publishedAt": "Published {{date}}",
+    "hash": "Publish hash",
+    "archivedNote": "Archived. Read-only, kept for restatements and audit."
+  },
+  "lifecycle": {
+    "label": "Lifecycle",
+    "done": "done",
+    "current": "current stage"
+  },
+  "next": {
+    "setup": "Start the period to open assignments.",
+    "active": "Lock when data collection is complete.",
+    "locked": "Publish to seal the period with a hash.",
+    "published": "Archive once the report has been filed."
   },
   "actions": {
     "start": "Start period",
@@ -27,7 +47,21 @@
   "confirm": {
     "lock": "Lock {{label}}? Assignment edits will be blocked.",
     "publish": "Publish {{label}}? This stamps a hash and makes the period read-only forever.",
-    "archive": "Archive {{label}}?"
+    "archive": "Archive {{label}}?",
+    "lockTitle": "Lock {{label}}?",
+    "lockBody": "Assignment edits will be blocked for everyone. Submitted values stay in review and approval.",
+    "publishTitle": "Publish {{label}}?",
+    "publishBody": "Publishing stamps a tamper-evident hash over every approved value and makes this period read-only permanently. It can't be undone; corrections need a restatement.",
+    "archiveTitle": "Archive {{label}}?",
+    "archiveBody": "The period moves out of the active list. Its published data and hash stay available for audit."
+  },
+  "toast": {
+    "active": "{{label}} started",
+    "locked": "{{label}} locked",
+    "published": "{{label}} published",
+    "archived": "{{label}} archived",
+    "setup": "{{label}} updated",
+    "created": "{{label}} created"
   },
   "alerts": {
     "transitionFailed": "Transition failed: {{message}}",
@@ -42,10 +76,13 @@
   },
   "drawer": {
     "title": "New reporting period",
+    "subtitle": "Dates are optional and can be set later, until the period is locked.",
+    "close": "Close",
     "year": "Year",
     "label": "Label",
     "deadline": "Submission deadline",
     "notes": "Notes (optional)",
-    "create": "Create"
+    "create": "Create period",
+    "creating": "Creating…"
   }
 }

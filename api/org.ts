@@ -93,6 +93,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!token) return res.status(400).json({ error: 'token required' })
       const rows = await sql`
         SELECT ra.pdf_sha256, ra.pdf_size, ra.page_count, ra.version, ra.is_draft,
+               COALESCE(to_jsonb(ra)->>'locale', ra.metadata->>'locale') AS locale,
                ra.anchor_tip_hash, ra.anchor_calendar_url, ra.anchored_at,
                ra.published_at, ra.framework_id, ra.period_id,
                rp.label AS period_label, rp.year AS period_year,
@@ -233,6 +234,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           SELECT ra.id, ra.framework_id, ra.version, ra.published_at, ra.is_draft,
                  ra.pdf_sha256, ra.page_count, ra.anchor_tip_hash, ra.anchored_at,
                  ra.verification_token,
+                 COALESCE(to_jsonb(ra)->>'locale', ra.metadata->>'locale') AS locale,
                  rp.label AS period_label, rp.year AS period_year,
                  o.name AS org_name,
                  u.name AS published_by_name,
@@ -284,6 +286,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (view === 'disclosure-standard') {
         // One row per disclosure (gri_code, line_item) with its canonical definition,
         // calc method, cadence, and ownership chain. Used by the Data Standard page.
+        // *_zh columns are read via to_jsonb(row) → NULL when the column is absent.
         const frameworkId = req.query.framework_id ? String(req.query.framework_id) : null
         const rows = frameworkId
           ? await sql`
@@ -291,6 +294,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 MIN(to_jsonb(questionnaire_item) ->> 'line_item_zh') AS line_item_zh,
                 MIN(section) AS section,
                 MIN(subsection) AS subsection,
+                MIN(to_jsonb(questionnaire_item) ->> 'section_zh') AS section_zh,
+                MIN(to_jsonb(questionnaire_item) ->> 'subsection_zh') AS subsection_zh,
                 MIN(unit) AS unit,
                 MIN(framework_id) AS framework_id,
                 MIN(definition) AS definition,
@@ -310,6 +315,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 MIN(to_jsonb(questionnaire_item) ->> 'line_item_zh') AS line_item_zh,
                 MIN(section) AS section,
                 MIN(subsection) AS subsection,
+                MIN(to_jsonb(questionnaire_item) ->> 'section_zh') AS section_zh,
+                MIN(to_jsonb(questionnaire_item) ->> 'subsection_zh') AS subsection_zh,
                 MIN(unit) AS unit,
                 MIN(framework_id) AS framework_id,
                 MIN(definition) AS definition,
@@ -541,6 +548,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               MIN(unit)            AS unit,
               MIN(reporting_scope) AS reporting_scope,
               MIN(to_jsonb(questionnaire_item) ->> 'line_item_zh') AS line_item_zh,
+              -- section_zh / subsection_zh are read via to_jsonb(row) so this stays
+              -- valid (NULL) on databases where the columns don't exist yet.
+              MIN(to_jsonb(questionnaire_item) ->> 'section_zh')    AS section_zh,
+              MIN(to_jsonb(questionnaire_item) ->> 'subsection_zh') AS subsection_zh,
               array_agg(id)        AS item_ids
             FROM questionnaire_item
             WHERE framework_id = ${frameworkId}
@@ -559,7 +570,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           )
           SELECT
             (s.gri_code || '|' || s.line_item) AS id,
-            s.gri_code, s.line_item, s.line_item_zh, s.section, s.subsection, s.unit, s.reporting_scope,
+            s.gri_code, s.line_item, s.line_item_zh, s.section, s.subsection, s.section_zh, s.subsection_zh, s.unit, s.reporting_scope,
             COALESCE(a.total, 0)     AS total,
             COALESCE(a.approved, 0)  AS approved,
             COALESCE(a.in_review, 0) AS in_review,

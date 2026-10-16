@@ -1,6 +1,6 @@
 {
   "failedToLoad": "Failed to load",
-  "unableToLoad": "Unable to load preview",
+  "unableToLoad": "The preview didn't load",
   "retry": "Retry",
   "backToPublish": "Back to Publish Centre",
   "auditorView": "Auditor View",
@@ -86,5 +86,6 @@
     "Operational_Eco_Efficiency": "Operational Eco-Efficiency",
     "Product_Stewardship": "Product Stewardship",
     "Hazardous_Substances": "Hazardous Substances"
-  }
+  },
+  "unableToLoadBody": "We couldn't reach the server, so the report preview can't be built right now."
 }

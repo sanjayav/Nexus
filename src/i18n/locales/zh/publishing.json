@@ -3,11 +3,14 @@
     "loadFailed": "加载失败",
     "publishFailed": "发布失败",
     "importFailed": "导入失败",
-    "unableToLoad": "无法加载发布中心",
+    "unableToLoad": "发布中心未能加载",
     "unableToGetLink": "无法获取链接",
     "failed": "操作失败",
-    "auditorEmailRequired": "请填写审计师邮箱",
-    "shareFailed": "创建分享链接失败"
+    "auditorEmailRequired": "请填写审计师的电子邮箱。",
+    "shareFailed": "创建分享链接失败",
+    "unableToLoadBody": "无法连接服务器，因此暂时无法确认就绪度和发布历史。未发布或更改任何内容。",
+    "publishUnexpected": "服务器未确认发布结果。请先查看发布历史，再决定是否重试。",
+    "downloadFailed": "下载失败"
   },
   "retry": "重试",
   "breadcrumbReports": "报告",
@@ -21,20 +24,24 @@
     "publishing": "发布中…",
     "republish": "重新发布",
     "publishReport": "发布报告",
-    "publishReportNow": "立即发布报告"
+    "publishReportNow": "立即发布报告",
+    "reviewPublish": "检查并发布",
+    "reviewRepublish": "检查并发布新版本"
   },
   "period": {
     "kicker": "范围",
     "title": "报告期",
     "subtitle": "{{framework}} — 选择要发布的报告期。",
-    "none": "尚未设置报告期。请前往「管理 → 报告周期」创建。",
+    "none": "请先为此框架创建报告期。发布始终针对某一报告期进行。",
     "status": {
       "setup": "设置中",
       "active": "进行中",
       "locked": "已锁定",
       "published": "已发布",
       "archived": "已归档"
-    }
+    },
+    "noneTitle": "尚无报告期",
+    "create": "创建报告期"
   },
   "readiness": {
     "kicker": "就绪度 · {{period}}",
@@ -51,7 +58,8 @@
     "coverage": "覆盖率",
     "approved": "已批准",
     "inReview": "审核中",
-    "open": "未完成"
+    "open": "未完成",
+    "heading": "发布就绪度"
   },
   "latest": {
     "kicker": "最新版本文件",
@@ -63,7 +71,7 @@
     "title": "发布历史",
     "subtitle": "所有历史版本均予以保留、计算哈希并加盖外部时间戳。",
     "emptyTitle": "尚未发布任何报告",
-    "emptyDesc": "请在此框架中至少批准一项披露，然后点击「发布」。",
+    "emptyDesc": "请在此框架中至少批准一项披露，然后检查并发布。",
     "colVersion": "版本",
     "colPeriod": "报告期",
     "colAssurance": "鉴证",
@@ -77,7 +85,8 @@
     "downloadPdf": "下载 PDF",
     "downloadWord": "下载 Word（.docx）",
     "downloadIxbrl": "下载 iXBRL（ESRS）",
-    "sharePublicly": "公开分享"
+    "sharePublicly": "公开分享",
+    "colLanguage": "语言"
   },
   "assurance": {
     "kicker": "鉴证",
@@ -133,23 +142,29 @@
   },
   "assuranceRow": {
     "status": {
-      "pending": "待处理",
+      "pending": "待签署",
       "signed": "已签署",
-      "rejected": "已驳回",
+      "rejected": "已拒绝",
       "withdrawn": "已撤回"
     },
     "reasonable": "合理",
     "limited": "有限",
     "requested": "{{email}} · 申请于 {{date}}",
     "signedBy": " · 由 {{name}} 于 {{date}} 签署",
-    "statementHash": "鉴证声明 sha-256：{{hash}}…",
+    "statementHash": "声明 SHA-256：{{hash}}…",
     "linkCopied": "上传链接（已复制）",
     "linkHelp": "请将此链接发送给审计师。对方无需登录平台即可上传已签署的鉴证声明。",
     "copyLink": "复制上传链接",
     "rotate": "更换",
     "withdraw": "撤回",
-    "confirmRotate": "确定更换上传链接？原链接将立即失效。",
-    "confirmWithdraw": "确定撤回此鉴证申请？"
+    "confirmRotate": "原链接将立即失效。请将新链接发送给审计师。",
+    "confirmWithdraw": "撤回此鉴证申请？",
+    "confirmRotateTitle": "更换上传链接？",
+    "confirmWithdrawBody": "审计师的上传链接将失效。之后可随时创建新的申请。",
+    "rotatedCopied": "新的上传链接已复制",
+    "copied": "上传链接已复制",
+    "copyManually": "请复制下方链接并发送给审计师。",
+    "withdrawn": "鉴证申请已撤回"
   },
   "modal": {
     "kicker": "新申请",
@@ -159,7 +174,7 @@
     "firmPlaceholder": "例如：LRQA Group、德勤",
     "contactName": "联系人姓名",
     "contactNamePlaceholder": "合伙人 / 签字审计师",
-    "contactEmail": "联系人邮箱*",
+    "contactEmail": "联系邮箱",
     "level": "鉴证级别",
     "limited": "有限",
     "reasonable": "合理",
@@ -167,7 +182,8 @@
     "notes": "备注（可选）",
     "notesPlaceholder": "范围、截止日期、特殊说明…",
     "cancel": "取消",
-    "create": "创建申请"
+    "create": "创建申请",
+    "created": "鉴证申请已创建。请复制上传链接并发送给审计师。"
   },
   "share": {
     "title": "公开分享报告",
@@ -183,6 +199,62 @@
     "copy": "复制",
     "expiresOn": "过期时间：{{date}}",
     "passwordActive": "已启用密码保护。请通过其他渠道分享密码。",
-    "done": "完成"
+    "done": "完成",
+    "readyBody": "持有此链接的任何人均可阅读已发布的报告。链接只显示一次，请立即复制。",
+    "copyAndClose": "复制链接",
+    "copied": "分享链接已复制"
+  },
+  "checks": {
+    "aria": "发布就绪检查清单",
+    "approved": "已批准披露项",
+    "approvedNone": "发布前至少需要批准一项披露。",
+    "approvedAll": "所有已指派的披露项均已批准。",
+    "approvedSome_other": "还有 {{count}} 项披露未批准，将不会纳入报告。",
+    "openApproval": "打开批准队列",
+    "anomalies": "未解决的异常",
+    "anomaliesUnknown": "异常扫描未响应，因此无法检查此项。",
+    "anomaliesNone": "本报告期没有未处理的预警或严重异常。",
+    "anomaliesSome": "严重 {{critical}} 项，共 {{count}} 项未处理。请解决或注明原因后忽略。",
+    "openAnomalies": "查看异常",
+    "assurance": "鉴证",
+    "assuranceSigned": "已由 {{firm}} 签署。报告发布时不带草稿水印。",
+    "assuranceDraft": "未取得已签署的鉴证声明，报告发布时将带有「草稿」水印。",
+    "evidence": "证据覆盖率",
+    "evidenceNone": "披露项批准后开始计算。",
+    "evidenceSome": "{{count}} 项已批准披露中，{{with}} 项附有来源文件。"
+  },
+  "blocked": {
+    "noPeriod": "请先选择报告期。",
+    "noAssignments": "本报告期尚未指派任何披露项。",
+    "noneApproved": "至少批准一项披露后才能发布。"
+  },
+  "sheet": {
+    "title": "发布 {{period}} 报告？",
+    "titleRepublish": "将 {{period}} 发布为第 {{version}} 版？",
+    "irreversible_other": "系统将生成包含 {{count}} 项已批准披露的 PDF，计算其 SHA-256 指纹，并锚定至公共时间戳日历。此操作不可撤销：该版本及其哈希和时间戳将永久保留在公开记录中。之后可以发布新版本，但此版本不会被删除。",
+    "confirm": "发布并锚定",
+    "language": "报告语言",
+    "languageHint": "PDF、Word 和 iXBRL 文件均以此语言生成。",
+    "draftWarning": "本报告期尚无已签署的鉴证声明：在审计师签署之前，报告将带有「草稿」水印。",
+    "lowCritical_other": "仍有 {{count}} 项严重异常未处理。如仍要发布，请输入报告期名称确认。",
+    "lowCoverage": "仅 {{pct}}% 的披露项已批准。如仍要发布，请输入报告期名称确认。"
+  },
+  "moment": {
+    "title": "{{period}} 第 {{version}} 版已发布",
+    "fingerprint": "SHA-256 指纹",
+    "noHash": "服务器已保存报告，但未返回指纹。可在发布历史中查看。",
+    "anchored": "已锚定至 OpenTimestamps",
+    "anchoredBody": "比特币确认通常在 1–6 小时内完成，验证页面会自动更新。",
+    "anchorPending": "哈希已保存，等待锚定",
+    "anchorPendingBody": "时间戳日历未响应。哈希已保存，可稍后锚定。",
+    "draft": "草稿 · 未经审计",
+    "assured": "已鉴证",
+    "copyLink": "复制验证链接",
+    "copied": "验证链接已复制",
+    "copyFailed": "复制失败，请手动选择链接复制。",
+    "openVerify": "打开验证页面",
+    "download": "下载 PDF",
+    "done": "完成",
+    "close": "关闭"
   }
 }

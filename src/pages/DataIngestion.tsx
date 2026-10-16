@@ -1,224 +1,180 @@
-import { useState } from 'react'
+import type { ReactNode } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { motion, useReducedMotion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
   Building2,
   FileSpreadsheet,
   Activity,
   Users,
-  ChevronRight,
-  ArrowLeft,
+  ArrowUpRight,
   Database,
   Upload,
   ShieldCheck,
   Plug,
   Brain,
 } from 'lucide-react'
-import { Card, Badge } from '../design-system'
+import { Tabs } from '../design-system'
+import PageHeader from '../components/PageHeader'
+import { StatusPill } from '../components/ui'
+import ProcessFlow from '../components/analytics/data/ProcessFlow'
+import { useFmt } from '../lib/fmt'
+import { dur, ease } from '../motion/tokens'
 import OrganisationSetup from './OrganisationSetup'
 import RawSupplierIngestion from './RawSupplierIngestion'
 import MeasuredData from './MeasuredData'
 import EntitySubmissions from './EntitySubmissions'
 
 /* ═══════════════════════════════════════════
-   Module definitions
+   Modules — each is addressable at /data/<id>
+   (the existing /data/* route already lands here).
    ═══════════════════════════════════════════ */
+type ModuleId = 'org-setup' | 'raw-supplier' | 'measured' | 'entities'
+
 interface DataModule {
-  id: string
-  title: string
-  subtitle: string
-  desc: string
+  id: ModuleId
   icon: typeof Building2
-  accent: string
-  color: 'teal' | 'blue' | 'purple' | 'amber' | 'green'
   status: 'live' | 'ready' | 'beta'
-  stats: { key: string; label: string; value: string }[]
+  /** Two quiet facts; `n` is formatted for the locale, `text` is shown as-is. */
+  facts: { key: string; n?: number; pct?: number; text?: string }[]
 }
 
 const MODULES: DataModule[] = [
-  {
-    id: 'org-setup',
-    title: 'Organisation Setup',
-    subtitle: 'Tenant, boundaries & frameworks',
-    desc: 'Configure your organisational boundary, reporting frameworks (GRI, CSRD, ISSB), business groups, facilities, and emission source registration.',
-    icon: Building2,
-    accent: 'var(--accent-teal)',
-    color: 'teal',
-    status: 'live',
-    stats: [{ key: 'steps', label: 'Steps', value: '7' }, { key: 'frameworks', label: 'Frameworks', value: '5' }],
-  },
-  {
-    id: 'raw-supplier',
-    title: 'Raw Data Upload',
-    subtitle: 'Excel/CSV ingestion & column mapping',
-    desc: 'Upload raw GHG activity data from any format. Smart column detection maps your spreadsheet columns to the standard emission data model.',
-    icon: FileSpreadsheet,
-    accent: 'var(--accent-blue)',
-    color: 'blue',
-    status: 'live',
-    stats: [{ key: 'formats', label: 'Formats', value: '.xlsx .csv' }, { key: 'fields', label: 'Fields', value: '21' }],
-  },
-  {
-    id: 'measured',
-    title: 'Measured Data',
-    subtitle: 'CEMS, meters, labs & verified data',
-    desc: 'Ingest continuous emission monitoring (CEMS), utility meter readings, lab test results, and third-party verified data with QA classification.',
-    icon: Activity,
-    accent: 'var(--accent-purple)',
-    color: 'purple',
-    status: 'live',
-    stats: [{ key: 'sources', label: 'Sources', value: '91' }, { key: 'quality', label: 'Quality', value: '98.4%' }],
-  },
-  {
-    id: 'entities',
-    title: 'Entity Submissions',
-    subtitle: 'Intercompany, subsidiary & supplier data',
-    desc: 'Collect emission data from divisions, subsidiaries, and suppliers using standardised templates. Track submission status and validate on upload.',
-    icon: Users,
-    accent: 'var(--accent-amber)',
-    color: 'amber',
-    status: 'live',
-    stats: [{ key: 'entities', label: 'Entities', value: '48+' }, { key: 'templates', label: 'Templates', value: '4' }],
-  },
+  { id: 'raw-supplier', icon: FileSpreadsheet, status: 'live', facts: [{ key: 'formats', text: '.xlsx · .csv' }, { key: 'fields', n: 21 }] },
+  { id: 'measured', icon: Activity, status: 'live', facts: [{ key: 'sources', n: 91 }, { key: 'quality', pct: 98.4 }] },
+  { id: 'entities', icon: Users, status: 'live', facts: [{ key: 'entities', n: 48 }, { key: 'templates', n: 4 }] },
+  { id: 'org-setup', icon: Building2, status: 'live', facts: [{ key: 'steps', n: 7 }, { key: 'frameworks', n: 5 }] },
 ]
 
-const statusConfig = {
-  live: { label: 'Live', badge: 'green' as const },
-  ready: { label: 'Ready', badge: 'teal' as const },
-  beta: { label: 'Beta', badge: 'amber' as const },
-}
+const MODULE_IDS = new Set<string>(MODULES.map((m) => m.id))
 
-/* ═══════════════════════════════════════════
-   Pipeline steps (shown in the landing)
-   ═══════════════════════════════════════════ */
 const PIPELINE_STEPS = [
-  { icon: Upload, key: 'ingest', label: 'Ingest', desc: 'Raw files, APIs, manual entry' },
-  { icon: ShieldCheck, key: 'validate', label: 'Validate', desc: 'Schema checks, completeness' },
-  { icon: Brain, key: 'classify', label: 'Classify', desc: 'Auto-scope, factor matching' },
-  { icon: Plug, key: 'route', label: 'Route', desc: 'Direct or hybrid path' },
-  { icon: Database, key: 'store', label: 'Store', desc: 'Unified emission repository' },
+  { icon: Upload, key: 'ingest' },
+  { icon: ShieldCheck, key: 'validate' },
+  { icon: Brain, key: 'classify' },
+  { icon: Plug, key: 'route' },
+  { icon: Database, key: 'store' },
 ]
-
-/* ═══════════════════════════════════════════
-   Component
-   ═══════════════════════════════════════════ */
-type View = 'landing' | string
 
 export default function DataIngestion() {
-  const [view, setView] = useState<View>('landing')
   const { t } = useTranslation()
-  // Display copy is localised by module id; the English in MODULES is the fallback.
-  const modTitle = (m: DataModule) => t(`ingestion.modules.${m.id}.title`, { defaultValue: m.title })
+  const params = useParams()
+  const navigate = useNavigate()
+  const reduce = useReducedMotion()
+  const slug = (params['*'] ?? '').split('/')[0]
+  const view: ModuleId | 'landing' = MODULE_IDS.has(slug) ? (slug as ModuleId) : 'landing'
+  const title = (id: ModuleId) => t(`ingestion.modules.${id}.title`)
 
-  const activeModule = MODULES.find(m => m.id === view)
+  if (view === 'landing') {
+    return (
+      <div className="space-y-6">
+        <PageHeader eyebrow={t('ingestion.eyebrow')} title={t('ingestion.title')} description={t('ingestion.subtitle')} />
+
+        <section className="surface-paper p-5 sm:p-6" aria-labelledby="ingest-flow">
+          <h2 id="ingest-flow" className="type-h3 text-[var(--text-primary)] mb-5">
+            {t('ingestion.flowTitle')}
+          </h2>
+          <ProcessFlow
+            aria-label={t('ingestion.flowTitle')}
+            steps={PIPELINE_STEPS.map((s) => ({
+              id: s.key,
+              icon: s.icon,
+              title: t(`ingestion.pipeline.${s.key}.label`),
+              desc: t(`ingestion.pipeline.${s.key}.desc`),
+            }))}
+          />
+        </section>
+
+        <section aria-labelledby="ingest-modules">
+          <div className="flex items-baseline justify-between gap-4 mb-3">
+            <h2 id="ingest-modules" className="type-h3 text-[var(--text-primary)]">
+              {t('ingestion.modulesTitle')}
+            </h2>
+            <span className="hidden sm:inline text-caption text-[var(--text-tertiary)]">{t('ingestion.modulesHint')}</span>
+          </div>
+          <div className="surface-paper overflow-hidden">
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-px bg-[var(--border-subtle)]">
+              {MODULES.map((m) => (
+                <ModuleCell key={m.id} mod={m} />
+              ))}
+            </ul>
+          </div>
+        </section>
+      </div>
+    )
+  }
+
+  let body: ReactNode = null
+  if (view === 'org-setup') body = <OrganisationSetup />
+  if (view === 'raw-supplier') body = <RawSupplierIngestion />
+  if (view === 'measured') body = <MeasuredData />
+  if (view === 'entities') body = <EntitySubmissions />
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Landing header — only on module picker */}
-      {view === 'landing' && (
-        <div>
-          <h1 className="font-display text-[length:var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">{t('ingestion.title')}</h1>
-          <p className="mt-1 text-[length:var(--text-sm)] text-[var(--text-tertiary)]">{t('ingestion.subtitle')}</p>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-3">
+        <div className="overflow-x-auto -mx-1 px-1 [scrollbar-width:none]">
+          <Tabs
+            aria-label={t('ingestion.modulesTitle')}
+            className="w-max"
+            tabs={MODULES.map((m) => ({ id: m.id, label: title(m.id) }))}
+            activeTab={view}
+            onChange={(id) => navigate(`/data/${id}`)}
+          />
         </div>
-      )}
-
-      {/* Breadcrumb bar when inside a module */}
-      {view !== 'landing' && (
-        <div className="flex items-center gap-1.5 text-[length:var(--text-sm)]">
-          <button onClick={() => setView('landing')} className="inline-flex items-center gap-1 text-[var(--accent-teal)] font-medium hover:underline underline-offset-2 cursor-pointer">
-            <ArrowLeft className="w-3.5 h-3.5" /> {t('ingestion.back')}
-          </button>
-          <ChevronRight className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-          <span className="text-[var(--text-primary)] font-semibold">{activeModule ? modTitle(activeModule) : view}</span>
-        </div>
-      )}
-
-      {/* Landing view */}
-      {view === 'landing' && (
-        <div className="space-y-8 animate-fade-in">
-          {/* Pipeline overview */}
-          <Card padding="sm">
-            <div className="flex items-center justify-between">
-              {PIPELINE_STEPS.map((step, i) => {
-                const Icon = step.icon
-                return (
-                  <div key={step.label} className="flex items-center gap-3 flex-1">
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="w-10 h-10 rounded-xl bg-[var(--accent-teal-light)] border border-teal-100 flex items-center justify-center flex-shrink-0">
-                        <Icon className="w-5 h-5 text-[var(--accent-teal)]" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[length:var(--text-xs)] font-semibold text-[var(--text-primary)]">{t(`ingestion.pipeline.${step.key}.label`, { defaultValue: step.label })}</p>
-                        <p className="text-caption text-[var(--text-tertiary)] truncate">{t(`ingestion.pipeline.${step.key}.desc`, { defaultValue: step.desc })}</p>
-                      </div>
-                    </div>
-                    {i < PIPELINE_STEPS.length - 1 && (
-                      <ChevronRight className="w-4 h-4 text-[var(--text-tertiary)] flex-shrink-0 mx-1" />
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </Card>
-
-          {/* Module cards */}
-          <div className="grid grid-cols-3 gap-5">
-            {MODULES.map((mod) => {
-              const Icon = mod.icon
-              const cfg = statusConfig[mod.status]
-              return (
-                <button
-                  key={mod.id}
-                  onClick={() => setView(mod.id)}
-                  className="text-left cursor-pointer group"
-                >
-                  <Card hover className="h-full relative overflow-hidden">
-                    {/* Accent bar */}
-                    <div
-                      className="absolute top-0 left-0 right-0 h-[3px] rounded-t-xl opacity-60 group-hover:opacity-100 transition-opacity"
-                      style={{ background: `linear-gradient(90deg, ${mod.accent}, transparent)` }}
-                    />
-
-                    <div className="flex items-start justify-between mb-4">
-                      <div
-                        className="w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105"
-                        style={{ backgroundColor: `${mod.accent}10`, border: `1.5px solid ${mod.accent}30` }}
-                      >
-                        <Icon className="w-7 h-7" style={{ color: mod.accent }} />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={cfg.badge} dot>{t(`ingestion.status.${mod.status}`, { defaultValue: cfg.label })}</Badge>
-                        <ChevronRight className="w-5 h-5 text-[var(--text-tertiary)] group-hover:text-[var(--accent-teal)] group-hover:translate-x-0.5 transition-all" />
-                      </div>
-                    </div>
-
-                    <h3 className="font-display text-[length:var(--text-lg)] font-bold text-[var(--text-primary)]">{modTitle(mod)}</h3>
-                    <p className="text-[length:var(--text-xs)] font-medium text-[var(--text-secondary)] mt-0.5">{t(`ingestion.modules.${mod.id}.subtitle`, { defaultValue: mod.subtitle })}</p>
-                    <p className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] mt-2 leading-relaxed">{t(`ingestion.modules.${mod.id}.desc`, { defaultValue: mod.desc })}</p>
-
-                    <div className="flex items-center gap-3 mt-5 pt-4 border-t border-[var(--border-subtle)]">
-                      {mod.stats.map((stat, i) => (
-                        <div key={stat.label} className="flex items-center gap-3">
-                          {i > 0 && <div className="w-px h-8 bg-[var(--border-subtle)]" />}
-                          <div>
-                            <p className="text-micro text-[var(--text-tertiary)] uppercase tracking-[0.06em]">{t(`ingestion.stats.${stat.key}`, { defaultValue: stat.label })}</p>
-                            <p className="text-[length:var(--text-base)] font-bold tabular-nums" style={{ color: mod.accent }}>{stat.value}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </Card>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Module views */}
-      {view === 'org-setup' && <OrganisationSetup />}
-      {view === 'raw-supplier' && <RawSupplierIngestion />}
-      {view === 'measured' && <MeasuredData />}
-      {view === 'entities' && <EntitySubmissions />}
+      </div>
+      <motion.div
+        key={view}
+        initial={reduce ? false : { opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: dur.base, ease: ease.out }}
+      >
+        {body}
+      </motion.div>
     </div>
+  )
+}
+
+function ModuleCell({ mod }: { mod: DataModule }) {
+  const { t } = useTranslation()
+  const f = useFmt()
+  const Icon = mod.icon
+  return (
+    <li className="bg-[var(--bg-primary)]">
+      <Link
+        to={`/data/${mod.id}`}
+        className="group relative flex h-full flex-col gap-4 p-5 sm:p-6 transition-colors duration-micro ease-out hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-brand)]"
+      >
+        <div className="flex items-start gap-4">
+          <span className="w-10 h-10 rounded-[var(--radius-md)] flex items-center justify-center flex-shrink-0 bg-[var(--color-brand-soft)] text-[var(--color-brand)] ring-1 ring-inset ring-[var(--status-success-line)]">
+            <Icon className="w-5 h-5" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="type-h3 text-[var(--text-primary)]">{t(`ingestion.modules.${mod.id}.title`)}</h3>
+              <StatusPill tone="success" dot size="sm">
+                {t(`ingestion.status.${mod.status}`)}
+              </StatusPill>
+            </div>
+            <p className="text-small text-[var(--text-secondary)] mt-0.5">{t(`ingestion.modules.${mod.id}.subtitle`)}</p>
+          </div>
+          <ArrowUpRight
+            className="w-4 h-4 text-[var(--text-quaternary)] flex-shrink-0 transition-[transform,color] duration-fast ease-out group-hover:text-[var(--color-brand)] group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+            aria-hidden
+          />
+        </div>
+        <p className="text-small text-[var(--text-tertiary)] text-pretty max-w-prose">{t(`ingestion.modules.${mod.id}.desc`)}</p>
+        <dl className="mt-auto flex items-end gap-8 pt-1">
+          {mod.facts.map((fact) => (
+            <div key={fact.key} className="min-w-0">
+              <dt className="text-caption text-[var(--text-tertiary)]">{t(`ingestion.stats.${fact.key}`)}</dt>
+              <dd className="type-figure text-[20px] leading-7 text-[var(--text-primary)] whitespace-nowrap">
+                {fact.text ?? (fact.pct != null ? f.percent(fact.pct, { precision: 1 }) : f.number(fact.n))}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </Link>
+    </li>
   )
 }

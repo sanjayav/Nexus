@@ -1,9 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { ExternalLink, Save, Loader2, AlertTriangle, CheckCircle2, Info } from 'lucide-react'
+import { ExternalLink, Save, CheckCircle2, ShieldCheck } from 'lucide-react'
 import type { PcafAssetCalculator, PcafInput, PcafResult } from '../../calculators/pcaf'
 import { pcaf as pcafApi, type PcafAssetClass, type PcafCalculateResponse } from '../../lib/api'
+import { Button } from '../../design-system'
+import { StatusPill, notify } from '../ui'
+import { CalcField, CalcInput, CalcSelect, ResultLedger, Callout } from '../analytics/factors'
+import { usePcafFormat, dqTone } from './format'
 
 /**
  * Per-asset PCAF calculator panel.
@@ -25,11 +29,15 @@ const STORAGE_KEY = (id: string) => `aeiforo_pcaf_inputs_${id}`
 
 export default function AssetCalculator({ calculator, reportingYear, onSaved }: Props) {
   const { t } = useTranslation()
+  const { f } = usePcafFormat()
   const [inputs, setInputs] = useState<Record<string, string | boolean>>(() => loadInputs(calculator))
   const [serverResult, setServerResult] = useState<PcafCalculateResponse | null>(null)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [verifying, setVerifying] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
 
   // Persist inputs on every change (session resilience).
   useEffect(() => {
@@ -67,10 +75,12 @@ export default function AssetCalculator({ calculator, reportingYear, onSaved }: 
     setInputs(prev => ({ ...prev, [key]: v }))
     setServerResult(null)
     setSaved(false)
+    if (fieldErrors[key]) setFieldErrors(e => { const n = { ...e }; delete n[key]; return n })
   }
 
   const runServer = async () => {
     setServerError(null)
+    setVerifying(true)
     try {
       const payload: Record<string, unknown> = {}
       for (const k of Object.keys(inputs)) {
@@ -88,25 +98,28 @@ export default function AssetCalculator({ calculator, reportingYear, onSaved }: 
         reportingYear,
       })
       setServerResult(r)
+      notify.success(t('pcaf.calculator.verified'))
     } catch (e) {
       setServerError(e instanceof Error ? e.message : t('pcaf.calculator.serverComputeFailed'))
+    } finally {
+      setVerifying(false)
     }
   }
 
   const save = async () => {
-    setSaving(true)
     setServerError(null)
+    const counterpartyName = String(inputs.counterpartyName ?? '').trim()
+    const outstanding = Number(inputs.outstandingAmount ?? 0)
+    const errs: Record<string, string> = {}
+    if (!counterpartyName) errs.counterpartyName = t('pcaf.calculator.counterpartyRequired')
+    if (!(outstanding > 0)) errs.outstandingAmount = t('pcaf.calculator.outstandingRequired')
+    setFieldErrors(errs)
+    if (Object.keys(errs).length) {
+      requestAnimationFrame(() => rootRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus())
+      return
+    }
+    setSaving(true)
     try {
-      const counterpartyName = String(inputs.counterpartyName ?? '').trim()
-      if (!counterpartyName) {
-        setServerError(t('pcaf.calculator.counterpartyRequired'))
-        return
-      }
-      const outstanding = Number(inputs.outstandingAmount ?? 0)
-      if (!(outstanding > 0)) {
-        setServerError(t('pcaf.calculator.outstandingRequired'))
-        return
-      }
       const reported = Number(inputs.reportedEmissions ?? 0) > 0 || Number(inputs.measuredAnnualEmissions ?? 0) > 0 || Number(inputs.reportedCountryEmissionsMt ?? 0) > 0
       await pcafApi.createAsset({
         reportingYear,
@@ -140,66 +153,75 @@ export default function AssetCalculator({ calculator, reportingYear, onSaved }: 
 
   const previewResult: PcafResult | PcafCalculateResponse = serverResult ?? clientResult
   const ac = calculator.assetClass
+  const tons = (v: number | undefined) => f.exact(v ?? 0, 'tCO2e', { precision: 2 })
 
   return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-5">
-      <header className="mb-4">
-        <h3 className="text-[length:var(--text-lg)] font-semibold text-[var(--text-primary)]">{pcafCalculatorName(t, calculator)}</h3>
-        <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] mt-1">{pcafCalculatorDescription(t, calculator)}</p>
+    <div ref={rootRef} className="space-y-5">
+      <header>
+        <p className="text-small text-[var(--text-secondary)]">{pcafCalculatorDescription(t, calculator)}</p>
         <a
           href={calculator.methodologyUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-caption text-[var(--text-tertiary)] hover:text-[var(--color-brand)] mt-1"
+          className="inline-flex items-center gap-1 min-h-[32px] text-caption font-medium text-[var(--color-brand-strong)] hover:underline"
         >
-          {t('pcaf.calculator.methodology')} <ExternalLink className="w-3 h-3" />
+          {t('pcaf.calculator.methodology')} <ExternalLink className="w-3 h-3" aria-hidden />
         </a>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-4">
         {calculator.inputs.map(field => (
           <Field
             key={field.key}
             field={field}
             assetClass={ac}
             value={inputs[field.key]}
+            error={fieldErrors[field.key]}
             onChange={v => setField(field.key, v)}
           />
         ))}
       </div>
 
-      <ResultPanel result={previewResult} />
+      <ResultLedger
+        label={t('pcaf.calculator.result.totalFinanced')}
+        value={previewResult.financedTotal ?? 0}
+        format={n => f.exact(n, null, { precision: 2 })}
+        unit="tCO₂e"
+        status={
+          <span className="flex items-center gap-1.5">
+            {serverResult && <StatusPill tone="info" size="sm" icon={<ShieldCheck />}>{t('pcaf.calculator.serverVerified')}</StatusPill>}
+            <span className="nx-pill" data-tone={dqTone(previewResult.dataQualityScore)} data-size="sm">
+              {t('pcaf.calculator.result.dqValue', { score: previewResult.dataQualityScore })}
+            </span>
+          </span>
+        }
+        rows={[
+          { label: t('pcaf.calculator.result.attributionFactor'), value: f.number(previewResult.attributionFactor, { precision: 6 }), strong: true },
+          { label: t('pcaf.calculator.result.financedS1'), value: tons(previewResult.financedScope1) },
+          { label: t('pcaf.calculator.result.financedS2'), value: tons(previewResult.financedScope2) },
+          { label: t('pcaf.calculator.result.financedS3'), value: tons(previewResult.financedScope3) },
+        ]}
+        footnote={<><span className="font-medium text-[var(--text-secondary)]">{t('pcaf.calculator.result.rationale')}</span> {localisePcafMessage(t, previewResult.rationale)}</>}
+      />
 
       {previewResult.warnings && previewResult.warnings.length > 0 && (
-        <div className="mt-3 rounded-[var(--radius-md)] border border-amber-500/30 bg-amber-500/10 p-3 text-[12px] text-amber-200">
-          <div className="flex items-center gap-1 font-medium mb-1"><AlertTriangle className="w-3.5 h-3.5" /> {t('pcaf.calculator.warnings')}</div>
+        <Callout tone="warning" title={t('pcaf.calculator.warnings')}>
           <ul className="list-disc pl-5 space-y-0.5">
             {previewResult.warnings.map((w, i) => <li key={i}>{localisePcafMessage(t, w)}</li>)}
           </ul>
-        </div>
+        </Callout>
       )}
 
-      {serverError && (
-        <div className="mt-3 rounded-[var(--radius-md)] border border-rose-500/40 bg-rose-500/10 p-3 text-[12px] text-rose-200">
-          {serverError}
-        </div>
-      )}
+      {serverError && <Callout tone="danger">{serverError}</Callout>}
+      {Object.keys(fieldErrors).length > 0 && <p role="alert" className="sr-only">{t('calculators.form.fixFields')}</p>}
 
-      <div className="mt-4 flex items-center gap-2">
-        <button
-          onClick={runServer}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] border border-[var(--border-default)] hover:bg-[var(--bg-secondary)] text-[length:var(--text-sm)]"
-        >
-          <Info className="w-3.5 h-3.5" /> {t('pcaf.calculator.verifyServer')}
-        </button>
-        <button
-          onClick={save}
-          disabled={saving}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] font-medium hover:opacity-90 disabled:opacity-50 text-[length:var(--text-sm)]"
-        >
-          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : saved ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
-          {saved ? t('pcaf.calculator.saved') : saving ? t('pcaf.calculator.saving') : t('pcaf.calculator.saveAsset')}
-        </button>
+      <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
+        <Button variant="secondary" size="lg" onClick={runServer} loading={verifying} icon={<ShieldCheck className="w-4 h-4" />}>
+          {t('pcaf.calculator.verifyServer')}
+        </Button>
+        <Button size="lg" onClick={save} loading={saving} icon={saved ? <CheckCircle2 className="w-4 h-4" /> : <Save className="w-4 h-4" />}>
+          {saved ? t('pcaf.calculator.saved') : t('pcaf.calculator.saveAsset')}
+        </Button>
       </div>
     </div>
   )
@@ -267,96 +289,54 @@ function pickTotalValueBasis(ac: PcafAssetClass): string {
   }
 }
 
-function Field({ field, assetClass, value, onChange }: {
+function Field({ field, assetClass, value, error, onChange }: {
   field: PcafInput
   assetClass: string
   value: string | boolean | undefined
+  error?: string
   onChange: (v: string | boolean) => void
 }) {
   const { t } = useTranslation()
   const base = `pcaf.assetClasses.${assetClass}.inputs.${field.key}`
   const fieldLabel = t(`${base}.label`, { defaultValue: field.label })
   const help = field.help ? t(`${base}.help`, { defaultValue: field.help }) : null
-  const label = (
-    <label className="block text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] mb-1">
-      {fieldLabel}{field.unit ? ` (${field.unit})` : ''}
-      {field.required ? <span className="text-rose-400 ml-0.5">*</span> : null}
-    </label>
-  )
   if (field.type === 'boolean') {
     const v = typeof value === 'boolean' ? value : false
     return (
-      <div>
-        {label}
-        <label className="inline-flex items-center gap-2 text-[length:var(--text-sm)] text-[var(--text-primary)]">
-          <input type="checkbox" checked={v} onChange={e => onChange(e.target.checked)} className="rounded" />
-          {t('pcaf.calculator.yes')}
+      <div className="sm:col-span-2">
+        <label className="inline-flex items-start gap-2.5 min-h-[40px] cursor-pointer">
+          <input
+            type="checkbox"
+            checked={v}
+            onChange={e => onChange(e.target.checked)}
+            className="mt-0.5 w-4 h-4 rounded-[4px] accent-[var(--color-brand)]"
+          />
+          <span>
+            <span className="block text-small font-medium text-[var(--text-primary)]">{fieldLabel}</span>
+            {help ? <span className="block text-caption text-[var(--text-tertiary)] mt-0.5">{help}</span> : null}
+          </span>
         </label>
-        {help ? <p className="text-caption text-[var(--text-tertiary)] mt-1">{help}</p> : null}
       </div>
     )
   }
-  if (field.type === 'select') {
-    return (
-      <div>
-        {label}
-        <select
+  return (
+    <CalcField label={fieldLabel} unit={field.unit} required={field.required} hint={help} error={error}>
+      {p => field.type === 'select' ? (
+        <CalcSelect {...p} value={typeof value === 'string' ? value : ''} onChange={e => onChange(e.target.value)}>
+          <option value="">{t('pcaf.calculator.choose')}</option>
+          {(field.options ?? []).map(o => <option key={o} value={o}>{t(`pcaf.options.${field.key}.${o}`, { defaultValue: o })}</option>)}
+        </CalcSelect>
+      ) : (
+        <CalcInput
+          {...p}
+          type={field.type === 'number' ? 'number' : 'text'}
+          min={field.type === 'number' ? 0 : undefined}
+          step="any"
           value={typeof value === 'string' ? value : ''}
           onChange={e => onChange(e.target.value)}
-          className="w-full rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2 py-1.5 text-[length:var(--text-sm)]"
-        >
-          <option value="">—</option>
-          {(field.options ?? []).map(o => <option key={o} value={o}>{t(`pcaf.options.${field.key}.${o}`, { defaultValue: o })}</option>)}
-        </select>
-        {help ? <p className="text-caption text-[var(--text-tertiary)] mt-1">{help}</p> : null}
-      </div>
-    )
-  }
-  return (
-    <div>
-      {label}
-      <input
-        type={field.type === 'number' ? 'number' : 'text'}
-        min={field.type === 'number' ? 0 : undefined}
-        value={typeof value === 'string' ? value : ''}
-        onChange={e => onChange(e.target.value)}
-        className="w-full rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2 py-1.5 text-[length:var(--text-sm)]"
-      />
-      {help ? <p className="text-caption text-[var(--text-tertiary)] mt-1">{help}</p> : null}
-    </div>
-  )
-}
-
-function ResultPanel({ result }: { result: PcafResult | PcafCalculateResponse }) {
-  const { t } = useTranslation()
-  return (
-    <div className="mt-4 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] p-3">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[length:var(--text-sm)]">
-        <Cell label={t('pcaf.calculator.result.attributionFactor')} value={result.attributionFactor.toFixed(6)} />
-        <Cell label={t('pcaf.calculator.result.financedS1')} value={fmtTons(result.financedScope1)} />
-        <Cell label={t('pcaf.calculator.result.financedS2')} value={fmtTons(result.financedScope2)} />
-        <Cell label={t('pcaf.calculator.result.financedS3')} value={fmtTons(result.financedScope3)} />
-        <Cell label={t('pcaf.calculator.result.totalFinanced')} value={fmtTons(result.financedTotal)} highlight />
-        <Cell label={t('pcaf.calculator.result.dataQuality')} value={t('pcaf.calculator.result.dqValue', { score: result.dataQualityScore })} highlight />
-        <Cell label={t('pcaf.calculator.result.rationale')} value={localisePcafMessage(t, result.rationale)} span={2} />
-      </div>
-    </div>
-  )
-}
-
-function fmtTons(v: number | undefined): string {
-  if (v == null || !Number.isFinite(v) || v === 0) return '0 tCO₂e'
-  if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toFixed(2)} MtCO₂e`
-  if (Math.abs(v) >= 1000) return `${(v / 1000).toFixed(2)} ktCO₂e`
-  return `${v.toFixed(2)} tCO₂e`
-}
-
-function Cell({ label, value, highlight, span }: { label: string; value: string; highlight?: boolean; span?: number }) {
-  return (
-    <div className={span === 2 ? 'col-span-2 md:col-span-4' : ''}>
-      <div className="text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)]">{label}</div>
-      <div className={`mt-0.5 ${highlight ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-secondary)]'}`}>{value}</div>
-    </div>
+        />
+      )}
+    </CalcField>
   )
 }
 
@@ -364,11 +344,6 @@ function Cell({ label, value, highlight, span }: { label: string; value: string;
 // Calculator descriptors and compute() output stay in English (they are
 // persisted / asserted in tests). These helpers translate them at render
 // time only, falling back to the original English text.
-
-/** Display name for a calculator (falls back to the descriptor's English). */
-function pcafCalculatorName(t: TFunction, c: PcafAssetCalculator): string {
-  return t(`pcaf.assetClasses.${c.assetClass}.name`, { defaultValue: c.name })
-}
 
 /** Display description for a calculator (falls back to the descriptor's English). */
 function pcafCalculatorDescription(t: TFunction, c: PcafAssetCalculator): string {

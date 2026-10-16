@@ -1,9 +1,12 @@
 import { FormEvent, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Lock, ArrowRight, Loader2, Leaf, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Lock, ArrowRight, Loader2, AlertCircle } from 'lucide-react'
 import { z } from 'zod'
 import { useTranslation } from 'react-i18next'
 import { auth as authApi } from '../lib/api'
+import AuthShell from '../components/auth/AuthShell'
+import AuthField from '../components/auth/AuthField'
+import { Illustration, SealCheck } from '../components/ui'
 
 /**
  * Field-level reset-password schema. `superRefine` lets us attach the
@@ -87,138 +90,86 @@ export default function ResetPassword() {
   }
 
   return (
-    <div
-      className="min-h-screen w-full flex items-center justify-center p-6 relative overflow-hidden"
-      style={{
-        background:
-          'radial-gradient(120% 80% at 50% 0%, #061914 0%, #05100E 45%, #030809 100%)',
-      }}
-    >
-      <div className="w-full max-w-[460px] relative z-10">
-        <div
-          className="bg-black/70 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden p-8"
-          style={{
-            boxShadow:
-              '0 30px 80px -20px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04) inset, 0 0 80px -10px rgba(52,211,153,0.35)',
-          }}
-        >
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-              <Leaf className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-[17px] font-display font-bold text-white">Nexus</span>
+    <AuthShell>
+      {tokenMissing ? (
+        <div className="space-y-5">
+          <Illustration name="error" size={112} />
+          <div>
+            <h1 className="type-h1" style={{ color: 'var(--text-primary)' }}>{t('auth.reset.invalidLink')}</h1>
+            <p className="mt-2 type-body" style={{ color: 'var(--text-secondary)' }}>{t('auth.reset.missingToken')}</p>
+          </div>
+          <Link to="/forgot-password" className="btn-primary h-11 text-[14px]">
+            <span>{t('auth.reset.requestNew')}</span>
+            <ArrowRight className="w-4 h-4" aria-hidden />
+          </Link>
+        </div>
+      ) : success ? (
+        <div className="space-y-4" role="status">
+          <SealCheck size={56} ripple />
+          <div>
+            <h1 className="type-h1" style={{ color: 'var(--text-primary)' }}>{t('auth.reset.updated')}</h1>
+            <p className="mt-2 type-body" style={{ color: 'var(--text-secondary)' }}>{t('auth.reset.redirecting')}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div>
+            <h1 id="reset-title" className="type-h1" style={{ color: 'var(--text-primary)' }}>{t('auth.reset.title')}</h1>
+            <p className="mt-2 type-body" style={{ color: 'var(--text-secondary)' }}>{t('auth.reset.subtitle')}</p>
           </div>
 
-          {tokenMissing ? (
-            <div className="space-y-4">
-              <h2 className="text-[20px] font-display font-bold text-white tracking-tight">{t('auth.reset.invalidLink')}</h2>
-              <p className="text-[13px] text-white/60">
-                {t('auth.reset.missingToken')}
-              </p>
-              <Link
-                to="/forgot-password"
-                className="inline-flex items-center gap-2 text-[12px] text-emerald-400 hover:text-emerald-300 transition-colors"
-              >
-                <span>{t('auth.reset.requestNew')}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+          {error && (
+            <div
+              role="alert"
+              className="flex items-start gap-2.5 rounded-[10px] px-3.5 py-3 type-small"
+              style={{ background: 'var(--status-danger-soft)', border: '1px solid var(--status-danger-line)', color: 'var(--status-danger)' }}
+            >
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden />
+              <p>{error}</p>
             </div>
-          ) : success ? (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                <h2 className="text-[20px] font-display font-bold text-white tracking-tight">{t('auth.reset.updated')}</h2>
-              </div>
-              <p className="text-[13px] text-white/60">
-                {t('auth.reset.redirecting')}
-              </p>
-            </div>
-          ) : (
-            <>
-              <h2 className="text-[20px] font-display font-bold text-white tracking-tight mb-1">{t('auth.reset.title')}</h2>
-              <p className="text-[12px] text-white/50 mb-6">
-                {t('auth.reset.subtitle')}
-              </p>
-
-              {error && (
-                <div role="alert" className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-[12px] text-red-300 mb-4">
-                  <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                  <p>{error}</p>
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label htmlFor="pw" className="text-micro font-medium text-white/50 uppercase tracking-[0.06em] block mb-1">
-                    {t('auth.reset.newPassword')}
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                    <input
-                      id="pw"
-                      type="password"
-                      value={password}
-                      onChange={e => { setPassword(e.target.value); refreshErrors({ password: e.target.value }) }}
-                      onBlur={onBlur('password')}
-                      aria-invalid={!!(touched.password && fieldErrors.password)}
-                      aria-describedby={touched.password && fieldErrors.password ? 'pw-err' : undefined}
-                      required
-                      minLength={6}
-                      placeholder={t('auth.register.minChars')}
-                      className={`w-full h-10 pl-10 pr-4 rounded-lg border bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent ${
-                        touched.password && fieldErrors.password ? 'border-red-500/60' : 'border-white/10'
-                      }`}
-                    />
-                  </div>
-                  {touched.password && fieldErrors.password && (
-                    <p id="pw-err" className="mt-1 text-caption text-red-300">{fieldErrors.password}</p>
-                  )}
-                </div>
-                <div>
-                  <label htmlFor="pw2" className="text-micro font-medium text-white/50 uppercase tracking-[0.06em] block mb-1">
-                    {t('auth.reset.confirmPassword')}
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                    <input
-                      id="pw2"
-                      type="password"
-                      value={confirm}
-                      onChange={e => { setConfirm(e.target.value); refreshErrors({ confirm: e.target.value }) }}
-                      onBlur={onBlur('confirm')}
-                      aria-invalid={!!(touched.confirm && fieldErrors.confirm)}
-                      aria-describedby={touched.confirm && fieldErrors.confirm ? 'pw2-err' : undefined}
-                      required
-                      minLength={6}
-                      className={`w-full h-10 pl-10 pr-4 rounded-lg border bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent ${
-                        touched.confirm && fieldErrors.confirm ? 'border-red-500/60' : 'border-white/10'
-                      }`}
-                    />
-                  </div>
-                  {touched.confirm && fieldErrors.confirm && (
-                    <p id="pw2-err" className="mt-1 text-caption text-red-300">{fieldErrors.confirm}</p>
-                  )}
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading || !isValid}
-                  className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[13px] font-semibold hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 transition-all"
-                >
-                  {loading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      <span>{t('auth.reset.submit')}</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              </form>
-            </>
           )}
+
+          <form onSubmit={handleSubmit} noValidate aria-labelledby="reset-title" className="space-y-4">
+            <AuthField
+              id="pw"
+              type="password"
+              autoComplete="new-password"
+              icon={Lock}
+              label={t('auth.reset.newPassword')}
+              value={password}
+              onChange={e => { setPassword(e.target.value); refreshErrors({ password: e.target.value }) }}
+              onBlur={onBlur('password')}
+              required
+              minLength={6}
+              placeholder={t('auth.register.minChars')}
+              error={touched.password ? fieldErrors.password : null}
+            />
+            <AuthField
+              id="pw2"
+              type="password"
+              autoComplete="new-password"
+              icon={Lock}
+              label={t('auth.reset.confirmPassword')}
+              value={confirm}
+              onChange={e => { setConfirm(e.target.value); refreshErrors({ confirm: e.target.value }) }}
+              onBlur={onBlur('confirm')}
+              required
+              minLength={6}
+              error={touched.confirm ? fieldErrors.confirm : null}
+            />
+            <button type="submit" disabled={loading || !isValid} className="btn-primary w-full h-11 text-[14px]">
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <span>{t('auth.reset.submit')}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
         </div>
-      </div>
-    </div>
+      )}
+    </AuthShell>
   )
 }

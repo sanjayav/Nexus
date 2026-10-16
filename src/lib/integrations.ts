@@ -8,6 +8,11 @@
  *
  * Cache is module-level for instant hydration on second use, and mirrored to
  * sessionStorage so a hard reload doesn't refetch immediately.
+ *
+ * A failed probe (network error, non-2xx such as a 500, or a body without an
+ * `integrations` map) sets `error` and is NOT cached. Callers must treat that
+ * as "unknown", never as "not configured" — use `integrationMissing()` /
+ * `integrationState()` rather than `!status.ai`.
  */
 import { useEffect, useState } from 'react'
 
@@ -20,7 +25,23 @@ export interface IntegrationStatus {
   euRegion: boolean
   apacRegion: boolean
   loading: boolean
+  /** Set when /api/health was unreachable or errored — flags are then unknown. */
   error: string | null
+}
+
+export type IntegrationKey = 'email' | 'sso' | 'ai' | 'realtime' | 'sentry' | 'euRegion' | 'apacRegion'
+export type IntegrationState = 'loading' | 'unknown' | 'configured' | 'missing'
+
+/** loading → probing; unknown → probe failed (do not claim "not configured"). */
+export function integrationState(s: IntegrationStatus, key: IntegrationKey): IntegrationState {
+  if (s.loading) return 'loading'
+  if (s.error) return 'unknown'
+  return s[key] ? 'configured' : 'missing'
+}
+
+/** True only when the server answered and said the integration is not configured. */
+export function integrationMissing(s: IntegrationStatus, key: IntegrationKey): boolean {
+  return integrationState(s, key) === 'missing'
 }
 
 const CACHE_KEY = 'aeiforo_integration_status_v1'
@@ -69,8 +90,17 @@ export function useIntegrationStatus(): IntegrationStatus {
     if (!status.loading) return
     let cancelled = false
     fetch('/api/health')
-      .then(r => r.json())
-      .then((h: { integrations?: Record<string, { configured?: boolean }> }) => {
+      .then(async r => {
+        // A 5xx (or any non-2xx) means we could not learn the configuration —
+        // that is an error, not "not configured".
+        if (!r.ok) throw new Error(`health_http_${r.status}`)
+        const h = (await r.json()) as { integrations?: Record<string, { configured?: boolean }> }
+        if (!h || typeof h !== 'object' || !h.integrations || typeof h.integrations !== 'object') {
+          throw new Error('health_no_integrations')
+        }
+        return h
+      })
+      .then(h => {
         if (cancelled) return
         const integ = h.integrations ?? {}
         const next: IntegrationStatus = {

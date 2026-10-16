@@ -29,6 +29,7 @@ import type { QuestionAssignment } from '../../lib/orgStore'
 import { getFramework } from '../../lib/frameworks'
 import { useAuth } from '../../auth/AuthContext'
 import { hasPermission } from '../../lib/rbac'
+import { Skeleton } from '../Skeleton'
 
 export interface FactDetailsPanelProps {
   item: NexusQuestionnaireItem
@@ -173,10 +174,10 @@ export default function FactDetailsPanel({
     <section data-testid="fact-details-panel" className="space-y-5">
       {/* Concept */}
       <div>
-        <div className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">
+        <div className="text-caption font-semibold text-[var(--text-secondary)] mb-1.5">
           {t('disclosureEditor.fact.concept')}
         </div>
-        <div className="text-[12px] font-semibold text-[var(--text-primary)] leading-snug">
+        <div className="text-small font-semibold text-[var(--text-primary)] leading-snug">
           {itemLabel(item, i18n.language)}
         </div>
         <div className="text-caption font-mono text-[var(--text-tertiary)] mt-1 truncate" title={xbrlConcept}>
@@ -186,7 +187,7 @@ export default function FactDetailsPanel({
 
       {/* Dimensions */}
       <div>
-        <div className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">
+        <div className="text-caption font-semibold text-[var(--text-secondary)] mb-1.5">
           {t('disclosureEditor.fact.dimensions')}
         </div>
         <div className="flex flex-wrap gap-1">
@@ -200,7 +201,7 @@ export default function FactDetailsPanel({
 
       {/* Fiscal Period */}
       <div>
-        <div className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">
+        <div className="text-caption font-semibold text-[var(--text-secondary)] mb-1.5">
           {t('disclosureEditor.fact.fiscalPeriod')}
         </div>
         <div className="text-caption font-mono text-[var(--text-primary)]">
@@ -210,10 +211,10 @@ export default function FactDetailsPanel({
 
       {/* Source Value */}
       <div>
-        <div className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">
+        <div className="text-caption font-semibold text-[var(--text-secondary)] mb-1.5">
           {t('disclosureEditor.fact.sourceValue')}
         </div>
-        <div className="text-[14px] font-semibold text-[var(--text-primary)] font-mono">
+        <div className="type-figure text-[15px] text-[var(--text-primary)]">
           {valueDisplay}
         </div>
       </div>
@@ -221,7 +222,7 @@ export default function FactDetailsPanel({
       {/* XBRL Footnotes */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <div className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)] flex items-center gap-1">
+          <div className="text-caption font-semibold text-[var(--text-secondary)] flex items-center gap-1">
             <MessageSquare className="w-3 h-3" />
             {t('disclosureEditor.fact.footnotes')}
           </div>
@@ -230,15 +231,15 @@ export default function FactDetailsPanel({
           )}
         </div>
         {!assignment ? (
-          <p className="text-caption text-[var(--text-tertiary)] italic">
+          <p className="text-caption text-[var(--text-tertiary)]">
             {t('disclosureEditor.fact.footnotesEmpty')}
           </p>
         ) : loadingFoots ? (
-          <Loader2 className="w-3 h-3 animate-spin text-[var(--text-tertiary)]" />
+          <div className="space-y-1.5" aria-busy="true"><Skeleton className="h-4 w-3/4" /><Skeleton className="h-4 w-1/2" /></div>
         ) : (
           <>
             {foots.length === 0 ? (
-              <p className="text-caption text-[var(--text-tertiary)] italic">{t('disclosureEditor.fact.noFootnotes')}</p>
+              <p className="text-caption text-[var(--text-tertiary)]">{t('disclosureEditor.fact.noFootnotes')}</p>
             ) : (
               <ul className="space-y-1.5 mb-2">
                 {foots.map(f => (
@@ -275,7 +276,7 @@ export default function FactDetailsPanel({
                   type="button"
                   onClick={() => void handleAddFootnote()}
                   disabled={adding || !newFootnote.trim()}
-                  className="inline-flex items-center gap-1 px-2 h-6 rounded-[var(--radius-sm)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-caption font-semibold hover:bg-[var(--btn-primary-bg-hover)] disabled:opacity-50"
+                  className="inline-flex items-center gap-1 px-2.5 h-8 rounded-[var(--radius-sm)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-caption font-semibold hover:bg-[var(--btn-primary-bg-hover)] disabled:opacity-50"
                 >
                   {adding
                     ? <><Loader2 className="w-3 h-3 animate-spin" /> {t('disclosureEditor.fact.adding')}</>
@@ -296,7 +297,7 @@ export default function FactDetailsPanel({
       {/* Other Fact Locations */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
-          <div className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)] flex items-center gap-1">
+          <div className="text-caption font-semibold text-[var(--text-secondary)] flex items-center gap-1">
             <Link2 className="w-3 h-3 text-[var(--color-brand)]" />
             {t('disclosureEditor.fact.otherLocations')}
             {!loadingPeers && peers.length > 0 && (
@@ -310,9 +311,9 @@ export default function FactDetailsPanel({
           )}
         </div>
         {loadingPeers ? (
-          <Loader2 className="w-3 h-3 animate-spin text-[var(--text-tertiary)]" />
+          <div className="space-y-1.5" aria-busy="true"><Skeleton className="h-8 w-full" /><Skeleton className="h-8 w-full" /></div>
         ) : peers.length === 0 ? (
-          <p className="text-caption text-[var(--text-tertiary)] italic">
+          <p className="text-caption text-[var(--text-tertiary)]">
             {t('disclosureEditor.fact.notLinked')}
           </p>
         ) : (
@@ -323,9 +324,9 @@ export default function FactDetailsPanel({
                   type="button"
                   onClick={() => handlePeerClick(p)}
                   data-testid={`fact-peer-${p.framework_id}`}
-                  className="w-full flex items-center gap-2 px-2 h-7 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] text-left text-caption"
+                  className="w-full flex items-center gap-2 px-2 h-9 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] text-left text-caption"
                 >
-                  <span className="inline-flex items-center justify-center px-1.5 h-4 rounded-[var(--radius-xs)] bg-[var(--bg-tertiary)] text-micro font-bold uppercase tracking-[0.06em] text-[var(--text-secondary)] flex-shrink-0">
+                  <span className="inline-flex items-center justify-center px-1.5 h-5 rounded-[var(--radius-xs)] bg-[var(--bg-tertiary)] text-caption font-semibold text-[var(--text-secondary)] flex-shrink-0 whitespace-nowrap">
                     {frameworkLabel(p.framework_id)}
                   </span>
                   <span className="font-mono text-[var(--text-tertiary)] flex-shrink-0">{p.gri_code}</span>
@@ -341,7 +342,7 @@ export default function FactDetailsPanel({
         {assignment && peers.length > 0 && (
           <div className="mt-2 flex items-center justify-between">
             {overridden ? (
-              <span className="inline-flex items-center gap-1 px-2 h-5 rounded-full bg-amber-100 text-amber-800 text-caption font-semibold">
+              <span className="nx-pill" data-tone="warning" data-size="sm">
                 <AlertTriangle className="w-3 h-3" /> {t('disclosureEditor.fact.overridden')}
               </span>
             ) : canOverride ? (
@@ -349,7 +350,7 @@ export default function FactDetailsPanel({
                 type="button"
                 onClick={() => void handleOverride()}
                 disabled={overrideBusy}
-                className="inline-flex items-center gap-1 px-2 h-6 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-caption text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50"
+                className="inline-flex items-center gap-1 px-2.5 h-8 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-caption text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50"
                 title={t('disclosureEditor.fact.overrideTitle')}
               >
                 {overrideBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Lock className="w-3 h-3" />}

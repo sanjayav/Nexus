@@ -1,12 +1,16 @@
 {
-  "breadcrumbs": { "data": "数据", "connectors": "连接器" },
+  "breadcrumbs": {
+    "data": "数据",
+    "connectors": "连接器"
+  },
   "eyebrow": "数据接入",
-  "title": "ERP 连接器",
-  "subtitle": "内置 SAP S/4HANA、NetSuite 和 Snowflake 的 CSV 映射模板。上传导出文件、预览字段映射，即可作为草稿活动数据导入。",
+  "title": "连接器",
+  "subtitle": "连接源系统定期同步数据，或使用映射模板导入 CSV 导出文件。导入的数据作为草稿活动数据，经审核后方可使用。",
   "errors": {
     "loadTemplates": "加载模板失败",
     "startOAuth": "无法启动 OAuth 授权",
-    "importFailed": "导入失败"
+    "importFailed": "导入失败",
+    "templatesUnavailable": "映射模板加载失败（{{message}}）。请刷新页面重试，实时集成不受影响。"
   },
   "toast": {
     "importSlow": "导入耗时超出预期。您可以离开此页面，稍后在“最近导入”中查看结果。"
@@ -18,14 +22,20 @@
     "connected": "已连接",
     "error": "错误",
     "disconnected": "已断开",
-    "comingSoon": "即将推出",
+    "comingSoon": "即将上线",
     "comingSoonHint": "该集成尚未开放。",
     "lastSync": "上次同步：{{date}}",
     "manage": "管理",
     "connect": "连接",
     "configure": "配置",
     "serverNotConfiguredTitle": "需由服务器管理员配置 OAuth client_id / secret 环境变量",
-    "serverNotConfigured": "服务器未配置"
+    "serverNotConfigured": "服务器未配置",
+    "intro": "一次授权后，Nexus 可按需拉取活动数据并保留同步历史。",
+    "notYetAvailable": "暂未开放",
+    "errorTitle": "集成列表加载失败",
+    "errorBody": "无法连接连接器注册表，加载完成前无法确认连接状态。",
+    "emptyTitle": "暂无可用集成",
+    "emptyBody": "当前工作区未启用任何连接器。仍可使用下方的 CSV 导入。"
   },
   "categories": {
     "ERP": "ERP",
@@ -38,13 +48,24 @@
     "Collaboration": "协同办公",
     "Metering": "计量",
     "Energy": "能源",
-    "Finance": "财务"
+    "Finance": "财务",
+    "Regulatory": "监管报送",
+    "Data warehouse": "数据仓库"
   },
   "sources": {
-    "sap_s4hana": { "subtitle": "成本中心能耗 + MM 燃料采购订单" },
-    "netsuite": { "subtitle": "公用事业账单 + 差旅与费用" },
-    "snowflake": { "subtitle": "通用活动数据直通" },
-    "generic_csv": { "name": "通用 CSV", "subtitle": "自定义列映射" }
+    "sap_s4hana": {
+      "subtitle": "成本中心能耗 + MM 燃料采购订单"
+    },
+    "netsuite": {
+      "subtitle": "公用事业账单 + 差旅与费用"
+    },
+    "snowflake": {
+      "subtitle": "通用活动数据直通"
+    },
+    "generic_csv": {
+      "name": "通用 CSV",
+      "subtitle": "自定义列映射"
+    }
   },
   "templatesCount_one": "{{count}} 个模板",
   "templatesCount_other": "{{count}} 个模板",
@@ -63,7 +84,10 @@
   "cancel": "取消",
   "importComplete": "导入完成",
   "importSummary": "已导入 {{imported}} 行 · 失败 {{failed}} 行 · 共 {{total}} 行",
-  "errorTable": { "row": "行", "error": "错误" },
+  "errorTable": {
+    "row": "行",
+    "error": "错误"
+  },
   "recent": {
     "heading": "最近导入",
     "emptyTitle": "暂无导入记录",
@@ -73,12 +97,36 @@
     "imported": "已导入",
     "failed": "失败",
     "status": "状态",
-    "when": "时间"
+    "when": "时间",
+    "count_one": "{{count}} 次导入",
+    "count_other": "{{count}} 次导入",
+    "errorTitle": "最近导入加载失败",
+    "errorBody": "无法加载导入记录，已导入的数据不受影响。"
   },
   "importStatus": {
     "pending": "待处理",
     "processing": "处理中",
     "complete": "已完成",
     "failed": "失败"
+  },
+  "dismiss": "关闭",
+  "chooseFile": "选择 CSV 文件",
+  "templatesLoading": "正在加载模板…",
+  "cn": {
+    "heading": "中国大陆系统 — 即将上线",
+    "intro": "面向 A 股及 A+H 上市公司常用系统的规划集成，目前尚不可连接。可参照规划的字段映射提前准备同等格式的 CSV 导出文件。",
+    "count_one": "规划中 {{count}} 个",
+    "count_other": "规划中 {{count}} 个",
+    "mappings_one": "规划字段映射（{{count}}）",
+    "mappings_other": "规划字段映射（{{count}}）",
+    "mappingsCaption": "{{name}} 的规划字段映射",
+    "source": "源字段",
+    "target": "Nexus 字段",
+    "notes": "说明",
+    "mappingsNote": "规划中的映射，正式上线前可能调整。"
+  },
+  "csv": {
+    "heading": "CSV 导入",
+    "intro": "选择数据源和映射模板后上传导出文件。写入前可预览字段映射。"
   }
 }

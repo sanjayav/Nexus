@@ -1,39 +1,46 @@
 {
   "breadcrumbs": {
     "reports": "Reports",
-    "library": "Disclosures library"
+    "library": "Disclosure library"
   },
   "header": {
-    "eyebrow": "Disclosures Library",
-    "title": "Disclosures Library",
-    "description": "Auto-generated from your assignments. Every GRI disclosure, its status, the section it lives in, and the material topic it answers. This is the table that opens every GRI-compliant report."
+    "eyebrow": "Disclosure library",
+    "title": "Disclosure library",
+    "description": "Built from your assignments: every disclosure in {{framework}}, its reporting status, where it sits in the report and the material topic it answers. This index opens the published report."
   },
   "actions": {
     "print": "Print",
     "savePdf": "Save as PDF"
   },
   "summary": {
-    "total": "Total disclosures",
+    "aria": "Disclosure status — select a figure to filter",
+    "total": "Disclosures",
     "totalHint": "{{pct}}% fully reported",
     "fully": "Fully reported",
     "fullyHint": "All required data approved",
-    "partially": "Partially",
-    "partiallyHint": "Some data in / review",
+    "partially": "Partially reported",
+    "partiallyHint": "Some data in or in review",
     "omitted": "Omitted",
-    "omittedHint": "No data · needs assignment"
+    "omittedHint": "No data · needs assigning"
+  },
+  "coverage": {
+    "title": "Reporting coverage",
+    "value": "{{pct}} fully reported"
   },
   "filters": {
     "searchAria": "Search disclosures",
-    "searchPlaceholder": "Search GRI code, line item, section…",
+    "searchPlaceholder": "Search code, disclosure or section…",
     "statusAria": "Filter by status",
     "allStatuses": "All statuses",
     "fully": "Fully reported",
-    "partially": "Partially",
+    "partially": "Partially reported",
     "omitted": "Omitted",
-    "materialOnly": "Material topics only"
+    "materialOnly": "Material topics only",
+    "showing": "Showing {{n}} of {{total}}",
+    "clear": "Clear filters"
   },
   "print": {
-    "title": "GRI Content Index — {{framework}}",
+    "title": "{{index}} — {{framework}}",
     "generated_one": "Generated {{date}} · {{count}} disclosure",
     "generated_other": "Generated {{date}} · {{count}} disclosures"
   },
@@ -41,13 +48,67 @@
     "code": "Code",
     "disclosure": "Disclosure",
     "section": "Section",
+    "topic": "Topic",
     "materialTopic": "Material topic",
     "status": "Status",
     "approved": "Approved"
   },
   "status": {
-    "fully": "Fully",
+    "fully": "Full",
     "partially": "Partial",
     "omitted": "Omitted"
+  },
+  "errorTitle": "The disclosures library didn't load",
+  "empty": {
+    "title": "The {{index}} is empty",
+    "body": "Assign this framework's disclosures to entities and the index builds itself from those assignments.",
+    "cta": "Go to assignments"
+  },
+  "frameworks": {
+    "fallbackIndex": "{{code}} content index",
+    "gri": {
+      "index": "GRI content index",
+      "code": "GRI disclosure"
+    },
+    "cn-sse": {
+      "index": "Sustainability report guideline index",
+      "code": "Topic / indicator"
+    },
+    "cn-csds": {
+      "index": "CSDS disclosure index",
+      "code": "Disclosure requirement"
+    },
+    "hkex-esg": {
+      "index": "ESG Reporting Code content index",
+      "code": "Aspect / KPI"
+    },
+    "issb": {
+      "index": "IFRS S1/S2 content index",
+      "code": "Paragraph"
+    },
+    "issb-s1": {
+      "index": "IFRS S1 content index",
+      "code": "IFRS S1 ¶"
+    },
+    "issb-s2": {
+      "index": "IFRS S2 content index",
+      "code": "IFRS S2 ¶"
+    },
+    "tcfd": {
+      "index": "TCFD recommendations index",
+      "code": "Recommendation"
+    },
+    "cdp": {
+      "index": "CDP questionnaire index",
+      "code": "Question"
+    },
+    "cdp-2024": {
+      "index": "CDP questionnaire index",
+      "code": "Question"
+    },
+    "cass-esg": {
+      "index": "CASS-ESG 5.0 indicator index",
+      "code": "Indicator"
+    }
   }
 }

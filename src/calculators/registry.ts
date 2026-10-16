@@ -55,6 +55,12 @@ const nWithFactor = (values: CalcInputValues, input: CalcInput): number | null =
 // Registry
 // ═══════════════════════════════════════════
 
+// China grid emission factors — MEE/NBS 2023, published 2025-12-31.
+export const CN_GRID_SOURCE = 'MEE/NBS 2023 (published 2025-12-31)'
+export const CN_GRID_URL = 'https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html'
+const cnGridNote = (kgPerKwh: string) => `${CN_GRID_SOURCE} — ${kgPerKwh} kgCO2e/kWh · ${CN_GRID_URL}`
+const CN_GRID_FOOTNOTE = `China grid EF: ${CN_GRID_SOURCE} — ${CN_GRID_URL}`
+
 export const CALCULATORS: CalcDescriptor[] = [
 
   // ── GRI 305-1 Scope 1 — fuel-based ──────────────────────────────
@@ -108,6 +114,16 @@ export const CALCULATORS: CalcDescriptor[] = [
           // kgCO2e per MWh
           { value: 'th-location', label: 'Thailand — location-based', factor: 487, note: 'TGO 2024 — 0.487 kgCO2/kWh' },
           { value: 'th-market',   label: 'Thailand — market-based (residual)', factor: 498, note: 'TGO 2024 market residual mix' },
+          // China — MEE/NBS 2023 grid factors (published 2025-12-31)
+          { value: 'cn-location', label: 'China — national average (location-based)', factor: 530.6, note: cnGridNote('0.5306') },
+          { value: 'cn-market', label: 'China — market-based (residual)', factor: 609.6, note: cnGridNote('0.6096') },
+          { value: 'cn-north', label: 'China — North grid', factor: 636.1, note: cnGridNote('0.6361') },
+          { value: 'cn-northeast', label: 'China — Northeast grid', factor: 512.2, note: cnGridNote('0.5122') },
+          { value: 'cn-east', label: 'China — East grid', factor: 550, note: cnGridNote('0.5500') },
+          { value: 'cn-central', label: 'China — Central grid', factor: 527.1, note: cnGridNote('0.5271') },
+          { value: 'cn-northwest', label: 'China — Northwest grid', factor: 554.3, note: cnGridNote('0.5543') },
+          { value: 'cn-south', label: 'China — South grid', factor: 404.2, note: cnGridNote('0.4042') },
+          { value: 'cn-southwest', label: 'China — Southwest grid', factor: 247.2, note: cnGridNote('0.2472') },
           { value: 'rec-backed',  label: 'REC-backed renewable', factor: 0,   note: 'Zero emissions with valid I-REC' },
           { value: 'ppa-solar',   label: 'Corporate PPA — solar', factor: 18,  note: 'Lifecycle EF after PPA' },
         ],
@@ -123,7 +139,7 @@ export const CALCULATORS: CalcDescriptor[] = [
       if (item.unit?.toLowerCase().startsWith('tons')) return kg / 1000
       return kg
     },
-    footnotes: ['Location-based + market-based per GHG Protocol Scope 2 Guidance', 'Thailand grid EF: TGO / EGAT'],
+    footnotes: ['Location-based + market-based per GHG Protocol Scope 2 Guidance', 'Thailand grid EF: TGO / EGAT', CN_GRID_FOOTNOTE],
     matches: (i) => i.gri_code === '305-2 (2016)' && i.line_item.toLowerCase().includes('indirect'),
   },
 

@@ -11,9 +11,11 @@
   },
   "kpi": {
     "teamMembers": "团队成员",
-    "active": "活跃",
-    "ofTotal": "/ {{total}}",
-    "rolesDefined": "已定义角色"
+    "active": "已启用",
+    "ofTotal": "共 {{total}} 名成员",
+    "rolesDefined": "已定义角色",
+    "label": "团队概况",
+    "inactive": "已停用"
   },
   "users": {
     "heading": "团队成员",
@@ -30,7 +32,11 @@
     "deactivateUser": "停用用户",
     "reactivateUser": "重新启用用户",
     "deactivate": "停用",
-    "reactivate": "重新启用"
+    "reactivate": "重新启用",
+    "intro": "可多选成员，批量更改角色或停用。",
+    "searchLabel": "搜索团队成员",
+    "colStatus": "状态",
+    "active": "已启用"
   },
   "empty": {
     "noMatchTitle": "没有符合搜索条件的用户",
@@ -38,10 +44,12 @@
     "noMatchBody": "请尝试其他关键词，或清除搜索以查看全部成员。",
     "noUsersBody": "添加第一位团队成员并为其分配角色，对方将收到登录邮件。",
     "clearSearch": "清除搜索",
-    "addFirst": "添加第一位用户"
+    "addFirst": "添加第一位用户",
+    "noRolesTitle": "暂无角色",
+    "noRolesBody": "创建角色以组合权限，再分配给成员。"
   },
   "switcher": {
-    "heading": "切换角色 · 演示",
+    "heading": "切换角色（演示）",
     "intro": "一键以任意角色登录，预览其使用体验，并直接进入该角色的主页。",
     "footnote": "每次点击都会先退出，再以该用户身份重新登录。便于向客户从不同视角展示同一工作流。"
   },
@@ -53,11 +61,12 @@
     "userCount_other": "{{count}} 位用户",
     "permissionCount_one": "{{count}} 项权限",
     "permissionCount_other": "{{count}} 项权限",
-    "viewDetails": "{{perms}} · 查看详情 →",
+    "viewDetails": "{{perms}} · 查看详情",
     "editDescriptionSystem": "编辑描述（系统角色）",
     "editRole": "编辑角色",
     "deleteRole": "删除角色",
-    "systemNotEditable": "系统角色 · 不可编辑"
+    "systemNotEditable": "系统角色 · 不可编辑",
+    "system": "系统角色"
   },
   "roleEditor": {
     "editTitle": "编辑角色",
@@ -95,7 +104,8 @@
     "saveChange": "保存更改"
   },
   "roleDetail": {
-    "close": "关闭"
+    "close": "关闭",
+    "notGranted": "未授予"
   },
   "dbSetup": {
     "title": "连接 Postgres",
@@ -186,11 +196,72 @@
     "roles": "角色"
   },
   "permDescriptions": {
-    "dashboard": { "view": "查看仪表板" },
-    "data": { "view": "查看数据", "upload": "上传数据", "approve": "审批数据" },
-    "reports": { "view": "查看报告", "create": "创建报告", "publish": "发布报告" },
-    "workflow": { "view": "查看工作流", "approve": "审批工作流" },
-    "admin": { "users": "管理用户", "roles": "管理角色" },
-    "audit": { "view": "查看审计日志" }
+    "dashboard": {
+      "view": "查看仪表板"
+    },
+    "data": {
+      "view": "查看数据",
+      "upload": "上传数据",
+      "approve": "审批数据"
+    },
+    "reports": {
+      "view": "查看报告",
+      "create": "创建报告",
+      "publish": "发布报告"
+    },
+    "workflow": {
+      "view": "查看工作流",
+      "approve": "审批工作流"
+    },
+    "admin": {
+      "users": "管理用户",
+      "roles": "管理角色"
+    },
+    "audit": {
+      "view": "查看审计日志"
+    }
+  },
+  "error": {
+    "title": "团队成员加载失败",
+    "rolesTitle": "角色加载失败",
+    "body": "无法连接服务器，为避免显示不完整的列表，暂不显示。请重试。"
+  },
+  "confirm": {
+    "deleteRoleTitle": "删除「{{name}}」角色？",
+    "deleteRoleBody_one": "当前有 {{count}} 名成员使用此角色。仅拥有此角色的成员将失去访问权限，直至分配新角色。",
+    "deleteRoleBody_other": "当前有 {{count}} 名成员使用此角色。仅拥有此角色的成员将失去访问权限，直至分配新角色。",
+    "deactivateTitle": "停用「{{name}}」？",
+    "deactivateBody": "该成员将被登出且无法再登录。其任务、提交记录和审计历史均保留，可随时重新启用。"
+  },
+  "bulk": {
+    "toolbar": "所选成员的批量操作",
+    "selected_one": "已选 {{count}} 人",
+    "selected_other": "已选 {{count}} 人",
+    "clear": "清除选择",
+    "selectAll": "全选当前列表",
+    "selectUser": "选择 {{name}}",
+    "roleSubtitle_one": "将应用于 {{count}} 名成员",
+    "roleSubtitle_other": "将应用于 {{count}} 名成员",
+    "roleChanged_one": "已更改 {{count}} 名成员的角色",
+    "roleChanged_other": "已更改 {{count}} 名成员的角色",
+    "roleChangedDemo_one": "已更改 {{count}} 名成员的角色（演示）",
+    "roleChangedDemo_other": "已更改 {{count}} 名成员的角色（演示）",
+    "deactivateTitle_one": "停用 {{count}} 名成员？",
+    "deactivateTitle_other": "停用 {{count}} 名成员？",
+    "deactivateBody": "这些成员将被登出且无法再登录。任务、提交记录和审计历史均保留，可随时重新启用。",
+    "deactivateConfirm_one": "停用 {{count}} 人",
+    "deactivateConfirm_other": "停用 {{count}} 人",
+    "deactivated_one": "已停用 {{count}} 名成员",
+    "deactivated_other": "已停用 {{count}} 名成员",
+    "deactivatedDemo_one": "已停用 {{count}} 名成员（演示）",
+    "deactivatedDemo_other": "已停用 {{count}} 名成员（演示）",
+    "reactivated_one": "已重新启用 {{count}} 名成员",
+    "reactivated_other": "已重新启用 {{count}} 名成员",
+    "reactivatedDemo_one": "已重新启用 {{count}} 名成员（演示）",
+    "reactivatedDemo_other": "已重新启用 {{count}} 名成员（演示）",
+    "partialFailure": "{{count}} 项更新中有 {{failed}} 项失败，列表显示当前实际状态。"
+  },
+  "modal": {
+    "close": "关闭"
   }
 }

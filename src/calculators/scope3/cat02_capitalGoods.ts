@@ -1,9 +1,5 @@
-import {
-  Scope3Calculator,
-  EEIO_FACTORS,
-  ILLUSTRATIVE_NOTE,
-  toNum,
-} from './index'
+import type { Scope3Calculator } from './types'
+import { EEIO_FACTORS, ILLUSTRATIVE_NOTE, toNum } from './constants'
 
 const ASSET_EF: Record<string, number> = {
   building_office: 0.42,        // tCO2e per m2 floor area

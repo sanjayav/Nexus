@@ -1,9 +1,16 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Lock, Mail, AlertCircle, Loader2, ArrowRight, Shield, Zap, BarChart3, Globe, User, Building2, KeyRound } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Lock, Mail, AlertCircle, Loader2, ArrowRight, ArrowLeft, User, Building2, KeyRound, ChevronDown, Smartphone, Fingerprint } from 'lucide-react'
 import { z } from 'zod'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
+import { homeRouteFor } from '../lib/rbac'
+import { auth as authApi, setToken } from '../lib/api'
+import AuthShell from '../components/auth/AuthShell'
+import AuthField from '../components/auth/AuthField'
+import { CnProviderButtons, PhoneSignIn } from '../components/auth/ChinaSignIn'
+import { dur, ease, spring } from '../motion/tokens'
 
 /**
  * Register-form schema. Field-level errors are derived from this and shown
@@ -16,11 +23,6 @@ const registerSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters.'),
 })
 type RegisterFieldErrors = Partial<Record<'email' | 'name' | 'password', string>>
-import NexusBrand from '../components/NexusBrand'
-import { SplineScene } from '../components/SplineScene'
-import { Spotlight } from '../components/Spotlight'
-import { homeRouteFor } from '../lib/rbac'
-import { auth as authApi, setToken } from '../lib/api'
 
 /**
  * Shortcut accounts for the defined roles. All six are real users in Neon
@@ -49,24 +51,50 @@ const SHARED_PASSWORD: string = import.meta.env.VITE_DEMO_PASSWORD
   ?? (import.meta.env.DEV ? 'demo2026' : '')
 const DEMO_TILES_ENABLED = SHARED_PASSWORD.length > 0
 
-const features = [
-  { icon: BarChart3, text: '10+ GHG Protocol calculator modules' },
-  { icon: Globe, text: 'GRI, CSRD, ISSB, TCFD, CDP frameworks' },
-  { icon: Shield, text: 'RBAC with SO / FM / TL approval chain' },
-  { icon: Zap, text: 'Excel ingestion with auto-mapping' },
-]
+type Method = 'email' | 'phone'
+
+function ErrorBanner({ id, children }: { id?: string; children: React.ReactNode }) {
+  return (
+    <div
+      role="alert"
+      aria-live="polite"
+      id={id}
+      className="flex items-start gap-2.5 rounded-[10px] px-3.5 py-3 type-small"
+      style={{ background: 'var(--status-danger-soft)', border: '1px solid var(--status-danger-line)', color: 'var(--status-danger)' }}
+    >
+      <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden />
+      <p>{children}</p>
+    </div>
+  )
+}
+
+function Divider({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-3 py-1" aria-hidden>
+      <div className="h-px flex-1" style={{ background: 'var(--border-default)' }} />
+      <span className="type-caption whitespace-nowrap" style={{ color: 'var(--text-tertiary)' }}>{label}</span>
+      <div className="h-px flex-1" style={{ background: 'var(--border-default)' }} />
+    </div>
+  )
+}
 
 export default function Login() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { login, register, user, refreshUser } = useAuth()
   const navigate = useNavigate()
   const [params] = useSearchParams()
-  const [mode, setMode] = useState<'login' | 'register'>('login')
+  // Marketing CTAs link to /login?mode=register — honour it.
+  const [mode, setMode] = useState<'login' | 'register'>(() => (params.get('mode') === 'register' ? 'register' : 'login'))
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [workspaceName, setWorkspaceName] = useState('')
   const [error, setError] = useState<string | null>(null)
+  // China sign-in options: always offered in Chinese; behind "More sign-in
+  // options" otherwise. `method` switches the form between email and SMS.
+  const isZh = (i18n.language ?? 'en').startsWith('zh')
+  const [moreOpen, setMoreOpen] = useState(false)
+  const [method, setMethod] = useState<Method>('email')
   // Register-mode inline validation state. Errors keyed by field; we only
   // surface an error once the field has been blurred (`touched`) so the
   // user isn't yelled at while still typing.
@@ -104,6 +132,11 @@ export default function Login() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params])
+
+  // Leaving Chinese collapses back to email unless the user opened the options.
+  useEffect(() => {
+    if (!isZh && !moreOpen) setMethod('email')
+  }, [isZh, moreOpen])
 
   // Debounced SSO discovery on email input. Quiet failure is fine — if the
   // domain isn't SSO-enabled we just show the password field.
@@ -244,422 +277,383 @@ export default function Login() {
     setError(null)
   }
 
+  const switchMode = () => {
+    setMode(mode === 'login' ? 'register' : 'login')
+    setMethod('email')
+    setError(null)
+    setTouched({})
+  }
+
+  const showCn = mode === 'login' && (isZh || moreOpen)
+  const showTabs = mode === 'login' && isZh
+  const phone = mode === 'login' && method === 'phone'
+
+  const heading = mfaTempToken ? t('auth.mfa.title') : mode === 'login' ? t('auth.login.heading') : t('auth.register.heading')
+  const subtitle = mfaTempToken ? t('auth.mfa.subtitle') : mode === 'login' ? t('auth.login.subtitle') : t('auth.register.subtitle')
+
   return (
-    <div
-      className="min-h-screen w-full flex items-center justify-center p-6 relative overflow-hidden"
-      style={{
-        // Dark sustainability backdrop — deep carbon with a hint of forest.
-        background:
-          'radial-gradient(120% 80% at 50% 0%, #061914 0%, #05100E 45%, #030809 100%)',
-      }}
-    >
-      {/* Animated green aurora — drifting sustainability ambience */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        {/* Primary aurora blob — drifts slowly across the top */}
-        <div
-          className="absolute top-[-30%] left-[-15%] w-[900px] h-[900px] rounded-full"
-          style={{
-            background:
-              'radial-gradient(circle, rgba(34,197,94,0.28), rgba(16,185,129,0.12) 40%, transparent 70%)',
-            filter: 'blur(80px)',
-            animation: 'aurora-drift-1 22s ease-in-out infinite',
-          }}
-        />
-        {/* Secondary aurora — warmer teal, counter-drift */}
-        <div
-          className="absolute bottom-[-25%] right-[-10%] w-[800px] h-[800px] rounded-full"
-          style={{
-            background:
-              'radial-gradient(circle, rgba(20,184,166,0.22), rgba(13,148,136,0.10) 40%, transparent 70%)',
-            filter: 'blur(90px)',
-            animation: 'aurora-drift-2 28s ease-in-out infinite',
-          }}
-        />
-        {/* Tertiary — small, bright emerald highlight */}
-        <div
-          className="absolute top-[40%] right-[20%] w-[400px] h-[400px] rounded-full"
-          style={{
-            background:
-              'radial-gradient(circle, rgba(110,231,183,0.18), transparent 70%)',
-            filter: 'blur(60px)',
-            animation: 'aurora-drift-3 18s ease-in-out infinite',
-          }}
-        />
+    <AuthShell>
+      <div className="space-y-6">
+        <div>
+          <h1 id="form-title" className="type-h1" style={{ color: 'var(--text-primary)' }}>{heading}</h1>
+          <p className="mt-2 type-body" style={{ color: 'var(--text-secondary)' }}>{subtitle}</p>
+        </div>
 
-        {/* Faint grid for structure */}
-        <div
-          className="absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage:
-              'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.6) 1px, transparent 0)',
-            backgroundSize: '28px 28px',
-          }}
-        />
-
-        {/* Slow drifting leaf-like specks — the "living" signal */}
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage:
-              'radial-gradient(2px 2px at 20% 30%, rgba(110,231,183,0.35), transparent), ' +
-              'radial-gradient(1.5px 1.5px at 70% 60%, rgba(52,211,153,0.3), transparent), ' +
-              'radial-gradient(1.5px 1.5px at 40% 80%, rgba(34,197,94,0.25), transparent), ' +
-              'radial-gradient(1px 1px at 85% 20%, rgba(110,231,183,0.3), transparent), ' +
-              'radial-gradient(1px 1px at 10% 70%, rgba(52,211,153,0.3), transparent)',
-            animation: 'specks-drift 40s linear infinite',
-          }}
-        />
-      </div>
-
-      <div className="w-full max-w-[1200px] max-h-[calc(100vh-3rem)] grid lg:grid-cols-[minmax(0,540px)_minmax(0,1fr)] gap-6 relative z-10">
-
-        {/* ── Card (dark — ambient green aurora highlights it) ── */}
-        <div
-          className="bg-black/70 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden flex flex-col max-h-[calc(100vh-3rem)]"
-          style={{
-            boxShadow:
-              '0 30px 80px -20px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.04) inset, 0 0 80px -10px rgba(52,211,153,0.35)',
-          }}
-        >
-
-          {/* Compact brand strip — animated NexusBrand on first impression */}
-          <div className="hidden lg:flex items-center px-6 py-4 border-b border-white/5 flex-shrink-0">
-            <NexusBrand size="md" layout="horizontal" animated showTagline showAttribution />
-          </div>
-
-          {/* Form area — scrollable if the viewport is very short */}
-          <div className="flex-1 flex items-start justify-center p-6 sm:p-8 overflow-y-auto">
-          <div className="w-full max-w-[460px] space-y-4">
-            {/* Mobile logo */}
-            <div className="lg:hidden mb-2">
-              <NexusBrand size="sm" layout="horizontal" animated showAttribution />
-            </div>
-
-            <div>
-              <h2 id="form-title" className="text-[20px] font-display font-bold text-white tracking-tight leading-none">
-                {mfaTempToken ? t('auth.mfa.title') : mode === 'login' ? t('auth.login.heading') : t('auth.register.heading')}
-              </h2>
-              <p className="mt-1 text-[12px] text-white/40">
-                {mfaTempToken
-                  ? t('auth.mfa.subtitle')
-                  : mode === 'login'
-                  ? t('auth.login.subtitle')
-                  : t('auth.register.subtitle')}
-              </p>
-            </div>
-
-            {/* ── MFA step-up panel ── */}
-            {mfaTempToken && (
-              <>
-                {error && (
-                  <div role="alert" className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-[12px] text-red-300">
-                    <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                    <p>{error}</p>
-                  </div>
-                )}
-                <form onSubmit={handleMfaSubmit} className="space-y-3">
-                  <div>
-                    <label htmlFor="mfa-code" className="text-micro font-medium text-white/50 uppercase tracking-[0.06em] block mb-1">
-                      {t('auth.mfa.codeLabel')}
-                    </label>
-                    <div className="relative">
-                      <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                      <input
-                        id="mfa-code"
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete="one-time-code"
-                        autoFocus
-                        value={mfaCode}
-                        onChange={(e) => setMfaCode(e.target.value)}
-                        placeholder="123456"
-                        className="w-full h-10 pl-10 pr-4 rounded-lg border border-white/10 bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent"
-                      />
-                    </div>
-                    <p className="mt-1.5 text-caption text-white/30">
-                      {t('auth.mfa.lostDevice')}
-                    </p>
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={mfaLoading || mfaCode.trim().length < 6}
-                    className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[13px] font-semibold hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 transition-all"
-                  >
-                    {mfaLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><span>{t('auth.mfa.verify')}</span><ArrowRight className="w-4 h-4" /></>}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={cancelMfa}
-                    className="w-full text-center text-[12px] text-white/40 hover:text-emerald-400 transition-colors"
-                  >
-                    {t('auth.mfa.cancel')}
-                  </button>
-                </form>
-              </>
-            )}
-
-            {/* SSO button — primary CTA for enterprise users. Hidden during MFA step-up. */}
-            {!mfaTempToken && mode === 'login' && (
+        {/* ── MFA step-up panel ── */}
+        {mfaTempToken && (
+          <div className="space-y-4">
+            {error && <ErrorBanner>{error}</ErrorBanner>}
+            <form onSubmit={handleMfaSubmit} className="space-y-4">
+              <AuthField
+                id="mfa-code"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                autoFocus
+                icon={KeyRound}
+                label={t('auth.mfa.codeLabel')}
+                value={mfaCode}
+                onChange={(e) => setMfaCode(e.target.value)}
+                placeholder="123456"
+                className="tracking-[0.3em] tabular-nums"
+                hint={t('auth.mfa.lostDevice')}
+              />
+              <button
+                type="submit"
+                disabled={mfaLoading || mfaCode.trim().length < 6}
+                className="btn-primary w-full h-11 text-[14px]"
+              >
+                {mfaLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><span>{t('auth.mfa.verify')}</span><ArrowRight className="w-4 h-4" /></>}
+              </button>
               <button
                 type="button"
-                onClick={() => handleSsoContinue()}
-                disabled={ssoLoading || loading}
-                aria-label={t('auth.sso.aria')}
-                aria-busy={ssoLoading}
-                title={t('auth.sso.title')}
-                className="w-full h-10 rounded-[8px] flex items-center justify-center gap-2 text-[13px] font-semibold text-white bg-white/[0.06] border border-white/[0.12] hover:bg-white/[0.10] hover:border-emerald-400/40 transition-all disabled:opacity-50 cursor-pointer"
+                onClick={cancelMfa}
+                className="w-full h-10 text-center type-small rounded-md hover:underline underline-offset-4"
+                style={{ color: 'var(--text-secondary)' }}
               >
-                {ssoLoading
-                  ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : <span className="w-4 h-4 rounded-full bg-emerald-400/20 text-emerald-300 flex items-center justify-center text-micro font-bold">SSO</span>}
-                {t('auth.sso.continueEnterprise')}
+                {t('auth.mfa.cancel')}
               </button>
+            </form>
+          </div>
+        )}
+
+        {!mfaTempToken && (
+          <>
+            {/* Method tabs — Chinese UI: email or mobile + SMS code */}
+            {showTabs && (
+              <div
+                role="tablist"
+                aria-label={t('auth.cn.methodAria')}
+                className="relative grid grid-cols-2 p-1 rounded-[12px]"
+                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}
+              >
+                {(['email', 'phone'] as const).map((m) => {
+                  const active = method === m
+                  const Icon = m === 'email' ? Mail : Smartphone
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      role="tab"
+                      id={`tab-${m}`}
+                      aria-selected={active}
+                      aria-controls={`panel-${m}`}
+                      onClick={() => { setMethod(m); setError(null) }}
+                      className="relative h-10 inline-flex items-center justify-center gap-2 rounded-[9px] text-[14px] font-medium transition-colors"
+                      style={{ color: active ? 'var(--text-primary)' : 'var(--text-tertiary)' }}
+                    >
+                      {active && (
+                        <motion.span
+                          layoutId="login-method-pill"
+                          className="absolute inset-0 rounded-[9px]"
+                          style={{ background: 'var(--bg-primary)', boxShadow: 'var(--shadow-card), 0 0 0 1px var(--border-default)' }}
+                          transition={spring.snappy}
+                          aria-hidden
+                        />
+                      )}
+                      <Icon className="relative w-4 h-4" aria-hidden />
+                      <span className="relative">{t(`auth.cn.tabs.${m}`)}</span>
+                    </button>
+                  )
+                })}
+              </div>
             )}
+
+            <AnimatePresence mode="wait" initial={false}>
+              {phone ? (
+                <motion.div
+                  key="phone"
+                  id="panel-phone"
+                  role={showTabs ? 'tabpanel' : undefined}
+                  aria-labelledby={showTabs ? 'tab-phone' : undefined}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: dur.fast, ease: ease.out }}
+                  className="space-y-4"
+                >
+                  <PhoneSignIn />
+                  {!showTabs && (
+                    <button
+                      type="button"
+                      onClick={() => setMethod('email')}
+                      className="inline-flex items-center gap-1.5 h-10 type-small rounded-md hover:underline underline-offset-4"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      <ArrowLeft className="w-4 h-4" aria-hidden />
+                      {t('auth.cn.backToEmail')}
+                    </button>
+                  )}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="email"
+                  id="panel-email"
+                  role={showTabs ? 'tabpanel' : undefined}
+                  aria-labelledby={showTabs ? 'tab-email' : undefined}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: dur.fast, ease: ease.out }}
+                  className="space-y-5"
+                >
+                  {/* Enterprise / regional single sign-on */}
+                  {mode === 'login' && (
+                    <div className="space-y-2.5">
+                      <button
+                        type="button"
+                        onClick={() => handleSsoContinue()}
+                        disabled={ssoLoading || loading}
+                        aria-label={t('auth.sso.aria')}
+                        aria-busy={ssoLoading}
+                        title={t('auth.sso.title')}
+                        className="btn-secondary w-full h-11 text-[14px] font-semibold"
+                      >
+                        {ssoLoading
+                          ? <Loader2 className="w-4 h-4 animate-spin" />
+                          : <Fingerprint className="w-4 h-4" style={{ color: 'var(--color-brand)' }} aria-hidden />}
+                        {t('auth.sso.continueEnterprise')}
+                      </button>
+
+                      <AnimatePresence initial={false}>
+                        {showCn && (
+                          <motion.div
+                            key="cn"
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: dur.base, ease: ease.out }}
+                            className="overflow-hidden"
+                          >
+                            <div className="space-y-2.5">
+                              <CnProviderButtons />
+                              {!showTabs && (
+                                <button
+                                  type="button"
+                                  onClick={() => { setMethod('phone'); setError(null) }}
+                                  className="btn-secondary w-full h-11 text-[14px]"
+                                >
+                                  <Smartphone className="w-4 h-4" aria-hidden />
+                                  {t('auth.cn.usePhone')}
+                                </button>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {!isZh && (
+                        <button
+                          type="button"
+                          onClick={() => setMoreOpen((v) => !v)}
+                          aria-expanded={moreOpen}
+                          className="inline-flex items-center gap-1.5 h-10 type-small font-medium rounded-md"
+                          style={{ color: 'var(--text-link)' }}
+                        >
+                          {moreOpen ? t('auth.cn.fewerOptions') : t('auth.cn.moreOptions')}
+                          <ChevronDown
+                            className="w-4 h-4 transition-transform duration-200"
+                            style={{ transform: moreOpen ? 'rotate(180deg)' : 'none' }}
+                            aria-hidden
+                          />
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {mode === 'login' && <Divider label={t('auth.login.orCredentials')} />}
+
+                  {error && <ErrorBanner id="login-error">{error}</ErrorBanner>}
+
+                  <form onSubmit={handleSubmit} noValidate aria-labelledby="form-title" className="space-y-4">
+                    <AuthField
+                      id="email"
+                      type="email"
+                      autoComplete="email"
+                      icon={Mail}
+                      label={t('login.email')}
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onBlur={() => setTouched((tt) => ({ ...tt, email: true }))}
+                      aria-required="true"
+                      aria-invalid={mode === 'register' ? !!(touched.email && registerErrors.email) : error ? true : undefined}
+                      aria-describedby={mode !== 'register' && error ? 'login-error' : undefined}
+                      error={mode === 'register' && touched.email ? registerErrors.email : null}
+                      placeholder="user@company.com"
+                    />
+                    {mode === 'register' && (
+                      <>
+                        <AuthField
+                          id="name"
+                          type="text"
+                          autoComplete="name"
+                          icon={User}
+                          label={t('auth.register.fullName')}
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          onBlur={() => setTouched((tt) => ({ ...tt, name: true }))}
+                          aria-required="true"
+                          error={touched.name ? registerErrors.name : null}
+                          placeholder={t('auth.register.namePlaceholder')}
+                        />
+                        <AuthField
+                          id="workspace"
+                          type="text"
+                          autoComplete="organization"
+                          icon={Building2}
+                          label={<>{t('auth.register.workspace')} <span style={{ color: 'var(--text-tertiary)' }}>{t('auth.register.optional')}</span></>}
+                          value={workspaceName}
+                          onChange={(e) => setWorkspaceName(e.target.value)}
+                          placeholder={t('auth.register.workspacePlaceholder')}
+                        />
+                      </>
+                    )}
+                    {/* When SSO is wired up for this email's domain, hide password
+                        entry entirely and route the user via the IdP. They can still
+                        flip back to a password sign-in if needed. */}
+                    {mode === 'login' && ssoAvailable ? (
+                      <div className="space-y-3">
+                        <div
+                          className="rounded-[10px] px-3.5 py-3 type-small"
+                          style={{ background: 'var(--status-success-soft)', border: '1px solid var(--status-success-line)', color: 'var(--text-secondary)' }}
+                        >
+                          {t('auth.sso.enabledForDomain')}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleSsoContinue()}
+                          disabled={ssoLoading}
+                          className="btn-primary w-full h-11 text-[14px]"
+                        >
+                          {ssoLoading
+                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                            : <><span>{t('auth.sso.continue')}</span><ArrowRight className="w-4 h-4" /></>}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setSsoAvailable(false); setSsoConnectionId(null) }}
+                          className="w-full h-10 text-center type-small rounded-md hover:underline underline-offset-4"
+                          style={{ color: 'var(--text-secondary)' }}
+                        >
+                          {t('auth.sso.usePassword')}
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <AuthField
+                          id="password"
+                          type="password"
+                          autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                          icon={Lock}
+                          label={t('login.password')}
+                          labelAside={mode === 'login' ? (
+                            <Link to="/forgot-password" className="type-small font-medium rounded-sm hover:underline underline-offset-4" style={{ color: 'var(--text-link)' }}>
+                              {t('login.forgotPassword')}
+                            </Link>
+                          ) : undefined}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          onBlur={() => setTouched((tt) => ({ ...tt, password: true }))}
+                          aria-required="true"
+                          aria-invalid={mode === 'register' ? !!(touched.password && registerErrors.password) : error ? true : undefined}
+                          aria-describedby={mode !== 'register' && error ? 'login-error' : undefined}
+                          error={mode === 'register' && touched.password ? registerErrors.password : null}
+                          placeholder={mode === 'register' ? t('auth.register.minChars') : ''}
+                        />
+                        <button
+                          type="submit"
+                          disabled={loading || (mode === 'register' && !registerValid)}
+                          aria-busy={loading}
+                          className="btn-primary w-full h-11 text-[14px]"
+                        >
+                          {loading && quickIdx === null
+                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                            : <><span>{mode === 'login' ? t('login.signIn') : t('auth.register.submit')}</span><ArrowRight className="w-4 h-4" /></>}
+                        </button>
+                      </>
+                    )}
+                    <p className="text-center type-small" style={{ color: 'var(--text-secondary)' }}>
+                      <button
+                        type="button"
+                        onClick={switchMode}
+                        className="h-10 px-1 font-medium rounded-md hover:underline underline-offset-4"
+                        style={{ color: 'var(--text-link)' }}
+                      >
+                        {mode === 'login' ? t('auth.login.needAccount') : t('auth.register.haveAccount')}
+                      </button>
+                    </p>
+                  </form>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Quick-login role tiles — real auth against Neon. Hidden in
                 production builds where VITE_DEMO_PASSWORD isn't set, and
                 hidden during MFA step-up. */}
-            {!mfaTempToken && mode === 'login' && DEMO_TILES_ENABLED && (
-              <>
-                <div className="grid grid-cols-3 gap-1.5">
+            {mode === 'login' && DEMO_TILES_ENABLED && (
+              <section
+                aria-labelledby="demo-roles-title"
+                className="rounded-[14px] p-4 sm:p-5"
+                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)' }}
+              >
+                <div className="flex items-baseline justify-between gap-3 mb-3">
+                  <h2 id="demo-roles-title" className="type-h3" style={{ color: 'var(--text-primary)' }}>{t('auth.demo.title')}</h2>
+                  <span className="type-caption" style={{ color: 'var(--text-tertiary)' }}>{t('auth.demo.note')}</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                   {ROLE_ACCOUNTS.map((acc, i) => {
                     const isActive = quickIdx === i && loading
+                    const label = t(`auth.roleTiles.${acc.role}.label`, { defaultValue: acc.label })
                     return (
                       <button
                         key={acc.email}
                         type="button"
                         onClick={() => handleQuickLogin(i)}
                         disabled={loading}
-                        aria-label={t('auth.login.quickAria', { role: t(`auth.roleTiles.${acc.role}.label`, { defaultValue: acc.label }) })}
+                        aria-label={t('auth.login.quickAria', { role: label })}
                         aria-busy={isActive}
-                        className={`relative flex flex-col items-start p-2.5 rounded-lg border text-left
-                          transition-all duration-200 cursor-pointer disabled:opacity-50 group
-                          ${isActive
-                            ? 'border-emerald-400/60 bg-emerald-400/10 shadow-[0_0_20px_-6px_rgba(52,211,153,0.5)]'
-                            : 'border-white/10 bg-white/[0.02] hover:border-emerald-400/40 hover:bg-white/[0.04]'
-                          }`}
+                        title={t(`auth.roleTiles.${acc.role}.desc`, { defaultValue: acc.desc })}
+                        className="group relative flex items-center gap-2.5 min-h-[44px] px-2.5 py-2 rounded-[10px] text-left transition-[background-color,border-color,box-shadow] duration-150 disabled:opacity-60 disabled:cursor-not-allowed hover:bg-[var(--bg-primary)] hover:shadow-[var(--shadow-card)]"
+                        style={{ border: `1px solid ${isActive ? 'var(--border-focus)' : 'transparent'}`, background: isActive ? 'var(--bg-primary)' : undefined }}
                       >
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <span className="w-5 h-5 rounded bg-white/[0.06] border border-white/10 flex items-center justify-center text-caption font-bold text-white/50 group-hover:text-emerald-400 group-hover:border-emerald-400/30 transition-all">
-                            {acc.role}
-                          </span>
-                          {isActive && <Loader2 className="w-3 h-3 text-emerald-400 animate-spin" />}
-                        </div>
-                        <span className="text-caption font-semibold text-white leading-tight line-clamp-1">{t(`auth.roleTiles.${acc.role}.label`, { defaultValue: acc.label })}</span>
-                        <span className="text-caption text-white/40 mt-0.5 leading-tight line-clamp-2">{t(`auth.roleTiles.${acc.role}.desc`, { defaultValue: acc.desc })}</span>
+                        <span
+                          aria-hidden
+                          className="w-9 h-7 flex-shrink-0 rounded-[7px] inline-flex items-center justify-center text-[11px] font-semibold tabular-nums"
+                          style={{ background: 'var(--color-brand-soft)', color: 'var(--color-brand-strong)' }}
+                        >
+                          {isActive ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : acc.role}
+                        </span>
+                        <span className="min-w-0 type-small font-medium leading-snug" style={{ color: 'var(--text-primary)' }}>{label}</span>
+                        <ArrowRight className="ml-auto w-3.5 h-3.5 flex-shrink-0 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150" style={{ color: 'var(--text-tertiary)' }} aria-hidden />
                       </button>
                     )
                   })}
                 </div>
-
-                <div className="flex items-center gap-3 py-1">
-                  <div className="h-px flex-1 bg-white/10" />
-                  <span className="text-micro text-white/30 uppercase tracking-wider font-medium">{t('auth.login.orCredentials')}</span>
-                  <div className="h-px flex-1 bg-white/10" />
-                </div>
-              </>
+              </section>
             )}
-
-            {!mfaTempToken && error && (
-              <div
-                role="alert"
-                aria-live="polite"
-                id="login-error"
-                className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-[12px] text-red-300"
-              >
-                <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                <p>{error}</p>
-              </div>
-            )}
-
-            {!mfaTempToken && (
-            <form onSubmit={handleSubmit} noValidate aria-labelledby="form-title" className="space-y-3">
-              <div>
-                <label htmlFor="email" className="text-micro font-medium text-white/50 uppercase tracking-wider block mb-1">{t('login.email')}</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                  <input
-                    id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                    onBlur={() => setTouched(t => ({ ...t, email: true }))}
-                    aria-required="true"
-                    aria-invalid={mode === 'register' ? !!(touched.email && registerErrors.email) : error ? true : undefined}
-                    aria-describedby={
-                      mode === 'register' && touched.email && registerErrors.email
-                        ? 'email-err'
-                        : error ? 'login-error' : undefined
-                    }
-                    placeholder="user@company.com"
-                    className={`w-full h-10 pl-10 pr-4 rounded-lg border bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all hover:border-white/20 ${
-                      mode === 'register' && touched.email && registerErrors.email ? 'border-red-500/60' : 'border-white/10'
-                    }`}
-                  />
-                </div>
-                {mode === 'register' && touched.email && registerErrors.email && (
-                  <p id="email-err" className="mt-1 text-caption text-red-300">{registerErrors.email}</p>
-                )}
-              </div>
-              {mode === 'register' && (
-                <>
-                  <div>
-                    <label htmlFor="name" className="text-micro font-medium text-white/50 uppercase tracking-wider block mb-1">{t('auth.register.fullName')}</label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                      <input
-                        id="name" type="text" value={name} onChange={(e) => setName(e.target.value)}
-                        onBlur={() => setTouched(t => ({ ...t, name: true }))}
-                        aria-required="true"
-                        aria-invalid={!!(touched.name && registerErrors.name)}
-                        aria-describedby={touched.name && registerErrors.name ? 'name-err' : undefined}
-                        placeholder={t('auth.register.namePlaceholder')}
-                        className={`w-full h-10 pl-10 pr-4 rounded-lg border bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all hover:border-white/20 ${
-                          touched.name && registerErrors.name ? 'border-red-500/60' : 'border-white/10'
-                        }`}
-                      />
-                    </div>
-                    {touched.name && registerErrors.name && (
-                      <p id="name-err" className="mt-1 text-caption text-red-300">{registerErrors.name}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label htmlFor="workspace" className="text-micro font-medium text-white/50 uppercase tracking-wider block mb-1">
-                      {t('auth.register.workspace')} <span className="text-white/30 normal-case tracking-normal">{t('auth.register.optional')}</span>
-                    </label>
-                    <div className="relative">
-                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                      <input
-                        id="workspace" type="text" value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)}
-                        placeholder={t('auth.register.workspacePlaceholder')}
-                        className="w-full h-10 pl-10 pr-4 rounded-lg border border-white/10 bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all hover:border-white/20"
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-              {/* When SSO is wired up for this email's domain, hide password
-                  entry entirely and route the user via the IdP. They can still
-                  flip back to a password sign-in if needed. */}
-              {mode === 'login' && ssoAvailable ? (
-                <div className="space-y-2">
-                  <div className="p-3 rounded-lg bg-emerald-400/[0.06] border border-emerald-400/20 text-[12px] text-emerald-200">
-                    {t('auth.sso.enabledForDomain')}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleSsoContinue()}
-                    disabled={ssoLoading}
-                    className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[13px] font-semibold hover:from-emerald-400 hover:to-teal-400 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer shadow-[0_0_20px_-6px_rgba(52,211,153,0.6)]"
-                  >
-                    {ssoLoading
-                      ? <Loader2 className="w-4 h-4 animate-spin" />
-                      : <><span>{t('auth.sso.continue')}</span><ArrowRight className="w-4 h-4" /></>}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setSsoAvailable(false); setSsoConnectionId(null) }}
-                    className="w-full text-center text-caption text-white/40 hover:text-emerald-400 transition-colors cursor-pointer"
-                  >
-                    {t('auth.sso.usePassword')}
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label htmlFor="password" className="text-micro font-medium text-white/50 uppercase tracking-[0.06em]">{t('login.password')}</label>
-                      {mode === 'login' && (
-                        <Link to="/forgot-password" className="text-caption text-emerald-400 hover:text-emerald-300 transition-colors">
-                          {t('login.forgotPassword')}
-                        </Link>
-                      )}
-                    </div>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                      <input
-                        id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-                        onBlur={() => setTouched(t => ({ ...t, password: true }))}
-                        aria-required="true"
-                        aria-invalid={mode === 'register' ? !!(touched.password && registerErrors.password) : error ? true : undefined}
-                        aria-describedby={
-                          mode === 'register' && touched.password && registerErrors.password
-                            ? 'pw-err'
-                            : error ? 'login-error' : undefined
-                        }
-                        placeholder={mode === 'register' ? t('auth.register.minChars') : ''}
-                        className={`w-full h-10 pl-10 pr-4 rounded-lg border bg-white/[0.03] text-[13px] text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all hover:border-white/20 ${
-                          mode === 'register' && touched.password && registerErrors.password ? 'border-red-500/60' : 'border-white/10'
-                        }`}
-                      />
-                    </div>
-                    {mode === 'register' && touched.password && registerErrors.password && (
-                      <p id="pw-err" className="mt-1 text-caption text-red-300">{registerErrors.password}</p>
-                    )}
-                  </div>
-                  <button
-                    type="submit" disabled={loading || (mode === 'register' && !registerValid)}
-                    aria-busy={loading}
-                    className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[13px] font-semibold hover:from-emerald-400 hover:to-teal-400 active:scale-[0.98] transition-all disabled:opacity-50 cursor-pointer shadow-[0_0_20px_-6px_rgba(52,211,153,0.6)]"
-                  >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><span>{mode === 'login' ? t('login.signIn') : t('auth.register.submit')}</span><ArrowRight className="w-4 h-4" /></>}
-                  </button>
-                </>
-              )}
-              <button
-                type="button"
-                onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(null); setTouched({}) }}
-                className="w-full text-center text-[12px] text-white/40 hover:text-emerald-400 transition-colors cursor-pointer"
-              >
-                {mode === 'login' ? t('auth.login.needAccount') : t('auth.register.haveAccount')}
-              </button>
-            </form>
-            )}
-          </div>
-        </div>
-        </div>
-
-        {/* ── Standalone 3D hero — visible, full-height, own column ── */}
-        <div className="hidden lg:flex relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-black/80 via-slate-950/80 to-emerald-950/40 backdrop-blur-xl min-h-[640px] shadow-2xl">
-          {/* Local spotlight layered on top of the scene */}
-          <Spotlight className="-top-20 -left-10" fill="rgba(110, 231, 183, 0.8)" />
-
-          {/* The 3D scene — visible, interactive, full-bleed */}
-          <div className="absolute inset-0 z-0" aria-hidden="true">
-            <SplineScene
-              scene="https://prod.spline.design/kZDDjO5HuC9GJUM2/scene.splinecode"
-              className="w-full h-full"
-            />
-          </div>
-
-          {/* Subtle vignette so copy stays readable */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none z-10" />
-
-          {/* Overlay copy at the bottom */}
-          <div className="relative z-20 flex flex-col justify-end p-10 w-full pointer-events-none">
-            <div className="flex flex-col gap-2">
-              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-400/10 border border-emerald-400/20 text-micro font-semibold uppercase tracking-[0.06em] text-emerald-300 w-fit">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                {t('auth.hero.live3d')}
-              </span>
-              <h2 className="text-[32px] font-display font-bold text-white tracking-tight leading-tight max-w-[400px]">
-                {t('auth.hero.line1')}<br />{t('auth.hero.line2')}
-              </h2>
-              <p className="text-[13px] text-white/50 max-w-[360px] leading-relaxed">
-                {t('auth.hero.body')}
-              </p>
-
-              <div className="mt-4 grid grid-cols-2 gap-2 max-w-[360px] pointer-events-auto">
-                {features.map(({ icon: Icon, text }, fi) => (
-                  <div key={text} className="flex items-center gap-2 p-2 rounded-lg bg-black/40 backdrop-blur border border-white/5">
-                    <div className="w-6 h-6 rounded-md bg-emerald-400/10 flex items-center justify-center">
-                      <Icon className="w-3 h-3 text-emerald-400" />
-                    </div>
-                    <span className="text-caption text-white/60 leading-tight">{t(`auth.hero.features.f${fi}`, { defaultValue: text })}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
-    </div>
+    </AuthShell>
   )
 }

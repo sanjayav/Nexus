@@ -1,6 +1,6 @@
 import { WifiOff, Loader2, Wifi } from 'lucide-react'
 import { useIsInsideRoom, useStatus } from '../lib/liveblocks'
-import { useIntegrationStatus } from '../lib/integrations'
+import { useIntegrationStatus, integrationMissing } from '../lib/integrations'
 import { useTranslation } from 'react-i18next'
 
 /**
@@ -29,7 +29,7 @@ export function LiveblocksStatus() {
 
   // Realtime feature not configured server-side — explicit "solo mode" pill
   // so the user understands edits won't sync to teammates.
-  if (!integrations.loading && !integrations.realtime) {
+  if (integrationMissing(integrations, 'realtime')) {
     return (
       <div
         className="flex items-center gap-1.5 text-caption text-[var(--text-tertiary)] px-2 py-1 rounded-[var(--radius-xs)] bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]"

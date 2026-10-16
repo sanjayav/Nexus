@@ -1,73 +1,103 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { itemLabel } from '../lib/itemLabel'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import {
-  Loader2, CheckCircle2, XCircle, Eye, Shield, Send, ArrowRight, Factory,
-  Calendar, Paperclip, Inbox, User, MessageSquare,
+  AlertOctagon, AlertTriangle, ArrowRight, Calendar, CheckCircle2, ChevronDown, Factory, FileText,
+  Info, LineChart, Quote, Paperclip, Plug, Send, User,
 } from 'lucide-react'
+import { itemLabel } from '../lib/itemLabel'
 import { orgStore, type QuestionAssignment, type OrgEntity, type Anomaly } from '../lib/orgStore'
-import { AlertOctagon, AlertTriangle } from 'lucide-react'
 import { useFramework, getFramework } from '../lib/frameworks'
-import JourneyBar from '../components/JourneyBar'
+import { useFmt } from '../lib/fmt'
+import PageHeader from '../components/PageHeader'
 import { FrameworkBadge } from '../components/FrameworkBadge'
 import CommentThread from '../components/CommentThread'
 import { HistoricalReferencePanel } from '../components/HistoricalReferencePanel'
+import { StatLedger, StateBoundary, StatusPill, notify, Skeleton, SkeletonLedger, SkeletonCard } from '../components/ui'
+import DecisionBar, { type DecisionAction, type DecisionPhase } from '../components/review/DecisionBar'
+import QueueCleared from '../components/review/QueueCleared'
+import { crossfadeVariants, dur, ease, listItemMotion } from '../motion/tokens'
 
 export type QueueKind = 'review' | 'approval'
 
-/** `title`, `subtitle`, `rejectLabel` and `passLabel` are i18n keys. */
+type Status = QuestionAssignment['status']
+
+/** Labels are i18n keys. */
 const KIND_META = {
   review: {
     title: 'workflowQueue.review.title',
     subtitle: 'workflowQueue.review.subtitle',
-    inputStatus: 'submitted' as const,
-    passStatus: 'reviewed' as const,
-    rejectLabel: 'workflowQueue.review.reject',
+    inputStatus: 'submitted' as Status,
+    passStatus: 'reviewed' as Status,
+    /** "Return" sends it back to the contributor. */
+    returnStatus: 'rejected' as Status,
     passLabel: 'workflowQueue.review.pass',
-    icon: Eye,
-    stageHighlight: 'review' as const,
+    returnLabel: 'workflowQueue.review.reject',
+    rejectLabel: null as string | null,
+    stage: 'review' as const,
+    switchTo: '/workflow/approval',
+    switchLabel: 'workflowQueue.switchToApproval',
   },
   approval: {
     title: 'workflowQueue.approval.title',
     subtitle: 'workflowQueue.approval.subtitle',
-    inputStatus: 'reviewed' as const,
-    passStatus: 'approved' as const,
-    rejectLabel: 'workflowQueue.approval.reject',
+    inputStatus: 'reviewed' as Status,
+    passStatus: 'approved' as Status,
+    /** "Return" sends it back one step, to the reviewer. */
+    returnStatus: 'submitted' as Status,
     passLabel: 'workflowQueue.approval.pass',
-    icon: Shield,
-    stageHighlight: 'approve' as const,
+    returnLabel: 'workflowQueue.approval.return',
+    rejectLabel: 'workflowQueue.approval.reject' as string | null,
+    stage: 'approve' as const,
+    switchTo: '/workflow/review',
+    switchLabel: 'workflowQueue.switchToReview',
   },
 }
 
+/** Delay between the seal finishing and the row leaving the queue. */
+const SEAL_HOLD_MS = 560
+
 /**
- * Queue of assignments waiting for the reviewer/approver. Reads straight
- * from the local orgStore so it lines up with what contributors submit.
- * Decisions advance the status machine:
- *   submitted → reviewed → approved   (pass)
- *   any → rejected                    (reject, with comment)
+ * Queue of assignments waiting for the reviewer / approver.
+ *
+ *   submitted → reviewed → approved        (pass, A)
+ *   review queue:   submitted → rejected   (return to contributor, R, comment required)
+ *   approval queue: reviewed → submitted   (return to reviewer, R, comment required)
+ *                   reviewed → rejected    (reject to contributor, comment required)
+ *
+ * The page never claims "empty" until the queue has actually loaded: loading
+ * shows skeletons, a failed load shows an error with Retry.
  */
 export default function WorkflowQueue({ kind }: { kind: QueueKind }) {
-  const navigate = useNavigate()
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
+  const reduce = useReducedMotion()
   const meta = KIND_META[kind]
   const { active: framework } = useFramework()
-  const [allAssignments, setAllAssignments] = useState<QuestionAssignment[]>([])
+
+  const [all, setAll] = useState<QuestionAssignment[]>([])
   const [entities, setEntities] = useState<OrgEntity[]>([])
   const [anomalyMap, setAnomalyMap] = useState<Map<string, Anomaly[]>>(new Map())
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [comment, setComment] = useState('')
-  const [busy, setBusy] = useState<string | null>(null)
-  const [justActedOn, setJustActedOn] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [loaded, setLoaded] = useState(false)
+  const [error, setError] = useState<unknown>(null)
 
-  const refresh = async () => {
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [drafts, setDrafts] = useState<Record<string, string>>({})
+  const [commentError, setCommentError] = useState<string | null>(null)
+  const [phase, setPhase] = useState<DecisionPhase | null>(null)
+  const [clearedCount, setClearedCount] = useState(0)
+  const commentRef = useRef<HTMLTextAreaElement>(null)
+
+  const refresh = useCallback(async (opts: { silent?: boolean } = {}) => {
+    if (!opts.silent) setLoading(true)
     try {
       const [rows, ents, anomalies] = await Promise.all([
         orgStore.listAssignments(),
         orgStore.listEntities(),
         orgStore.anomalyScan('role', { limit: 500 }).catch(() => ({ anomalies: [] as Anomaly[] })),
       ])
-      setAllAssignments(rows)
+      setAll(rows)
       setEntities(ents)
       const m = new Map<string, Anomaly[]>()
       for (const a of anomalies.anomalies) {
@@ -76,486 +106,627 @@ export default function WorkflowQueue({ kind }: { kind: QueueKind }) {
         m.set(a.assignment_id, arr)
       }
       setAnomalyMap(m)
-    } catch { /* silent */ }
-  }
-
-  useEffect(() => {
-    refresh()
-  }, [framework.id, kind])
-
-  const assignments = useMemo(
-    () => allAssignments.filter(a => a.framework_id === framework.id && a.status === meta.inputStatus),
-    [allAssignments, framework.id, meta.inputStatus]
-  )
-
-  const plantName = (entityId: string): string =>
-    entities.find(e => e.id === entityId)?.name ?? entityId
-
-  useEffect(() => {
-    if (!assignments.find(a => a.id === selectedId)) {
-      setSelectedId(assignments[0]?.id ?? null)
-    }
-  }, [assignments, selectedId])
-
-  const selected = useMemo(
-    () => assignments.find(a => a.id === selectedId) || null,
-    [assignments, selectedId]
-  )
-
-  const handlePass = async (a: QuestionAssignment) => {
-    setBusy(a.id)
-    try {
-      await orgStore.updateAssignment(a.id, { status: meta.passStatus, comment: comment || a.comment })
-      setComment('')
-      setJustActedOn(a.id)
-      setTimeout(() => setJustActedOn(null), 2500)
-      await refresh()
+      setError(null)
+      setLoaded(true)
     } catch (e) {
-      alert(t('workflowQueue.errors.update', { message: e instanceof Error ? e.message : String(e) }))
+      if (opts.silent) notify.error(t('workflowQueue.errors.refresh'), { description: e instanceof Error ? e.message : undefined })
+      else setError(e ?? new Error('load failed'))
     } finally {
-      setBusy(null)
+      setLoading(false)
     }
+  }, [t])
+
+  useEffect(() => {
+    setClearedCount(0)
+    void refresh()
+  }, [framework.id, kind, refresh])
+
+  const inFramework = useMemo(() => all.filter(a => a.framework_id === framework.id), [all, framework.id])
+  const queue = useMemo(() => inFramework.filter(a => a.status === meta.inputStatus), [inFramework, meta.inputStatus])
+
+  // Keep a valid selection (first row on load; neighbour after a decision).
+  useEffect(() => {
+    if (!queue.find(a => a.id === selectedId)) setSelectedId(queue[0]?.id ?? null)
+  }, [queue, selectedId])
+
+  const index = queue.findIndex(a => a.id === selectedId)
+  const selected = index >= 0 ? queue[index] : null
+  const comment = selected ? drafts[selected.id] ?? '' : ''
+
+  const plantName = useCallback((id: string) => entities.find(e => e.id === id)?.name ?? id, [entities])
+
+  const select = useCallback((id: string | null) => {
+    setSelectedId(id)
+    setCommentError(null)
+  }, [])
+
+  const go = useCallback((delta: number) => {
+    if (!queue.length) return
+    const next = Math.min(Math.max((index < 0 ? 0 : index) + delta, 0), queue.length - 1)
+    select(queue[next].id)
+  }, [queue, index, select])
+
+  const neighbourOf = (id: string) => {
+    const i = queue.findIndex(a => a.id === id)
+    return queue[i + 1]?.id ?? queue[i - 1]?.id ?? null
   }
 
-  const handleReject = async (a: QuestionAssignment) => {
-    if (!comment.trim()) {
-      alert(t('workflowQueue.errors.needComment'))
+  const setComment = (v: string) => {
+    if (!selected) return
+    setDrafts(d => ({ ...d, [selected.id]: v }))
+    if (commentError && v.trim()) setCommentError(null)
+  }
+
+  /** One decision: API → (seal) → row exits, counters tick, next row selected → toast with Undo. */
+  const decide = async (action: DecisionAction) => {
+    const a = selected
+    if (!a || phase) return
+    const text = (drafts[a.id] ?? '').trim()
+    if (action !== 'pass' && !text) {
+      setCommentError(t(action === 'reject' ? 'workflowQueue.errors.needCommentReject' : `workflowQueue.errors.needComment_${kind}`))
+      commentRef.current?.focus()
       return
     }
-    setBusy(a.id)
+    setCommentError(null)
+    const nextStatus: Status = action === 'pass' ? meta.passStatus : action === 'return' ? meta.returnStatus : 'rejected'
+    const nextComment = action === 'pass' ? (text || a.comment) : text
+    const prevComment = a.comment ?? ''
+    const nextId = neighbourOf(a.id)
+
+    setPhase({ id: a.id, action, stage: 'busy' })
     try {
-      await orgStore.updateAssignment(a.id, { status: 'rejected', comment })
-      setComment('')
-      setJustActedOn(a.id)
-      setTimeout(() => setJustActedOn(null), 2500)
-      await refresh()
+      await orgStore.updateAssignment(a.id, { status: nextStatus, comment: nextComment })
     } catch (e) {
-      alert(t('workflowQueue.errors.update', { message: e instanceof Error ? e.message : String(e) }))
-    } finally {
-      setBusy(null)
+      setPhase(null)
+      notify.error(t('workflowQueue.errors.updateTitle'), { description: e instanceof Error ? e.message : String(e) })
+      return
     }
+
+    if (action === 'pass' && !reduce) {
+      setPhase({ id: a.id, action, stage: 'sealed' })
+      await new Promise(r => setTimeout(r, SEAL_HOLD_MS))
+    }
+
+    // Local commit: the row leaves, the ledger ticks, the neighbour takes focus.
+    setAll(rows => rows.map(r => (r.id === a.id ? { ...r, status: nextStatus, comment: nextComment ?? r.comment } : r)))
+    setDrafts(d => { const n = { ...d }; delete n[a.id]; return n })
+    select(nextId)
+    setPhase(null)
+    if (action === 'pass') setClearedCount(c => c + 1)
+
+    const who = a.assigneeName
+    const label = `${a.gri_code} · ${plantName(a.entityId)}`
+    const msg =
+      action === 'pass' ? t(`workflowQueue.toast.pass_${kind}`, { item: label })
+      : action === 'return' ? t(`workflowQueue.toast.return_${kind}`, { item: label, name: who })
+      : t('workflowQueue.toast.reject', { item: label, name: who })
+    notify.success(msg, {
+      undo: async () => {
+        try {
+          await orgStore.updateAssignment(a.id, { status: meta.inputStatus, comment: prevComment })
+          setAll(rows => rows.map(r => (r.id === a.id ? { ...r, status: meta.inputStatus, comment: prevComment } : r)))
+          if (action === 'pass') setClearedCount(c => Math.max(0, c - 1))
+          select(a.id)
+          notify.message(t('workflowQueue.toast.undone', { item: label }))
+        } catch (e) {
+          notify.error(t('workflowQueue.errors.updateTitle'), { description: e instanceof Error ? e.message : String(e) })
+        }
+      },
+    })
+    void refresh({ silent: true })
   }
 
+  // Keyboard: A approve/pass · R return · J/K next/previous. Ignored while typing or with a dialog open.
+  const decideRef = useRef(decide)
+  decideRef.current = decide
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.defaultPrevented) return
+      const el = e.target as HTMLElement | null
+      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return
+      if (document.querySelector('[role="dialog"],[role="alertdialog"]')) return
+      const k = e.key.toLowerCase()
+      if (k === 'j') { e.preventDefault(); go(1) }
+      else if (k === 'k') { e.preventDefault(); go(-1) }
+      else if (k === 'a') { e.preventDefault(); void decideRef.current('pass') }
+      else if (k === 'r') { e.preventDefault(); void decideRef.current('return') }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [go])
+
+  const flaggedCount = queue.filter(a => (anomalyMap.get(a.id) ?? []).length > 0).length
+  const count = (s: Status) => inFramework.filter(a => a.status === s).length
+  const ledger = [
+    { id: 'waiting', label: t(kind === 'review' ? 'workflowQueue.stats.waitingReview' : 'workflowQueue.stats.waitingApproval'), value: queue.length, tone: queue.length ? 'info' as const : 'neutral' as const },
+    { id: 'flagged', label: t('workflowQueue.stats.flagged'), value: flaggedCount, tone: flaggedCount ? 'warning' as const : 'neutral' as const, hint: t('workflowQueue.stats.flaggedHint') },
+    kind === 'review'
+      ? { id: 'reviewed', label: t('workflowQueue.stats.alreadyReviewed'), value: count('reviewed'), tone: 'info' as const, to: '/workflow/approval' }
+      : { id: 'inReview', label: t('workflowQueue.stats.stillInReview'), value: count('submitted'), tone: 'info' as const, to: '/workflow/review' },
+    { id: 'approved', label: t('workflowStatus.status.approved'), value: count('approved'), tone: 'success' as const },
+  ]
+
   return (
-    <div className="animate-fade-in">
-      <div className="mb-4">
-        <JourneyBar variant="compact" highlight={meta.stageHighlight} />
-      </div>
-
-      <header className="flex items-start justify-between mb-5 flex-wrap gap-3">
-        <div>
-          <div className="flex items-center gap-2 text-micro uppercase tracking-[0.06em] font-semibold text-[var(--color-brand)]">
-            <meta.icon className="w-3 h-3" /> {t(meta.title)}
-          </div>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <h1 className="font-display text-[28px] font-bold text-[var(--text-primary)]">{t(meta.title)}</h1>
+    <div>
+      <PageHeader
+        stage={meta.stage}
+        eyebrow={t('workflowQueue.eyebrow')}
+        title={t(meta.title)}
+        subtitle={t(meta.subtitle)}
+        actions={
+          <>
             <FrameworkBadge size="md" />
-          </div>
-          <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] mt-1 max-w-2xl">
-            {t(meta.subtitle)}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate(kind === 'review' ? '/workflow/approval' : '/workflow/review')}
-            className="px-3 py-1.5 rounded-[var(--radius-md)] border border-[var(--border-default)] text-[length:var(--text-xs)] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] inline-flex items-center gap-1.5"
-          >
-            {kind === 'review' ? t('workflowQueue.switchToApproval') : t('workflowQueue.switchToReview')} <ArrowRight className="w-3 h-3" />
-          </button>
-        </div>
-      </header>
+            <Link
+              to={meta.switchTo}
+              className="h-9 px-3.5 inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-small font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] hover:border-[var(--border-strong)] whitespace-nowrap transition-colors duration-micro"
+            >
+              {t(meta.switchLabel)} <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </>
+        }
+      />
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3 mb-5">
-        <QueueStat
-          label={kind === 'review' ? t('workflowQueue.stats.waitingReview') : t('workflowQueue.stats.waitingApproval')}
-          value={assignments.length}
-          tone={assignments.length > 0 ? 'pending' : 'neutral'}
-        />
-        <QueueStat
-          label={t('workflowQueue.stats.alreadyReviewed')}
-          value={allAssignments.filter(a => a.framework_id === framework.id && a.status === 'reviewed').length}
-          tone="pending"
-        />
-        <QueueStat
-          label={t('workflowStatus.status.approved')}
-          value={allAssignments.filter(a => a.framework_id === framework.id && a.status === 'approved').length}
-          tone="ok"
-        />
-      </div>
+      <StateBoundary
+        loading={loading}
+        error={error}
+        hasData={loaded}
+        onRetry={() => void refresh()}
+        errorState={{ variant: 'error', title: t('workflowQueue.errors.loadTitle'), body: t('workflowQueue.errors.loadBody') }}
+        skeleton={<QueueSkeleton />}
+      >
+        <StatLedger items={ledger} className="mb-6" aria-label={t('workflowQueue.stats.aria')} />
 
-      {assignments.length === 0 ? (
-        <EmptyQueue kind={kind} />
-      ) : (
-        <div className="grid grid-cols-[380px_1fr] gap-4">
-          {/* Queue list */}
-          <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] overflow-hidden max-h-[70vh] flex flex-col">
-            <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] flex items-center justify-between bg-[var(--bg-secondary)]">
-              <span className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">
-                {t('workflowQueue.queueCount', { count: assignments.length })}
-              </span>
-            </div>
-            <ul className="overflow-y-auto flex-1 divide-y divide-[var(--border-subtle)]">
-              {assignments.map(a => {
-                const isSel = a.id === selectedId
-                const recentlyActed = a.id === justActedOn
-                const flags = anomalyMap.get(a.id) ?? []
-                const hasCritical = flags.some(f => f.severity === 'critical')
-                const hasWarn = flags.some(f => f.severity === 'warn')
-                const headline = flags[0]?.headline
-                return (
-                  <li key={a.id}>
+        {queue.length === 0 ? (
+          <QueueCleared
+            celebrate={clearedCount > 0}
+            title={clearedCount > 0 ? t('workflowQueue.cleared.title') : t(`workflowQueue.empty.title_${kind}`)}
+            body={clearedCount > 0
+              ? t(`workflowQueue.cleared.body_${kind}`, { count: clearedCount })
+              : t(`workflowQueue.empty.${kind}`)}
+            actions={
+              <>
+                <Link to={meta.switchTo} className="h-10 px-4 inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] hover:bg-[var(--btn-primary-bg-hover)] shadow-[var(--btn-primary-shadow)] text-small font-semibold whitespace-nowrap">
+                  {t(meta.switchLabel)} <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+                <Link to="/aggregator" className="h-10 px-4 inline-flex items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] text-small font-semibold text-[var(--text-primary)] whitespace-nowrap">
+                  {t('workflowQueue.empty.viewRollup')}
+                </Link>
+              </>
+            }
+          />
+        ) : (
+          <div className="grid gap-4 lg:gap-6 lg:grid-cols-[minmax(300px,360px)_minmax(0,1fr)] items-start">
+            {/* Queue list (desktop) */}
+            <nav aria-label={t('workflowQueue.listAria')} className="hidden lg:flex flex-col surface-paper overflow-hidden lg:sticky lg:top-0 max-h-[calc(100vh-140px)]">
+              <div className="px-4 h-11 flex items-center justify-between border-b border-[var(--border-subtle)]">
+                <span className="text-small font-semibold text-[var(--text-primary)]">{t('workflowQueue.queueHeading')}</span>
+                <span className="text-caption tabular-nums text-[var(--text-tertiary)]">{t('workflowQueue.queueCount', { count: queue.length })}</span>
+              </div>
+              <ul className="overflow-y-auto flex-1">
+                <AnimatePresence initial={false}>
+                  {queue.map(a => (
+                    <motion.li key={a.id} layout {...listItemMotion} className="border-b border-[var(--border-subtle)] last:border-b-0">
+                      <QueueRow
+                        a={a}
+                        selected={a.id === selectedId}
+                        flags={anomalyMap.get(a.id) ?? []}
+                        entity={plantName(a.entityId)}
+                        onSelect={() => select(a.id)}
+                      />
+                    </motion.li>
+                  ))}
+                </AnimatePresence>
+              </ul>
+            </nav>
+
+            {/* Queue strip (mobile) */}
+            <div className="lg:hidden -mx-4 px-4 sm:-mx-6 sm:px-6 overflow-x-auto snap-x" aria-label={t('workflowQueue.listAria')} role="navigation">
+              <div className="flex gap-2 w-max pb-1">
+                {queue.map(a => {
+                  const on = a.id === selectedId
+                  const flags = anomalyMap.get(a.id) ?? []
+                  return (
                     <button
+                      key={a.id}
                       type="button"
-                      onClick={() => { setSelectedId(a.id); setComment(a.comment ?? '') }}
-                      className={`w-full text-left p-3 transition-colors relative ${
-                        isSel ? 'bg-[var(--color-brand-soft)]'
-                        : recentlyActed ? 'bg-[var(--accent-green-light)]/30'
-                        : 'hover:bg-[var(--bg-secondary)]'
+                      onClick={() => select(a.id)}
+                      aria-current={on ? 'true' : undefined}
+                      className={`snap-start h-11 px-3 inline-flex items-center gap-2 rounded-[var(--radius-md)] border text-small whitespace-nowrap transition-colors ${
+                        on ? 'border-[var(--border-focus)] bg-[var(--color-brand-soft)] text-[var(--text-primary)]' : 'border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)]'
                       }`}
                     >
-                      {hasCritical && (
-                        <span className="absolute top-0 bottom-0 left-0 w-[3px]" style={{ background: 'var(--accent-red)' }} />
-                      )}
-                      {!hasCritical && hasWarn && (
-                        <span className="absolute top-0 bottom-0 left-0 w-[3px]" style={{ background: 'var(--accent-amber)' }} />
-                      )}
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className="text-caption font-bold text-[var(--color-brand)]">{a.gri_code}</span>
-                        {a.used_mode && (
-                          <span className="text-micro text-[var(--text-tertiary)] uppercase tracking-[0.06em]">· {t(`workflowQueue.mode.${a.used_mode}`, { defaultValue: a.used_mode })}</span>
-                        )}
-                        {flags.length > 0 && (
-                          <span
-                            className="ml-auto inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-caption font-bold"
-                            style={{
-                              background: hasCritical ? 'var(--accent-red-light)' : 'var(--accent-amber-light)',
-                              color: hasCritical ? 'var(--accent-red)' : 'var(--accent-amber)',
-                            }}
-                          >
-                            {hasCritical ? <AlertOctagon className="w-2.5 h-2.5" /> : <AlertTriangle className="w-2.5 h-2.5" />}
-                            {flags.length}
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[length:var(--text-xs)] font-semibold text-[var(--text-primary)] line-clamp-2">
-                        {itemLabel(a, i18n.language)}
-                      </div>
-                      {headline && (
-                        <div className="text-caption mt-0.5 line-clamp-1" style={{ color: hasCritical ? 'var(--accent-red)' : 'var(--accent-amber)' }}>
-                          {headline}
-                        </div>
-                      )}
-                      <div className="mt-1.5 flex items-center gap-2 text-caption text-[var(--text-tertiary)]">
-                        <Factory className="w-2.5 h-2.5" />
-                        <span className="truncate flex-1">{plantName(a.entityId)}</span>
-                        <span className="tabular-nums font-semibold text-[var(--text-secondary)]">
-                          {a.value != null ? formatValue(a.value) : '—'}
-                        </span>
-                      </div>
+                      {flags.length > 0 && <span className="w-1.5 h-1.5 rounded-full" style={{ background: flags.some(x => x.severity === 'critical') ? 'var(--status-danger)' : 'var(--status-warning)' }} aria-hidden />}
+                      <span className="font-mono font-semibold">{a.gri_code}</span>
+                      <span className="text-[var(--text-tertiary)]">{plantName(a.entityId)}</span>
                     </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Detail + sticky decision bar */}
+            <section aria-live="polite" className="min-w-0">
+              <AnimatePresence mode="wait" initial={false}>
+                {selected && (
+                  <motion.div key={selected.id} variants={crossfadeVariants} initial="initial" animate="enter" exit="exit">
+                    <DetailPane
+                      a={selected}
+                      kind={kind}
+                      flags={anomalyMap.get(selected.id) ?? []}
+                      entity={plantName(selected.entityId)}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              {selected && (
+                <DecisionBar
+                  ref={commentRef}
+                  passLabel={t(meta.passLabel)}
+                  returnLabel={t(meta.returnLabel)}
+                  rejectLabel={meta.rejectLabel ? t(meta.rejectLabel) : undefined}
+                  onReject={meta.rejectLabel ? () => void decide('reject') : undefined}
+                  comment={comment}
+                  onComment={setComment}
+                  commentError={commentError}
+                  commentPlaceholder={t(`workflowQueue.detail.commentPlaceholder_${kind}`)}
+                  index={index}
+                  total={queue.length}
+                  onPrev={() => go(-1)}
+                  onNext={() => go(1)}
+                  phase={phase && phase.id === selected.id ? phase : null}
+                  onPass={() => void decide('pass')}
+                  onReturn={() => void decide('return')}
+                />
+              )}
+            </section>
+          </div>
+        )}
+      </StateBoundary>
+    </div>
+  )
+}
+
+/* ── List row ─────────────────────────────────────────────────────────── */
+
+function QueueRow({ a, selected, flags, entity, onSelect }: {
+  a: QuestionAssignment
+  selected: boolean
+  flags: Anomaly[]
+  entity: string
+  onSelect: () => void
+}) {
+  const { i18n, t } = useTranslation()
+  const f = useFmt()
+  const critical = flags.some(x => x.severity === 'critical')
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-current={selected ? 'true' : undefined}
+      className={`relative w-full text-left px-4 py-3 transition-colors duration-micro focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--border-focus)] ${
+        selected ? 'bg-[var(--color-brand-soft)]' : 'hover:bg-[var(--bg-hover)]'
+      }`}
+    >
+      {selected && <motion.span layoutId="queue-selected" className="absolute inset-y-2 left-0 w-[2px] rounded-full bg-[var(--color-brand)]" transition={{ type: 'spring', stiffness: 520, damping: 40 }} aria-hidden />}
+      <div className="flex items-center gap-2 text-caption">
+        <span className="font-mono font-semibold text-[var(--color-brand-strong)]">{a.gri_code}</span>
+        <span className="text-[var(--text-tertiary)] truncate">{entity}</span>
+        <span className="ml-auto tabular-nums font-semibold text-[var(--text-primary)] whitespace-nowrap">
+          {a.response_type === 'narrative' ? t('workflowQueue.narrativeShort') : a.value != null ? f.number(a.value) : '—'}
+        </span>
+      </div>
+      <div className="mt-1 text-small font-medium text-[var(--text-primary)] line-clamp-2">{itemLabel(a, i18n.language)}</div>
+      {flags.length > 0 && (
+        <div className="mt-1.5 flex items-center gap-1.5 text-caption min-w-0" style={{ color: critical ? 'var(--status-danger)' : 'var(--status-warning)' }}>
+          {critical ? <AlertOctagon className="w-3.5 h-3.5 flex-shrink-0" /> : <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />}
+          <span className="truncate">{flags[0].headline || t('workflowQueue.flagged', { count: flags.length })}</span>
+          {flags.length > 1 && <span className="flex-shrink-0 tabular-nums">+{flags.length - 1}</span>}
+        </div>
+      )}
+    </button>
+  )
+}
+
+/* ── Detail pane ──────────────────────────────────────────────────────── */
+
+function DetailPane({ a, kind, flags, entity }: { a: QuestionAssignment; kind: QueueKind; flags: Anomaly[]; entity: string }) {
+  const { t, i18n } = useTranslation()
+  const f = useFmt()
+  const fw = getFramework(a.framework_id)
+  const [showHistory, setShowHistory] = useState(false)
+  const overdue = !!a.due_date && new Date(a.due_date + 'T23:59:59') < new Date()
+  const narrative = a.response_type === 'narrative'
+
+  return (
+    <article className="space-y-5">
+      {/* Identity */}
+      <header>
+        <div className="flex items-center gap-2 flex-wrap mb-2">
+          {fw && <span className="chip">{fw.code}</span>}
+          <span className="font-mono text-small font-semibold text-[var(--color-brand-strong)]">{a.gri_code}</span>
+          <StatusPill status={a.status} size="sm" />
+        </div>
+        <h2 className="type-h2 text-[var(--text-primary)] text-balance">{itemLabel(a, i18n.language)}</h2>
+        <dl className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-small">
+          <Meta icon={Factory} label={t('workflowQueue.detail.entity')} value={entity} />
+          <Meta icon={User} label={t('workflowQueue.detail.submittedBy')} value={a.assigneeName} title={a.assigneeEmail} />
+          <Meta icon={Calendar} label={t('workflowQueue.detail.due')} value={a.due_date ? f.date(a.due_date) : '—'} tone={overdue ? 'danger' : undefined} />
+          <Meta icon={Send} label={t('workflowQueue.detail.modeUsed')} value={a.used_mode ? t(`workflowQueue.mode.${a.used_mode}`, { defaultValue: a.used_mode }) : '—'} />
+        </dl>
+      </header>
+
+      {/* The figure + checks, pinned on top */}
+      <section className="surface-paper overflow-hidden">
+        {narrative ? (
+          <div className="p-5">
+            <div className="text-caption font-semibold text-[var(--text-secondary)] mb-2">
+              {t('workflowQueue.detail.narrative', { count: (a.narrative_body ?? '').length })}
+            </div>
+            <p className="type-body text-[var(--text-primary)] whitespace-pre-wrap max-h-[280px] overflow-y-auto max-w-[70ch]">
+              {a.narrative_body || <span className="italic text-[var(--text-tertiary)]">{t('workflowQueue.detail.noNarrative')}</span>}
+            </p>
+          </div>
+        ) : (
+          <ValueHeadline a={a} />
+        )}
+        <Checks a={a} flags={flags} />
+      </section>
+
+      {/* Evidence lineage */}
+      <Lineage a={a} kind={kind} />
+
+      {/* Contributor note */}
+      {a.comment && (
+        <section className="flex gap-3 p-4 rounded-[var(--radius-lg)] bg-[var(--bg-secondary)]">
+          <Quote className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--text-tertiary)]" aria-hidden />
+          <div className="min-w-0">
+            <div className="text-caption font-semibold text-[var(--text-secondary)]">{t('workflowQueue.detail.note')}</div>
+            <p className="type-small text-[var(--text-primary)] mt-0.5 whitespace-pre-wrap">{a.comment}</p>
+          </div>
+        </section>
+      )}
+
+      {/* History, collapsed by default */}
+      {!narrative && (
+        <section className="surface-paper overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowHistory(s => !s)}
+            aria-expanded={showHistory}
+            className="w-full h-12 px-5 flex items-center justify-between gap-3 text-left hover:bg-[var(--bg-hover)] transition-colors duration-micro focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--border-focus)]"
+          >
+            <span className="inline-flex items-center gap-2 text-small font-semibold text-[var(--text-primary)]">
+              <LineChart className="w-4 h-4 text-[var(--color-brand)]" />
+              {showHistory ? t('workflowQueue.detail.hideTrend') : t('workflowQueue.detail.showTrend')}
+            </span>
+            <motion.span animate={{ rotate: showHistory ? 180 : 0 }} transition={{ duration: dur.fast, ease: ease.out }} className="text-[var(--text-tertiary)]">
+              <ChevronDown className="w-4 h-4" />
+            </motion.span>
+          </button>
+          <AnimatePresence initial={false}>
+            {showHistory && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: dur.base, ease: ease.out }}
+                className="overflow-hidden border-t border-[var(--border-subtle)]"
+              >
+                <HistoricalReferencePanel questionnaire_item_id={a.questionId} entity_id={a.entityId} currentValue={a.value ?? null} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </section>
+      )}
+
+      {/* Discussion */}
+      <CommentThread assignmentId={a.id} />
+    </article>
+  )
+}
+
+function Meta({ icon: Icon, label, value, title, tone }: { icon: typeof Factory; label: string; value: string; title?: string; tone?: 'danger' }) {
+  return (
+    <div className="flex items-center gap-1.5 min-w-0" title={title}>
+      <Icon className="w-3.5 h-3.5 flex-shrink-0 text-[var(--text-tertiary)]" aria-hidden />
+      <dt className="sr-only">{label}</dt>
+      <dd className={`truncate whitespace-nowrap ${tone === 'danger' ? 'text-[var(--status-danger)] font-semibold' : 'text-[var(--text-secondary)]'}`}>{value}</dd>
+    </div>
+  )
+}
+
+/** The submitted figure, exact, with its YoY delta against last year's reported value. */
+function ValueHeadline({ a }: { a: QuestionAssignment }) {
+  const { t } = useTranslation()
+  const f = useFmt()
+  const prior = usePrior(a.questionId)
+  const current = a.value != null ? Number(a.value) : null
+  const delta = prior && current != null && prior.value !== 0 ? ((current - prior.value) / Math.abs(prior.value)) * 100 : null
+  return (
+    <div className="p-5 sm:p-6 flex flex-wrap items-end justify-between gap-4 border-b border-[var(--border-subtle)]">
+      <div className="min-w-0">
+        <div className="text-caption font-semibold text-[var(--text-secondary)]">{t('workflowQueue.detail.value')}</div>
+        <div className="mt-1 flex items-baseline gap-2 flex-wrap">
+          <span className="type-figure text-[36px] leading-[40px] sm:text-[44px] sm:leading-[48px] text-[var(--text-primary)] tabular-nums break-all">
+            {current != null ? f.exact(current) : '—'}
+          </span>
+          {a.unit && <span className="text-body font-medium text-[var(--text-secondary)]">{f.unit(a.unit)}</span>}
+        </div>
+      </div>
+      {prior && (
+        <div className="text-right">
+          {delta != null && (
+            <div className={`text-body font-semibold tabular-nums ${Math.abs(delta) > 20 ? 'text-[var(--status-warning)]' : 'text-[var(--text-primary)]'}`}>
+              {f.delta(delta, { percent: true })}
+            </div>
+          )}
+          <div className="text-caption text-[var(--text-tertiary)] whitespace-nowrap">
+            {t('workflowQueue.detail.vsPrior', { year: prior.year, value: f.number(prior.value) })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Last reported value for the question (shared by the headline and checks). */
+const priorCache = new Map<string, Promise<{ year: number; value: number } | null>>()
+function usePrior(questionId: string) {
+  const [prior, setPrior] = useState<{ year: number; value: number } | null>(null)
+  useEffect(() => {
+    let alive = true
+    let p = priorCache.get(questionId)
+    if (!p) {
+      p = orgStore.historical(questionId)
+        .then(rows => {
+          const list = Array.isArray(rows) ? [...rows].sort((x, y) => y.year - x.year) : []
+          return list[0] ? { year: list[0].year, value: Number(list[0].value) } : null
+        })
+        .catch(() => null)
+      priorCache.set(questionId, p)
+      setTimeout(() => priorCache.delete(questionId), 60_000)
+    }
+    void p.then(v => { if (alive) setPrior(v) })
+    return () => { alive = false }
+  }, [questionId])
+  return prior
+}
+
+/** Anomaly scan findings + YoY / unit checks, in one list. */
+function Checks({ a, flags }: { a: QuestionAssignment; flags: Anomaly[] }) {
+  const { t } = useTranslation()
+  const f = useFmt()
+  const prior = usePrior(a.questionId)
+  const items: Array<{ tone: 'danger' | 'warning' | 'info' | 'ok'; title: string; body?: string }> = []
+
+  for (const x of flags) {
+    items.push({ tone: x.severity === 'critical' ? 'danger' : x.severity === 'warn' ? 'warning' : 'info', title: x.headline, body: x.detail })
+  }
+  if (a.response_type !== 'narrative' && a.value != null) {
+    const current = Number(a.value)
+    const delta = prior && prior.value !== 0 ? ((current - prior.value) / Math.abs(prior.value)) * 100 : null
+    if (delta != null && Math.abs(delta) > 20) {
+      items.push({ tone: 'warning', title: t('workflowQueue.variance.large', { delta: f.delta(delta, { percent: true }), year: prior!.year, prior: f.number(prior!.value) }) })
+    } else if (delta != null) {
+      items.push({ tone: 'ok', title: t('workflowQueue.variance.normal', { delta: f.delta(delta, { percent: true }), year: prior!.year }) })
+    } else if (!prior) {
+      items.push({ tone: 'info', title: t('workflowQueue.variance.noPrior') })
+    }
+    if (!a.unit || !a.unit.trim()) items.push({ tone: 'warning', title: t('workflowQueue.variance.noUnit') })
+  }
+  if (!items.length) return null
+
+  const ICON = { danger: AlertOctagon, warning: AlertTriangle, info: Info, ok: CheckCircle2 }
+  const COLOR = { danger: 'var(--status-danger)', warning: 'var(--status-warning)', info: 'var(--text-tertiary)', ok: 'var(--status-success)' }
+  return (
+    <div className="px-5 py-4 sm:px-6">
+      <h3 className="text-caption font-semibold text-[var(--text-secondary)] mb-2">{t('workflowQueue.variance.title')}</h3>
+      <ul className="space-y-2">
+        {items.map((it, i) => {
+          const Icon = ICON[it.tone]
+          return (
+            <li key={i} className="flex items-start gap-2.5">
+              <Icon className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: COLOR[it.tone] }} aria-hidden />
+              <div className="min-w-0">
+                <div className="type-small text-[var(--text-primary)]">{it.title}</div>
+                {it.body && <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{it.body}</div>}
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
+/** Where the figure came from: assignment → entry (mode) → evidence → submission → this decision. */
+function Lineage({ a, kind }: { a: QuestionAssignment; kind: QueueKind }) {
+  const { t } = useTranslation()
+  const f = useFmt()
+  const evidence = a.evidence_ids ?? []
+  const steps: Array<{ key: string; title: string; meta?: string; done: boolean; current?: boolean }> = [
+    { key: 'assigned', title: t('workflowQueue.lineage.assigned', { by: a.assigned_by }), meta: f.date(a.assigned_at), done: true },
+    { key: 'entered', title: t('workflowQueue.lineage.entered', { name: a.assigneeName, mode: a.used_mode ? t(`workflowQueue.mode.${a.used_mode}`, { defaultValue: a.used_mode }) : t('workflowQueue.lineage.unknownMode') }), done: true },
+    { key: 'submitted', title: t('workflowQueue.lineage.submitted'), meta: a.last_updated ? f.relative(a.last_updated) : undefined, done: true },
+    ...(kind === 'approval' ? [{ key: 'reviewed', title: t('workflowQueue.lineage.reviewed'), done: true }] : []),
+    { key: 'you', title: t(`workflowQueue.lineage.you_${kind}`), done: false, current: true },
+  ]
+  return (
+    <section className="surface-paper p-5 sm:p-6">
+      <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div>
+          <h3 className="text-caption font-semibold text-[var(--text-secondary)] mb-3">{t('workflowQueue.lineage.title')}</h3>
+          <ol className="relative">
+            {steps.map((s, i) => (
+              <li key={s.key} className="relative pl-6 pb-3 last:pb-0">
+                {i < steps.length - 1 && <span className="absolute left-[5px] top-3 bottom-0 w-px bg-[var(--border-default)]" aria-hidden />}
+                <span
+                  className="absolute left-0 top-1.5 w-[11px] h-[11px] rounded-full border-2"
+                  style={{
+                    borderColor: s.current ? 'var(--color-brand)' : 'var(--status-success)',
+                    background: s.current ? 'var(--bg-primary)' : 'var(--status-success)',
+                  }}
+                  aria-hidden
+                />
+                <div className={`type-small ${s.current ? 'font-semibold text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>{s.title}</div>
+                {s.meta && <div className="text-caption text-[var(--text-tertiary)]">{s.meta}</div>}
+              </li>
+            ))}
+          </ol>
+        </div>
+        <div>
+          <h3 className="text-caption font-semibold text-[var(--text-secondary)] mb-3">
+            {t('workflowQueue.detail.evidence', { count: evidence.length })}
+          </h3>
+          {evidence.length === 0 ? (
+            <p className="type-small text-[var(--status-warning)] inline-flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden />
+              {t('workflowQueue.detail.noEvidence')}
+            </p>
+          ) : (
+            <ul className="space-y-1.5">
+              {evidence.map((e, i) => {
+                const connector = e.startsWith('connector:')
+                const Icon = connector ? Plug : e.startsWith('ev_') ? Paperclip : FileText
+                const name = connector ? e.split(':')[1] : e.replace(/^ev_/, '')
+                return (
+                  <li key={i} className="flex items-center gap-2 h-9 px-3 rounded-[var(--radius-md)] bg-[var(--bg-secondary)] min-w-0">
+                    <Icon className="w-3.5 h-3.5 flex-shrink-0 text-[var(--text-tertiary)]" aria-hidden />
+                    <span className="text-caption text-[var(--text-tertiary)] flex-shrink-0">{connector ? t('workflowQueue.detail.connector') : t('workflowQueue.detail.file')}</span>
+                    <span className="type-small font-mono text-[var(--text-primary)] truncate">{name}</span>
                   </li>
                 )
               })}
             </ul>
-          </div>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}
 
-          {/* Detail + decision */}
-          {selected ? (
-            <DetailPane
-              assignment={selected}
-              comment={comment}
-              setComment={setComment}
-              kind={kind}
-              busy={busy === selected.id}
-              onPass={() => handlePass(selected)}
-              onReject={() => handleReject(selected)}
-              plantName={plantName}
-            />
-          ) : (
-            <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)] p-12 text-center">
-              <Inbox className="w-10 h-10 mx-auto text-[var(--text-tertiary)] mb-2" />
-              <p className="text-[length:var(--text-sm)] text-[var(--text-tertiary)]">{t('workflowQueue.pickRow')}</p>
+/* ── Skeleton ─────────────────────────────────────────────────────────── */
+
+function QueueSkeleton() {
+  return (
+    <div>
+      <SkeletonLedger items={4} className="mb-6" />
+      <div className="grid gap-6 lg:grid-cols-[minmax(300px,360px)_minmax(0,1fr)]">
+        <div className="hidden lg:block surface-paper p-4 space-y-4">
+          {[0, 1, 2, 3, 4].map(i => (
+            <div key={i} className="space-y-2">
+              <Skeleton height={12} width="40%" />
+              <Skeleton height={14} width="90%" />
             </div>
-          )}
+          ))}
         </div>
-      )}
-    </div>
-  )
-}
-
-function QueueStat({ label, value, tone }: { label: string; value: number; tone: 'neutral' | 'pending' | 'ok' }) {
-  const bg = tone === 'pending' ? 'var(--accent-blue-light)'
-    : tone === 'ok' ? 'var(--accent-green-light)' : 'var(--bg-primary)'
-  const fg = tone === 'pending' ? 'var(--status-pending)'
-    : tone === 'ok' ? 'var(--status-ok)' : 'var(--text-primary)'
-  return (
-    <div className="rounded-[var(--radius-md)] border border-[var(--border-default)] p-4" style={{ background: bg }}>
-      <div className="text-micro uppercase tracking-[0.06em] font-semibold" style={{ color: fg, opacity: 0.8 }}>{label}</div>
-      <div className="text-[24px] font-bold tabular-nums mt-0.5" style={{ color: fg }}>{value}</div>
-    </div>
-  )
-}
-
-function EmptyQueue({ kind }: { kind: QueueKind }) {
-  const navigate = useNavigate()
-  const { t } = useTranslation()
-  return (
-    <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)] py-14 text-center">
-      <CheckCircle2 className="w-10 h-10 mx-auto text-[var(--status-ok)] mb-2" />
-      <h3 className="font-display text-[length:var(--text-lg)] font-semibold text-[var(--text-primary)]">
-        {t('workflowQueue.empty.title')}
-      </h3>
-      <p className="text-[length:var(--text-sm)] text-[var(--text-tertiary)] mt-1 max-w-sm mx-auto">
-        {kind === 'review'
-          ? t('workflowQueue.empty.review')
-          : t('workflowQueue.empty.approval')}
-      </p>
-      <button
-        onClick={() => navigate('/aggregator')}
-        className="mt-4 text-[length:var(--text-xs)] font-semibold text-[var(--color-brand)] hover:underline inline-flex items-center gap-1"
-      >
-        {t('workflowQueue.empty.viewRollup')} <ArrowRight className="w-3 h-3" />
-      </button>
-    </div>
-  )
-}
-
-function DetailPane({
-  assignment, comment, setComment, kind, busy, onPass, onReject, plantName,
-}: {
-  assignment: QuestionAssignment
-  comment: string
-  setComment: (v: string) => void
-  kind: QueueKind
-  busy: boolean
-  onPass: () => void
-  onReject: () => void
-  plantName: (id: string) => string
-}) {
-  const { t, i18n } = useTranslation()
-  const meta = KIND_META[kind]
-  const fw = getFramework(assignment.framework_id)
-
-  return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-5 space-y-4">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2 flex-wrap mb-1">
-          {fw && (
-            <span className="text-micro font-bold uppercase tracking-[0.06em] px-1.5 py-0.5 rounded"
-                  style={{ background: `${fw.color}22`, color: fw.color }}>
-              {fw.code}
-            </span>
-          )}
-          <span className="text-caption font-bold text-[var(--color-brand)]">{assignment.gri_code}</span>
-        </div>
-        <h2 className="font-display text-[length:var(--text-xl)] font-bold text-[var(--text-primary)]">
-          {itemLabel(assignment, i18n.language)}
-        </h2>
-      </div>
-
-      {/* Context */}
-      <div className="grid grid-cols-2 gap-3">
-        <ContextItem icon={Factory} label={t('workflowQueue.detail.entity')} value={plantName(assignment.entityId)} />
-        <ContextItem icon={User} label={t('workflowQueue.detail.submittedBy')} value={assignment.assigneeName} subvalue={assignment.assigneeEmail} />
-        <ContextItem
-          icon={Calendar} label={t('workflowQueue.detail.due')}
-          value={assignment.due_date ?? '—'}
-          tone={assignment.due_date && new Date(assignment.due_date) < new Date() ? 'reject' : 'default'}
-        />
-        <ContextItem icon={Send} label={t('workflowQueue.detail.modeUsed')} value={assignment.used_mode ? t(`workflowQueue.mode.${assignment.used_mode}`, { defaultValue: assignment.used_mode }) : '—'} />
-      </div>
-
-      {/* Value or narrative preview */}
-      {assignment.response_type === 'narrative' ? (
-        <div className="rounded-[var(--radius-md)] border border-[var(--color-brand)]/30 bg-[var(--color-brand-soft)]/40 p-4">
-          <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--color-brand-strong)] mb-1">
-            {t('workflowQueue.detail.narrative', { count: (assignment.narrative_body ?? '').length })}
-          </div>
-          <p className="text-[length:var(--text-xs)] text-[var(--text-primary)] whitespace-pre-wrap leading-relaxed max-h-[200px] overflow-y-auto">
-            {assignment.narrative_body || <span className="italic text-[var(--text-tertiary)]">{t('workflowQueue.detail.noNarrative')}</span>}
-          </p>
-        </div>
-      ) : (
-        <div className="rounded-[var(--radius-md)] border border-[var(--color-brand)]/30 bg-[var(--color-brand-soft)]/40 p-4">
-          <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--color-brand-strong)] mb-1">
-            {t('workflowQueue.detail.value')}
-          </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-[28px] font-bold tabular-nums text-[var(--color-brand-strong)]">
-              {assignment.value != null ? formatValue(assignment.value) : '—'}
-            </span>
-            {assignment.unit && <span className="text-[length:var(--text-xs)] text-[var(--color-brand-strong)]">{assignment.unit}</span>}
-          </div>
-        </div>
-      )}
-
-      {/* YoY variance + unit check (numeric only) */}
-      {assignment.response_type !== 'narrative' && (
-        <VarianceCheck assignment={assignment} />
-      )}
-
-      {/* Full 4-year historical reference — reviewer has cradle-to-grave context */}
-      {assignment.response_type !== 'narrative' && (
-        <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] overflow-hidden">
-          <HistoricalReferencePanel
-            questionnaire_item_id={assignment.questionId}
-            entity_id={assignment.entityId}
-            currentValue={assignment.value ?? null}
-          />
-        </div>
-      )}
-
-      {/* Evidence */}
-      {assignment.evidence_ids && assignment.evidence_ids.length > 0 && (
-        <div>
-          <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-2 flex items-center gap-1">
-            <Paperclip className="w-3 h-3" /> {t('workflowQueue.detail.evidence', { count: assignment.evidence_ids.length })}
-          </div>
-          <ul className="space-y-1">
-            {assignment.evidence_ids.map((e, i) => (
-              <li key={i} className="text-[length:var(--text-xs)] text-[var(--text-secondary)] font-mono bg-[var(--bg-secondary)] px-2 py-1.5 rounded-[var(--radius-sm)]">
-                {e.startsWith('connector:') ? `🔌 ${e.split(':')[1]}` : `📎 ${e.replace(/^ev_/, '')}`}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Prior comment */}
-      {assignment.comment && (
-        <div>
-          <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1 flex items-center gap-1">
-            <MessageSquare className="w-3 h-3" /> {t('workflowQueue.detail.note')}
-          </div>
-          <p className="text-[length:var(--text-xs)] text-[var(--text-secondary)] italic bg-[var(--bg-secondary)] p-3 rounded-[var(--radius-sm)] border-l-2 border-[var(--color-brand)]">
-            {assignment.comment}
-          </p>
-        </div>
-      )}
-
-      {/* Decision panel */}
-      <div className="pt-4 border-t border-[var(--border-subtle)] space-y-3">
-        <div>
-          <label className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1">
-            {t('workflowQueue.detail.commentLabel')}
-          </label>
-          <textarea
-            value={comment}
-            onChange={e => setComment(e.target.value)}
-            rows={2}
-            placeholder={kind === 'review'
-              ? t('workflowQueue.detail.commentPlaceholderReview')
-              : t('workflowQueue.detail.commentPlaceholderApproval')}
-            className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-xs)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none resize-none"
-          />
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={onPass}
-            disabled={busy}
-            className="flex-1 px-4 py-2.5 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold hover:bg-[var(--btn-primary-bg-hover)] disabled:opacity-60 inline-flex items-center justify-center gap-1.5"
-          >
-            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-            {t(meta.passLabel)}
-          </button>
-          <button
-            onClick={onReject}
-            disabled={busy}
-            className="px-4 py-2.5 rounded-[var(--radius-md)] border border-[var(--status-reject)]/30 text-[var(--status-reject)] text-[length:var(--text-sm)] font-semibold hover:bg-[var(--accent-red-light)] disabled:opacity-60 inline-flex items-center gap-1.5"
-          >
-            <XCircle className="w-4 h-4" />
-            {t(meta.rejectLabel)}
-          </button>
+        <div className="space-y-4">
+          <Skeleton height={28} width="70%" />
+          <Skeleton height={14} width="45%" />
+          <SkeletonCard />
+          <SkeletonCard />
         </div>
       </div>
-
-      {/* Threaded discussion */}
-      <CommentThread assignmentId={assignment.id} />
     </div>
   )
-}
-
-/**
- * YoY variance + unit-check for numeric assignments. Fetches historical_value
- * for this question, compares to the submitted value, surfaces any red flags.
- */
-function VarianceCheck({ assignment }: { assignment: QuestionAssignment }) {
-  const { t, i18n } = useTranslation()
-  const [history, setHistory] = useState<Array<{ year: number; value: number; source_report: string }>>([])
-  useEffect(() => {
-    orgStore.historical(assignment.questionId)
-      .then(rows => setHistory(Array.isArray(rows) ? rows : []))
-      .catch(() => setHistory([]))
-  }, [assignment.questionId])
-
-  if (assignment.value == null) return null
-
-  const latest = history.length > 0 ? [...history].sort((a, b) => b.year - a.year)[0] : null
-  const current = Number(assignment.value)
-  const priorVal = latest ? Number(latest.value) : null
-  const delta = priorVal != null && priorVal !== 0 ? ((current - priorVal) / Math.abs(priorVal)) * 100 : null
-  const flags: Array<{ tone: 'warn' | 'info'; text: string }> = []
-
-  if (delta != null && Math.abs(delta) > 20) {
-    flags.push({
-      tone: 'warn',
-      text: t('workflowQueue.variance.large', { delta: `${delta > 0 ? '+' : ''}${delta.toFixed(1)}`, year: latest!.year, prior: latest!.value.toLocaleString(i18n.language?.startsWith('zh') ? 'zh-CN' : undefined) }),
-    })
-  } else if (delta != null) {
-    flags.push({
-      tone: 'info',
-      text: t('workflowQueue.variance.normal', { delta: `${delta > 0 ? '+' : ''}${delta.toFixed(1)}`, year: latest!.year }),
-    })
-  } else {
-    flags.push({ tone: 'info', text: t('workflowQueue.variance.noPrior') })
-  }
-
-  // Unit sanity check — if entered without a unit on a numeric question, flag it
-  if (!assignment.unit || assignment.unit.trim() === '') {
-    flags.push({ tone: 'warn', text: t('workflowQueue.variance.noUnit') })
-  }
-
-  return (
-    <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-3 space-y-1.5">
-      <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">{t('workflowQueue.variance.title')}</div>
-      {flags.map((f, i) => (
-        <div key={i} className={`text-caption flex items-start gap-1.5 ${f.tone === 'warn' ? 'text-[var(--status-draft)]' : 'text-[var(--text-secondary)]'}`}>
-          <span className="mt-0.5">{f.tone === 'warn' ? '⚠' : 'ℹ'}</span>
-          <span>{f.text}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function ContextItem({
-  icon: Icon, label, value, subvalue, tone = 'default',
-}: {
-  icon: typeof Factory
-  label: string
-  value: string
-  subvalue?: string
-  tone?: 'default' | 'reject'
-}) {
-  return (
-    <div className="rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-3">
-      <div className="flex items-center gap-1.5 text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">
-        <Icon className="w-3 h-3" /> {label}
-      </div>
-      <div className={`text-[length:var(--text-sm)] font-semibold mt-1 ${tone === 'reject' ? 'text-[var(--status-reject)]' : 'text-[var(--text-primary)]'}`}>
-        {value}
-      </div>
-      {subvalue && <div className="text-caption text-[var(--text-tertiary)] truncate">{subvalue}</div>}
-    </div>
-  )
-}
-
-// plantName is now a closure using the already-loaded entities array
-
-function formatValue(v: number): string {
-  if (Math.abs(v) >= 1_000_000) return (v / 1_000_000).toFixed(2) + 'M'
-  if (Math.abs(v) >= 1_000) return (v / 1_000).toFixed(1) + 'k'
-  return v.toFixed(2)
 }

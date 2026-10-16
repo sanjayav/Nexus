@@ -1,12 +1,14 @@
 {
   "errors": {
     "create": "Could not create assignment: {{message}}",
-    "remove": "Could not remove: {{message}}"
+    "remove": "Could not remove: {{message}}",
+    "createTitle": "Couldn't create the assignment",
+    "loadTitle": "Couldn't load assignments"
   },
   "confirmRemove": "Remove this assignment?",
   "crumbData": "Data",
-  "title": "Values",
-  "description": "Each {{framework}} disclosure goes to the person closest to the data — controlled by <rbac></rbac>. Assignees see it in <b>Tasks</b> next time they sign in.",
+  "title": "Assignments",
+  "description": "Each {{framework}} disclosure goes to the person closest to the data, controlled by <rbac></rbac>. Assignees see it in <b>My tasks</b> the next time they sign in.",
   "bulkAssign": "Bulk assign",
   "newAssignment": "New assignment",
   "frameworkDisclosures": "{{framework}} disclosures",
@@ -14,31 +16,41 @@
     "total": "Total",
     "approved": "Approved",
     "inReview": "In review",
-    "notStarted": "Not started"
+    "notStarted": "Not started",
+    "aria": "Assignment status",
+    "open": "Open",
+    "approvedHint": "{{pct}}% of all",
+    "overdue": "Overdue"
   },
-  "searchPlaceholder": "Search by GRI code, line item, or assignee…",
+  "searchPlaceholder": "Search by code, disclosure or assignee…",
   "allStatuses": "All statuses",
   "allEntities": "All entities",
   "view": {
     "list": "List",
     "kanban": "Kanban",
     "tree": "Tree",
-    "network": "Network"
+    "network": "Network",
+    "aria": "View"
   },
   "empty": {
     "noneTitle": "No assignments yet",
     "noResults": "No results match these filters",
-    "noneBody": "Click \"Bulk assign\" to distribute disclosures to your team, or create them one at a time.",
+    "noneBody": "Bulk assign a framework section to your team in one step, or create assignments one at a time.",
     "noResultsBody": "Clear filters above or pick a different framework / status.",
     "create": "Create assignment"
   },
   "table": {
-    "lineItem": "GRI · Line item",
+    "lineItem": "Code · disclosure",
     "entity": "Plant / entity",
     "assignee": "Assignee",
     "mode": "Mode",
     "due": "Due",
-    "status": "Status"
+    "status": "Status",
+    "selectAll": "Select all visible assignments",
+    "selectGroup": "Select all in {{name}}",
+    "select": "Select {{code}}",
+    "groupCount_one": "{{count}} assignment · {{approved}} approved",
+    "groupCount_other": "{{count}} assignments · {{approved}} approved"
   },
   "mode": {
     "Manual": "Manual",
@@ -47,9 +59,21 @@
     "usedTitle": "Used to record this value",
     "allowedTitle": "Allowed"
   },
-  "remove": "Remove",
+  "remove": {
+    "oneTitle": "Remove {{code}} from {{name}}?",
+    "manyTitle_one": "Remove {{count}} assignment?",
+    "manyTitle_other": "Remove {{count}} assignments?",
+    "body_one": "The assignee loses this task. Any value already entered stays in the audit log but the assignment can't be restored.",
+    "body_other": "The assignees lose these tasks. Values already entered stay in the audit log but the assignments can't be restored.",
+    "confirm_one": "Remove assignment",
+    "confirm_other": "Remove {{count}} assignments",
+    "done_one": "Assignment removed",
+    "done_other": "{{count}} assignments removed",
+    "failed_one": "{{count}} assignment couldn't be removed",
+    "failed_other": "{{count}} assignments couldn't be removed"
+  },
   "drawer": {
-    "step1": "Pick a GRI question",
+    "step1": "Pick a disclosure",
     "step2": "What kind of answer does this disclosure need?",
     "numeric": "Numeric",
     "numericDesc": "A value with a unit (e.g. tCO₂e, MWh)",
@@ -63,11 +87,13 @@
     "modesHint": "Tick every method the assignee is allowed to use. They pick one at answer time.",
     "noCalculator": "no calculator",
     "tabSwitcher": "Assignee will see a tab switcher to choose between {{modes}}.",
-    "step6": "Deadline (optional)"
+    "step6": "Deadline (optional)",
+    "subtitle": "Route one {{framework}} disclosure to the person closest to the data.",
+    "progress": "{{done}} of {{total}} steps done"
   },
   "picker": {
     "change": "Change question",
-    "search": "Search GRI code or line item…",
+    "search": "Search code or disclosure…",
     "noMatches": "No matches",
     "noMembers": "No members on this entity yet. Add one in <b>Onboarding</b> first.",
     "selectAssignee": "Select assignee…"
@@ -104,7 +130,7 @@
   "bulk": {
     "pickAssignee": "Pick an assignee",
     "capError": "Narrow the filter — bulk-assign is capped at 500 items.",
-    "eyebrow": "Setup helper",
+    "eyebrow": "Bulk assign",
     "title": "Bulk-assign questionnaire items",
     "intro": "Hand entire sections to one person with a single click. Existing assignments are skipped (no overwrites). Cap: 500 items per call.",
     "done": "Done",
@@ -127,5 +153,26 @@
   },
   "tree": {
     "empty": "No entity tree yet — run Onboarding first."
-  }
+  },
+  "toast": {
+    "created": "{{code}} assigned to {{name}}"
+  },
+  "removeLabel": "Remove",
+  "removeAria": "Remove assignment {{code}}",
+  "bulkBar": {
+    "aria": "Bulk actions",
+    "selected_one": "selected",
+    "selected_other": "selected",
+    "setDue": "Set due date",
+    "dueDate": "New due date",
+    "apply": "Apply",
+    "remove": "Remove",
+    "clear": "Clear selection",
+    "dueDone_one": "Due date updated on {{count}} assignment",
+    "dueDone_other": "Due date updated on {{count}} assignments",
+    "dueFailed_one": "{{count}} assignment couldn't be updated",
+    "dueFailed_other": "{{count}} assignments couldn't be updated"
+  },
+  "showing": "Showing {{shown}} of {{total}}.",
+  "clearFilters": "Clear filters"
 }

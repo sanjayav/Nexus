@@ -25,6 +25,9 @@ export default defineConfig(({ mode }) => {
           // Spline + react-pdf are route-specific; recharts/react-vendor are shared
           // but still big enough to cache independently of app code.
           manualChunks: (id) => {
+            // Keep Vite's preload helper out of feature chunks; otherwise Rollup
+            // parks it in the Spline chunk and every page preloads 1.5 MB of 3D runtime.
+            if (id.includes('vite/preload-helper') || id.includes('commonjsHelpers')) return 'react-vendor'
             if (!id.includes('node_modules')) return undefined
             if (id.includes('@splinetool')) return 'spline'
             if (id.includes('@react-pdf') || id.includes('pdfjs-dist') || id.includes('pdf-lib')) return 'pdf'

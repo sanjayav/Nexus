@@ -1,7 +1,7 @@
 {
   "status": {
     "draft": "Draft",
-    "inReview": "In Review",
+    "inReview": "In review",
     "approved": "Approved"
   },
   "role": {
@@ -10,19 +10,21 @@
   "toastSubmitted": "Question submitted for review",
   "crumbReports": "Reports",
   "crumbSelf": "Framework questions",
-  "title": "Framework Questions",
+  "title": "Framework questions",
   "description": "Regulatory framework questionnaires with role-based assignment. Manage CDP, TCFD, GRI, and CSRD disclosures from a unified workspace.",
   "openInEditor": "Open in editor",
-  "editorCta": "Edit, review and publish {{framework}} disclosures in one document-centric workspace — left tree, middle document, right detail rail.",
+  "editorCta": "Edit, review and publish {{framework}} disclosures in one document: contents on the left, the report in the middle, the selected value on the right.",
   "open": "Open",
   "stats": {
-    "total": "Total Questions"
+    "total": "Total questions"
   },
   "filters": "Filters",
-  "statusLabel": "Status:",
-  "roleLabel": "Role:",
+  "statusLabel": "Status",
+  "roleLabel": "Role",
   "questionCount_one": "{{count}} question",
   "questionCount_other": "{{count}} questions",
-  "submitForReview": "Submit for Review",
-  "noMatch": "No questions match the current filters."
+  "submitForReview": "Submit for review",
+  "noMatch": "No questions match the current filters.",
+  "tabsAria": "Framework",
+  "openInEditorFw": "Open {{framework}} in the disclosure editor"
 }

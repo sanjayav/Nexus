@@ -7,7 +7,10 @@
   "errors": {
     "title": "验证失败",
     "failedFallback": "验证失败",
-    "unknownToken": "无法识别此验证令牌。链接可能输入有误，或报告可能已被撤回。"
+    "unknownToken": "无法识别此验证令牌。链接可能输入有误，或报告可能已被撤回。",
+    "unknownTitle": "未找到此报告",
+    "body": "验证服务未响应，暂时无法确认此报告。请稍后重试。",
+    "incomplete": "验证服务返回的记录不完整，因此无法确认此报告。"
   },
   "footer": "经 Nexus 验证 · 由 <brand>Aeiforo</brand> 提供技术支持",
   "goToPlatform": "前往 Nexus 平台",
@@ -16,23 +19,28 @@
     "authentic": "这是一份真实的可持续发展报告，由 <strong>{{by}}</strong> 于 <strong>{{date}}</strong> 发布。文档哈希已在发布时锚定至公共时间戳日历。",
     "version": "版本 {{version}}",
     "unauditedDraft": "未经审计草稿",
-    "assured": "已鉴证"
+    "assured": "已鉴证",
+    "verdict": "已验证 · 该文件已在公开记录中"
   },
   "hash": {
-    "title": "文档哈希",
+    "title": "文档指纹",
     "copy": "复制哈希",
     "fileSize": "文件大小：{{size}} KB",
     "pages_one": "{{count}} 页",
     "pages_other": "{{count}} 页",
-    "howTo": "对您收到的 PDF 计算 <code>sha256sum</code>——结果必须与上方哈希一致。如不一致，说明文档已被修改。"
+    "howTo": "对您收到的 PDF 计算 <code>sha256sum</code>——结果必须与上方哈希一致。如不一致，说明文档已被修改。",
+    "copied": "哈希已复制",
+    "copyFailed": "复制失败，请手动选择哈希复制。"
   },
   "anchor": {
     "title": "外部时间戳",
     "label": "锚定",
     "anchored": "已锚定",
     "anchoredOn": "锚定于 {{date}}",
-    "calendar": "日历：",
-    "none": "无外部锚定记录。文档哈希仅存储于服务器端。"
+    "calendar": "时间戳日历",
+    "none": "无外部锚定记录。文档哈希仅存储于服务器端。",
+    "anchoredAt": "锚定时间",
+    "note": "已保存部分 OpenTimestamps 回执。比特币公开确认通常在锚定后 1–6 小时内完成。"
   },
   "assurance": {
     "statement": "独立鉴证声明",
@@ -50,5 +58,12 @@
     "step1": "打开终端并运行 <code>sha256sum report.pdf</code>（macOS 上运行 <code>shasum -a 256 report.pdf</code>），将输出与上方哈希进行比对——两者必须一致。",
     "step2": "安装 OpenTimestamps 客户端：<code>pip install opentimestamps-client</code>。您可借此对照比特币区块链独立确认锚定记录。",
     "step3": "如果哈希一致，且 OpenTimestamps 回执已升级为完整的比特币证明，则说明本报告自发布以来未被修改。"
+  },
+  "facts": {
+    "framework": "框架",
+    "period": "报告期",
+    "version": "版本",
+    "status": "状态",
+    "language": "报告语言"
   }
 }

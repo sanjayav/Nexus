@@ -7,23 +7,39 @@
   "generateKey": "生成密钥",
   "errors": {
     "load": "加载 API 密钥失败",
-    "nameRequired": "请填写名称",
-    "pickScope": "请至少选择一个作用域",
+    "loadTitle": "API 密钥未能加载",
+    "loadBody": "暂时无法连接服务器，列表内容尚未确认。所有密钥均未更改。",
+    "refresh": "密钥列表刷新失败",
+    "nameRequired": "请为密钥命名，便于日后识别。",
+    "pickScope": "请至少选择一个作用域。",
     "create": "创建 API 密钥失败",
-    "revoke": "吊销密钥失败"
+    "revoke": "吊销失败，该密钥仍然有效。"
   },
-  "confirmRevoke": "确定吊销此密钥吗？所有使用该密钥的客户端将立即失去访问权限。",
+  "confirmRevoke": "所有使用该密钥的客户端将立即失去访问权限，且无法撤销。",
+  "revokeSheet": {
+    "title": "吊销“{{name}}”？",
+    "confirm": "吊销密钥"
+  },
+  "toast": {
+    "created": "已生成密钥“{{name}}”",
+    "revoked": "已吊销密钥“{{name}}”"
+  },
   "reveal": {
-    "warning": "请立即复制此令牌——它不会再次显示。我们仅存储其 SHA-256 哈希值。",
-    "dismiss": "关闭",
+    "title": "请立即复制新密钥“{{name}}”",
+    "warning": "此令牌不会再次显示。我们仅存储其 SHA-256 哈希值；如遗失，需重新生成密钥。",
+    "tokenLabel": "密钥令牌",
+    "dismiss": "我已妥善保存",
     "copied": "已复制",
-    "copy": "复制",
-    "scopes": "作用域：{{scopes}}"
+    "copy": "复制令牌",
+    "copyFailed": "复制失败，请选中令牌后手动复制。",
+    "scopes": "作用域：{{scopes}}",
+    "scopesLabel": "作用域"
   },
   "table": {
-    "heading": "有效密钥",
+    "heading": "密钥",
+    "count": "有效 {{active}} 个，共 {{total}} 个",
     "emptyTitle": "暂无 API 密钥",
-    "emptyBody": "在上方生成令牌，即可开始以程序化方式推送数据。请为每个密钥仅授予所需的最小权限。",
+    "emptyBody": "生成密钥后即可以程序化方式推送数据。请为每个密钥仅授予所需的作用域。",
     "name": "名称",
     "prefix": "前缀",
     "scopes": "作用域",
@@ -31,20 +47,25 @@
     "lastUsed": "最近使用",
     "status": "状态",
     "actions": "操作",
-    "never": "从不",
+    "never": "从未使用",
+    "noExpiry": "永不过期",
     "active": "有效",
+    "expired": "已过期",
     "revoked": "已吊销",
-    "revoke": "吊销"
+    "revoke": "吊销",
+    "revokeNamed": "吊销密钥 {{name}}"
   },
   "modal": {
     "title": "生成 API 密钥",
+    "intro": "令牌仅在生成后显示一次。",
     "close": "关闭",
     "name": "名称",
     "namePlaceholder": "例如：CI 流水线推送",
     "scopes": "作用域",
+    "scopesHint": "仅授予该集成所需的权限。",
     "expiresIn": "有效期（天）",
     "expiresPlaceholder": "留空表示永不过期",
     "cancel": "取消",
-    "generate": "生成"
+    "generate": "生成密钥"
   }
 }

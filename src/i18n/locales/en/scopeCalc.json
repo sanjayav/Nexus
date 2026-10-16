@@ -87,7 +87,8 @@
     "verifiedOf12": "{{count}}/12 verified",
     "submitting": "Submitting...",
     "viewProof": "View blockchain proof",
-    "submitForReview": "Submit for review"
+    "submitForReview": "Submit for review",
+    "expand": "Show source breakdown"
   },
   "toast": {
     "monthSubmitted": "{{month}} data submitted for review",
@@ -96,7 +97,8 @@
     "monthsSubmitted_other": "{{count}} month(s) submitted for review",
     "draftSaved": "Draft saved successfully",
     "exporting": "Exporting {{scope}} data as {{format}}...",
-    "downloaded": "{{format}} file downloaded"
+    "downloaded": "{{format}} file downloaded",
+    "exportFailed": "Export failed"
   },
   "proofDataPoint": "{{scope}} Emissions - {{month}}",
   "kpi": {
@@ -106,7 +108,8 @@
     "production": "Production Volume",
     "productionUnit": "tonnes produced in FY 2026",
     "completeness": "Data Completeness",
-    "completenessSub": "{{count}} of 12 months submitted or verified"
+    "completenessSub": "{{count}} of 12 months submitted or verified",
+    "label": "Intensity and completeness"
   },
   "methodModal": {
     "title": "Calculation Methodology",
@@ -272,6 +275,11 @@
     "heading": "{{month}} — Source-Level Breakdown",
     "production": "Production:",
     "tonnes": "tonnes",
-    "intensity": "Intensity:"
-  }
+    "intensity": "Intensity:",
+    "invalid": "Enter a number of 0 or more.",
+    "edit": "Edit {{source}}"
+  },
+  "facilityLabel": "Facility",
+  "scopeTabs": "Scope",
+  "close": "Close"
 }

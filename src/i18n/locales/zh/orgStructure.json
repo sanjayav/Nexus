@@ -11,7 +11,8 @@
     "subsidiaries": "子公司",
     "facilities": "设施",
     "countries": "国家/地区",
-    "emissionSources": "排放源"
+    "emissionSources": "排放源",
+    "label": "组织概况"
   },
   "company": {
     "sector": "石化与炼油",
@@ -42,7 +43,8 @@
   },
   "search": {
     "placeholder": "搜索设施…",
-    "noMatch": "没有与搜索条件匹配的设施。"
+    "noMatch": "没有与搜索条件匹配的设施。",
+    "clear": "清除搜索"
   },
   "scopes": {
     "s1": "范围一 — 直接排放",
@@ -136,5 +138,6 @@
     "callout": " — 基于位置的排放因子：{{ef}} kgCO₂e/kWh（IEA {{period}}）。基于市场的排放因子（来自供应商合同）另行管理。",
     "addSource": "添加排放源",
     "decommission": "退役"
-  }
+  },
+  "modalClose": "关闭"
 }

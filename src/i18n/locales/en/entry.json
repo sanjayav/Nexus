@@ -1,0 +1,167 @@
+{
+  "openFullPage": "Open full page",
+  "listSep": "; ",
+  "rel": {
+    "justNow": "just now",
+    "seconds_one": "{{count}}s ago",
+    "seconds_other": "{{count}}s ago",
+    "minutes_one": "{{count}} min ago",
+    "minutes_other": "{{count}} min ago",
+    "hours_one": "{{count}} h ago",
+    "hours_other": "{{count}} h ago",
+    "days_one": "{{count}} day ago",
+    "days_other": "{{count}} days ago"
+  },
+  "save": {
+    "saving": "Saving…",
+    "unsaved": "Unsaved changes",
+    "failed": "Couldn't save",
+    "savedAgo": "Saved · {{time}}",
+    "retry": "Retry"
+  },
+  "ai": {
+    "label": "AI-generated — review before use",
+    "disabledTitle": "AI is switched off for this organisation",
+    "disabledBody": "An administrator can turn AI features on in Settings. You can still enter the value by hand.",
+    "extractedNote": "Value read by AI from {{file}}",
+    "extractedPeriod": " for {{period}}"
+  },
+  "aiExtract": {
+    "title": "Read the value from this file",
+    "extract": "Extract value",
+    "extractFrom": "Extract the value from {{file}}",
+    "unavailable": "AI unavailable",
+    "notConfigured": "AI extraction isn't set up for this workspace.",
+    "notConfiguredHint": "Ask an administrator to connect an AI provider. You can still type the value.",
+    "reading": "Reading the document…",
+    "failed": "Couldn't read a value from this file",
+    "tryAgain": "Try again",
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low",
+    "confidence": "{{level}} confidence · {{pct}}%",
+    "period": "Period",
+    "supplier": "Supplier",
+    "reasoning": "Why:",
+    "useValue": "Use this value",
+    "reExtract": "Extract again"
+  },
+  "mode": {
+    "aria": "How to enter this value",
+    "Manual": "Manual",
+    "Calculator": "Calculator",
+    "Connector": "Connector"
+  },
+  "value": {
+    "label": "Value",
+    "labelYear": "Value for FY{{year}}",
+    "placeholder": "Enter a number",
+    "required": "Enter a value before submitting.",
+    "invalid": "That isn't a number. Use digits, with an optional decimal point.",
+    "reads": "Reads as {{value}}",
+    "hint": "Thousands separators and full-width digits are fine."
+  },
+  "calc": {
+    "select": "Select…",
+    "result": "Calculated value",
+    "incomplete": "Fill in every input so the calculator can produce a value.",
+    "methodology": "Method: {{notes}}"
+  },
+  "connector": {
+    "hint": "Pulls the latest figure from the source system with a signed receipt.",
+    "pull": "Pull value",
+    "pullAgain": "Pull again",
+    "pulling": "Pulling…",
+    "pulled": "Pulled",
+    "receipt": "Receipt {{hash}}",
+    "failed": "The connector didn't return a value."
+  },
+  "narrative": {
+    "label": "Your response",
+    "count": "{{count}} / {{min}} characters",
+    "intro": "Describe the policy, process or outcome in plain language. Reviewers read this as it will appear in the report.",
+    "placeholder": "Write the disclosure text…",
+    "moreNeeded_one": "{{count}} more character needed before you can submit.",
+    "moreNeeded_other": "{{count}} more characters needed before you can submit.",
+    "ready": "Long enough to submit."
+  },
+  "comment": {
+    "label": "Note for the reviewer",
+    "optional": "(optional)",
+    "placeholder": "Source, assumptions or anything the reviewer should know"
+  },
+  "evidence": {
+    "title": "Evidence",
+    "requiredTag": "required to submit",
+    "connectorExempt": "The connector receipt counts as evidence",
+    "drop": "Drop files here or choose a file",
+    "addAnother": "Add another file",
+    "uploading": "Uploading…",
+    "formats": "PDF, Excel, CSV, PNG or JPG · up to 5 MB each",
+    "hint": "Attach the invoice, meter reading or report the value comes from.",
+    "required": "Attach at least one evidence file before submitting.",
+    "stale": "These files support {{value}}. The value changed, so attach the files for the new value.",
+    "needValue": "Enter the value first — evidence is attached to a specific value.",
+    "badType": "{{type}} files aren't accepted. Use PDF, Excel, CSV, PNG or JPG.",
+    "tooLarge": "This file is {{size}} MB. The limit is 5 MB.",
+    "uploadFailed": "Upload failed",
+    "removeFailed": "Couldn't remove the file",
+    "open": "Open",
+    "remove": "Remove {{file}}",
+    "receipt": "Connector receipt",
+    "onRecord": "On record",
+    "none": "No evidence attached."
+  },
+  "year": {
+    "noneShort": "No open reporting year — values can't be anchored yet.",
+    "noneEvidence": "Files are attached to the reporting year, and none is open yet.",
+    "cta": "Open Reporting cycles"
+  },
+  "reference": {
+    "unavailable": "History isn't available for this item.",
+    "none": "No earlier filings for this item yet.",
+    "lastFiled": "Filed FY{{year}}",
+    "lastFiledNone": "Last filed",
+    "use": "Use this value",
+    "avg_one": "{{count}}-year average",
+    "avg_other": "{{count}}-year average",
+    "change": "Change vs last year",
+    "unusual": "Check before submitting",
+    "peers": "Peer sites",
+    "peerCount_one": "{{count}} site",
+    "peerCount_other": "{{count}} sites",
+    "noPeers": "No peer filings",
+    "unitNote": "Figures in {{unit}}"
+  },
+  "banner": {
+    "sentBack": "Sent back for changes",
+    "sentBackBody": "Update the value or evidence and submit again. The reviewer's note is in the discussion.",
+    "withReviewer": "With {{name}} for review",
+    "withReviewerGeneric": "With the subsidiary lead for review",
+    "withApprover": "With {{name}} for approval",
+    "withApproverGeneric": "With the group sustainability officer for approval",
+    "approved": "Approved",
+    "locked": "Locked while it's reviewed. If it's sent back you can edit it again.",
+    "lockedApproved": "This value is final for the reporting year."
+  },
+  "actions": {
+    "saveDraft": "Save draft",
+    "submit": "Submit for review",
+    "submitting": "Submitting…",
+    "viewQueue": "View in review queue"
+  },
+  "submit": {
+    "failed": "Couldn't submit",
+    "needsEvidence": "Attach evidence to submit"
+  },
+  "toast": {
+    "draftSaved": "Draft saved",
+    "saveFailed": "Couldn't save the draft",
+    "evidenceAdded_one": "File attached",
+    "evidenceAdded_other": "{{count}} files attached",
+    "pulled": "Value pulled from {{connector}}",
+    "submitted": "Submitted for review",
+    "submittedTo": "Submitted to {{name}} for review",
+    "submittedBody": "The value is locked until the review is done."
+  }
+}

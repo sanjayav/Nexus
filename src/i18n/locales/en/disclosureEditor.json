@@ -9,12 +9,16 @@
     "retry": "Retry",
     "emptyTitle": "No disclosures yet",
     "emptyBody": "The questionnaire for {{code}} is empty. Run the seed to populate it.",
-    "unknownUser": "Unknown"
+    "unknownUser": "Unknown",
+    "cleared": "{{code}} cleared",
+    "approved": "{{code}} approved",
+    "rejected": "{{code}} sent back for changes",
+    "actionFailed": "That action didn't go through"
   },
   "progress": {
     "status": {
       "draft": "Draft",
-      "inReview": "In Review",
+      "inReview": "In review",
       "published": "Published"
     },
     "noPermission": "You don’t have permission to publish reports",
@@ -33,7 +37,12 @@
     "othersAria_other": "{{count}} other editors in this room",
     "user": "User",
     "moreInRoom_one": "{{count}} more in this room",
-    "moreInRoom_other": "{{count}} more in this room"
+    "moreInRoom_other": "{{count}} more in this room",
+    "noYear": "Open a reporting year to publish",
+    "railAria": "{{done}} of {{total}} cells complete",
+    "legendApproved": "Approved {{count}}",
+    "legendReview": "In review {{count}}",
+    "legendDraft": "Drafted {{count}}"
   },
   "tree": {
     "search": "Search disclosures…",
@@ -52,7 +61,11 @@
     "listSep": ", ",
     "isHere": "{{name}} is here",
     "moreHere_one": "{{count}} more here",
-    "moreHere_other": "{{count}} more here"
+    "moreHere_other": "{{count}} more here",
+    "kbMove": "move",
+    "kbEdit": "edit",
+    "kbCancel": "cancel",
+    "invalid": "Enter a number, for example 1234.5"
   },
   "rel": {
     "seconds_one": "{{count}}s ago",
@@ -72,11 +85,11 @@
   "rail": {
     "aria": "Cell detail",
     "emptyGap": "Switch to the document or pick a disclosure to use Gap Analysis context.",
-    "empty": "Select a disclosure to see fact details, comments and audit history.",
+    "empty": "Select a cell to enter its value, attach evidence and see its history.",
     "commentsEmpty": "Enter a value to start a discussion thread.",
     "tabCell": "Cell",
     "tabComments": "Comments",
-    "tabGap": "Gap Analysis",
+    "tabGap": "AI analysis",
     "uploadFailed": "Upload failed",
     "submitForReview": "Submit for review",
     "approve": "Approve",
@@ -92,13 +105,17 @@
     "attachEvidence": "Attach evidence",
     "aiPipeline": "AI extraction pipeline",
     "extract": "Extract from evidence",
-    "audit": "Audit",
+    "audit": "Audit trail",
     "noAudit": "No audit events yet.",
     "system": "System",
     "dragDrop": "Drag and drop a file here, or",
     "uploading": "Uploading…",
     "chooseFile": "Choose file",
-    "recentFiles": "Recent files"
+    "recentFiles": "Recent files",
+    "tabEntry": "Entry",
+    "assignedToName": "Assigned to {{name}}",
+    "factDetails": "Fact details",
+    "auditFailed": "The audit trail couldn't be loaded."
   },
   "fact": {
     "addFailed": "Failed to add footnote",
@@ -159,7 +176,9 @@
     "owner": "Owner: {{role}}",
     "open": "Open",
     "qualityIssues": "Quality issues",
-    "nextSteps": "Recommended next steps"
+    "nextSteps": "Recommended next steps",
+    "copied": "Summary copied",
+    "copyFailed": "Couldn't copy to the clipboard"
   },
   "mobile": {
     "tabsAria": "Disclosure editor sections",
@@ -167,5 +186,28 @@
     "document": "Document",
     "details": "Details",
     "backToDocument": "Back to document"
+  },
+  "summary": {
+    "approved": "Approved",
+    "inReview": "In review",
+    "drafted": "Drafted",
+    "notStarted": "Not started",
+    "owners": "Owners",
+    "progress": "{{done}} of {{total}} submitted or approved",
+    "nextOpen": "Go to the next empty cell",
+    "allFilled": "Every cell in this subsection has a value.",
+    "hint": "Pick a cell to enter its value, attach evidence and see its history.",
+    "wholeFramework": "All disclosures"
+  },
+  "publish": {
+    "title": "Publish {{framework}} FY{{year}}?",
+    "body": "Publishing generates the report and anchors its hash. It can't be undone — a correction needs a new version.",
+    "ready": "{{done}} of {{total}} cells submitted or approved",
+    "approved_one": "{{count}} approved value",
+    "approved_other": "{{count}} approved values",
+    "inReview_one": "{{count}} value still in review",
+    "inReview_other": "{{count}} values still in review",
+    "done": "Report published",
+    "failed": "Publishing failed"
   }
 }

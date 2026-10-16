@@ -1,63 +1,129 @@
 {
-  "breadcrumb": "iXBRL Filing",
-  "title": "iXBRL Preview · FY{{year}}",
-  "summary": "{{concepts}} concept facts · {{contexts}} contexts · {{units}} units · {{warnings}} warnings",
-  "emptyDescription": "Generate an inline XBRL draft for downstream filing or validator review.",
+  "breadcrumbReports": "Reports",
+  "breadcrumb": "iXBRL filing",
+  "title": "iXBRL preview · FY{{year}}",
+  "summary": "{{concepts}} concepts · {{contexts}} contexts · {{units}} units · {{warnings}} warnings",
+  "emptyDescription": "Generate an inline XBRL draft for filing or validator review.",
+  "sep": " · ",
   "errors": {
-    "generate": "Failed to generate iXBRL",
-    "validate": "Validation failed"
+    "generate": "The iXBRL document couldn’t be generated",
+    "generateTitle": "The iXBRL document couldn’t be generated",
+    "generateBody": "Nothing was changed. Check the year and framework list, then try again.",
+    "validate": "Validation couldn’t run"
   },
   "actions": {
     "generating": "Generating…",
     "generate": "Generate",
+    "regenerate": "Regenerate",
     "validate": "Validate",
     "download": "Download .xhtml"
   },
   "filters": {
-    "year": "Year",
+    "year": "Reporting year",
     "frameworks": "Frameworks",
-    "includeUnapproved": "Include unapproved"
+    "frameworksHint": "Comma-separated framework ids, e.g. csrd-e1, issb-s2, cn-sse.",
+    "includeUnapproved": "Include unapproved values"
   },
+  "stale": {
+    "pill": "Out of date",
+    "body": "The filters changed since this document was generated."
+  },
+  "unapprovedNote": "This draft includes values that are not yet approved. Do not file it until every value has passed approval.",
   "stats": {
-    "concepts": "Concepts",
-    "contexts": "Contexts",
-    "units": "Units",
-    "mapped": "Mapped",
-    "gaps": "Gaps",
-    "warnings": "Warnings",
-    "errors": "Errors",
-    "validated": "Validated",
-    "ok": "OK"
+    "label": "Document summary",
+    "facts": "Tagged facts",
+    "mapped": "Concepts mapped",
+    "ofConcepts": "of {{count}} concepts",
+    "gaps": "Concept gaps",
+    "gapsHint": "Required, no value",
+    "noGaps": "Every concept has a value",
+    "contextsUnits": "Contexts / units",
+    "validation": "Validation",
+    "notRun": "Not run",
+    "passed": "Passed",
+    "errorCount_one": "{{count}} error",
+    "errorCount_other": "{{count}} errors"
   },
   "tabs": {
-    "preview": "Preview",
-    "coverage": "Concept Coverage",
+    "label": "iXBRL views",
+    "facts": "Tagged facts",
+    "preview": "Document",
+    "coverage": "Concept coverage",
     "validation": "Validation"
   },
-  "iframeTitle": "iXBRL Preview",
-  "generatingPreview": "Generating preview…",
-  "noPreview": "No preview yet — click Generate.",
+  "facts": {
+    "concept": "Concept",
+    "value": "Value",
+    "unit": "Unit",
+    "period": "Period",
+    "source": "Source",
+    "status": "Status",
+    "tagged": "Tagged",
+    "nil": "No value",
+    "asAt": "As at {{date}}",
+    "range": "{{from}} – {{to}}",
+    "none": "No facts are tagged in this document",
+    "noneBody": "Approve values for the selected frameworks, then regenerate."
+  },
+  "units": {
+    "CNY": "CNY",
+    "CNYm": "CNY m",
+    "tce": "tce",
+    "pure": "ratio",
+    "m3": "m³",
+    "t": "t",
+    "hour": "h",
+    "MWh": "MWh",
+    "kWh": "kWh",
+    "GBP": "GBP",
+    "EUR": "EUR",
+    "USD": "USD",
+    "HKD": "HKD"
+  },
+  "frameworks": {
+    "csrd-e1": "ESRS E1",
+    "csrd-e2": "ESRS E2",
+    "csrd-e3": "ESRS E3",
+    "csrd-e5": "ESRS E5",
+    "issb-s2": "IFRS S2",
+    "cn-sse": "SSE Guideline",
+    "cn-csds": "CSDS",
+    "hkex-esg": "HKEX ESG"
+  },
+  "iframeTitle": "iXBRL document preview",
+  "previewNote": "Rendered in a sandbox exactly as generated. Tags are invisible in the rendered view; see Tagged facts.",
+  "empty": {
+    "title": "No facts for FY{{year}}",
+    "body": "None of the selected frameworks has a mapped value for this year. Check the framework list or the reporting year.",
+    "cta": "Edit frameworks"
+  },
+  "toast": {
+    "downloaded": "Downloaded {{file}}"
+  },
   "coverage": {
     "concept": "Concept",
-    "label": "Label",
     "framework": "Framework",
     "source": "Source",
     "status": "Status",
     "mapped": "Mapped",
     "missing": "Missing (required)",
-    "empty": "No mappings yet — generate first."
+    "empty": "No concept mappings yet. Generate first."
   },
   "validation": {
-    "promptPrefix": "Click ",
-    "promptAction": "Validate",
-    "promptSuffix": " to run structural checks on the generated document.",
+    "notRunTitle": "Validation hasn’t run",
+    "notRunBody": "Run structural checks on the generated document: contexts, units, numeric bodies and dates.",
+    "running": "Validating…",
     "valid": "Document is structurally valid",
     "failed": "Validation failed",
+    "failedToast_one": "Validation found {{count}} error",
+    "failedToast_other": "Validation found {{count}} errors",
     "stats": "{{facts}} facts · {{contexts}} contexts · {{units}} units",
-    "unknownConcepts": " · {{count}} unknown concepts",
-    "errors": "Errors ({{count}})",
-    "warnings": "Warnings ({{count}})",
-    "line": "line {{line}}: ",
-    "footnote": "Structural validation only — production filing also requires the full EFRAG ESRS linkbase via a certified validator (CoreFiling, ParsePort, IRIS Carbon)."
+    "unknownConcepts_one": " · {{count}} unknown concept",
+    "unknownConcepts_other": " · {{count}} unknown concepts",
+    "error": "Error",
+    "warning": "Warning",
+    "line": "Line {{line}}",
+    "noIssues": "No errors or warnings.",
+    "footnote": "Structural validation only. A production filing also needs the full EFRAG ESRS linkbase checked by a certified validator (CoreFiling, ParsePort, IRIS Carbon)."
   }
 }

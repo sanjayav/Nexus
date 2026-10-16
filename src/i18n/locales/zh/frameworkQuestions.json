@@ -13,15 +13,17 @@
   "title": "框架问题",
   "description": "基于角色指派的监管框架问卷。在统一工作区中管理 CDP、TCFD、GRI 和 CSRD 披露项。",
   "openInEditor": "在编辑器中打开",
-  "editorCta": "在以文档为中心的工作区中编辑、审核并发布 {{framework}} 披露项 — 左侧目录树、中间文档、右侧详情栏。",
+  "editorCta": "在同一文档中编辑、审核并发布 {{framework}} 披露项：左侧为目录，中间为报告正文，右侧为所选数值。",
   "open": "打开",
   "stats": {
     "total": "问题总数"
   },
   "filters": "筛选",
-  "statusLabel": "状态：",
-  "roleLabel": "角色：",
+  "statusLabel": "状态",
+  "roleLabel": "角色",
   "questionCount_other": "{{count}} 个问题",
   "submitForReview": "提交审核",
-  "noMatch": "没有符合当前筛选条件的问题。"
+  "noMatch": "没有符合当前筛选条件的问题。",
+  "tabsAria": "框架",
+  "openInEditorFw": "在披露编辑器中打开 {{framework}}"
 }

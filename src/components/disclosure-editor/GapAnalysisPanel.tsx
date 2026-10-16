@@ -16,9 +16,10 @@
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Sparkles, Send, RefreshCw, Copy, AlertTriangle, ChevronRight, ListChecks, CheckCircle2 } from 'lucide-react'
-import { ai, type AiGapAnalysis, type NexusQuestionnaireItem } from '../../lib/api'
-import { isUnconfiguredError } from '../../lib/api'
-import { useIntegrationStatus } from '../../lib/integrations'
+import { ai, isAiDisabledError, isUnconfiguredError, type AiGapAnalysis, type AiGeneratedLabel, type NexusQuestionnaireItem } from '../../lib/api'
+import { AiLabel, AiDisabledNotice } from '../entry/AiLabel'
+import { notify } from '../ui'
+import { useIntegrationStatus, integrationMissing } from '../../lib/integrations'
 import { Skeleton } from '../Skeleton'
 
 export interface GapAnalysisPanelProps {
@@ -43,7 +44,8 @@ type FetchState =
   | { kind: 'idle' }
   | { kind: 'loading' }
   | { kind: 'error'; message: string; unconfigured?: boolean }
-  | { kind: 'ready'; analysis: AiGapAnalysis; cached: boolean; generatedAt: string }
+  | { kind: 'disabled' }
+  | { kind: 'ready'; analysis: AiGapAnalysis; cached: boolean; generatedAt: string; meta: AiGeneratedLabel }
 
 export default function GapAnalysisPanel({
   frameworkId, reportingYear, items, onOpenCell,
@@ -56,7 +58,7 @@ export default function GapAnalysisPanel({
   // submit and seeing the structured "ANTHROPIC_API_KEY not configured" error
   // matches the AiExtractionPanel pattern. The only thing we gate is the
   // visual "ai not configured" tooltip on the button.
-  const aiUnavailable = !integrationStatus.loading && !integrationStatus.ai
+  const aiUnavailable = integrationMissing(integrationStatus, 'ai')
 
   const run = useCallback(async (q: string, regenerate = false) => {
     if (!q.trim()) return
@@ -73,9 +75,12 @@ export default function GapAnalysisPanel({
         analysis: res.analysis,
         cached: res.cached,
         generatedAt: res.generatedAt,
+        meta: { ai_generated: res.ai_generated, ai_label: res.ai_label, ai_provider: res.ai_provider, ai_model: res.ai_model, locale: res.locale },
       })
     } catch (err) {
-      if (isUnconfiguredError(err)) {
+      if (isAiDisabledError(err)) {
+        setState({ kind: 'disabled' })
+      } else if (isUnconfiguredError(err)) {
         setState({ kind: 'error', message: t('components.integration.ai'), unconfigured: true })
       } else {
         setState({
@@ -121,7 +126,9 @@ export default function GapAnalysisPanel({
       t('disclosureEditor.gap.copyNextSteps'),
       ...state.analysis.recommendedNextSteps.map((s, i) => `  ${i + 1}. ${s}`),
     ].join('\n')
-    void navigator.clipboard?.writeText(text)
+    navigator.clipboard?.writeText(text)
+      .then(() => notify.success(t('disclosureEditor.gap.copied')))
+      .catch(() => notify.error(t('disclosureEditor.gap.copyFailed')))
   }, [state, t])
 
   return (
@@ -138,6 +145,9 @@ export default function GapAnalysisPanel({
         </p>
       </header>
 
+      {state.kind === 'disabled' && <AiDisabledNotice />}
+
+      {state.kind !== 'disabled' && (
       <form onSubmit={handleSubmit} className="space-y-2">
         <label className="sr-only" htmlFor="gap-question">{t('disclosureEditor.gap.questionLabel')}</label>
         <textarea
@@ -147,13 +157,13 @@ export default function GapAnalysisPanel({
           placeholder={t('disclosureEditor.gap.placeholder', { framework: frameworkId.toUpperCase(), year: reportingYear })}
           rows={3}
           disabled={state.kind === 'loading'}
-          className="w-full px-3 py-2 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[12px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-brand)] resize-none"
+          className="w-full px-3 py-2 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-small text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)] resize-none"
         />
         <div className="flex items-center justify-between gap-2">
           <button
             type="submit"
             disabled={!question.trim() || state.kind === 'loading'}
-            className="inline-flex items-center gap-1 px-3 h-7 rounded-[var(--radius-sm)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-caption font-semibold hover:bg-[var(--btn-primary-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center gap-1 px-3 h-9 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-caption font-semibold hover:bg-[var(--btn-primary-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
             title={aiUnavailable ? t('components.integration.ai') : undefined}
           >
             <Send className="w-3 h-3" /> {t('disclosureEditor.gap.analyse')}
@@ -163,7 +173,7 @@ export default function GapAnalysisPanel({
               <button
                 type="button"
                 onClick={handleCopySummary}
-                className="inline-flex items-center gap-1 px-2 h-6 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-caption text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
+                className="inline-flex items-center gap-1 px-2.5 h-8 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-caption text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
                 title={t('disclosureEditor.gap.copySummary')}
               >
                 <Copy className="w-3 h-3" /> {t('disclosureEditor.gap.copy')}
@@ -171,7 +181,7 @@ export default function GapAnalysisPanel({
               <button
                 type="button"
                 onClick={handleRegenerate}
-                className="inline-flex items-center gap-1 px-2 h-6 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-caption text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
+                className="inline-flex items-center gap-1 px-2.5 h-8 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-caption text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]"
                 title={t('disclosureEditor.gap.regenerateTitle')}
               >
                 <RefreshCw className="w-3 h-3" /> {t('disclosureEditor.gap.regenerate')}
@@ -180,10 +190,11 @@ export default function GapAnalysisPanel({
           )}
         </div>
       </form>
+      )}
 
       {state.kind === 'idle' && (
         <section>
-          <div className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-2">
+          <div className="text-caption font-semibold text-[var(--text-secondary)] mb-2">
             {t('disclosureEditor.gap.tryThese')}
           </div>
           <ul className="space-y-1">
@@ -223,7 +234,7 @@ export default function GapAnalysisPanel({
       )}
 
       {state.kind === 'error' && (
-        <div className="rounded-[var(--radius-sm)] border border-[var(--status-reject)]/30 bg-[var(--accent-red-light)] px-3 py-2 text-caption text-[var(--status-reject)] flex items-start gap-2">
+        <div role="alert" className="rounded-[var(--radius-sm)] border border-[var(--status-danger-line)] bg-[var(--status-danger-soft)] px-3 py-2 text-caption text-[var(--status-danger)] flex items-start gap-2">
           <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
           <span>{state.message}</span>
         </div>
@@ -232,17 +243,18 @@ export default function GapAnalysisPanel({
       {state.kind === 'ready' && (
         <div className="space-y-4">
           <section>
+            <AiLabel meta={state.meta} className="mb-2" />
             <div className="flex items-center gap-1.5 mb-1.5">
-              <span className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
+              <span className="text-caption font-semibold text-[var(--text-secondary)]">
                 {t('disclosureEditor.gap.summary')}
               </span>
               {state.cached && (
-                <span className="px-1.5 h-4 inline-flex items-center rounded-full bg-[var(--accent-blue-light)] text-[var(--status-pending)] text-micro font-semibold uppercase tracking-wider">
+                <span className="nx-pill" data-tone="info" data-size="sm">
                   {t('disclosureEditor.gap.cached')}
                 </span>
               )}
             </div>
-            <p className="text-[12px] text-[var(--text-primary)] leading-relaxed">
+            <p className="text-small text-[var(--text-primary)] leading-relaxed">
               {state.analysis.summary}
             </p>
           </section>
@@ -251,7 +263,7 @@ export default function GapAnalysisPanel({
             <section>
               <div className="flex items-center gap-1.5 mb-2">
                 <ListChecks className="w-3 h-3 text-[var(--color-brand)]" />
-                <span className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
+                <span className="text-caption font-semibold text-[var(--text-secondary)]">
                   {t('disclosureEditor.gap.missing', { count: state.analysis.missingCount })}
                 </span>
               </div>
@@ -271,7 +283,7 @@ export default function GapAnalysisPanel({
                             {m.lineItem}
                           </div>
                         </div>
-                        <span className={`px-1.5 h-4 inline-flex items-center rounded-full text-micro font-semibold uppercase tracking-[0.06em] flex-shrink-0 ${effortPill(m.estimated_effort)}`}>
+                        <span className="nx-pill flex-shrink-0" data-size="sm" data-tone={effortTone(m.estimated_effort)}>
                           {t(`disclosureEditor.gap.effort.${m.estimated_effort}`, { defaultValue: m.estimated_effort })}
                         </span>
                       </div>
@@ -288,7 +300,7 @@ export default function GapAnalysisPanel({
                           <button
                             type="button"
                             onClick={() => onOpenCell(matchId)}
-                            className="inline-flex items-center gap-0.5 px-2 h-5 rounded-[var(--radius-xs)] bg-[var(--color-brand-soft)] text-[var(--color-brand)] text-caption font-semibold hover:opacity-80"
+                            className="inline-flex items-center gap-0.5 px-2.5 h-8 rounded-[var(--radius-sm)] bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)] text-caption font-semibold hover:opacity-80"
                           >
                             {t('disclosureEditor.gap.open')} <ChevronRight className="w-2.5 h-2.5" />
                           </button>
@@ -304,8 +316,8 @@ export default function GapAnalysisPanel({
           {state.analysis.qualityIssues.length > 0 && (
             <section>
               <div className="flex items-center gap-1.5 mb-2">
-                <AlertTriangle className="w-3 h-3 text-amber-600" />
-                <span className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
+                <AlertTriangle className="w-3 h-3 text-[var(--status-warning)]" />
+                <span className="text-caption font-semibold text-[var(--text-secondary)]">
                   {t('disclosureEditor.gap.qualityIssues')}
                 </span>
               </div>
@@ -324,7 +336,7 @@ export default function GapAnalysisPanel({
             <section>
               <div className="flex items-center gap-1.5 mb-2">
                 <CheckCircle2 className="w-3 h-3 text-[var(--status-ok)]" />
-                <span className="text-micro uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
+                <span className="text-caption font-semibold text-[var(--text-secondary)]">
                   {t('disclosureEditor.gap.nextSteps')}
                 </span>
               </div>
@@ -341,8 +353,8 @@ export default function GapAnalysisPanel({
   )
 }
 
-function effortPill(effort: 'low' | 'medium' | 'high'): string {
-  if (effort === 'low') return 'bg-[var(--accent-green-light)] text-[var(--status-ok)]'
-  if (effort === 'medium') return 'bg-[var(--accent-amber-light)] text-[var(--status-draft)]'
-  return 'bg-[var(--accent-red-light)] text-[var(--status-reject)]'
+function effortTone(effort: 'low' | 'medium' | 'high'): 'success' | 'warning' | 'danger' {
+  if (effort === 'low') return 'success'
+  if (effort === 'medium') return 'warning'
+  return 'danger'
 }

@@ -1,16 +1,21 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, useId, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
-  Users, Shield, UserPlus, CheckCircle2, X, Search, Pencil, UserX,
-  Plus, AlertTriangle, Mail, Info, LogIn, Loader2, Zap,
+  Shield, UserPlus, CheckCircle2, X, Search, Pencil, UserX, UserCheck, Trash2,
+  Plus, Mail, Info, LogIn, Loader2, Zap, ArrowRight,
 } from 'lucide-react'
-import { Card, Badge } from '../design-system'
 import { useAuth } from '../auth/AuthContext'
 import { ROLE_CATALOG, type PlatformRole } from '../lib/rbac'
 import PageHeader from '../components/PageHeader'
-import { SkeletonTable } from '../components/Skeleton'
+import {
+  StatLedger, StatusPill, StateBoundary, SkeletonTable, SkeletonCard, notify, useConfirm,
+} from '../components/ui'
+import { dur, ease, popVariants } from '../motion/tokens'
+import BulkActionsBar, { BulkAction } from '../components/settings/admin-tables/BulkActionsBar'
+import { rowMotion, revealOnRowHover, stickyTh, inputClass, labelClass, useDialogA11y } from '../components/settings/admin-tables/shared'
 import {
   users as usersApi,
   roles as rolesApi,
@@ -59,25 +64,26 @@ const DEMO_ROLE_PERMS: Record<string, string[]> = {
   'auditor':   ['p1','p2','p5','p8','p12'],
 }
 
-/* ─── Role colour map ─────────────────────────────────────────── */
-const ROLE_COLORS: Record<string, { badge: 'teal' | 'blue' | 'purple' | 'amber' | 'green' | 'red' | 'gray'; accent: string }> = {
-  'admin':     { badge: 'teal',   accent: 'var(--accent-teal)' },
-  'team-lead': { badge: 'blue',   accent: 'var(--accent-blue)' },
-  'analyst':   { badge: 'purple', accent: 'var(--accent-purple)' },
-  'viewer':    { badge: 'gray',   accent: 'var(--text-tertiary)' },
-  'auditor':   { badge: 'amber',  accent: 'var(--accent-amber)' },
+/* ─── Role colour map (tokens; tinted with color-mix for soft fills) ── */
+const ROLE_ACCENTS: Record<string, string> = {
+  'admin':     'var(--accent-teal)',
+  'team-lead': 'var(--accent-blue)',
+  'analyst':   'var(--accent-purple)',
+  'viewer':    'var(--text-tertiary)',
+  'auditor':   'var(--accent-amber)',
 }
-const colorFor = (slug: string) => ROLE_COLORS[slug] ?? ROLE_COLORS['viewer']
+const accentFor = (slug: string | undefined) => (slug && ROLE_ACCENTS[slug]) || 'var(--text-tertiary)'
+const softFill = (accent: string, pct = 14) => `color-mix(in srgb, ${accent} ${pct}%, transparent)`
 
 /* ─── Quick-login role catalog (canonical 7 roles from rbac.ts) ─ */
 const ROLE_LOGIN: Record<PlatformRole, { email: string; short: string; accent: string }> = {
-  platform_admin:               { email: 'admin@aeiforo.com',    short: 'ADM', accent: '#047857' },
-  group_sustainability_officer: { email: 'so@aeiforo.com',       short: 'GSO', accent: '#059669' },
-  subsidiary_lead:              { email: 'tl@aeiforo.com',       short: 'SL',  accent: '#5B7FB8' },
-  plant_manager:                { email: 'fm@aeiforo.com',       short: 'PM',  accent: '#7C5FB8' },
-  data_contributor:             { email: 'maya@aeiforo.com',     short: 'DC',  accent: '#B85F9C' },
-  narrative_owner:              { email: 'narrator@aeiforo.com', short: 'NO',  accent: '#C2410C' },
-  auditor:                      { email: 'aud@aeiforo.com',      short: 'AUD', accent: '#E6A817' },
+  platform_admin:               { email: 'admin@aeiforo.com',    short: 'ADM', accent: 'var(--accent-teal)' },
+  group_sustainability_officer: { email: 'so@aeiforo.com',       short: 'GSO', accent: 'var(--accent-green)' },
+  subsidiary_lead:              { email: 'tl@aeiforo.com',       short: 'SL',  accent: 'var(--accent-blue)' },
+  plant_manager:                { email: 'fm@aeiforo.com',       short: 'PM',  accent: 'var(--accent-purple)' },
+  data_contributor:             { email: 'maya@aeiforo.com',     short: 'DC',  accent: 'var(--accent-red)' },
+  narrative_owner:              { email: 'narrator@aeiforo.com', short: 'NO',  accent: 'var(--status-warning)' },
+  auditor:                      { email: 'aud@aeiforo.com',      short: 'AUD', accent: 'var(--accent-amber)' },
 }
 // Dev defaults to 'demo2026' so the role tiles work without local env setup.
 // Production must set VITE_DEMO_PASSWORD explicitly or the switcher hides.
@@ -105,6 +111,8 @@ function useRoleText() {
   return { roleName, roleDescription, permResource, permAction, permDescription }
 }
 
+const errMessage = (e: unknown, t: TFunction) => (e instanceof Error ? e.message : t('usersRoles.toast.unknownError'))
+
 /* ═══════════════════════════════════════════════════════════════
    Main component
    ═══════════════════════════════════════════════════════════════ */
@@ -113,15 +121,18 @@ export default function UsersRoles() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { roleName } = useRoleText()
+  const confirm = useConfirm()
   const [users, setUsers] = useState<ApiUser[]>([])
   const [roles, setRoles] = useState<ApiRole[]>([])
   const [permissions, setPermissions] = useState<ApiPermission[]>([])
   const [loading, setLoading] = useState(true)
-  const [toast, setToast] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null)
+  const [error, setError] = useState<unknown>(null)
   const [search, setSearch] = useState('')
+  const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const [addOpen, setAddOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<ApiUser | null>(null)
+  const [bulkRoleOpen, setBulkRoleOpen] = useState(false)
   const [viewingRole, setViewingRole] = useState<ApiRole | null>(null)
   const [editingRole, setEditingRole] = useState<ApiRole | 'new' | null>(null)
   const [setupOpen, setSetupOpen] = useState(false)
@@ -129,24 +140,9 @@ export default function UsersRoles() {
   const [switchingTo, setSwitchingTo] = useState<PlatformRole | null>(null)
 
   const showToast = (kind: 'ok' | 'err', msg: string) => {
-    setToast({ kind, msg })
-    setTimeout(() => setToast(null), 4000)
+    if (kind === 'ok') notify.success(msg)
+    else notify.error(msg)
   }
-
-  const loadData = useCallback(async () => {
-    setLoading(true)
-    if (dbConnected) {
-      try {
-        const [u, r, p] = await Promise.all([usersApi.list(), rolesApi.list(), permissionsApi.list()])
-        setUsers(u); setRoles(r); setPermissions(p)
-      } catch {
-        applyDemoData()
-      }
-    } else {
-      applyDemoData()
-    }
-    setLoading(false)
-  }, [dbConnected])
 
   const applyDemoData = () => {
     setUsers(DEMO_USERS)
@@ -157,7 +153,34 @@ export default function UsersRoles() {
     setPermissions(DEMO_PERMISSIONS)
   }
 
-  useEffect(() => { loadData() }, [loadData])
+  const loadData = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    if (dbConnected) {
+      try {
+        const [u, r, p] = await Promise.all([usersApi.list(), rolesApi.list(), permissionsApi.list()])
+        setUsers(u); setRoles(r); setPermissions(p)
+      } catch (e) {
+        // Truthful: a failed load is an error with retry, never stand-in demo data.
+        setError(e instanceof Error ? e : new Error(String(e)))
+      }
+    } else {
+      applyDemoData()
+    }
+    setLoading(false)
+  }, [dbConnected])
+
+  useEffect(() => { void loadData() }, [loadData])
+
+  // Drop selections for users that no longer exist.
+  useEffect(() => {
+    setSelected(prev => {
+      if (prev.size === 0) return prev
+      const ids = new Set(users.map(u => u.id))
+      const next = new Set([...prev].filter(id => ids.has(id)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [users])
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
@@ -174,6 +197,24 @@ export default function UsersRoles() {
     active: users.filter(u => u.is_active).length,
   }), [users])
 
+  const selectedUsers = useMemo(() => users.filter(u => selected.has(u.id)), [users, selected])
+  const toggleSelected = (id: string) =>
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  const allFilteredSelected = filtered.length > 0 && filtered.every(u => selected.has(u.id))
+  const someFilteredSelected = filtered.some(u => selected.has(u.id))
+  const toggleAllFiltered = () =>
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (allFilteredSelected) filtered.forEach(u => next.delete(u.id))
+      else filtered.forEach(u => next.add(u.id))
+      return next
+    })
+
   /* ── Mutations ── */
   async function handleSetupDb() {
     setSettingUp(true)
@@ -183,7 +224,7 @@ export default function UsersRoles() {
       setSetupOpen(false)
       loadData()
     } catch (e) {
-      showToast('err', t('usersRoles.toast.setupFailed', { message: e instanceof Error ? e.message : t('usersRoles.toast.unknownError') }))
+      showToast('err', t('usersRoles.toast.setupFailed', { message: errMessage(e, t) }))
     } finally {
       setSettingUp(false)
     }
@@ -196,7 +237,7 @@ export default function UsersRoles() {
         showToast('ok', t('usersRoles.toast.userAdded', { name: form.name }))
         loadData()
       } catch (e) {
-        showToast('err', t('usersRoles.toast.failed', { message: e instanceof Error ? e.message : t('usersRoles.toast.unknownError') }))
+        showToast('err', t('usersRoles.toast.failed', { message: errMessage(e, t) }))
       }
     } else {
       const role = roles.find(r => r.id === form.roleId)
@@ -222,7 +263,7 @@ export default function UsersRoles() {
         showToast('ok', t('usersRoles.toast.roleUpdated'))
         loadData()
       } catch (e) {
-        showToast('err', t('usersRoles.toast.failed', { message: e instanceof Error ? e.message : t('usersRoles.toast.unknownError') }))
+        showToast('err', t('usersRoles.toast.failed', { message: errMessage(e, t) }))
       }
     } else {
       setUsers(prev => prev.map(u => {
@@ -233,6 +274,62 @@ export default function UsersRoles() {
       showToast('ok', t('usersRoles.toast.roleUpdatedDemo'))
     }
     setEditingUser(null)
+  }
+
+  /** Bulk role change — one usersApi.update per user (no bulk endpoint). */
+  async function bulkChangeRole(roleId: string) {
+    const targets = selectedUsers
+    setBulkRoleOpen(false)
+    if (!targets.length) return
+    if (dbConnected) {
+      const results = await Promise.allSettled(targets.map(u => usersApi.update(u.id, { roleIds: roleId ? [roleId] : [] })))
+      const failed = results.filter(r => r.status === 'rejected').length
+      if (failed === 0) showToast('ok', t('usersRoles.bulk.roleChanged', { count: targets.length }))
+      else showToast('err', t('usersRoles.bulk.partialFailure', { failed, count: targets.length }))
+      loadData()
+    } else {
+      const role = roles.find(r => r.id === roleId)
+      const ids = new Set(targets.map(u => u.id))
+      setUsers(prev => prev.map(u => ids.has(u.id)
+        ? { ...u, roles: role ? [{ id: role.id, name: role.name, slug: role.slug }] : [] }
+        : u))
+      showToast('ok', t('usersRoles.bulk.roleChangedDemo', { count: targets.length }))
+    }
+    setSelected(new Set())
+  }
+
+  /** Bulk activate / deactivate — one usersApi.update per user. */
+  async function bulkSetActive(next: boolean) {
+    const targets = selectedUsers.filter(u => u.is_active !== next)
+    if (!targets.length) return
+    if (!next) {
+      const ok = await confirm({
+        title: t('usersRoles.bulk.deactivateTitle', { count: targets.length }),
+        description: t('usersRoles.bulk.deactivateBody'),
+        confirmLabel: t('usersRoles.bulk.deactivateConfirm', { count: targets.length }),
+        tone: 'destructive',
+      })
+      if (!ok) return
+    }
+    if (dbConnected) {
+      const results = await Promise.allSettled(targets.map(u => usersApi.update(u.id, { isActive: next })))
+      const failed = results.filter(r => r.status === 'rejected').length
+      if (failed === 0) {
+        showToast('ok', next
+          ? t('usersRoles.bulk.reactivated', { count: targets.length })
+          : t('usersRoles.bulk.deactivated', { count: targets.length }))
+      } else {
+        showToast('err', t('usersRoles.bulk.partialFailure', { failed, count: targets.length }))
+      }
+      loadData()
+    } else {
+      const ids = new Set(targets.map(u => u.id))
+      setUsers(prev => prev.map(u => ids.has(u.id) ? { ...u, is_active: next } : u))
+      showToast('ok', next
+        ? t('usersRoles.bulk.reactivatedDemo', { count: targets.length })
+        : t('usersRoles.bulk.deactivatedDemo', { count: targets.length }))
+    }
+    setSelected(new Set())
   }
 
   async function switchToRole(role: PlatformRole) {
@@ -251,7 +348,7 @@ export default function UsersRoles() {
       const home = ROLE_CATALOG[role].homeRoute
       navigate(home, { replace: true })
     } catch (e) {
-      showToast('err', t('usersRoles.toast.failed', { message: e instanceof Error ? e.message : t('usersRoles.toast.unknownError') }))
+      showToast('err', t('usersRoles.toast.failed', { message: errMessage(e, t) }))
     } finally {
       setSwitchingTo(null)
     }
@@ -290,7 +387,7 @@ export default function UsersRoles() {
       setEditingRole(null)
       loadData()
     } catch (e) {
-      showToast('err', t('usersRoles.toast.failed', { message: e instanceof Error ? e.message : t('usersRoles.toast.unknownError') }))
+      showToast('err', t('usersRoles.toast.failed', { message: errMessage(e, t) }))
     }
   }
 
@@ -299,7 +396,13 @@ export default function UsersRoles() {
       showToast('err', t('usersRoles.toast.systemRoleDelete'))
       return
     }
-    if (!window.confirm(t('usersRoles.toast.confirmDeleteRole', { name: roleName(r) }))) return
+    const ok = await confirm({
+      title: t('usersRoles.confirm.deleteRoleTitle', { name: roleName(r) }),
+      description: t('usersRoles.confirm.deleteRoleBody', { count: r.userCount }),
+      confirmLabel: t('usersRoles.roles.deleteRole'),
+      tone: 'destructive',
+    })
+    if (!ok) return
     if (!dbConnected) {
       setRoles(prev => prev.filter(x => x.id !== r.id))
       showToast('ok', t('usersRoles.toast.roleRemovedDemo', { name: roleName(r) }))
@@ -310,19 +413,28 @@ export default function UsersRoles() {
       showToast('ok', t('usersRoles.toast.roleRemoved', { name: roleName(r) }))
       loadData()
     } catch (e) {
-      showToast('err', t('usersRoles.toast.failed', { message: e instanceof Error ? e.message : t('usersRoles.toast.unknownError') }))
+      showToast('err', t('usersRoles.toast.failed', { message: errMessage(e, t) }))
     }
   }
 
   async function toggleActive(u: ApiUser) {
     const next = !u.is_active
+    if (!next) {
+      const ok = await confirm({
+        title: t('usersRoles.confirm.deactivateTitle', { name: u.name }),
+        description: t('usersRoles.confirm.deactivateBody'),
+        confirmLabel: t('usersRoles.users.deactivate'),
+        tone: 'destructive',
+      })
+      if (!ok) return
+    }
     if (dbConnected) {
       try {
         await usersApi.update(u.id, { isActive: next })
         showToast('ok', next ? t('usersRoles.toast.userReactivated', { name: u.name }) : t('usersRoles.toast.userDeactivated', { name: u.name }))
         loadData()
       } catch (e) {
-        showToast('err', t('usersRoles.toast.failed', { message: e instanceof Error ? e.message : t('usersRoles.toast.unknownError') }))
+        showToast('err', t('usersRoles.toast.failed', { message: errMessage(e, t) }))
       }
     } else {
       setUsers(prev => prev.map(x => x.id === u.id ? { ...x, is_active: next } : x))
@@ -330,106 +442,139 @@ export default function UsersRoles() {
     }
   }
 
-  return (
-    <div className="page-container space-y-6 animate-fade-in">
-      {toast && <Toast kind={toast.kind} msg={toast.msg} onClose={() => setToast(null)} />}
+  const hasData = users.length > 0 || roles.length > 0
+  const anyActiveSelected = selectedUsers.some(u => u.is_active)
+  const anyInactiveSelected = selectedUsers.some(u => !u.is_active)
 
+  return (
+    <div className="page-container space-y-8">
       <PageHeader
-        breadcrumbs={[
-          { label: t('usersRoles.breadcrumbAdmin') },
-          { label: t('usersRoles.title') },
-        ]}
-        eyebrow={t('usersRoles.eyebrow')}
         title={t('usersRoles.title')}
         description={t('usersRoles.description')}
         actions={
-          <button onClick={() => setAddOpen(true)} className="btn-primary">
-            <UserPlus className="w-4 h-4" /> {t('usersRoles.addUser')}
+          <button type="button" onClick={() => setAddOpen(true)} className="btn-primary">
+            <UserPlus className="w-4 h-4" aria-hidden /> {t('usersRoles.addUser')}
           </button>
         }
       />
 
       {!dbConnected && (
-        <div className="surface-paper p-3 flex items-center gap-3" style={{ borderColor: 'rgba(230,168,23,0.3)', background: 'rgba(230,168,23,0.04)' }}>
-          <Info className="w-4 h-4 text-[var(--status-draft)] flex-shrink-0" />
-          <div className="flex-1 text-[12px] text-[var(--text-secondary)]">
-            <strong>{t('usersRoles.demoBanner.strong')}</strong>{t('usersRoles.demoBanner.text')}
+        <div className="-mt-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 rounded-[var(--radius-lg)] border border-[var(--status-warning-line)] bg-[var(--status-warning-soft)] px-4 py-3">
+          <div className="flex items-start gap-2.5 flex-1 min-w-0">
+            <Info className="w-4 h-4 mt-0.5 text-[var(--status-warning)] flex-shrink-0" aria-hidden />
+            <p className="text-small text-[var(--text-secondary)]">
+              <strong className="font-semibold text-[var(--text-primary)]">{t('usersRoles.demoBanner.strong')}</strong>{t('usersRoles.demoBanner.text')}
+            </p>
           </div>
-          <button onClick={() => setSetupOpen(true)} className="text-[12px] font-semibold text-[var(--color-brand)] hover:underline cursor-pointer">
-            {t('usersRoles.demoBanner.connect')}
+          <button type="button" onClick={() => setSetupOpen(true)} className="self-start sm:self-auto inline-flex items-center gap-1 h-10 sm:h-8 px-2 -mx-2 sm:mx-0 rounded-[var(--radius-md)] text-small font-semibold text-[var(--color-brand)] hover:bg-[var(--bg-primary)]/60 whitespace-nowrap">
+            {t('usersRoles.demoBanner.connect')} <ArrowRight className="w-3.5 h-3.5" aria-hidden />
           </button>
         </div>
       )}
 
-      {/* Compact KPI strip — only what matters */}
-      <div className="grid grid-cols-3 gap-3">
-        <KpiTile icon={Users}        label={t('usersRoles.kpi.teamMembers')}   value={stats.total}  accent="var(--accent-teal)" />
-        <KpiTile icon={CheckCircle2} label={t('usersRoles.kpi.active')}        value={stats.active} accent="var(--status-ok)" subtle={t('usersRoles.kpi.ofTotal', { total: stats.total })} />
-        <KpiTile icon={Shield}       label={t('usersRoles.kpi.rolesDefined')}  value={roles.length} accent="var(--accent-purple)" />
-      </div>
+      {!error && (
+        <StatLedger
+          aria-label={t('usersRoles.kpi.label')}
+          loading={loading && !hasData}
+          items={[
+            { id: 'members', label: t('usersRoles.kpi.teamMembers'), value: stats.total, tone: 'neutral' },
+            { id: 'active', label: t('usersRoles.kpi.active'), value: stats.active, tone: 'success', hint: t('usersRoles.kpi.ofTotal', { total: stats.total }) },
+            { id: 'inactive', label: t('usersRoles.kpi.inactive'), value: stats.total - stats.active, tone: stats.total - stats.active > 0 ? 'warning' : 'neutral' },
+            { id: 'roles', label: t('usersRoles.kpi.rolesDefined'), value: roles.length, tone: 'brand' },
+          ]}
+        />
+      )}
 
       {/* Users table */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-[16px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{t('usersRoles.users.heading')}</h2>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+      <section aria-labelledby="users-heading">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-3">
+          <div>
+            <h2 id="users-heading" className="type-h3 text-[var(--text-primary)]">{t('usersRoles.users.heading')}</h2>
+            <p className="text-small text-[var(--text-secondary)] mt-0.5">{t('usersRoles.users.intro')}</p>
+          </div>
+          <label className="relative block w-full sm:w-[280px]">
+            <span className="sr-only">{t('usersRoles.users.searchLabel')}</span>
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)] pointer-events-none" aria-hidden />
             <input
-              type="text"
+              type="search"
               placeholder={t('usersRoles.users.searchPlaceholder')}
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-8 pr-3 h-9 w-[260px] rounded-[8px] bg-[var(--bg-primary)] border border-[var(--border-default)] text-[12.5px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/15 focus:border-[var(--color-brand)]"
+              className={`${inputClass} pl-9`}
             />
-          </div>
+          </label>
         </div>
 
-        {loading ? (
-          <SkeletonTable rows={6} cols={5} />
-        ) : filtered.length === 0 ? (
-          <EmptyUsers hasSearch={!!search} onAdd={() => setAddOpen(true)} onClearSearch={() => setSearch('')} />
-        ) : (
+        <StateBoundary
+          loading={loading}
+          error={error}
+          onRetry={() => void loadData()}
+          hasData={hasData}
+          empty={filtered.length === 0}
+          skeleton={<SkeletonTable rows={5} cols={5} framed />}
+          errorState={{ title: t('usersRoles.error.title'), body: t('usersRoles.error.body') }}
+          emptyState={search
+            ? { variant: 'filtered', title: t('usersRoles.empty.noMatchTitle'), body: t('usersRoles.empty.noMatchBody'), onClearFilters: () => setSearch(''), framed: true }
+            : {
+                art: 'inbox',
+                title: t('usersRoles.empty.noUsersTitle'),
+                body: t('usersRoles.empty.noUsersBody'),
+                cta: { label: t('usersRoles.empty.addFirst'), onClick: () => setAddOpen(true), icon: <UserPlus className="w-4 h-4" aria-hidden /> },
+                framed: true,
+              }}
+        >
           <div className="surface-paper overflow-hidden">
-            <table className="w-full text-[13px]">
-              <thead>
-                <tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)]">
-                  <th className="text-left px-5 py-2.5 text-micro font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em]">{t('usersRoles.users.colUser')}</th>
-                  <th className="text-left px-5 py-2.5 text-micro font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em]">{t('usersRoles.users.colRole')}</th>
-                  <th className="text-left px-5 py-2.5 text-micro font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em]">{t('usersRoles.users.colLastSeen')}</th>
-                  <th className="text-right px-5 py-2.5 text-micro font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em]">{t('usersRoles.users.colActions')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border-subtle)]">
-                {filtered.map(u => (
-                  <UserRow
-                    key={u.id}
-                    user={u}
-                    onEdit={() => setEditingUser(u)}
-                    onToggle={() => toggleActive(u)}
-                    onRoleClick={(role) => {
-                      const full = roles.find(r => r.id === role.id) ?? null
-                      setViewingRole(full)
-                    }}
-                  />
-                ))}
-              </tbody>
-            </table>
+            <div className="overflow-auto max-h-[min(640px,70vh)]">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th className={`${stickyTh} w-12 !pr-0`}>
+                      <SelectBox
+                        checked={allFilteredSelected}
+                        indeterminate={!allFilteredSelected && someFilteredSelected}
+                        onChange={toggleAllFiltered}
+                        label={t('usersRoles.bulk.selectAll')}
+                      />
+                    </th>
+                    <th className={stickyTh}>{t('usersRoles.users.colUser')}</th>
+                    <th className={`${stickyTh} hidden sm:table-cell`}>{t('usersRoles.users.colRole')}</th>
+                    <th className={`${stickyTh} hidden md:table-cell`}>{t('usersRoles.users.colStatus')}</th>
+                    <th className={`${stickyTh} hidden sm:table-cell`}>{t('usersRoles.users.colLastSeen')}</th>
+                    <th className={`${stickyTh} !text-right`}><span className="sr-only">{t('usersRoles.users.colActions')}</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <AnimatePresence initial={false}>
+                    {filtered.map(u => (
+                      <UserRow
+                        key={u.id}
+                        user={u}
+                        selected={selected.has(u.id)}
+                        onSelect={() => toggleSelected(u.id)}
+                        onEdit={() => setEditingUser(u)}
+                        onToggle={() => void toggleActive(u)}
+                        onRoleClick={(role) => {
+                          const full = roles.find(r => r.id === role.id) ?? null
+                          setViewingRole(full)
+                        }}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </tbody>
+              </table>
+            </div>
           </div>
-        )}
+        </StateBoundary>
       </section>
 
       {/* Quick role switcher — 7 canonical platform roles for live demos */}
       {ROLE_DEMO_PASSWORD && (
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h2 className="font-display text-[16px] font-semibold text-[var(--text-primary)] tracking-[-0.005em] flex items-center gap-2">
-                <Zap className="w-4 h-4 text-[var(--color-brand)]" /> {t('usersRoles.switcher.heading')}
-              </h2>
-              <p className="text-caption text-[var(--text-tertiary)] mt-0.5">
-                {t('usersRoles.switcher.intro')}
-              </p>
-            </div>
+        <section aria-labelledby="switcher-heading">
+          <div className="mb-3">
+            <h2 id="switcher-heading" className="type-h3 text-[var(--text-primary)] flex items-center gap-2">
+              <Zap className="w-4 h-4 text-[var(--color-brand)]" aria-hidden /> {t('usersRoles.switcher.heading')}
+            </h2>
+            <p className="text-small text-[var(--text-secondary)] mt-0.5">{t('usersRoles.switcher.intro')}</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2.5">
             {(Object.keys(ROLE_LOGIN) as PlatformRole[]).map(roleKey => {
@@ -441,128 +586,201 @@ export default function UsersRoles() {
               return (
                 <button
                   key={roleKey}
+                  type="button"
                   onClick={() => switchToRole(roleKey)}
                   disabled={anyBusy}
                   title={`${defName} — ${meta.email}`}
-                  className="relative flex flex-col items-start text-left p-3 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-primary)] hover:border-[var(--color-brand)] hover:shadow-sm active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-wait group"
+                  className="group relative flex flex-col items-start text-left p-3 rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-raised)] active:scale-[0.99] transition-[border-color,box-shadow,transform] duration-150 disabled:opacity-50 disabled:cursor-wait focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)]/40"
                 >
-                  <div className="flex items-center gap-2 mb-2">
+                  <span className="flex items-center justify-between w-full mb-2">
                     <span
-                      className="inline-flex items-center justify-center w-7 h-7 rounded-[8px] text-caption font-bold text-white tracking-[0.04em]"
-                      style={{ background: meta.accent }}
+                      className="inline-flex items-center justify-center h-6 min-w-[28px] px-1.5 rounded-[var(--radius-sm)] text-caption font-semibold tabular-nums"
+                      style={{ background: softFill(meta.accent, 16), color: meta.accent }}
                     >
                       {meta.short}
                     </span>
                     {busy
-                      ? <Loader2 className="w-3.5 h-3.5 text-[var(--color-brand)] animate-spin" />
-                      : <LogIn className="w-3.5 h-3.5 text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100 transition-opacity" />}
-                  </div>
-                  <div className="text-[12px] font-semibold text-[var(--text-primary)] leading-tight tracking-[-0.005em] line-clamp-2 min-h-[28px]">
+                      ? <Loader2 className="w-3.5 h-3.5 text-[var(--color-brand)] animate-spin" aria-hidden />
+                      : <LogIn className={`w-3.5 h-3.5 text-[var(--text-tertiary)] ${revealOnRowHover}`} aria-hidden />}
+                  </span>
+                  <span className="text-small font-semibold text-[var(--text-primary)] leading-tight line-clamp-2 min-h-[2.5em]">
                     {defName}
-                  </div>
-                  <div className="text-caption text-[var(--text-tertiary)] mt-1 truncate w-full">
-                    {meta.email}
-                  </div>
+                  </span>
+                  <span className="text-caption text-[var(--text-tertiary)] mt-1 truncate w-full">{meta.email}</span>
                 </button>
               )
             })}
           </div>
-          <p className="text-caption text-[var(--text-tertiary)] mt-2 leading-relaxed">
-            <Info className="inline w-3 h-3 mr-1 align-[-2px]" />
+          <p className="text-caption text-[var(--text-tertiary)] mt-2 flex items-start gap-1.5">
+            <Info className="w-3.5 h-3.5 mt-px flex-shrink-0" aria-hidden />
             {t('usersRoles.switcher.footnote')}
           </p>
         </section>
       )}
 
       {/* Roles section */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
+      <section aria-labelledby="roles-heading">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-3">
           <div>
-            <h2 className="font-display text-[16px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{t('usersRoles.roles.heading')}</h2>
-            <p className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('usersRoles.roles.intro')}</p>
+            <h2 id="roles-heading" className="type-h3 text-[var(--text-primary)]">{t('usersRoles.roles.heading')}</h2>
+            <p className="text-small text-[var(--text-secondary)] mt-0.5">{t('usersRoles.roles.intro')}</p>
           </div>
-          <button onClick={() => setEditingRole('new')} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[8px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[12.5px] font-semibold hover:bg-[var(--btn-primary-bg-hover)] cursor-pointer">
-            <Plus className="w-3.5 h-3.5" /> {t('usersRoles.roles.newRole')}
+          <button type="button" onClick={() => setEditingRole('new')} className="btn-secondary self-start sm:self-auto">
+            <Plus className="w-4 h-4" aria-hidden /> {t('usersRoles.roles.newRole')}
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {roles.map(r => (
-            <RoleTile
-              key={r.id}
-              role={r}
-              onClick={() => setViewingRole(r)}
-              onEdit={() => setEditingRole(r)}
-              onDelete={() => deleteRole(r)}
-            />
-          ))}
-        </div>
+        <StateBoundary
+          loading={loading}
+          error={error}
+          onRetry={() => void loadData()}
+          hasData={roles.length > 0}
+          empty={roles.length === 0}
+          compact
+          skeleton={
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <SkeletonCard /><SkeletonCard /><SkeletonCard />
+            </div>
+          }
+          errorState={{ title: t('usersRoles.error.rolesTitle'), body: t('usersRoles.error.body') }}
+          emptyState={{
+            art: 'setup',
+            title: t('usersRoles.empty.noRolesTitle'),
+            body: t('usersRoles.empty.noRolesBody'),
+            cta: { label: t('usersRoles.roles.newRole'), onClick: () => setEditingRole('new') },
+            framed: true,
+          }}
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {roles.map(r => (
+              <RoleTile
+                key={r.id}
+                role={r}
+                onClick={() => setViewingRole(r)}
+                onEdit={() => setEditingRole(r)}
+                onDelete={() => void deleteRole(r)}
+              />
+            ))}
+          </div>
+        </StateBoundary>
       </section>
 
+      {/* Bulk actions — slides up while users are selected */}
+      <BulkActionsBar
+        count={selected.size}
+        countLabel={t('usersRoles.bulk.selected', { count: selected.size })}
+        clearLabel={t('usersRoles.bulk.clear')}
+        label={t('usersRoles.bulk.toolbar')}
+        onClear={() => setSelected(new Set())}
+      >
+        <BulkAction onClick={() => setBulkRoleOpen(true)} icon={<Pencil className="w-4 h-4" aria-hidden />}>
+          {t('usersRoles.users.changeRole')}
+        </BulkAction>
+        {anyInactiveSelected && (
+          <BulkAction onClick={() => void bulkSetActive(true)} icon={<UserCheck className="w-4 h-4" aria-hidden />}>
+            {t('usersRoles.users.reactivate')}
+          </BulkAction>
+        )}
+        {anyActiveSelected && (
+          <BulkAction tone="destructive" onClick={() => void bulkSetActive(false)} icon={<UserX className="w-4 h-4" aria-hidden />}>
+            {t('usersRoles.users.deactivate')}
+          </BulkAction>
+        )}
+      </BulkActionsBar>
+
       {/* Modals */}
-      {addOpen && <AddUserModal roles={roles} onClose={() => setAddOpen(false)} onCreate={createUser} />}
-      {editingUser && (
-        <EditRoleModal
-          user={editingUser}
-          roles={roles}
-          onClose={() => setEditingUser(null)}
-          onSave={(roleId) => changeUserRole(editingUser.id, roleId)}
-        />
-      )}
-      {viewingRole && <RoleDetailModal role={viewingRole} permissions={permissions} onClose={() => setViewingRole(null)} />}
-      {editingRole && (
-        <RoleEditorModal
-          initial={editingRole === 'new' ? null : editingRole}
-          permissions={permissions}
-          onClose={() => setEditingRole(null)}
-          onSave={(form) => saveRole(form, editingRole === 'new' ? undefined : editingRole.id)}
-        />
-      )}
-      {setupOpen && <DbSetupModal onClose={() => setSetupOpen(false)} onSetup={handleSetupDb} loading={settingUp} />}
+      <AnimatePresence>
+        {addOpen && <AddUserModal key="add" roles={roles} onClose={() => setAddOpen(false)} onCreate={createUser} />}
+        {editingUser && (
+          <EditRoleModal
+            key="edit-role"
+            subtitle={`${editingUser.name} · ${editingUser.email}`}
+            initialRoleId={editingUser.roles[0]?.id ?? ''}
+            roles={roles}
+            onClose={() => setEditingUser(null)}
+            onSave={(roleId) => changeUserRole(editingUser.id, roleId)}
+          />
+        )}
+        {bulkRoleOpen && (
+          <EditRoleModal
+            key="bulk-role"
+            subtitle={t('usersRoles.bulk.roleSubtitle', { count: selectedUsers.length })}
+            initialRoleId={selectedUsers.every(u => u.roles[0]?.id === selectedUsers[0]?.roles[0]?.id) ? selectedUsers[0]?.roles[0]?.id ?? '' : ''}
+            roles={roles}
+            onClose={() => setBulkRoleOpen(false)}
+            onSave={(roleId) => void bulkChangeRole(roleId)}
+          />
+        )}
+        {viewingRole && <RoleDetailModal key="role-detail" role={viewingRole} permissions={permissions} onClose={() => setViewingRole(null)} />}
+        {editingRole && (
+          <RoleEditorModal
+            key="role-editor"
+            initial={editingRole === 'new' ? null : editingRole}
+            permissions={permissions}
+            onClose={() => setEditingRole(null)}
+            onSave={(form) => saveRole(form, editingRole === 'new' ? undefined : editingRole.id)}
+          />
+        )}
+        {setupOpen && <DbSetupModal key="db" onClose={() => setSetupOpen(false)} onSetup={handleSetupDb} loading={settingUp} />}
+      </AnimatePresence>
     </div>
   )
 }
 
 /* ─── Sub-components ──────────────────────────────────────────── */
 
-function Toast({ kind, msg, onClose }: { kind: 'ok' | 'err'; msg: string; onClose: () => void }) {
-  const ok = kind === 'ok'
+function SelectBox({ checked, indeterminate = false, onChange, label }: {
+  checked: boolean
+  indeterminate?: boolean
+  onChange: () => void
+  label: string
+}) {
+  const ref = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = indeterminate
+  }, [indeterminate])
   return (
-    <div
-      role="status"
-      className="fixed top-6 right-6 z-50 inline-flex items-start gap-2 px-4 py-2.5 rounded-[10px] border text-[13px] font-medium shadow-lg animate-fade-in"
-      style={{
-        background: ok ? 'var(--accent-green-light)' : 'var(--accent-red-light)',
-        color: ok ? 'var(--status-ok)' : 'var(--status-reject)',
-        borderColor: ok ? 'rgba(46,125,50,0.3)' : 'rgba(220,38,38,0.3)',
-      }}
+    <label className="inline-flex items-center justify-center w-10 h-10 -my-2 -ml-2 cursor-pointer rounded-[var(--radius-md)] hover:bg-[var(--bg-secondary)]">
+      <input
+        ref={ref}
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        aria-label={label}
+        className="w-4 h-4 cursor-pointer accent-[var(--color-brand)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-brand)]"
+      />
+    </label>
+  )
+}
+
+function Avatar({ name, slug }: { name: string; slug?: string }) {
+  const accent = accentFor(slug)
+  const initials = name.split(/\s+/).filter(Boolean).map(n => n[0]).join('').slice(0, 2).toUpperCase()
+  return (
+    <span
+      className="w-9 h-9 rounded-full flex items-center justify-center text-caption font-semibold flex-shrink-0"
+      style={{ background: softFill(accent, 16), color: accent }}
+      aria-hidden
     >
-      {ok ? <CheckCircle2 className="w-4 h-4 mt-0.5" /> : <AlertTriangle className="w-4 h-4 mt-0.5" />}
-      <span>{msg}</span>
-      <button onClick={onClose} className="ml-2 opacity-60 hover:opacity-100"><X className="w-3.5 h-3.5" /></button>
-    </div>
+      {initials}
+    </span>
   )
 }
 
-function KpiTile({ icon: Icon, label, value, accent, subtle }: { icon: typeof Users; label: string; value: number; accent: string; subtle?: string }) {
+function RoleChip({ name, slug, onClick, title }: { name: string; slug?: string; onClick?: () => void; title?: string }) {
+  const dot = <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: accentFor(slug) }} aria-hidden />
+  if (!onClick) return <span className="chip">{dot}{name}</span>
   return (
-    <div className="surface-paper p-4 flex items-center gap-3">
-      <div className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0" style={{ background: `${accent}15`, color: accent }}>
-        <Icon className="w-4 h-4" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">{label}</div>
-        <div className="font-display text-[20px] font-bold tabular-nums text-[var(--text-primary)] tracking-[-0.01em] leading-tight">
-          {value}
-          {subtle && <span className="text-[12px] font-medium text-[var(--text-tertiary)] ml-1">{subtle}</span>}
-        </div>
-      </div>
-    </div>
+    <button type="button" onClick={onClick} title={title} className="chip cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)]/40">
+      {dot}{name}
+    </button>
   )
 }
 
-function UserRow({ user, onEdit, onToggle, onRoleClick }: {
+function UserRow({ user, selected, onSelect, onEdit, onToggle, onRoleClick }: {
   user: ApiUser
+  selected: boolean
+  onSelect: () => void
   onEdit: () => void
   onToggle: () => void
   onRoleClick: (role: ApiUser['roles'][number]) => void
@@ -570,95 +788,91 @@ function UserRow({ user, onEdit, onToggle, onRoleClick }: {
   const { t, i18n } = useTranslation()
   const { roleName } = useRoleText()
   const role = user.roles[0]
-  const colors = role ? colorFor(role.slug) : ROLE_COLORS['viewer']
+  const actionBtn = 'inline-flex items-center justify-center gap-1.5 h-10 w-10 lg:w-auto lg:h-8 lg:px-2.5 rounded-[var(--radius-md)] text-caption font-medium transition-colors whitespace-nowrap'
   return (
-    <tr className={`hover:bg-[var(--bg-secondary)] transition-colors ${!user.is_active ? 'opacity-60' : ''}`}>
-      <td className="px-5 py-3">
+    <motion.tr
+      {...rowMotion}
+      className="group"
+      data-selected={selected || undefined}
+      style={selected ? { background: 'var(--color-brand-soft)' } : undefined}
+    >
+      <td className="!pr-0 w-12">
+        <SelectBox checked={selected} onChange={onSelect} label={t('usersRoles.bulk.selectUser', { name: user.name })} />
+      </td>
+      <td className="sm:min-w-[180px] max-w-0 sm:max-w-none w-full sm:w-auto">
         <div className="flex items-center gap-3 min-w-0">
-          <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[12px] font-bold flex-shrink-0"
-            style={{ background: colors.accent }}
-          >
-            {user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-          </div>
+          <Avatar name={user.name} slug={role?.slug} />
           <div className="min-w-0">
-            <div className="text-[13.5px] font-semibold text-[var(--text-primary)] truncate flex items-center gap-2">
+            <div className={`text-small font-semibold truncate ${user.is_active ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'}`}>
               {user.name}
-              {!user.is_active && <span className="chip" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)', fontSize: 10 }}>{t('usersRoles.users.inactive')}</span>}
             </div>
-            <div className="text-caption text-[var(--text-tertiary)] truncate">{user.email}</div>
+            <div className="text-caption text-[var(--text-tertiary)] truncate max-w-[240px]" title={user.email}>{user.email}</div>
+            <div className="flex flex-wrap items-center gap-1.5 mt-1 empty:hidden md:hidden">
+              {role && (
+                <span className="sm:hidden">
+                  <RoleChip name={roleName(role)} slug={role.slug} onClick={() => onRoleClick(role)} title={t('usersRoles.users.viewRolePermissions')} />
+                </span>
+              )}
+              {!user.is_active && <StatusPill size="sm" tone="neutral">{t('usersRoles.users.inactive')}</StatusPill>}
+            </div>
           </div>
         </div>
       </td>
-      <td className="px-5 py-3">
+      <td className="hidden sm:table-cell">
         {role ? (
-          <button
-            onClick={() => onRoleClick(role)}
-            className="inline-flex items-center"
-            title={t('usersRoles.users.viewRolePermissions')}
-          >
-            <Badge variant={colors.badge}>{roleName(role)}</Badge>
-          </button>
+          <RoleChip name={roleName(role)} slug={role.slug} onClick={() => onRoleClick(role)} title={t('usersRoles.users.viewRolePermissions')} />
         ) : (
-          <Badge variant="gray">{t('usersRoles.users.noRole')}</Badge>
+          <span className="text-caption text-[var(--text-tertiary)]">{t('usersRoles.users.noRole')}</span>
         )}
       </td>
-      <td className="px-5 py-3 text-[12px] text-[var(--text-secondary)] tabular-nums">
+      <td className="hidden md:table-cell">
+        {user.is_active
+          ? <StatusPill tone="success" dot>{t('usersRoles.users.active')}</StatusPill>
+          : <StatusPill tone="neutral">{t('usersRoles.users.inactive')}</StatusPill>}
+      </td>
+      <td className="hidden sm:table-cell whitespace-nowrap tabular-nums">
         {user.last_login
-          ? formatRelative(user.last_login, t, dateLocaleFor(i18n.language))
+          ? <time dateTime={user.last_login} title={new Date(user.last_login).toLocaleString(dateLocaleFor(i18n.language))}>{formatRelative(user.last_login, t, dateLocaleFor(i18n.language))}</time>
           : <span className="text-[var(--text-tertiary)]">{t('usersRoles.users.never')}</span>}
       </td>
-      <td className="px-5 py-3">
-        <div className="flex items-center gap-1.5 justify-end">
+      <td className="!text-right">
+        <div className={`flex items-center gap-0.5 justify-end ${revealOnRowHover}`}>
           <button
+            type="button"
             onClick={onEdit}
-            className="inline-flex items-center gap-1 h-8 px-2.5 rounded-[6px] text-caption font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            className={`${actionBtn} text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]`}
             title={t('usersRoles.users.changeRole')}
+            aria-label={`${t('usersRoles.users.changeRole')} — ${user.name}`}
           >
-            <Pencil className="w-3 h-3" /> {t('usersRoles.users.changeRole')}
+            <Pencil className="w-3.5 h-3.5" aria-hidden />
+            <span className="hidden lg:inline">{t('usersRoles.users.changeRole')}</span>
           </button>
-          <button
-            onClick={onToggle}
-            className="inline-flex items-center gap-1 h-8 px-2.5 rounded-[6px] text-caption font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-            title={user.is_active ? t('usersRoles.users.deactivateUser') : t('usersRoles.users.reactivateUser')}
-          >
-            <UserX className="w-3 h-3" /> {user.is_active ? t('usersRoles.users.deactivate') : t('usersRoles.users.reactivate')}
-          </button>
+          {user.is_active ? (
+            <button
+              type="button"
+              onClick={onToggle}
+              className={`${actionBtn} text-[var(--text-secondary)] hover:bg-[var(--status-danger-soft)] hover:text-[var(--status-danger)]`}
+              title={t('usersRoles.users.deactivateUser')}
+              aria-label={`${t('usersRoles.users.deactivateUser')} — ${user.name}`}
+            >
+              <UserX className="w-3.5 h-3.5" aria-hidden />
+              <span className="hidden lg:inline">{t('usersRoles.users.deactivate')}</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onToggle}
+              className={`${actionBtn} text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]`}
+              title={t('usersRoles.users.reactivateUser')}
+              aria-label={`${t('usersRoles.users.reactivateUser')} — ${user.name}`}
+            >
+              <UserCheck className="w-3.5 h-3.5" aria-hidden />
+              <span className="hidden lg:inline">{t('usersRoles.users.reactivate')}</span>
+            </button>
+          )}
         </div>
       </td>
-    </tr>
-  )
-}
-
-function EmptyUsers({ hasSearch, onAdd, onClearSearch }: { hasSearch: boolean; onAdd: () => void; onClearSearch: () => void }) {
-  const { t } = useTranslation()
-  return (
-    <Card>
-      <div className="flex flex-col items-center text-center py-12 gap-3">
-        <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)' }}>
-          <Users className="w-6 h-6" />
-        </div>
-        <div>
-          <h3 className="font-display text-[16px] font-semibold text-[var(--text-primary)]">
-            {hasSearch ? t('usersRoles.empty.noMatchTitle') : t('usersRoles.empty.noUsersTitle')}
-          </h3>
-          <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 max-w-sm">
-            {hasSearch
-              ? t('usersRoles.empty.noMatchBody')
-              : t('usersRoles.empty.noUsersBody')}
-          </p>
-        </div>
-        {hasSearch ? (
-          <button onClick={onClearSearch} className="h-9 px-4 rounded-[8px] bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[12.5px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] cursor-pointer">
-            {t('usersRoles.empty.clearSearch')}
-          </button>
-        ) : (
-          <button onClick={onAdd} className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[8px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[12.5px] font-semibold hover:bg-[var(--btn-primary-bg-hover)] cursor-pointer">
-            <UserPlus className="w-3.5 h-3.5" /> {t('usersRoles.empty.addFirst')}
-          </button>
-        )}
-      </div>
-    </Card>
+    </motion.tr>
   )
 }
 
@@ -670,41 +884,127 @@ function RoleTile({ role, onClick, onEdit, onDelete }: {
 }) {
   const { t } = useTranslation()
   const { roleName, roleDescription } = useRoleText()
-  const colors = colorFor(role.slug)
+  const accent = accentFor(role.slug)
   return (
-    <div className="surface-paper p-4 h-full hover:shadow-sm transition-shadow relative group">
-      <button onClick={onClick} className="text-left w-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)]/30 rounded-[8px]">
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <div className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0" style={{ background: `${colors.accent}15`, color: colors.accent }}>
+    <div className="surface-paper relative group h-full flex flex-col transition-[border-color,box-shadow] duration-150 hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-raised)]">
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex-1 flex flex-col items-stretch justify-start text-left p-4 rounded-[var(--radius-xl)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)]/40"
+      >
+        <span className="flex items-center gap-2.5 pr-20">
+          <span className="w-8 h-8 rounded-[var(--radius-md)] flex items-center justify-center flex-shrink-0" style={{ background: softFill(accent), color: accent }} aria-hidden>
             <Shield className="w-4 h-4" />
-          </div>
-          <Badge variant={colors.badge}>{t('usersRoles.roles.userCount', { count: role.userCount })}</Badge>
-        </div>
-        <div className="text-[14px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{roleName(role)}</div>
-        <p className="text-[12px] text-[var(--text-secondary)] mt-1 leading-relaxed line-clamp-2 min-h-[32px]">{roleDescription(role)}</p>
-        <div className="text-caption text-[var(--color-brand)] font-semibold mt-3 inline-flex items-center gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+          </span>
+          <span className="min-w-0">
+            <span className="block text-body font-semibold text-[var(--text-primary)] truncate">{roleName(role)}</span>
+            <span className="block text-caption text-[var(--text-tertiary)]">
+              {t('usersRoles.roles.userCount', { count: role.userCount })}
+              {role.is_system && <> · {t('usersRoles.roles.system')}</>}
+            </span>
+          </span>
+        </span>
+        <span className="block text-small text-[var(--text-secondary)] mt-3 line-clamp-2 min-h-[2.9em]">{roleDescription(role)}</span>
+        <span className="mt-3 inline-flex items-center gap-1 text-caption font-semibold text-[var(--color-brand)]">
           {t('usersRoles.roles.viewDetails', { perms: t('usersRoles.roles.permissionCount', { count: role.permissions.length }) })}
-        </div>
+          <ArrowRight className="w-3.5 h-3.5 transition-transform duration-150 group-hover:translate-x-0.5" aria-hidden />
+        </span>
       </button>
-      <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className={`absolute top-3 right-3 flex items-center gap-0.5 ${revealOnRowHover}`}>
         <button
+          type="button"
           onClick={(e) => { e.stopPropagation(); onEdit() }}
-          className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer"
+          className="w-10 h-10 sm:w-8 sm:h-8 rounded-[var(--radius-md)] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
           title={role.is_system ? t('usersRoles.roles.editDescriptionSystem') : t('usersRoles.roles.editRole')}
+          aria-label={`${role.is_system ? t('usersRoles.roles.editDescriptionSystem') : t('usersRoles.roles.editRole')} — ${roleName(role)}`}
         >
-          <Pencil className="w-3.5 h-3.5" />
+          <Pencil className="w-3.5 h-3.5" aria-hidden />
         </button>
         {!role.is_system && (
           <button
+            type="button"
             onClick={(e) => { e.stopPropagation(); onDelete() }}
-            className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--status-reject)] hover:bg-[var(--accent-red-light)] cursor-pointer"
+            className="w-10 h-10 sm:w-8 sm:h-8 rounded-[var(--radius-md)] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--status-danger)] hover:bg-[var(--status-danger-soft)]"
             title={t('usersRoles.roles.deleteRole')}
+            aria-label={`${t('usersRoles.roles.deleteRole')} — ${roleName(role)}`}
           >
-            <UserX className="w-3.5 h-3.5" />
+            <Trash2 className="w-3.5 h-3.5" aria-hidden />
           </button>
         )}
       </div>
     </div>
+  )
+}
+
+/* ─── Modal shell — overlay, Escape, focus, one entrance ─── */
+function Modal({ title, subtitle, icon, onClose, size = 'md', children, footer }: {
+  title: ReactNode
+  subtitle?: ReactNode
+  icon?: ReactNode
+  onClose: () => void
+  size?: 'md' | 'lg' | 'xl'
+  children: ReactNode
+  footer?: ReactNode
+}) {
+  const { t } = useTranslation()
+  const titleId = useId()
+  const ref = useDialogA11y(true, onClose, 'input:not([disabled]), textarea, [data-autofocus]')
+  const width = size === 'xl' ? 'sm:max-w-2xl' : size === 'lg' ? 'sm:max-w-lg' : 'sm:max-w-md'
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
+      style={{ background: 'var(--bg-overlay)' }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: dur.fast, ease: ease.out }}
+      onClick={onClose}
+    >
+      <motion.div
+        ref={ref}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        variants={popVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        className={`w-full ${width} max-h-[92vh] sm:max-h-[88vh] flex flex-col bg-[var(--bg-elevated)] border border-[var(--border-default)] shadow-[var(--shadow-overlay)] rounded-t-[var(--radius-2xl)] sm:rounded-[var(--radius-2xl)]`}
+        onClick={e => e.stopPropagation()}
+      >
+        <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-4 border-b border-[var(--border-subtle)]">
+          <div className="flex items-start gap-3 min-w-0">
+            {icon}
+            <div className="min-w-0">
+              <h2 id={titleId} className="type-h3 text-[var(--text-primary)]">{title}</h2>
+              {subtitle && <div className="text-small text-[var(--text-secondary)] mt-0.5">{subtitle}</div>}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t('usersRoles.modal.close')}
+            className="w-10 h-10 sm:w-8 sm:h-8 -mt-1 -mr-1 rounded-[var(--radius-md)] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] flex-shrink-0"
+          >
+            <X className="w-4 h-4" aria-hidden />
+          </button>
+        </header>
+        <div className="flex-1 overflow-y-auto p-5">{children}</div>
+        {footer && (
+          <footer className="flex items-center gap-2 px-5 py-4 border-t border-[var(--border-subtle)] pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4">
+            {footer}
+          </footer>
+        )}
+      </motion.div>
+    </motion.div>
+  )
+}
+
+function ModalIcon({ children, accent = 'var(--color-brand)' }: { children: ReactNode; accent?: string }) {
+  return (
+    <span className="w-9 h-9 rounded-[var(--radius-md)] flex items-center justify-center flex-shrink-0" style={{ background: softFill(accent), color: accent }} aria-hidden>
+      {children}
+    </span>
   )
 }
 
@@ -723,6 +1023,7 @@ function RoleEditorModal({ initial, permissions, onClose, onSave }: {
   const [slug, setSlug] = useState(initial?.slug ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
   const [permissionIds, setPermissionIds] = useState<string[]>(initial?.permissions.map(p => p.id) ?? [])
+  const descId = useId()
 
   const grouped = useMemo(() => {
     const map = new Map<string, ApiPermission[]>()
@@ -737,83 +1038,75 @@ function RoleEditorModal({ initial, permissions, onClose, onSave }: {
   const valid = name.trim().length > 0 && (isEdit || slug.trim().length > 0)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(11,18,32,0.5)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div className="surface-paper w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <header className="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-[10px] flex items-center justify-center" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)' }}>
-              <Shield className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{isEdit ? t('usersRoles.roleEditor.editTitle') : t('usersRoles.roleEditor.createTitle')}</h3>
-              {isSystem && (
-                <p className="text-caption text-[var(--status-draft)]">{t('usersRoles.roleEditor.systemNote')}</p>
-              )}
-            </div>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer"><X className="w-4 h-4" /></button>
-        </header>
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          <Field label={t('usersRoles.roleEditor.displayName')} value={name} onChange={setName} placeholder={t('usersRoles.roleEditor.displayNamePlaceholder')} disabled={isSystem} />
-          {!isEdit && (
-            <Field label={t('usersRoles.roleEditor.slug')} value={slug} onChange={v => setSlug(v.toLowerCase().replace(/[^a-z0-9-_]/g, '-'))} placeholder={t('usersRoles.roleEditor.slugPlaceholder')} />
-          )}
-          <div>
-            <label className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('usersRoles.roleEditor.description')}</label>
-            <textarea
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              rows={3}
-              placeholder={t('usersRoles.roleEditor.descriptionPlaceholder')}
-              className="w-full px-3.5 py-2.5 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13px] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/15 focus:border-[var(--color-brand)] resize-none"
-            />
-          </div>
-          {!isSystem && (
-            <div>
-              <label className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('usersRoles.roleEditor.permissions')}</label>
-              <div className="space-y-3">
-                {grouped.map(([resource, perms]) => (
-                  <div key={resource} className="rounded-[8px] border border-[var(--border-subtle)] p-3">
-                    <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{permResource(resource)}</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {perms.map(p => {
-                        const checked = permissionIds.includes(p.id)
-                        return (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => setPermissionIds(checked ? permissionIds.filter(x => x !== p.id) : [...permissionIds, p.id])}
-                            className={`text-[11px] font-medium px-2 py-1 rounded-[6px] transition-colors cursor-pointer ${
-                              checked
-                                ? 'bg-[var(--accent-green-light)] text-[var(--status-ok)]'
-                                : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
-                            }`}
-                            title={permDescription(p)}
-                          >
-                            {checked && <CheckCircle2 className="w-3 h-3 inline mr-1" />}
-                            {permAction(p.action)}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-        <footer className="flex items-center gap-2 p-5 border-t border-[var(--border-subtle)]">
-          <button onClick={onClose} className="flex-1 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-[13px] font-semibold hover:bg-[var(--bg-secondary)] cursor-pointer">{t('usersRoles.roleEditor.cancel')}</button>
+    <Modal
+      size="xl"
+      onClose={onClose}
+      icon={<ModalIcon><Shield className="w-4 h-4" /></ModalIcon>}
+      title={isEdit ? t('usersRoles.roleEditor.editTitle') : t('usersRoles.roleEditor.createTitle')}
+      subtitle={isSystem ? <span className="text-[var(--status-warning)]">{t('usersRoles.roleEditor.systemNote')}</span> : undefined}
+      footer={
+        <>
+          <button type="button" onClick={onClose} className="btn-secondary flex-1">{t('usersRoles.roleEditor.cancel')}</button>
           <button
+            type="button"
             onClick={() => valid && onSave({ name: name.trim(), slug: slug.trim(), description: description.trim(), permissionIds })}
             disabled={!valid}
-            className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[13px] font-semibold hover:bg-[var(--btn-primary-bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            className="btn-primary flex-1"
           >
             {isEdit ? t('usersRoles.roleEditor.saveChanges') : t('usersRoles.roleEditor.createRole')}
           </button>
-        </footer>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Field label={t('usersRoles.roleEditor.displayName')} value={name} onChange={setName} placeholder={t('usersRoles.roleEditor.displayNamePlaceholder')} disabled={isSystem} />
+        {!isEdit && (
+          <Field label={t('usersRoles.roleEditor.slug')} value={slug} onChange={v => setSlug(v.toLowerCase().replace(/[^a-z0-9-_]/g, '-'))} placeholder={t('usersRoles.roleEditor.slugPlaceholder')} />
+        )}
+        <label className="block" htmlFor={descId}>
+          <span className={labelClass}>{t('usersRoles.roleEditor.description')}</span>
+          <textarea
+            id={descId}
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            rows={3}
+            placeholder={t('usersRoles.roleEditor.descriptionPlaceholder')}
+            className={`${inputClass} h-auto py-2.5 resize-none`}
+          />
+        </label>
+        {!isSystem && (
+          <fieldset>
+            <legend className={labelClass}>{t('usersRoles.roleEditor.permissions')}</legend>
+            <div className="space-y-2">
+              {grouped.map(([resource, perms]) => (
+                <div key={resource} className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] p-3">
+                  <div className="text-caption font-semibold text-[var(--text-secondary)] mb-2">{permResource(resource)}</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {perms.map(p => {
+                      const checked = permissionIds.includes(p.id)
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          role="checkbox"
+                          aria-checked={checked}
+                          onClick={() => setPermissionIds(checked ? permissionIds.filter(x => x !== p.id) : [...permissionIds, p.id])}
+                          className={`chip cursor-pointer ${checked ? 'chip-active' : ''}`}
+                          title={permDescription(p)}
+                        >
+                          {checked && <CheckCircle2 className="w-3 h-3" aria-hidden />}
+                          {permAction(p.action)}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </fieldset>
+        )}
       </div>
-    </div>
+    </Modal>
   )
 }
 
@@ -824,82 +1117,81 @@ function AddUserModal({ roles, onClose, onCreate }: {
   onCreate: (form: { email: string; name: string; password: string; roleId: string }) => void
 }) {
   const { t } = useTranslation()
-  const { roleName, roleDescription } = useRoleText()
   const [form, setForm] = useState({ email: '', name: '', password: '', roleId: roles[0]?.id ?? '' })
   const valid = !!form.email.trim() && !!form.name.trim() && form.password.length >= 6 && !!form.roleId
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(11,18,32,0.5)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div className="surface-paper w-full max-w-md" onClick={e => e.stopPropagation()}>
-        <header className="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-[10px] flex items-center justify-center" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)' }}>
-              <UserPlus className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{t('usersRoles.addUserModal.title')}</h3>
-              <p className="text-caption text-[var(--text-tertiary)]">{t('usersRoles.addUserModal.subtitle')}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer"><X className="w-4 h-4" /></button>
-        </header>
-
-        <div className="p-5 space-y-4">
-          <Field label={t('usersRoles.addUserModal.fullName')} placeholder={t('usersRoles.addUserModal.fullNamePlaceholder')} value={form.name} onChange={v => setForm({ ...form, name: v })} />
-          <Field label={t('usersRoles.addUserModal.workEmail')} type="email" placeholder="user@company.com" value={form.email} onChange={v => setForm({ ...form, email: v })} icon={Mail} />
-          <Field
-            label={t('usersRoles.addUserModal.initialPassword')}
-            type="password"
-            placeholder={t('usersRoles.addUserModal.passwordPlaceholder')}
-            value={form.password}
-            onChange={v => setForm({ ...form, password: v })}
-            hint={form.password && form.password.length < 6 ? t('usersRoles.addUserModal.moreCharsNeeded', { count: 6 - form.password.length }) : t('usersRoles.addUserModal.passwordHint')}
-            hintTone={form.password && form.password.length < 6 ? 'err' : 'muted'}
-          />
-          <div>
-            <label className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{t('usersRoles.addUserModal.role')}</label>
-            <div className="grid grid-cols-1 gap-2">
-              {roles.map(r => {
-                const checked = form.roleId === r.id
-                const colors = colorFor(r.slug)
-                return (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => setForm({ ...form, roleId: r.id })}
-                    className={`flex items-center gap-3 p-3 rounded-[10px] border text-left transition-all cursor-pointer ${
-                      checked
-                        ? 'border-[var(--color-brand)] bg-[var(--accent-teal-subtle)]/40 shadow-[0_0_0_3px_var(--accent-teal-subtle)]'
-                        : 'border-[var(--border-default)] hover:border-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)]'
-                    }`}
-                  >
-                    <div className="w-7 h-7 rounded-[8px] flex items-center justify-center flex-shrink-0" style={{ background: `${colors.accent}15`, color: colors.accent }}>
-                      <Shield className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[13px] font-semibold text-[var(--text-primary)]">{roleName(r)}</div>
-                      <div className="text-caption text-[var(--text-tertiary)] truncate">{roleDescription(r)}</div>
-                    </div>
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${checked ? 'bg-[var(--color-brand)] border-[var(--color-brand)]' : 'border-[var(--border-default)]'}`}>
-                      {checked && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-
-        <footer className="flex items-center gap-2 p-5 border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)]/50">
-          <button onClick={onClose} className="flex-1 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-[13px] font-semibold hover:bg-[var(--bg-secondary)] cursor-pointer">
-            {t('usersRoles.addUserModal.cancel')}
+    <Modal
+      onClose={onClose}
+      icon={<ModalIcon><UserPlus className="w-4 h-4" /></ModalIcon>}
+      title={t('usersRoles.addUserModal.title')}
+      subtitle={t('usersRoles.addUserModal.subtitle')}
+      footer={
+        <>
+          <button type="button" onClick={onClose} className="btn-secondary flex-1">{t('usersRoles.addUserModal.cancel')}</button>
+          <button type="button" onClick={() => valid && onCreate(form)} disabled={!valid} className="btn-primary flex-1">
+            <UserPlus className="w-4 h-4" aria-hidden /> {t('usersRoles.addUserModal.addUser')}
           </button>
-          <button onClick={() => valid && onCreate(form)} disabled={!valid} className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[13px] font-semibold hover:bg-[var(--btn-primary-bg-hover)] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
-            <UserPlus className="w-3.5 h-3.5" /> {t('usersRoles.addUserModal.addUser')}
-          </button>
-        </footer>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <Field label={t('usersRoles.addUserModal.fullName')} placeholder={t('usersRoles.addUserModal.fullNamePlaceholder')} value={form.name} onChange={v => setForm({ ...form, name: v })} />
+        <Field label={t('usersRoles.addUserModal.workEmail')} type="email" placeholder="user@company.com" value={form.email} onChange={v => setForm({ ...form, email: v })} icon={Mail} />
+        <Field
+          label={t('usersRoles.addUserModal.initialPassword')}
+          type="password"
+          placeholder={t('usersRoles.addUserModal.passwordPlaceholder')}
+          value={form.password}
+          onChange={v => setForm({ ...form, password: v })}
+          hint={form.password && form.password.length < 6 ? t('usersRoles.addUserModal.moreCharsNeeded', { count: 6 - form.password.length }) : t('usersRoles.addUserModal.passwordHint')}
+          hintTone={form.password && form.password.length < 6 ? 'err' : 'muted'}
+        />
+        <RolePicker legend={t('usersRoles.addUserModal.role')} roles={roles} value={form.roleId} onChange={roleId => setForm({ ...form, roleId })} />
       </div>
-    </div>
+    </Modal>
+  )
+}
+
+/** Single-choice role list (radio semantics). */
+function RolePicker({ legend, roles, value, onChange }: { legend: string; roles: ApiRole[]; value: string; onChange: (id: string) => void }) {
+  const { roleName, roleDescription } = useRoleText()
+  const name = useId()
+  return (
+    <fieldset>
+      <legend className={labelClass}>{legend}</legend>
+      <div className="grid grid-cols-1 gap-2">
+        {roles.map(r => {
+          const checked = value === r.id
+          const accent = accentFor(r.slug)
+          return (
+            <label
+              key={r.id}
+              className={`flex items-center gap-3 p-3 rounded-[var(--radius-lg)] border cursor-pointer transition-colors has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--color-brand)]/40 ${
+                checked
+                  ? 'border-[var(--color-brand)] bg-[var(--color-brand-soft)]'
+                  : 'border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-secondary)]'
+              }`}
+            >
+              <input type="radio" name={name} value={r.id} checked={checked} onChange={() => onChange(r.id)} className="sr-only" data-autofocus={checked || undefined} />
+              <span className="w-8 h-8 rounded-[var(--radius-md)] flex items-center justify-center flex-shrink-0" style={{ background: softFill(accent), color: accent }} aria-hidden>
+                <Shield className="w-4 h-4" />
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-small font-semibold text-[var(--text-primary)]">{roleName(r)}</span>
+                <span className="block text-caption text-[var(--text-tertiary)] truncate">{roleDescription(r)}</span>
+              </span>
+              <span
+                className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${checked ? 'bg-[var(--color-brand)] border-[var(--color-brand)]' : 'border-[var(--border-strong)]'}`}
+                aria-hidden
+              >
+                {checked && <span className="w-1.5 h-1.5 rounded-full bg-[var(--btn-primary-fg)]" />}
+              </span>
+            </label>
+          )
+        })}
+      </div>
+    </fieldset>
   )
 }
 
@@ -916,81 +1208,51 @@ function Field({ label, value, onChange, placeholder, type = 'text', icon: Icon,
 }) {
   return (
     <label className="block">
-      <span className="block text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{label}</span>
-      <div className="relative">
-        {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-tertiary)]" />}
+      <span className={labelClass}>{label}</span>
+      <span className="relative block">
+        {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)] pointer-events-none" aria-hidden />}
         <input
           type={type}
           value={value}
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           disabled={disabled}
-          className={`w-full h-10 ${Icon ? 'pl-9' : 'pl-3.5'} pr-3.5 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13.5px] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/15 focus:border-[var(--color-brand)] transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
+          className={`${inputClass} ${Icon ? 'pl-9' : ''}`}
         />
-      </div>
+      </span>
       {hint && (
-        <span className={`block text-caption mt-1 ${hintTone === 'err' ? 'text-[var(--status-reject)]' : 'text-[var(--text-tertiary)]'}`}>{hint}</span>
+        <span className={`block text-caption mt-1 ${hintTone === 'err' ? 'text-[var(--status-danger)]' : 'text-[var(--text-tertiary)]'}`}>{hint}</span>
       )}
     </label>
   )
 }
 
-/* ─── Edit Role Modal (single role per user) ─── */
-function EditRoleModal({ user, roles, onClose, onSave }: {
-  user: ApiUser
+/* ─── Change Role Modal (single role per user; also used for bulk) ─── */
+function EditRoleModal({ subtitle, initialRoleId, roles, onClose, onSave }: {
+  subtitle: ReactNode
+  initialRoleId: string
   roles: ApiRole[]
   onClose: () => void
   onSave: (roleId: string) => void
 }) {
   const { t } = useTranslation()
-  const { roleName, roleDescription } = useRoleText()
-  const [selected, setSelected] = useState<string>(user.roles[0]?.id ?? '')
+  const [selected, setSelected] = useState<string>(initialRoleId)
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(11,18,32,0.5)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div className="surface-paper w-full max-w-md" onClick={e => e.stopPropagation()}>
-        <header className="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
-          <div>
-            <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{t('usersRoles.editRoleModal.title')}</h3>
-            <p className="text-caption text-[var(--text-tertiary)]">{user.name} · {user.email}</p>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer"><X className="w-4 h-4" /></button>
-        </header>
-        <div className="p-5 space-y-2">
-          {roles.map(r => {
-            const checked = selected === r.id
-            const colors = colorFor(r.slug)
-            return (
-              <button
-                key={r.id}
-                onClick={() => setSelected(r.id)}
-                className={`w-full flex items-center gap-3 p-3 rounded-[10px] border text-left transition-all cursor-pointer ${
-                  checked
-                    ? 'border-[var(--color-brand)] bg-[var(--accent-teal-subtle)]/40 shadow-[0_0_0_3px_var(--accent-teal-subtle)]'
-                    : 'border-[var(--border-default)] hover:border-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)]'
-                }`}
-              >
-                <div className="w-8 h-8 rounded-[8px] flex items-center justify-center flex-shrink-0" style={{ background: `${colors.accent}15`, color: colors.accent }}>
-                  <Shield className="w-4 h-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13.5px] font-semibold text-[var(--text-primary)]">{roleName(r)}</div>
-                  <div className="text-caption text-[var(--text-tertiary)] truncate">{roleDescription(r)}</div>
-                </div>
-                <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${checked ? 'bg-[var(--color-brand)] border-[var(--color-brand)]' : 'border-[var(--border-default)]'}`}>
-                  {checked && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                </div>
-              </button>
-            )
-          })}
-        </div>
-        <footer className="flex items-center gap-2 p-5 border-t border-[var(--border-subtle)]">
-          <button onClick={onClose} className="flex-1 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-[13px] font-semibold hover:bg-[var(--bg-secondary)] cursor-pointer">{t('usersRoles.editRoleModal.cancel')}</button>
-          <button onClick={() => onSave(selected)} className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[13px] font-semibold hover:bg-[var(--btn-primary-bg-hover)] cursor-pointer">
+    <Modal
+      onClose={onClose}
+      title={t('usersRoles.editRoleModal.title')}
+      subtitle={subtitle}
+      footer={
+        <>
+          <button type="button" onClick={onClose} className="btn-secondary flex-1">{t('usersRoles.editRoleModal.cancel')}</button>
+          <button type="button" onClick={() => onSave(selected)} disabled={!selected} className="btn-primary flex-1">
             {t('usersRoles.editRoleModal.saveChange')}
           </button>
-        </footer>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <RolePicker legend={t('usersRoles.addUserModal.role')} roles={roles} value={selected} onChange={setSelected} />
+    </Modal>
   )
 }
 
@@ -1002,7 +1264,7 @@ function RoleDetailModal({ role, permissions, onClose }: {
 }) {
   const { t } = useTranslation()
   const { roleName, roleDescription, permResource, permAction } = useRoleText()
-  const colors = colorFor(role.slug)
+  const accent = accentFor(role.slug)
   const grouped = useMemo(() => {
     const map = new Map<string, { perm: ApiPermission; granted: boolean }[]>()
     for (const p of permissions) {
@@ -1015,59 +1277,46 @@ function RoleDetailModal({ role, permissions, onClose }: {
   }, [permissions, role.permissions])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(11,18,32,0.5)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div className="surface-paper w-full max-w-lg max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <header className="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0" style={{ background: `${colors.accent}15`, color: colors.accent }}>
-              <Shield className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{roleName(role)}</h3>
-              <p className="text-caption text-[var(--text-tertiary)] line-clamp-2">{roleDescription(role)}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer flex-shrink-0"><X className="w-4 h-4" /></button>
-        </header>
-
-        <div className="flex items-center gap-2 px-5 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]/50">
-          <Badge variant={colors.badge}>{t('usersRoles.roles.userCount', { count: role.userCount })}</Badge>
-          <Badge variant="gray">{t('usersRoles.roles.permissionCount', { count: role.permissions.length })}</Badge>
-          {role.is_system && <Badge variant="amber">{t('usersRoles.roles.systemNotEditable')}</Badge>}
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-5 space-y-3">
-          {grouped.map(([resource, perms]) => {
-            const grantedPerms = perms.filter(p => p.granted)
-            const deniedPerms = perms.filter(p => !p.granted)
-            if (grantedPerms.length === 0 && deniedPerms.length === 0) return null
-            return (
-              <div key={resource}>
-                <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5">{permResource(resource)}</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {grantedPerms.map(({ perm }) => (
-                    <span key={perm.id} className="inline-flex items-center gap-1 text-caption font-medium rounded-[6px] px-2 py-1" style={{ background: 'var(--accent-green-light)', color: 'var(--status-ok)' }}>
-                      <CheckCircle2 className="w-3 h-3" /> {permAction(perm.action)}
-                    </span>
-                  ))}
-                  {deniedPerms.map(({ perm }) => (
-                    <span key={perm.id} className="inline-flex items-center gap-1 text-caption font-medium rounded-[6px] px-2 py-1 line-through opacity-50" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' }}>
-                      {permAction(perm.action)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        <footer className="p-5 border-t border-[var(--border-subtle)]">
-          <button onClick={onClose} className="w-full h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-[13px] font-semibold hover:bg-[var(--bg-secondary)] cursor-pointer">
-            {t('usersRoles.roleDetail.close')}
-          </button>
-        </footer>
+    <Modal
+      size="lg"
+      onClose={onClose}
+      icon={<ModalIcon accent={accent}><Shield className="w-4 h-4" /></ModalIcon>}
+      title={roleName(role)}
+      subtitle={roleDescription(role)}
+      footer={<button type="button" onClick={onClose} className="btn-secondary w-full" data-autofocus>{t('usersRoles.roleDetail.close')}</button>}
+    >
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <span className="chip">{t('usersRoles.roles.userCount', { count: role.userCount })}</span>
+        <span className="chip">{t('usersRoles.roles.permissionCount', { count: role.permissions.length })}</span>
+        {role.is_system && <StatusPill tone="warning">{t('usersRoles.roles.systemNotEditable')}</StatusPill>}
       </div>
-    </div>
+      <div className="space-y-4">
+        {grouped.map(([resource, perms]) => {
+          const grantedPerms = perms.filter(p => p.granted)
+          const deniedPerms = perms.filter(p => !p.granted)
+          if (grantedPerms.length === 0 && deniedPerms.length === 0) return null
+          return (
+            <div key={resource}>
+              <div className="text-caption font-semibold text-[var(--text-secondary)] mb-1.5">{permResource(resource)}</div>
+              <ul className="flex flex-wrap gap-1.5">
+                {grantedPerms.map(({ perm }) => (
+                  <li key={perm.id}>
+                    <StatusPill tone="success" icon={<CheckCircle2 />}>{permAction(perm.action)}</StatusPill>
+                  </li>
+                ))}
+                {deniedPerms.map(({ perm }) => (
+                  <li key={perm.id}>
+                    <span className="nx-pill line-through opacity-60" data-tone="neutral" data-size="md">
+                      <span className="sr-only">{t('usersRoles.roleDetail.notGranted')}: </span>{permAction(perm.action)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )
+        })}
+      </div>
+    </Modal>
   )
 }
 
@@ -1079,27 +1328,27 @@ function DbSetupModal({ onClose, onSetup, loading }: {
 }) {
   const { t } = useTranslation()
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(11,18,32,0.5)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div className="surface-paper w-full max-w-lg" onClick={e => e.stopPropagation()}>
-        <header className="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
-          <div>
-            <h3 className="font-display text-[17px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{t('usersRoles.dbSetup.title')}</h3>
-            <p className="text-caption text-[var(--text-tertiary)]">{t('usersRoles.dbSetup.subtitle')}</p>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer"><X className="w-4 h-4" /></button>
-        </header>
-        <div className="p-5 space-y-3 text-[12.5px] text-[var(--text-secondary)] leading-relaxed">
-          <p>{t('usersRoles.dbSetup.bodySet')}<code className="font-mono text-caption px-1.5 py-0.5 rounded bg-[var(--bg-secondary)]">DATABASE_URL</code>{t('usersRoles.dbSetup.bodyAnd')}<code className="font-mono text-caption px-1.5 py-0.5 rounded bg-[var(--bg-secondary)]">JWT_SECRET</code>{t('usersRoles.dbSetup.bodyRest')}</p>
-          <p className="text-caption text-[var(--text-tertiary)]">{t('usersRoles.dbSetup.note')}</p>
-        </div>
-        <footer className="flex items-center gap-2 p-5 border-t border-[var(--border-subtle)]">
-          <button onClick={onClose} className="flex-1 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-[13px] font-semibold hover:bg-[var(--bg-secondary)] cursor-pointer">{t('usersRoles.dbSetup.cancel')}</button>
-          <button onClick={onSetup} disabled={loading} className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[13px] font-semibold hover:bg-[var(--btn-primary-bg-hover)] disabled:opacity-60 cursor-pointer">
-            {loading ? <><div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> {t('usersRoles.dbSetup.settingUp')}</> : <><Plus className="w-3.5 h-3.5" /> {t('usersRoles.dbSetup.runSetup')}</>}
+    <Modal
+      size="lg"
+      onClose={onClose}
+      title={t('usersRoles.dbSetup.title')}
+      subtitle={t('usersRoles.dbSetup.subtitle')}
+      footer={
+        <>
+          <button type="button" onClick={onClose} className="btn-secondary flex-1">{t('usersRoles.dbSetup.cancel')}</button>
+          <button type="button" onClick={onSetup} disabled={loading} className="btn-primary flex-1" data-autofocus>
+            {loading
+              ? <><Loader2 className="w-4 h-4 animate-spin" aria-hidden /> {t('usersRoles.dbSetup.settingUp')}</>
+              : <><Plus className="w-4 h-4" aria-hidden /> {t('usersRoles.dbSetup.runSetup')}</>}
           </button>
-        </footer>
+        </>
+      }
+    >
+      <div className="space-y-3 text-small text-[var(--text-secondary)]">
+        <p>{t('usersRoles.dbSetup.bodySet')}<code className="font-mono text-caption px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[var(--bg-secondary)]">DATABASE_URL</code>{t('usersRoles.dbSetup.bodyAnd')}<code className="font-mono text-caption px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[var(--bg-secondary)]">JWT_SECRET</code>{t('usersRoles.dbSetup.bodyRest')}</p>
+        <p className="text-caption text-[var(--text-tertiary)]">{t('usersRoles.dbSetup.note')}</p>
       </div>
-    </div>
+    </Modal>
   )
 }
 

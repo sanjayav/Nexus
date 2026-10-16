@@ -13,6 +13,17 @@ export function frameworkDescription(fw: { description: string; descriptionZh?: 
   return language?.startsWith('zh') && fw.descriptionZh ? fw.descriptionZh : fw.description
 }
 
+/** Localised framework version — uses the optional `versionZh` when the UI is Chinese. */
+export function frameworkVersion(fw: { version: string; versionZh?: string }, language: string | undefined): string {
+  return language?.startsWith('zh') && fw.versionZh ? fw.versionZh : fw.version
+}
+
+/** Version with a "v" prefix only when it is a plain number ("v2024", but "附录 C2" / "Reg 2020/852" as-is). */
+function versionTag(fw: { version: string; versionZh?: string }, language: string | undefined): string {
+  const v = frameworkVersion(fw, language)
+  return /^\d[\d.]*$/.test(v) ? `v${v}` : v
+}
+
 /**
  * Inline chip showing the currently-active framework. Phase 1: locked to
  * GRI 305, but still rendered as a chip everywhere to signal that the
@@ -25,6 +36,7 @@ export function FrameworkBadge({
   tone?: 'soft' | 'solid' | 'outline'
 }) {
   const { active } = useFramework()
+  const { i18n } = useTranslation()
   const cls =
     tone === 'solid'
       ? `bg-[${active.color}] text-white`
@@ -36,7 +48,7 @@ export function FrameworkBadge({
     <span className={`inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] font-semibold uppercase tracking-wider ${pad} ${cls}`}>
       <BookMarked className={size === 'md' ? 'w-3 h-3' : 'w-2.5 h-2.5'} style={{ color: tone === 'solid' ? '#fff' : active.color }} />
       {active.code}
-      <span className="font-normal normal-case tracking-normal opacity-70">{active.version}</span>
+      <span className="font-normal normal-case tracking-normal opacity-70">{frameworkVersion(active, i18n.language)}</span>
     </span>
   )
 }
@@ -149,7 +161,7 @@ function FrameworkRow({
           <div className="flex items-center gap-1 mt-1 text-caption text-[var(--text-tertiary)]">
             <span>{framework.body}</span>
             <span>·</span>
-            <span>v{framework.version}</span>
+            <span>{versionTag(framework, i18n.language)}</span>
             {framework.questionCount != null && <><span>·</span><span>{t('components.framework.items', { count: framework.questionCount })}</span></>}
           </div>
         </div>

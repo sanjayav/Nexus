@@ -1,38 +1,38 @@
 {
-  "title": "Organisation Setup",
+  "title": "Organisation setup",
   "subtitle": "Configure your tenant, boundary, frameworks, and organisational hierarchy in {{count}} steps.",
   "progress": "Progress",
   "stepLabel": "Step {{number}}",
   "complete": "Complete",
   "autoSaved": "Changes are saved automatically",
-  "markComplete": "Mark Complete & Continue",
+  "markComplete": "Mark complete and continue",
   "steps": {
     "tenant": {
-      "title": "Tenant Configuration",
+      "title": "Tenant configuration",
       "desc": "Company identity, fiscal year, base year, reporting currency"
     },
     "boundary": {
-      "title": "Organisational Boundary Approach",
+      "title": "Organisational boundary approach",
       "desc": "Choose between operational control, financial control, or equity share"
     },
     "frameworks": {
-      "title": "Framework Selection",
+      "title": "Framework selection",
       "desc": "Select applicable reporting frameworks — GRI, CSRD, ISSB, TCFD, CDP"
     },
     "groups": {
-      "title": "Business Groups",
+      "title": "Business groups",
       "desc": "Define top-level organisational groups for multi-entity consolidation"
     },
     "subdivisions": {
-      "title": "Subdivision Registration",
+      "title": "Subdivision registration",
       "desc": "Register facilities, offices, and operational sites within each group"
     },
     "sources": {
-      "title": "Source Registration & Calculator Auto-Routing",
+      "title": "Source registration and calculator routing",
       "desc": "Register emission sources and auto-assign GHG Protocol calculator modules"
     },
     "grid": {
-      "title": "Grid Subregion Mapping",
+      "title": "Grid subregion mapping",
       "desc": "Map facilities to electricity grid subregions for Scope 2 emission factors"
     }
   },
@@ -44,25 +44,25 @@
     "groups": "{{n}} groups"
   },
   "tenant": {
-    "companyName": "Company Name",
-    "tradingName": "Trading Name",
-    "fiscalYearStart": "Fiscal Year Start",
+    "companyName": "Company name",
+    "tradingName": "Trading name",
+    "fiscalYearStart": "Fiscal year start",
     "months": {
       "jan": "January",
       "apr": "April",
       "jul": "July",
       "oct": "October"
     },
-    "baseYear": "Base Year",
-    "reportingCurrency": "Reporting Currency",
+    "baseYear": "Base year",
+    "reportingCurrency": "Reporting currency",
     "currencies": {
       "THB": "THB — Thai Baht",
       "USD": "USD — US Dollar",
       "EUR": "EUR — Euro"
     },
-    "registeredCountry": "Registered Country",
+    "registeredCountry": "Registered country",
     "registeredCountryDefault": "Thailand",
-    "industrySector": "Industry Sector",
+    "industrySector": "Industry sector",
     "industrySectorDefault": "Petrochemicals & Refining",
     "infoStrong": "Base year",
     "infoBody": " is used for SBTi target calculations and trend comparisons. Choose the earliest year with reliable GHG inventory data."
@@ -70,15 +70,15 @@
   "boundary": {
     "recommended": "Recommended",
     "operational": {
-      "title": "Operational Control",
+      "title": "Operational control",
       "desc": "Account for 100% of emissions from operations over which you have operational control. Most common approach."
     },
     "financial": {
-      "title": "Financial Control",
+      "title": "Financial control",
       "desc": "Account for 100% of emissions from operations over which you have financial control."
     },
     "equity": {
-      "title": "Equity Share",
+      "title": "Equity share",
       "desc": "Account for emissions proportional to your equity share in each operation."
     }
   },
@@ -104,7 +104,8 @@
       "chemicals": "Demo Co — Chemicals",
       "polymers": "Demo Co — Polymers",
       "greenChemicals": "Demo Co — Green Chemicals"
-    }
+    },
+    "remove": "Remove {{name}}"
   },
   "subdivisions": {
     "registered": "{{n}} subdivisions registered across all groups",
@@ -124,7 +125,7 @@
     "types": {
       "manufacturing": "Manufacturing",
       "refinery": "Refinery",
-      "jointVenture": "Joint Venture",
+      "jointVenture": "Joint venture",
       "office": "Office"
     }
   },
@@ -132,11 +133,11 @@
     "intro": "Emission sources are auto-routed to the correct GHG Protocol calculator module based on type.",
     "count": "{{n}} sources",
     "types": {
-      "stationary": "Stationary Combustion",
-      "mobile": "Mobile Combustion",
-      "process": "Process Emissions",
-      "electricity": "Purchased Electricity",
-      "heat": "Purchased Heat/Steam"
+      "stationary": "Stationary combustion",
+      "mobile": "Mobile combustion",
+      "process": "Process emissions",
+      "electricity": "Purchased electricity",
+      "heat": "Purchased heat and steam"
     },
     "scope1": "Scope 1",
     "scope2": "Scope 2",
@@ -146,7 +147,7 @@
     "intro": "Map each facility to its electricity grid subregion for location-based Scope 2 emission factors.",
     "cols": {
       "facility": "Facility",
-      "gridSubregion": "Grid Subregion",
+      "gridSubregion": "Grid subregion",
       "ef": "EF",
       "unit": "Unit"
     },

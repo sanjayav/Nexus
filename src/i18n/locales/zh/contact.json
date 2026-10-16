@@ -2,10 +2,6 @@
   "eyebrow": "联系我们",
   "title": "与我们取得联系。",
   "intro": "对定价、安全或部署有疑问？或者想看看 Nexus 在您自己的数据上如何运行？给我们留言，专人将在一个工作日内回复。",
-  "success": {
-    "title": "我们会尽快与您联系。",
-    "body": "感谢您的来信——我们已收到您的留言，将尽快回复。"
-  },
   "form": {
     "name": "您的姓名",
     "namePlaceholder": "张伟",
@@ -16,15 +12,23 @@
     "message": "留言",
     "messagePlaceholder": "您想了解哪些内容？",
     "required": "请至少填写电子邮箱和留言内容。",
-    "sending": "发送中…",
-    "send": "发送留言"
+    "send": "生成邮件",
+    "mailNote": "将在您的邮件应用中打开，本页面不会直接发送。"
   },
   "sidebar": {
     "sales": "销售咨询",
     "support": "技术支持",
     "address": "地址",
-    "addressLine2": "办公地址（待定）",
     "addressLine3": "英国伦敦",
     "security": "如需报告安全漏洞，请发送邮件至 <email>security@aeiforo.local</email>，请勿通过表单提交。"
+  },
+  "mail": {
+    "subject": "Nexus 咨询 — {{company}}"
+  },
+  "handoff": {
+    "title": "请在邮件应用中完成发送",
+    "body": "已为您生成一封发往 {{email}} 的新邮件，请在邮件应用中点击发送——目前尚未发送。没有邮件应用？可复制留言内容。",
+    "copy": "复制留言",
+    "copied": "已复制"
   }
 }

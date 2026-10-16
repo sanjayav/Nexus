@@ -2,7 +2,7 @@
   "stats": {
     "total": "Total",
     "overdue": "Overdue",
-    "open": "Open",
+    "open": "Not started",
     "inProgress": "In progress",
     "submitted": "Submitted",
     "approved7d": "Approved · 7d",
@@ -14,7 +14,10 @@
     "week": "This week",
     "month": "This month",
     "later": "Later",
-    "none": "No deadline"
+    "none": "No deadline",
+    "returned": "Sent back to you",
+    "submitted": "Submitted · awaiting review",
+    "done": "Approved"
   },
   "mode": {
     "Manual": "Manual",
@@ -152,5 +155,89 @@
     "nothingInBucket": "Nothing in this bucket",
     "noneBody": "Your admin hasn't assigned you GRI line items yet. They will land here as soon as they do.",
     "filteredBody": "Switch tabs or clear filters to see other items."
+  },
+  "next": {
+    "aria": "Your next action",
+    "kicker": "Your next action",
+    "pipelineAria": "Reporting pipeline",
+    "yourStage": "Your stage",
+    "stageOf": "Stage {{n}} of {{total}}: {{label}}",
+    "kind": {
+      "fix": "Sent back to you"
+    },
+    "answerNow": "Answer now",
+    "fixNow": "Fix and resubmit",
+    "reason": {
+      "open_one": "{{count}} disclosure is open. This one is closest to its deadline.",
+      "open_other": "{{count}} disclosures are open. This one is closest to its deadline.",
+      "openOverdue_one": "{{count}} disclosure open, {{overdue}} overdue. Start with the most overdue.",
+      "openOverdue_other": "{{count}} disclosures open, {{overdue}} overdue. Start with the most overdue."
+    },
+    "errorTitle": "Couldn't load your tasks",
+    "errorBody": "Nothing here is confirmed yet, so no status is shown. Your saved work is safe.",
+    "unassigned": {
+      "title": "Nothing is assigned to you yet",
+      "body": "When an admin assigns you disclosures for this reporting period, they'll appear here with their deadlines."
+    },
+    "waiting": {
+      "title_one": "Your {{count}} submission is with reviewers",
+      "title_other": "All {{count}} of your submissions are with reviewers",
+      "body": "Nothing needs you right now. You'll get a notification when a reviewer responds.",
+      "cta": "Show submitted"
+    },
+    "review": {
+      "title_one": "{{count}} submission waits for your review",
+      "title_other": "{{count}} submissions wait for your review",
+      "cta": "Open review queue",
+      "body": "Reviewing them moves the cycle on to approval."
+    },
+    "approve": {
+      "title_one": "{{count}} reviewed item waits for your approval",
+      "title_other": "{{count}} reviewed items wait for your approval",
+      "cta": "Open approval queue",
+      "body": "Approved items roll up into the group report."
+    },
+    "onboard": {
+      "title": "Finish setting up your organisation",
+      "cta": "Set up organisation",
+      "body": "Add plants and invite members so disclosures can be assigned."
+    },
+    "assign": {
+      "title": "Assign disclosures to start collecting",
+      "cta": "Create assignments",
+      "body": "Your organisation is set up. Hand each disclosure to the person who owns the data."
+    },
+    "publish": {
+      "title": "Everything is approved and ready to publish",
+      "cta": "Go to publishing",
+      "body": "Check readiness, then publish the report."
+    },
+    "thenOpen_one": "After that, {{count}} of your own disclosures is open.",
+    "thenOpen_other": "After that, {{count}} of your own disclosures are open."
+  },
+  "toast": {
+    "saveFailed": "Couldn't save your changes",
+    "moved": "{{code}} moved to {{status}}"
+  },
+  "inbox": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "all": "All",
+    "unreadOnly": "Unread ({{count}})",
+    "allKinds": "All types",
+    "filterAria": "Filter notifications",
+    "errorTitle": "Couldn't load your inbox",
+    "errorBody": "We couldn't reach the server, so nothing here is confirmed yet.",
+    "clearedTitle": "You're all caught up",
+    "clearedBody": "No unread notifications. New ones will appear here.",
+    "showAll": "Show all",
+    "filteredTitle": "No notifications of this type",
+    "filteredBody": "Pick another type or clear the filter.",
+    "openTasks": "Open My tasks",
+    "markedAll_one": "Marked {{count}} notification as read",
+    "markedAll_other": "Marked {{count}} notifications as read",
+    "markFailed": "Couldn't update the notification",
+    "loadMoreFailed": "Couldn't load more notifications",
+    "unreadSr": "Unread:"
   }
 }

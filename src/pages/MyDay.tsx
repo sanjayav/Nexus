@@ -1,27 +1,47 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import type { TFunction } from 'i18next'
-import {
-  ArrowRight, Calendar as CalendarIcon, CheckCircle2, Clock,
-  AlertTriangle, Inbox, ShieldCheck, Activity as ActivityIcon, Sparkles,
-} from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { useFramework } from '../lib/frameworks'
-import { orgStore, type QuestionAssignment } from '../lib/orgStore'
+import { orgStore, type QuestionAssignment, type ReportingPeriod } from '../lib/orgStore'
 import { auditLog, type AuditExplorerEntry } from '../lib/api'
-import { FadeIn, Stagger, StaggerItem } from '../components/MotionPrimitives'
-import { Skeleton, SkeletonText } from '../components/Skeleton'
-import { itemLabel } from '../lib/itemLabel'
-import {
-  EmptyTasksIllustration,
-  EmptyInboxIllustration,
-} from '../data/illustrations'
+import { useOrgData } from '../lib/useOrgData'
+import { nextAction as computeNextAction, isAssignmentOverdue, isOpenAssignment } from '../lib/journey'
+import { resolvePermissions, hasPermission } from '../lib/rbac'
+import { NumberTicker, Skeleton, StatLedger, type StatLedgerItem } from '../components/ui'
+import NextActionHeader from '../components/mytasks/NextActionHeader'
+import ReadinessHero, { type Readiness } from '../components/myday/ReadinessHero'
+import ActivityTimeline from '../components/myday/ActivityTimeline'
+import RegulatoryCalendarCard from '../components/myday/RegulatoryCalendar'
+import QuickStartCard from '../components/QuickStartCard'
+import { isSetupOwner } from '../components/onboarding/useSetupProgress'
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+type Async<T> = { data: T | null; error: unknown; loading: boolean }
+const pending = <T,>(): Async<T> => ({ data: null, error: null, loading: true })
+
+/** Run one request into an Async slot; never throws, never sets state after unmount. */
+function settle<T>(set: (s: Async<T>) => void, p: Promise<T>, alive: () => boolean) {
+  set(pending<T>())
+  p.then(
+    data => { if (alive()) set({ data, error: null, loading: false }) },
+    error => { if (alive()) set({ data: null, error: error instanceof Error ? error : new Error(String(error)), loading: false }) },
+  )
+}
 
 /**
- * MyDay — the post-login home. Hero greeting + Q close indicator,
- * three-card hero grid (Due today · Review queue · Suggested next),
- * KPI strip and an activity feed. Stagger reveals + skeleton placeholders.
+ * My Day — the post-login home.
+ *
+ *   1. Hero: real reporting-period readiness (approved / total) + deadline.
+ *   2. "Your next action" (from lib/journey — the same model My Tasks uses)
+ *      beside a "Waiting on you" stack of queue counts.
+ *   3. KPI ledger with sparklines.
+ *   4. Recent activity timeline + regulatory calendar.
+ *
+ * Every region owns its loading / error / empty state; nothing claims "caught
+ * up" until the data has actually loaded.
  */
 export default function MyDay() {
   const { user } = useAuth()
@@ -29,612 +49,262 @@ export default function MyDay() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const firstName = user?.name?.split(' ')[0] || t('myDay.there')
+  const perms = resolvePermissions(user)
 
-  const [mine, setMine] = useState<QuestionAssignment[] | null>(null)
-  const [all, setAll] = useState<QuestionAssignment[] | null>(null)
-  const [activity, setActivity] = useState<AuditExplorerEntry[] | null>(null)
-  const [criticalAnomalies, setCriticalAnomalies] = useState<number | null>(null)
-  const [hashOk, setHashOk] = useState<boolean | null>(null)
-  // Per-card warning surfaces — when an individual fetch fails the page still
-  // renders, the failing card just shows a small "couldn't load" chip
-  // instead of pretending the data is zero/empty.
-  const [warnings, setWarnings] = useState<{ mine?: string; all?: string; activity?: string; anomalies?: string; hash?: string }>({})
+  const org = useOrgData()
+  const [mine, setMine] = useState<Async<QuestionAssignment[]>>(pending)
+  const [periods, setPeriods] = useState<Async<ReportingPeriod[]>>(pending)
+  const [progress, setProgress] = useState<Async<Array<{ framework_id: string; total: number; approved: number; in_review: number; open: number }>>>(pending)
+  const [activity, setActivity] = useState<Async<AuditExplorerEntry[]>>(pending)
+  const [anomalies, setAnomalies] = useState<Async<number>>(pending)
+  const [chain, setChain] = useState<Async<{ verified: boolean; totalRecords?: number }>>(pending)
+  const [skipIds, setSkipIds] = useState<Set<string>>(new Set())
+
+  const loadMine = useCallback((alive: () => boolean = () => true) => settle(setMine, orgStore.myAssignments(), alive), [])
+  const loadHero = useCallback((alive: () => boolean = () => true) => {
+    settle(setPeriods, orgStore.listPeriods(), alive)
+    settle(setProgress, orgStore.frameworkProgress(), alive)
+  }, [])
+  const loadActivity = useCallback((alive: () => boolean = () => true) =>
+    settle(setActivity, auditLog.explore({ limit: 8, offset: 0 }).then(r => r.rows ?? []), alive), [])
 
   useEffect(() => {
     if (!user) return
-    let cancelled = false
-    void (async () => {
-      const [mineRes, allRes, activityRes, anomaliesRes, hashRes] = await Promise.allSettled([
-        orgStore.myAssignments(),
-        orgStore.listAssignments(),
-        auditLog.explore({ limit: 10, offset: 0 }),
-        orgStore.anomalyScan('role', { limit: 1 }),
-        (() => {
-          const t = localStorage.getItem('aeiforo_token')
-          const headers: Record<string, string> = t ? { Authorization: `Bearer ${t}` } : {}
-          return fetch('/api/blockchain?view=verify', { headers })
-            .then(r => (r.ok ? r.json() as Promise<{ verified?: boolean }> : null))
-        })(),
-      ])
-      if (cancelled) return
-      const nextWarnings: { mine?: string; all?: string; activity?: string; anomalies?: string; hash?: string } = {}
-      if (mineRes.status === 'fulfilled') setMine(mineRes.value.filter(a => a.framework_id === framework.id))
-      else { setMine([]); nextWarnings.mine = errMsg(mineRes.reason, t('myDay.warn.mine')) }
-      if (allRes.status === 'fulfilled') setAll(allRes.value.filter(a => a.framework_id === framework.id))
-      else { setAll([]); nextWarnings.all = errMsg(allRes.reason, t('myDay.warn.all')) }
-      if (activityRes.status === 'fulfilled') setActivity(activityRes.value.rows)
-      else { setActivity([]); nextWarnings.activity = errMsg(activityRes.reason, t('myDay.warn.activity')) }
-      if (anomaliesRes.status === 'fulfilled') setCriticalAnomalies(anomaliesRes.value.summary?.critical ?? 0)
-      else { setCriticalAnomalies(0); nextWarnings.anomalies = errMsg(anomaliesRes.reason, t('myDay.warn.anomalies')) }
-      if (hashRes.status === 'fulfilled' && hashRes.value) setHashOk(!!hashRes.value.verified)
-      else { setHashOk(null); if (hashRes.status === 'rejected') nextWarnings.hash = errMsg(hashRes.reason, t('myDay.warn.hash')) }
-      setWarnings(nextWarnings)
-    })()
-    return () => { cancelled = true }
-  }, [user, framework.id])
+    let alive = true
+    const ok = () => alive
+    loadMine(ok)
+    loadHero(ok)
+    loadActivity(ok)
+    settle(setAnomalies, orgStore.anomalyScan('role', { limit: 1 }).then(r => r.summary?.critical ?? 0), ok)
+    settle(setChain, (async () => {
+      const token = localStorage.getItem('aeiforo_token')
+      const r = await fetch('/api/blockchain?view=verify', { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      return await r.json() as { verified: boolean; totalRecords?: number }
+    })(), ok)
+    return () => { alive = false }
+  }, [user, loadMine, loadHero, loadActivity])
 
   const now = Date.now()
   const greeting = (() => {
     const h = new Date().getHours()
-    if (h < 12) return t('myDay.greeting.morning')
-    if (h < 18) return t('myDay.greeting.afternoon')
-    return t('myDay.greeting.evening')
+    const g = h < 12 ? t('myDay.greeting.morning') : h < 18 ? t('myDay.greeting.afternoon') : t('myDay.greeting.evening')
+    return t('myDay.greetingLine', { greeting: g, name: firstName })
   })()
 
-  const dueToday = useMemo(() => {
-    if (!mine) return []
-    const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999)
-    const cutoff = todayEnd.getTime() + 24 * 60 * 60 * 1000
-    return mine
-      .filter(a => a.due_date && (a.status === 'not_started' || a.status === 'in_progress' || a.status === 'rejected'))
-      .filter(a => new Date(a.due_date as string).getTime() <= cutoff)
-      .sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? ''))
-  }, [mine])
+  const mineFw = useMemo(() => mine.data?.filter(a => a.framework_id === framework.id) ?? null, [mine.data, framework.id])
+  const allFw = useMemo(() => org.data?.assignments.filter(a => a.framework_id === framework.id) ?? null, [org.data, framework.id])
 
-  const reviewQueue = useMemo(() => {
-    if (!all) return []
-    return all
-      .filter(a => a.status === 'submitted' || a.status === 'reviewed')
-      .sort((a, b) => (b.last_updated ?? '').localeCompare(a.last_updated ?? ''))
-  }, [all])
+  // ── Hero: active period + readiness ────────────────────────────────
+  const period = useMemo(() => {
+    const list = (periods.data ?? []).filter(p => p.framework_id === framework.id && p.status !== 'archived')
+    const rank = (p: ReportingPeriod) => (p.status === 'active' ? 0 : p.status === 'setup' ? 1 : p.status === 'locked' ? 2 : 3)
+    return [...list].sort((a, b) => rank(a) - rank(b) || b.year - a.year)[0] ?? null
+  }, [periods.data, framework.id])
 
-  // Suggested next — most overdue + highest-impact draft (overdue beats stale).
-  const suggested = useMemo(() => {
-    if (!mine) return null
-    const open = mine.filter(a => a.status === 'not_started' || a.status === 'in_progress' || a.status === 'rejected')
-    if (open.length === 0) return null
-    const scored = open.map(a => {
-      const overdueDays = a.due_date ? Math.max(0, Math.floor((now - new Date(a.due_date).getTime()) / (1000 * 60 * 60 * 24))) : 0
-      const staleDays = a.last_updated ? Math.floor((now - new Date(a.last_updated).getTime()) / (1000 * 60 * 60 * 24)) : 30
-      return { a, score: overdueDays * 10 + staleDays }
-    }).sort((x, y) => y.score - x.score)
-    return scored[0]?.a ?? null
-  }, [mine, now])
-
-  const suggestedReasoning = useMemo(() => {
-    if (!suggested) return ''
-    const overdueDays = suggested.due_date
-      ? Math.max(0, Math.floor((now - new Date(suggested.due_date).getTime()) / (1000 * 60 * 60 * 24)))
-      : 0
-    if (overdueDays > 0) {
-      return t('myDay.suggested.overdue', { code: suggested.gri_code ?? t('myDay.suggested.disclosure'), framework: framework.code, count: overdueDays })
+  const readiness: Readiness | null = useMemo(() => {
+    const row = progress.data?.find(r => r.framework_id === framework.id)
+    if (row) return { total: row.total, approved: row.approved, inReview: row.in_review, open: row.open }
+    if (allFw) {
+      const approved = allFw.filter(a => a.status === 'approved').length
+      const inReview = allFw.filter(a => a.status === 'submitted' || a.status === 'reviewed').length
+      return { total: allFw.length, approved, inReview, open: allFw.length - approved - inReview }
     }
-    if (suggested.status === 'rejected') {
-      return t('myDay.suggested.rejected', { code: suggested.gri_code ?? t('myDay.suggested.disclosure') })
-    }
-    return t('myDay.suggested.default')
-  }, [suggested, framework.code, now, t])
+    return null
+  }, [progress.data, allFw, framework.id])
 
-  const kpi = useMemo(() => {
-    if (!all) return { open: 0, approvedThisWeek: 0 }
-    const weekAgo = now - 7 * 24 * 60 * 60 * 1000
-    return {
-      open: all.filter(a => a.status === 'not_started' || a.status === 'in_progress' || a.status === 'rejected').length,
-      approvedThisWeek: all.filter(a => a.status === 'approved' && a.last_updated && new Date(a.last_updated).getTime() > weekAgo).length,
-    }
-  }, [all, now])
+  const heroLoading = periods.loading || (progress.loading && org.loading)
+  const heroError = periods.error && !readiness ? periods.error : null
+  const daysToDeadline = period?.submission_deadline
+    ? Math.ceil((new Date(period.submission_deadline + 'T23:59:59').getTime() - now) / DAY_MS)
+    : null
+  const myOverdue = mineFw ? mineFw.filter(a => isOpenAssignment(a) && isAssignmentOverdue(a, now)).length : null
 
-  const loading = mine === null || all === null
+  // ── Next action (single source: lib/journey) ───────────────────────
+  const action = useMemo(() => {
+    if (!mineFw) return null
+    const input = { all: allFw, org: org.data ?? null }
+    const full = computeNextAction(user, { mine: mineFw, ...input })
+    if (skipIds.size === 0 || !full.assignment) return full
+    const alt = computeNextAction(user, { mine: mineFw.filter(a => !skipIds.has(a.id)), ...input })
+    return alt.assignment ? { ...full, kind: alt.kind, assignment: alt.assignment } : full
+  }, [user, mineFw, allFw, org.data, skipIds])
 
-  // Quarter progress — coarse heuristic: % through current calendar quarter.
-  const quarterStatus = useMemo(() => {
-    const d = new Date()
-    const q = Math.floor(d.getMonth() / 3)
-    const qEnd = new Date(d.getFullYear(), q * 3 + 3, 0, 23, 59, 59)
-    const qStart = new Date(d.getFullYear(), q * 3, 1)
-    const total = qEnd.getTime() - qStart.getTime()
-    const elapsed = d.getTime() - qStart.getTime()
-    const pct = Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)))
-    const daysLeft = Math.max(0, Math.ceil((qEnd.getTime() - d.getTime()) / (1000 * 60 * 60 * 24)))
-    return { pct, daysLeft, label: t('myDay.quarterLabel', { q: q + 1 }) }
-  }, [t])
+  const entityName = useCallback((a: QuestionAssignment) => org.data?.entities.find(e => e.id === a.entityId)?.name, [org.data])
+
+  // ── Ledger ──────────────────────────────────────────────────────────
+  const ledger: StatLedgerItem[] = useMemo(() => {
+    const all = allFw ?? []
+    const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0)
+    const approvedOn = (from: number, to: number) => all.filter(a => {
+      if (a.status !== 'approved' || !a.last_updated) return false
+      const ts = new Date(a.last_updated).getTime()
+      return ts >= from && ts < to
+    }).length
+    // Daily approvals for the last 7 days (oldest → today): the real series behind the figure.
+    const spark = Array.from({ length: 7 }, (_, i) => {
+      const from = dayStart.getTime() - (6 - i) * DAY_MS
+      return approvedOn(from, from + DAY_MS)
+    })
+    const weekFrom = dayStart.getTime() - 6 * DAY_MS
+    const thisWeek = approvedOn(weekFrom, dayStart.getTime() + DAY_MS)
+    const lastWeek = approvedOn(weekFrom - 7 * DAY_MS, weekFrom)
+    const open = all.filter(isOpenAssignment)
+    const openOverdue = open.filter(a => isAssignmentOverdue(a, now)).length
+    const chainTotal = chain.data?.totalRecords
+    // An empty chain (or a response without a verdict) is "no anchors yet", never "Broken".
+    const chainEmpty = chainTotal === 0 || typeof chain.data?.verified !== 'boolean'
+
+    return [
+      {
+        id: 'open', label: t('myDay.kpi.open'), value: org.error ? '—' : open.length, tone: openOverdue > 0 ? 'warning' : 'neutral',
+        loading: org.loading && !org.data,
+        hint: org.error ? t('myDay.warn.all') : openOverdue > 0 ? t('myDay.kpi.overdueHint', { count: openOverdue }) : undefined,
+        to: '/my-tasks',
+      },
+      {
+        id: 'approved', label: t('myDay.kpi.approvedWeek'), value: org.error ? '—' : thisWeek, tone: 'success',
+        hint: org.error ? t('myDay.warn.all') : undefined,
+        loading: org.loading && !org.data,
+        spark: spark.some(n => n > 0) ? spark : undefined,
+        delta: org.data ? { value: thisWeek - lastWeek, goodWhen: 'up', label: t('myDay.kpi.vsLastWeek') } : undefined,
+      },
+      {
+        id: 'anomalies', label: t('myDay.kpi.critical'),
+        value: anomalies.error ? '—' : anomalies.data,
+        tone: anomalies.data ? 'danger' : 'neutral',
+        loading: anomalies.loading,
+        hint: anomalies.error ? t('myDay.warn.anomalies') : undefined,
+        to: '/analytics/anomalies',
+      },
+      {
+        id: 'chain', label: t('myDay.kpi.hashChain'),
+        value: chain.error ? '—'
+          : chain.data == null ? null
+          : chainEmpty ? t('myDay.kpi.noAnchors')
+          : chain.data.verified ? t('myDay.kpi.verified') : t('myDay.kpi.broken'),
+        tone: chain.error || chainEmpty ? 'neutral' : chain.data?.verified ? 'success' : chain.data ? 'danger' : 'neutral',
+        loading: chain.loading,
+        hint: chain.error ? t('myDay.warn.hash') : chainTotal ? t('myDay.kpi.records', { count: chainTotal }) : undefined,
+      },
+    ]
+  }, [allFw, org.loading, org.data, org.error, anomalies, chain, t, now])
+
+  const canManagePeriods = hasPermission(perms, 'admin.assignments')
 
   return (
-    <div className="space-y-10 max-w-6xl mx-auto py-2">
-      {/* Hero greeting */}
-      <FadeIn>
-        <header className="space-y-3">
-          <h1 className="h-display text-[var(--text-primary)]">
-            {t('myDay.greetingLine', { greeting, name: firstName })}
-          </h1>
-          <div className="flex items-center gap-3 text-[13px] text-[var(--text-tertiary)]">
-            <CalendarIcon className="w-3.5 h-3.5" />
-            <span>
-              <strong className="font-semibold text-[var(--text-secondary)]">{quarterStatus.label}</strong>
-              <span className="mx-2">·</span>
-              <span>{t('myDay.daysRemaining', { count: quarterStatus.daysLeft })}</span>
-            </span>
-          </div>
-          {/* Quarter progress bar */}
-          <div className="h-1 w-full max-w-md rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-[var(--color-brand)] to-[var(--color-brand-strong)] transition-all duration-500"
-              style={{ width: `${quarterStatus.pct}%` }}
-              aria-label={t('myDay.periodElapsed', { pct: quarterStatus.pct })}
-            />
-          </div>
-        </header>
-      </FadeIn>
+    <div className="max-w-6xl mx-auto py-1 space-y-6 sm:space-y-8">
+      <ReadinessHero
+        greeting={greeting}
+        frameworkCode={framework.code}
+        loading={heroLoading}
+        error={heroError}
+        onRetry={() => { loadHero(); void org.reload() }}
+        period={period}
+        readiness={readiness}
+        daysToDeadline={daysToDeadline}
+        overdue={myOverdue}
+        canManagePeriods={canManagePeriods}
+      />
 
-      {/* Three primary cards — stack on phone, side-by-side at lg. Smaller
-          gap on mobile so the cards don't push the fold too far down. */}
-      <Stagger staggerMs={80} className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-        <StaggerItem>
-          <DueTodayCard
-            loading={loading}
-            items={dueToday.slice(0, 5)}
-            onStart={(qid) => navigate(`/data/entry/${qid}`)}
-            onSeeAll={() => navigate('/my-tasks')}
-            now={now}
-            warning={warnings.mine}
-          />
-        </StaggerItem>
-        <StaggerItem>
-          <ReviewQueueCard
-            loading={loading}
-            items={reviewQueue.slice(0, 5)}
-            onOpen={() => navigate('/work/review')}
-            warning={warnings.all}
-          />
-        </StaggerItem>
-        <StaggerItem>
-          <SuggestedNextCard
-            loading={loading}
-            item={suggested}
-            reasoning={suggestedReasoning}
-            onOpen={() => suggested && navigate(`/data/entry/${suggested.questionId}`)}
-            warning={warnings.mine}
-          />
-        </StaggerItem>
-      </Stagger>
+      {/* The one setup card — hides itself once every setup step is done, on error, or when dismissed. */}
+      {isSetupOwner(user) && <QuickStartCard />}
 
-      {/* KPI strip — divider above and below */}
-      <div className="border-t border-b border-[var(--border-subtle)] py-4">
-        <section
-          className="grid grid-cols-2 md:grid-cols-4 gap-4"
-          aria-label={t('myDay.kpi.aria')}
-        >
-          <Kpi label={t('myDay.kpi.open')} value={loading ? '—' : String(kpi.open)} />
-          <Kpi label={t('myDay.kpi.approvedWeek')} value={loading ? '—' : String(kpi.approvedThisWeek)} />
-          <Kpi
-            label={t('myDay.kpi.critical')}
-            value={criticalAnomalies == null ? '—' : criticalAnomalies > 0 ? String(criticalAnomalies) : '0'}
-            tone={criticalAnomalies && criticalAnomalies > 0 ? 'warn' : 'ok'}
-            icon={<AlertTriangle className="w-3.5 h-3.5" />}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+        <div className="lg:col-span-8 min-w-0">
+          <NextActionHeader
+            className="h-full"
+            loading={mine.loading || (org.loading && !org.data)}
+            error={mine.error}
+            onRetry={() => loadMine()}
+            action={action}
+            stages={[]}
+            entityName={entityName}
+            onOpenTask={(a) => navigate(`/my-tasks?open=${encodeURIComponent(a.id)}`)}
+            onSkip={() => action?.assignment && setSkipIds(s => { const n = new Set(s); n.add(action.assignment!.id); return n })}
+            onSeeApproved={() => navigate('/my-tasks')}
+            onShowSubmitted={() => navigate('/my-tasks')}
           />
-          <Kpi
-            label={t('myDay.kpi.hashChain')}
-            value={hashOk == null ? '—' : hashOk ? t('myDay.kpi.verified') : t('myDay.kpi.broken')}
-            tone={hashOk === false ? 'warn' : 'ok'}
-            icon={<ShieldCheck className="w-3.5 h-3.5" />}
-          />
-        </section>
-      </div>
-
-      {/* Activity feed */}
-      <section>
-        {warnings.activity && (
-          <div className="mb-3">
-            <WarningChip text={warnings.activity} />
-          </div>
-        )}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <ActivityIcon className="w-4 h-4 text-[var(--text-tertiary)]" />
-            <h2 className="font-display text-[16px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">
-              {t('myDay.recentActivity')}
-            </h2>
-          </div>
-          <button
-            onClick={() => navigate('/admin/audit')}
-            className="text-[12px] font-semibold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] inline-flex items-center gap-1"
-          >
-            {t('myDay.viewAll')} <ArrowRight className="w-3 h-3" />
-          </button>
         </div>
-        <ActivityFeed loading={activity === null} entries={activity ?? []} />
-      </section>
-    </div>
-  )
-}
-
-// ─── Cards ──────────────────────────────────────────────────
-
-function HeroCard({
-  eyebrow, tone = 'default', children,
-}: {
-  eyebrow: string
-  tone?: 'default' | 'ok' | 'attention'
-  children: React.ReactNode
-}) {
-  const accent = tone === 'attention'
-    ? 'border-[var(--accent-amber-light)]'
-    : 'border-[var(--border-subtle)]'
-  return (
-    <article
-      className={`card-premium ${accent} flex flex-col min-h-[280px] transition-all duration-250 hover:border-emerald-400/30 hover:shadow-[0_4px_20px_rgba(16,185,129,0.06)]`}
-    >
-      <div className="text-micro uppercase tracking-[0.14em] font-semibold text-[var(--text-tertiary)] mb-2.5">
-        {eyebrow}
+        <WaitingOnYou
+          className="lg:col-span-4"
+          loading={mine.loading || (org.loading && !org.data)}
+          mineOpen={action?.openCount ?? null}
+          returned={action?.returnedCount ?? 0}
+          review={hasPermission(perms, 'workflow.review') ? (action?.reviewCount ?? (allFw ? allFw.filter(a => a.status === 'submitted').length : -1)) : null}
+          approval={hasPermission(perms, 'workflow.approve') ? (action?.approvalCount ?? (allFw ? allFw.filter(a => a.status === 'reviewed').length : -1)) : null}
+          queueError={!!org.error}
+        />
       </div>
-      {children}
-    </article>
-  )
-}
 
-/**
- * Inline non-blocking warning. Shown at the top of a card when that card's
- * data fetch failed but the page-level surface still renders. Keeps the
- * visual hierarchy intact — the user sees what loaded plus a small chip
- * explaining what didn't.
- */
-function WarningChip({ text }: { text: string }) {
-  return (
-    <div
-      role="status"
-      className="mb-3 flex items-start gap-1.5 px-2 py-1.5 rounded-[8px] bg-amber-500/10 border border-amber-500/30 text-caption text-amber-400"
-    >
-      <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
-      <span className="break-words">{text}</span>
-    </div>
-  )
-}
+      <StatLedger items={ledger} aria-label={t('myDay.kpi.aria')} />
 
-function HeroCardSkeleton({ eyebrow }: { eyebrow: string }) {
-  return (
-    <article className="card-premium border-[var(--border-subtle)] flex flex-col min-h-[280px]">
-      <div className="text-micro uppercase tracking-[0.14em] font-semibold text-[var(--text-tertiary)] mb-2.5">
-        {eyebrow}
-      </div>
-      <Skeleton className="h-6 w-3/4 mb-5" />
-      <SkeletonText lines={3} />
-      <div className="mt-auto pt-5">
-        <Skeleton className="h-4 w-24" />
-      </div>
-    </article>
-  )
-}
-
-function DueTodayCard({
-  loading, items, onStart, onSeeAll, now, warning,
-}: {
-  loading: boolean
-  items: QuestionAssignment[]
-  onStart: (qid: string) => void
-  onSeeAll: () => void
-  now: number
-  warning?: string
-}) {
-  const { t, i18n } = useTranslation()
-  if (loading) return <HeroCardSkeleton eyebrow={t('myDay.dueToday.eyebrow')} />
-  if (items.length === 0) {
-    return (
-      <HeroCard eyebrow={t('myDay.dueToday.eyebrow')} tone="ok">
-        {warning && <WarningChip text={warning} />}
-        <div className="flex flex-col items-center text-center py-2">
-          <EmptyTasksIllustration className="w-24 h-24 text-[var(--color-brand)] opacity-80 mb-3" />
-          <h2 className="font-display text-[18px] font-semibold tracking-[-0.012em] text-[var(--text-primary)] leading-snug mb-1">
-            {warning ? t('myDay.dueToday.noneShown') : t('myDay.dueToday.nothing')}
-          </h2>
-          <p className="text-[12.5px] text-[var(--text-tertiary)]">
-            {warning ? t('myDay.dueToday.tryRefresh') : t('myDay.dueToday.quiet')}
-          </p>
-        </div>
-      </HeroCard>
-    )
-  }
-  return (
-    <HeroCard eyebrow={t('myDay.dueToday.eyebrow')} tone="attention">
-      {warning && <WarningChip text={warning} />}
-      <h2 className="font-display text-[19px] font-semibold tracking-[-0.012em] text-[var(--text-primary)] leading-snug mb-5">
-        {t('myDay.dueToday.needValues', { count: items.length })}
-      </h2>
-      <ul className="space-y-3 flex-1">
-        {items.slice(0, 4).map(a => {
-          const overdue = a.due_date && new Date(a.due_date).getTime() < now
-          return (
-            <li key={a.id} className="flex items-start justify-between gap-3 text-[13px]">
-              <div className="min-w-0 flex-1">
-                <div className="text-[var(--text-primary)] font-medium truncate">
-                  <span className="font-mono text-caption text-[var(--text-tertiary)] mr-1.5">{a.gri_code}</span>
-                  {itemLabel(a, i18n.language)}
-                </div>
-                <div className="text-caption text-[var(--text-tertiary)] mt-0.5">
-                  {overdue ? (
-                    <span className="text-[var(--status-reject)]">{t('myDay.dueToday.overdue')} · {a.due_date && relativeDays(a.due_date, t)}</span>
-                  ) : (
-                    <span>{t('myDay.dueToday.due', { date: a.due_date ? new Date(a.due_date).toLocaleDateString(i18n.language?.startsWith('zh') ? 'zh-CN' : undefined, { month: 'short', day: 'numeric' }) : t('myDay.dueToday.soon') })}</span>
-                  )}
-                </div>
-              </div>
-            </li>
-          )
-        })}
-      </ul>
-      <CardFooter>
-        <button
-          onClick={() => {
-            const first = items[0]
-            if (first) onStart(first.questionId)
-            else onSeeAll()
-          }}
-          className="text-[12.5px] font-semibold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] inline-flex items-center gap-1.5"
-        >
-          {t('myDay.dueToday.startNext')} <ArrowRight className="w-3 h-3" />
-        </button>
-      </CardFooter>
-    </HeroCard>
-  )
-}
-
-function ReviewQueueCard({
-  loading, items, onOpen, warning,
-}: {
-  loading: boolean
-  items: QuestionAssignment[]
-  onOpen: () => void
-  warning?: string
-}) {
-  const { t, i18n } = useTranslation()
-  if (loading) return <HeroCardSkeleton eyebrow={t('myDay.review.eyebrow')} />
-  if (items.length === 0) {
-    return (
-      <HeroCard eyebrow={t('myDay.review.eyebrow')} tone="ok">
-        {warning && <WarningChip text={warning} />}
-        <div className="flex flex-col items-center text-center py-2">
-          <EmptyInboxIllustration className="w-24 h-24 text-[var(--color-brand)] opacity-80 mb-3" />
-          <h2 className="font-display text-[18px] font-semibold tracking-[-0.012em] text-[var(--text-primary)] leading-snug mb-1">
-            {t('myDay.review.nothing')}
-          </h2>
-          <p className="text-[12.5px] text-[var(--text-tertiary)]">
-            {t('myDay.review.inboxZero')}
-          </p>
-        </div>
-      </HeroCard>
-    )
-  }
-  return (
-    <HeroCard eyebrow={t('myDay.review.eyebrow')} tone="attention">
-      {warning && <WarningChip text={warning} />}
-      <h2 className="font-display text-[19px] font-semibold tracking-[-0.012em] text-[var(--text-primary)] leading-snug mb-5">
-        {t('myDay.review.awaiting', { count: items.length })}
-      </h2>
-      <ul className="space-y-3 flex-1">
-        {items.slice(0, 5).map(a => (
-          <li key={a.id} className="flex items-start gap-3 text-[13px]">
-            <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 text-[var(--text-tertiary)] flex-shrink-0" />
-            <div className="min-w-0 flex-1">
-              <div className="text-[var(--text-primary)] font-medium truncate">
-                <span className="font-mono text-caption text-[var(--text-tertiary)] mr-1.5">{a.gri_code}</span>
-                {itemLabel(a, i18n.language)}
-              </div>
-              <div className="text-caption text-[var(--text-tertiary)] mt-0.5 truncate">
-                {a.assigneeName ?? t('myDay.review.unassigned')}
-              </div>
-            </div>
-          </li>
-        ))}
-      </ul>
-      <CardFooter>
-        <button
-          onClick={onOpen}
-          className="text-[12.5px] font-semibold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] inline-flex items-center gap-1.5"
-        >
-          {t('myDay.review.openQueue')} <ArrowRight className="w-3 h-3" />
-        </button>
-      </CardFooter>
-    </HeroCard>
-  )
-}
-
-function SuggestedNextCard({
-  loading, item, reasoning, onOpen, warning,
-}: {
-  loading: boolean
-  item: QuestionAssignment | null
-  reasoning: string
-  onOpen: () => void
-  warning?: string
-}) {
-  const { t, i18n } = useTranslation()
-  if (loading) return <HeroCardSkeleton eyebrow={t('myDay.suggested.eyebrow')} />
-  if (!item) {
-    return (
-      <HeroCard eyebrow={t('myDay.suggested.eyebrow')} tone="ok">
-        {warning && <WarningChip text={warning} />}
-        <div className="flex flex-col items-center text-center py-2">
-          <div className="w-14 h-14 rounded-full bg-[var(--color-brand-soft)] flex items-center justify-center mb-3">
-            <Sparkles className="w-6 h-6 text-[var(--color-brand)]" />
-          </div>
-          <h2 className="font-display text-[18px] font-semibold tracking-[-0.012em] text-[var(--text-primary)] leading-snug mb-1">
-            {t('myDay.suggested.caughtUp')}
-          </h2>
-          <p className="text-[12.5px] text-[var(--text-tertiary)]">
-            {t('myDay.suggested.nothingStale')}
-          </p>
-        </div>
-      </HeroCard>
-    )
-  }
-  return (
-    <HeroCard eyebrow={t('myDay.suggested.eyebrow')}>
-      <h2 className="font-display text-[18px] font-semibold tracking-[-0.012em] text-[var(--text-primary)] leading-snug mb-1.5 line-clamp-2">
-        {itemLabel(item, i18n.language)}
-      </h2>
-      <div className="font-mono text-caption text-[var(--text-tertiary)] mb-4">{item.gri_code}</div>
-      <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed flex-1">
-        {reasoning}
-      </p>
-      <div className="pt-5 mt-5 border-t border-[var(--border-subtle)]">
-        <button
-          onClick={onOpen}
-          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-[8px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[13px] font-semibold hover:bg-[var(--btn-primary-bg-hover)] transition-colors"
-        >
-          {t('myDay.suggested.openInEditor')} <ArrowRight className="w-3.5 h-3.5" />
-        </button>
-      </div>
-    </HeroCard>
-  )
-}
-
-// ─── Primitives ─────────────────────────────────────────────
-
-function CardFooter({ children }: { children: React.ReactNode }) {
-  return <div className="pt-5 mt-5 border-t border-[var(--border-subtle)]">{children}</div>
-}
-
-function Kpi({
-  label, value, tone = 'default', icon,
-}: {
-  label: string
-  value: string
-  tone?: 'default' | 'ok' | 'warn'
-  icon?: React.ReactNode
-}) {
-  const color = tone === 'warn'
-    ? 'text-[var(--status-draft)]'
-    : tone === 'ok'
-      ? 'text-[var(--status-ok)]'
-      : 'text-[var(--text-primary)]'
-  return (
-    <div className="card-premium !p-4 !rounded-[10px]">
-      <div className="text-micro uppercase tracking-[0.14em] font-semibold text-[var(--text-tertiary)] mb-1.5">
-        {label}
-      </div>
-      <div className={`text-[22px] font-semibold tabular-nums tracking-[-0.01em] inline-flex items-center gap-1.5 ${color}`}>
-        {icon}
-        {value}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 items-start">
+        <ActivityTimeline
+          className="lg:col-span-7"
+          entries={activity.data}
+          loading={activity.loading}
+          error={activity.error}
+          onRetry={() => loadActivity()}
+        />
+        <RegulatoryCalendarCard className="lg:col-span-5" />
       </div>
     </div>
   )
 }
 
-function ActivityFeed({
-  loading, entries,
+/** Compact counts of work blocked on the viewer. Rows the user has no permission for are omitted. */
+function WaitingOnYou({
+  loading, mineOpen, returned, review, approval, queueError, className = '',
 }: {
   loading: boolean
-  entries: AuditExplorerEntry[]
+  mineOpen: number | null
+  returned: number
+  review: number | null
+  approval: number | null
+  queueError: boolean
+  className?: string
 }) {
-  const { t, i18n } = useTranslation()
-  if (loading) {
-    return (
-      <ul className="divide-y divide-[var(--border-subtle)] border border-[var(--border-subtle)] rounded-[12px] overflow-hidden bg-[var(--bg-primary)]">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <li key={i} className="px-5 py-3.5">
-            <SkeletonText lines={2} />
-          </li>
-        ))}
-      </ul>
-    )
-  }
-  if (entries.length === 0) {
-    return (
-      <div className="text-[13px] text-[var(--text-tertiary)] py-6 leading-relaxed">
-        {t('myDay.activity.none')}
-      </div>
-    )
-  }
+  const { t } = useTranslation()
+  const rows: { id: string; label: string; hint?: string; value: number | null; to: string; tone?: 'danger' }[] = [
+    { id: 'mine', label: t('myDay.waiting.mine'), hint: returned > 0 ? t('myDay.waiting.returned', { count: returned }) : undefined, value: mineOpen, to: '/my-tasks', tone: returned > 0 ? 'danger' : undefined },
+  ]
+  // -1 = permitted but the count is unknown (failed load) → shown as "—".
+  if (review != null) rows.push({ id: 'review', label: t('myDay.waiting.review'), value: queueError || review < 0 ? null : review, to: '/work/review' })
+  if (approval != null) rows.push({ id: 'approval', label: t('myDay.waiting.approval'), value: queueError || approval < 0 ? null : approval, to: '/work/approval' })
+
   return (
-    <Stagger staggerMs={30} className="divide-y divide-[var(--border-subtle)] border border-[var(--border-subtle)] rounded-[12px] overflow-hidden bg-[var(--bg-primary)]">
-      {entries.map(e => (
-        <StaggerItem key={e.id}>
-          <div className="px-5 py-3.5 flex items-baseline gap-4 text-[13px]">
-              <span className="text-caption text-[var(--text-tertiary)] tabular-nums flex-shrink-0 w-[88px]">
-                {relativeShort(e.created_at, t, i18n.language)}
-              </span>
-              <ActorBadge name={e.user_name ?? e.user_email ?? null} />
-              <span className="text-[var(--text-secondary)] flex-1 truncate leading-snug">
-                <strong className="font-semibold text-[var(--text-primary)]">
-                  {e.user_name ?? e.user_email ?? t('myDay.activity.system')}
-                </strong>{' '}
-                <span className="text-[var(--text-tertiary)]">{humanAction(e.action, t)}</span>{' '}
-                {e.resource_type && (
-                  <span className="text-[var(--text-tertiary)]">{e.resource_type.replace(/_/g, ' ')}</span>
+    <section aria-labelledby="waiting-title" className={`surface-paper p-2 min-w-0 flex flex-col ${className}`}>
+      <h2 id="waiting-title" className="px-3 pt-3 pb-1 text-caption font-semibold text-[var(--text-tertiary)]">
+        {t('myDay.waiting.title')}
+      </h2>
+      <ul className="flex-1 flex flex-col">
+        {rows.map(r => (
+          <li key={r.id} className="flex-1">
+            <Link
+              to={r.to}
+              className="group h-full min-h-[64px] flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-md)] hover:bg-[var(--bg-hover)] active:scale-[0.99] transition-[background-color,transform] duration-micro focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)]"
+            >
+              <span className="w-12 flex-shrink-0">
+                {loading ? (
+                  <Skeleton className="h-7 w-9" rounded="md" />
+                ) : r.value == null ? (
+                  <span className="type-figure text-[28px] leading-none text-[var(--text-tertiary)]" title={t('myDay.warn.all')}>—</span>
+                ) : (
+                  <NumberTicker value={r.value} className={`type-figure text-[28px] ${r.value > 0 ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'}`} />
                 )}
               </span>
-            </div>
-          </StaggerItem>
+              <span className="flex-1 min-w-0">
+                <span className="block type-small font-medium text-[var(--text-primary)]">{r.label}</span>
+                {r.hint && !loading && (
+                  <span className={`block text-caption ${r.tone === 'danger' ? 'text-[var(--status-danger)]' : 'text-[var(--text-tertiary)]'}`}>{r.hint}</span>
+                )}
+              </span>
+              <ArrowRight className="w-4 h-4 text-[var(--text-tertiary)] group-hover:text-[var(--text-primary)] group-hover:translate-x-0.5 transition-transform duration-fast" aria-hidden />
+            </Link>
+          </li>
         ))}
-    </Stagger>
+      </ul>
+    </section>
   )
 }
-
-function ActorBadge({ name }: { name: string | null }) {
-  const initial = name ? name.trim().charAt(0).toUpperCase() : 'S'
-  return (
-    <span
-      aria-hidden
-      className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-caption font-bold text-white"
-      style={{
-        background: 'linear-gradient(135deg, #10B981, #047857)',
-      }}
-    >
-      {initial}
-    </span>
-  )
-}
-
-// ─── Helpers ────────────────────────────────────────────────
-
-function relativeDays(iso: string, t: TFunction): string {
-  const diff = Date.now() - new Date(iso).getTime()
-  const days = Math.round(diff / (1000 * 60 * 60 * 24))
-  if (days === 0) return t('myDay.rel.today')
-  if (days === 1) return t('myDay.rel.daysAgo', { count: 1 })
-  if (days === -1) return t('myDay.rel.tomorrow')
-  if (days < 0) return t('myDay.rel.inDays', { count: Math.abs(days) })
-  return t('myDay.rel.daysAgo', { count: days })
-}
-
-function relativeShort(iso: string, t: TFunction, language?: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return t('myDay.rel.justNow')
-  if (mins < 60) return t('myDay.rel.minsAgo', { count: mins })
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return t('myDay.rel.hrsAgo', { count: hrs })
-  const days = Math.floor(hrs / 24)
-  if (days < 7) return t('myDay.rel.daysAgo', { count: days })
-  return new Date(iso).toLocaleDateString(language?.startsWith('zh') ? 'zh-CN' : undefined, { month: 'short', day: 'numeric' })
-}
-
-function humanAction(a: string, t: TFunction): string {
-  if (a.endsWith('.create')) return t('myDay.action.created')
-  if (a.endsWith('.update')) return t('myDay.action.updated')
-  if (a.endsWith('.delete')) return t('myDay.action.deleted')
-  if (a.endsWith('.login')) return t('myDay.action.signedIn')
-  if (a.endsWith('.approve')) return t('myDay.action.approved')
-  if (a.endsWith('.reject')) return t('myDay.action.rejected')
-  if (a.endsWith('.submit')) return t('myDay.action.submitted')
-  return a.replace(/[._]/g, ' ')
-}
-
-/** Best-effort extraction of a user-friendly message from a Promise rejection. */
-function errMsg(reason: unknown, fallback: string): string {
-  if (reason instanceof Error && reason.message) return reason.message
-  if (typeof reason === 'string' && reason) return reason
-  return fallback
-}
-
-// Tiny unused-imports guard — Clock/Inbox kept for future tone variants.
-void Clock; void Inbox

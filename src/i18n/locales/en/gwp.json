@@ -1,19 +1,22 @@
 {
-  "title": "GWP Values",
+  "title": "GWP values",
   "subtitle": "Global Warming Potential reference table. IPCC AR5 & AR6 values for GHG inventory calculations.",
   "actions": {
     "exportCsv": "Export CSV",
-    "addGas": "Add Gas"
+    "addGas": "Add gas"
   },
   "kpi": {
-    "totalGases": "Total Gases",
-    "highGwp": "High GWP (>1000)",
-    "kigali": "Kigali Regulated",
+    "totalGases": "Total gases",
+    "highGwp": "High GWP (>1,000)",
+    "kigali": "Kigali-regulated",
     "categories": "Categories",
-    "highestGwp": "Highest GWP"
+    "highestGwp": "Highest GWP",
+    "label": "Reference table summary",
+    "highGwpHint": "GWP-100, AR6",
+    "kigaliHint": "HFCs and HFC blends"
   },
   "tabs": {
-    "all": "All Gases",
+    "all": "All gases",
     "common": "Common GHGs",
     "hfc": "HFCs",
     "pfc": "PFCs",
@@ -29,10 +32,7 @@
     "naturalRefrigerant": "Natural Refrigerant"
   },
   "searchPlaceholder": "Search by name, formula, or CAS number...",
-  "allCategories": "All Categories",
-  "showingPrefix": "Showing ",
-  "showingSuffix": " of {{total}} gases",
-  "horizonSuffix": " ({{horizon}}, {{ar}})",
+  "allCategories": "All categories",
   "table": {
     "substance": "Substance",
     "formula": "Formula",
@@ -42,7 +42,7 @@
   },
   "commonBadge": "Common",
   "copyGwp": "Copy GWP",
-  "ar5ToAr6Change": "AR5 → AR6 Change",
+  "ar5ToAr6Change": "AR5 → AR6 change",
   "na": "N/A",
   "source": "Source",
   "lifetime": {
@@ -65,7 +65,7 @@
   },
   "empty": "No gases match your search.",
   "reference": {
-    "title": "GWP Reference Notes",
+    "title": "Reference notes",
     "horizonTitle": "GWP-100 vs GWP-20",
     "horizonDesc": "GWP-100 is the standard for GHG inventories (GHG Protocol, CDP). GWP-20 shows short-term warming impact — methane is 82.5x CO₂ over 20 years vs 29.8x over 100 years.",
     "arTitle": "AR5 vs AR6",
@@ -74,16 +74,61 @@
     "kigaliDesc": "HFCs are being phased down under the Kigali Amendment to the Montreal Protocol. Report HFC usage for compliance tracking and transition planning."
   },
   "modal": {
-    "title": "Add Greenhouse Gas",
-    "gasName": "Gas Name",
+    "title": "Add greenhouse gas",
+    "gasName": "Gas name",
     "gasNamePlaceholder": "e.g. HFC-32",
-    "formula": "Chemical Formula",
+    "formula": "Chemical formula",
     "formulaPlaceholder": "e.g. CH₂F₂",
-    "cas": "CAS Number",
+    "cas": "CAS number",
     "casPlaceholder": "e.g. 75-10-5",
     "category": "Category",
-    "lifetime": "Atmospheric Lifetime",
+    "lifetime": "Atmospheric lifetime",
     "lifetimePlaceholder": "e.g. 11.8 years",
-    "submit": "Add Gas"
+    "submit": "Add gas",
+    "description": "Adds the gas to this session's table for quick reference. Values are not saved to the shared reference table."
+  },
+  "breadcrumbAdmin": "Admin",
+  "tableLabel": "GWP reference table",
+  "tabsLabel": "Gas group",
+  "horizonLabel": "Time horizon",
+  "reportLabel": "IPCC assessment report",
+  "showing": "Showing {{shown}} of {{total}} gases · {{horizon}}",
+  "copied": "Copied {{name}} {{horizon}}: {{value}}",
+  "copyFailed": "Couldn't copy to the clipboard",
+  "exported_one": "Exported {{count}} gas",
+  "exported_other": "Exported {{count}} gases",
+  "sessionBadge": "This session",
+  "blend": "Blend",
+  "expand": "Show details",
+  "collapse": "Hide details",
+  "notesLabel": "Notes",
+  "added": "Added {{name}}",
+  "addedSession": "Available in this session. Ask an admin to add it to the shared reference table.",
+  "customSource": "User-entered",
+  "gases": {
+    "gwp-001": "Carbon dioxide",
+    "gwp-002": "Methane (fossil)",
+    "gwp-003": "Methane (biogenic)",
+    "gwp-004": "Nitrous oxide",
+    "gwp-005": "HFC-23",
+    "gwp-006": "HFC-32",
+    "gwp-007": "HFC-125",
+    "gwp-008": "HFC-134a",
+    "gwp-009": "HFC-143a",
+    "gwp-010": "HFC-152a",
+    "gwp-011": "HFC-227ea",
+    "gwp-012": "HFC-245fa",
+    "gwp-013": "PFC-14 (CF₄)",
+    "gwp-014": "PFC-116 (C₂F₆)",
+    "gwp-015": "PFC-218 (C₃F₈)",
+    "gwp-016": "Sulphur hexafluoride",
+    "gwp-017": "Nitrogen trifluoride",
+    "gwp-018": "R-404A (blend)",
+    "gwp-019": "R-410A (blend)",
+    "gwp-020": "R-407C (blend)",
+    "gwp-021": "R-507A (blend)",
+    "gwp-022": "R-290 (propane)",
+    "gwp-023": "R-744 (CO₂)",
+    "gwp-024": "R-717 (ammonia)"
   }
 }

@@ -162,7 +162,7 @@ export default function ConfirmSheet({
         <div className="fixed inset-0 z-[80] flex items-end lg:items-center justify-center lg:p-6" onKeyDown={onKeyDown}>
           <motion.div
             className="absolute inset-0"
-            style={{ background: 'rgba(4, 12, 10, 0.48)', backdropFilter: 'blur(2px)' }}
+            style={{ background: 'var(--bg-overlay)', backdropFilter: 'blur(2px)' }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

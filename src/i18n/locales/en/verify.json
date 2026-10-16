@@ -7,7 +7,10 @@
   "errors": {
     "title": "Verification failed",
     "failedFallback": "Verification failed",
-    "unknownToken": "This verification token is not recognised. The link may be mistyped, or the report may have been withdrawn."
+    "unknownToken": "This verification token is not recognised. The link may be mistyped, or the report may have been withdrawn.",
+    "unknownTitle": "We couldn't find this report",
+    "body": "The verification service didn't respond, so this report can't be confirmed right now. Try again in a moment.",
+    "incomplete": "The verification service returned an incomplete record, so this report can't be confirmed."
   },
   "footer": "Verified via Nexus · Powered by <brand>Aeiforo</brand>",
   "goToPlatform": "Go to Nexus platform",
@@ -15,24 +18,29 @@
     "kicker": "Verified",
     "authentic": "This is an authentic sustainability report, published by <strong>{{by}}</strong> on <strong>{{date}}</strong>. The document hash was anchored to a public timestamp calendar at publication time.",
     "version": "Version {{version}}",
-    "unauditedDraft": "UNAUDITED DRAFT",
-    "assured": "ASSURED"
+    "unauditedDraft": "Unaudited draft",
+    "assured": "Assured",
+    "verdict": "Verified · this file is on the public record"
   },
   "hash": {
-    "title": "Document hash",
+    "title": "Document fingerprint",
     "copy": "Copy hash",
     "fileSize": "File size: {{size}} KB",
     "pages_one": "{{count}} page",
     "pages_other": "{{count}} pages",
-    "howTo": "Compute <code>sha256sum</code> on the PDF you received — it must equal the hash above. If it differs, the document has been modified."
+    "howTo": "Compute <code>sha256sum</code> on the PDF you received — it must equal the hash above. If it differs, the document has been modified.",
+    "copied": "Hash copied",
+    "copyFailed": "Couldn't copy. Select the hash and copy it manually."
   },
   "anchor": {
     "title": "External timestamp",
     "label": "Anchor",
     "anchored": "Anchored",
     "anchoredOn": "Anchored on {{date}}",
-    "calendar": "Calendar:",
-    "none": "No external anchor on record. The document hash was stored server-side only."
+    "calendar": "Calendar",
+    "none": "No external anchor on record. The document hash was stored server-side only.",
+    "anchoredAt": "Anchored",
+    "note": "A partial OpenTimestamps receipt is stored. Public Bitcoin confirmation typically follows 1–6 hours after anchoring."
   },
   "assurance": {
     "statement": "Independent assurance statement",
@@ -50,5 +58,12 @@
     "step1": "Open a terminal and run <code>sha256sum report.pdf</code> (or <code>shasum -a 256 report.pdf</code> on macOS). Compare the output to the hash above — they must match.",
     "step2": "Install the OpenTimestamps client: <code>pip install opentimestamps-client</code>. This lets you independently confirm the anchor against the Bitcoin blockchain.",
     "step3": "If the hashes match and the OpenTimestamps receipt upgrades to a full Bitcoin proof, this report has not been modified since it was published."
+  },
+  "facts": {
+    "framework": "Framework",
+    "period": "Reporting period",
+    "version": "Version",
+    "status": "Status",
+    "language": "Report language"
   }
 }

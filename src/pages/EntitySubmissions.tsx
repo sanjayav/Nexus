@@ -1,414 +1,476 @@
-import { useState, useRef } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import {
-  Database,
-  Upload,
-  CheckCircle2,
-  Clock,
-  AlertCircle,
-  FileSpreadsheet,
-  Download,
-  X,
-  AlertTriangle,
-  Trash2,
-} from 'lucide-react'
-import { Card, Badge } from '../design-system'
-import { dataSubmissions, dataEntities, DataSubmission } from '../data/moduleData'
+import { Upload, CheckCircle2, FileSpreadsheet, Download, X, AlertTriangle, Trash2, Loader2 } from 'lucide-react'
+import { Button, Tabs } from '../design-system'
+import { EmptyState, StatLedger, StatusPill, notify, type PillTone } from '../components/ui'
+import ModuleHeader from '../components/analytics/data/ModuleHeader'
+import DropZone from '../components/analytics/data/DropZone'
+import { dataSubmissions, dataEntities, type DataSubmission } from '../data/moduleData'
+import { downloadCsv } from '../lib/csv'
+import { useFmt } from '../lib/fmt'
+import { dur, ease } from '../motion/tokens'
 
 type EntityTab = 'intercompany' | 'subsidiary' | 'supplier'
 
-const FORMAT_BADGE: Record<DataSubmission['format'], 'amber' | 'teal' | 'blue' | 'purple'> = {
-  raw: 'amber',
-  measured: 'teal',
-  reported: 'blue',
-  'supplier-provided': 'purple',
+const STATUS_TONE: Record<DataSubmission['status'], { tone: PillTone; dot?: boolean }> = {
+  complete: { tone: 'success' },
+  submitted: { tone: 'info', dot: true },
+  pending: { tone: 'warning', dot: true },
+  overdue: { tone: 'danger', dot: true },
 }
 
-const STATUS_CONFIG: Record<DataSubmission['status'], { badge: 'green' | 'blue' | 'amber' | 'red'; icon: typeof CheckCircle2 }> = {
-  complete: { badge: 'green', icon: CheckCircle2 },
-  submitted: { badge: 'blue', icon: Upload },
-  pending: { badge: 'amber', icon: Clock },
-  overdue: { badge: 'red', icon: AlertCircle },
-}
+/** Downloadable templates — CSV with a BOM so Chinese Excel opens them cleanly. */
+const TEMPLATES: { id: string; headers: string[] }[] = [
+  { id: 'emissions', headers: ['facility_name', 'source_id', 'emission_scope', 'activity_type', 'fuel_type', 'quantity', 'unit', 'emission_factor', 'ef_unit', 'co2e_tonnes', 'reporting_period', 'notes'] },
+  { id: 'energy', headers: ['facility_name', 'meter_id', 'energy_type', 'quantity', 'unit', 'reporting_period', 'notes'] },
+  { id: 'supplier', headers: ['supplier_name', 'country', 'product_category', 'spend', 'currency', 'co2e_tonnes', 'method', 'reporting_period'] },
+  { id: 'waterWaste', headers: ['facility_name', 'water_withdrawal_ml', 'water_discharge_ml', 'waste_generated_t', 'waste_diverted_t', 'hazardous_waste_t', 'reporting_period'] },
+]
 
-interface UploadedFile {
+interface RecentFile {
   name: string
-  size: string
+  entity: string
+  date: string
   rows: number
-  warnings: number
-  status: 'validating' | 'validated' | 'error'
+  status: 'processed' | 'warning'
+  warnings?: number
 }
+
+const RECENT: RecentFile[] = [
+  { name: 'MTP_Olefins_Q1_2026_Emissions.xlsx', entity: 'Map Ta Phut Olefins', date: '2026-04-02', rows: 48, status: 'processed' },
+  { name: 'Rayong_Refinery_Energy_Q1.csv', entity: 'Rayong Refinery', date: '2026-04-01', rows: 36, status: 'processed' },
+  { name: 'PTTAC_Water_Waste_Q1.xlsx', entity: 'PTT Asahi Chemical', date: '2026-03-30', rows: 24, status: 'processed' },
+  { name: 'SCG_Chemicals_Scope3_Estimated.csv', entity: 'SCG Chemicals (Supplier)', date: '2026-03-28', rows: 12, status: 'warning', warnings: 2 },
+  { name: 'ENVICCO_Circular_Metrics.xlsx', entity: 'ENVICCO', date: '2026-03-25', rows: 18, status: 'processed' },
+]
 
 export default function EntitySubmissions() {
   const { t } = useTranslation()
+  const f = useFmt()
   const [activeTab, setActiveTab] = useState<EntityTab>('intercompany')
-  const [uploadModalOpen, setUploadModalOpen] = useState(false)
-  const [toast, setToast] = useState<string | null>(null)
+  const [uploadOpen, setUploadOpen] = useState(false)
+  const [imported, setImported] = useState<RecentFile[]>([])
 
   const filtered = dataSubmissions.filter((s) => s.entityType === activeTab)
-  const totalCount = filtered.length
-  const completeCount = filtered.filter((s) => s.status === 'complete').length
-  const pendingSubmittedCount = filtered.filter((s) => s.status === 'pending' || s.status === 'submitted').length
-  const overdueCount = filtered.filter((s) => s.status === 'overdue').length
+  const count = (pred: (s: DataSubmission) => boolean) => filtered.filter(pred).length
+  const recent = [...imported, ...RECENT]
 
-  const tabs: { key: EntityTab; label: string }[] = [
-    { key: 'intercompany', label: t('entitySubmissions.tabs.intercompany') },
-    { key: 'subsidiary', label: t('entitySubmissions.tabs.subsidiary') },
-    { key: 'supplier', label: t('entitySubmissions.tabs.supplier') },
-  ]
-
-  function handleUploadComplete() {
-    setUploadModalOpen(false)
-    setToast(t('entitySubmissions.toastImported', { count: 14 }))
-    setTimeout(() => setToast(null), 4000)
+  function handleImported(file: RecentFile) {
+    setUploadOpen(false)
+    setImported((prev) => [file, ...prev])
+    notify.success(t('entitySubmissions.toastImported', { count: file.rows }), {
+      description: t('entitySubmissions.toastImportedSub', { file: file.name, entity: file.entity }),
+      undo: () => {
+        setImported((prev) => prev.filter((x) => x !== file))
+        notify.message(t('entitySubmissions.toastReverted', { file: file.name }))
+      },
+    })
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Toast */}
-      {toast && (
-        <div className="fixed top-6 right-6 z-50 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-[length:var(--text-sm)] font-medium shadow-lg">
-          <CheckCircle2 className="w-4 h-4" />
-          {toast}
-        </div>
-      )}
+    <div className="space-y-6">
+      <ModuleHeader
+        title={t('entitySubmissions.title')}
+        description={t('entitySubmissions.subtitle')}
+        actions={
+          <Button variant="primary" icon={<Upload className="w-4 h-4" />} onClick={() => setUploadOpen(true)}>
+            {t('entitySubmissions.uploadFile')}
+          </Button>
+        }
+      />
 
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[var(--accent-amber-light)] border border-amber-100 flex items-center justify-center">
-            <Database className="w-5 h-5 text-[var(--accent-amber)]" />
-          </div>
-          <div>
-            <h1 className="font-display text-[length:var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">{t('entitySubmissions.title')}</h1>
-            <p className="mt-1 text-[length:var(--text-sm)] text-[var(--text-tertiary)] max-w-3xl">
-              {t('entitySubmissions.subtitle')}
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => setUploadModalOpen(true)}
-          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-[var(--bg-inverse)] text-white text-[length:var(--text-sm)] font-semibold hover:bg-[var(--bg-inverse-soft)] active:scale-[0.98] transition-all cursor-pointer"
-        >
-          <Upload className="w-4 h-4" /> {t('entitySubmissions.uploadFile')}
-        </button>
-      </div>
-
-      {/* Template Download Strip */}
-      <Card padding="sm">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-3">
-            <FileSpreadsheet className="w-5 h-5 text-[var(--accent-teal)]" />
-            <div>
-              <p className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('entitySubmissions.templates.title')}</p>
-              <p className="text-[length:var(--text-xs)] text-[var(--text-tertiary)]">{t('entitySubmissions.templates.subtitle')}</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { label: t('entitySubmissions.templates.emissions'), ext: '.xlsx' },
-              { label: t('entitySubmissions.templates.energy'), ext: '.xlsx' },
-              { label: t('entitySubmissions.templates.supplier'), ext: '.csv' },
-              { label: t('entitySubmissions.templates.waterWaste'), ext: '.xlsx' },
-            ].map((tpl) => (
-              <button
-                key={tpl.label}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] text-[length:var(--text-xs)] font-medium hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] transition-all cursor-pointer"
-              >
-                <Download className="w-3 h-3" />
-                {tpl.label}
-                <span className="text-[var(--text-tertiary)]">{tpl.ext}</span>
-              </button>
-            ))}
+      {/* Templates */}
+      <section className="surface-paper px-5 py-4 flex flex-col lg:flex-row lg:items-center gap-4" aria-labelledby="entity-templates">
+        <div className="flex items-start gap-3 min-w-0 flex-1">
+          <span className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--color-brand-soft)] text-[var(--color-brand)] flex items-center justify-center flex-shrink-0">
+            <FileSpreadsheet className="w-4 h-4" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <h2 id="entity-templates" className="text-small font-semibold text-[var(--text-primary)]">
+              {t('entitySubmissions.templates.title')}
+            </h2>
+            <p className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('entitySubmissions.templates.subtitle')}</p>
           </div>
         </div>
-      </Card>
-
-      {/* Entity Tabs */}
-      <div className="flex gap-1 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-default)] p-1 w-fit">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`px-4 py-2 rounded-lg text-[length:var(--text-sm)] font-medium transition-all cursor-pointer ${
-              activeTab === tab.key
-                ? 'bg-[var(--accent-teal-light)] text-[var(--accent-teal)] shadow-sm'
-                : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: t('entitySubmissions.stats.total'), value: totalCount, icon: Database, color: 'var(--accent-teal)' },
-          { label: t('entitySubmissions.stats.complete'), value: completeCount, icon: CheckCircle2, color: 'var(--accent-green)' },
-          { label: t('entitySubmissions.stats.pendingSubmitted'), value: pendingSubmittedCount, icon: Clock, color: 'var(--accent-amber)' },
-          { label: t('entitySubmissions.stats.overdue'), value: overdueCount, icon: AlertCircle, color: 'var(--accent-red)' },
-        ].map((s) => {
-          const Icon = s.icon
-          return (
-            <Card key={s.label} className="relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-xl opacity-60" style={{ background: `linear-gradient(90deg, ${s.color}, transparent)` }} />
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${s.color}10`, border: `1px solid ${s.color}25` }}>
-                  <Icon className="w-4 h-4" style={{ color: s.color }} />
-                </div>
-                <span className="text-micro font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.06em]">{s.label}</span>
-              </div>
-              <p className="font-display text-[length:var(--text-2xl)] font-bold text-[var(--text-primary)] tabular-nums">{s.value}</p>
-            </Card>
-          )
-        })}
-      </div>
-
-      {/* Recent Uploads */}
-      <Card>
-        <h2 className="text-[length:var(--text-base)] font-semibold text-[var(--text-primary)] mb-4">{t('entitySubmissions.recent')}</h2>
-        <div className="space-y-2">
-          {[
-            { name: 'MTP_Olefins_Q1_2026_Emissions.xlsx', entity: 'Map Ta Phut Olefins', date: '2026-04-02', rows: 48, status: 'processed' as const, format: 'Excel' },
-            { name: 'Rayong_Refinery_Energy_Q1.csv', entity: 'Rayong Refinery', date: '2026-04-01', rows: 36, status: 'processed' as const, format: 'CSV' },
-            { name: 'PTTAC_Water_Waste_Q1.xlsx', entity: 'PTT Asahi Chemical', date: '2026-03-30', rows: 24, status: 'processed' as const, format: 'Excel' },
-            { name: 'SCG_Chemicals_Scope3_Estimated.csv', entity: 'SCG Chemicals (Supplier)', date: '2026-03-28', rows: 12, status: 'warning' as const, format: 'CSV' },
-            { name: 'ENVICCO_Circular_Metrics.xlsx', entity: 'ENVICCO', date: '2026-03-25', rows: 18, status: 'processed' as const, format: 'Excel' },
-          ].map((file) => (
-            <div key={file.name} className="flex items-center gap-4 p-3 rounded-xl hover:bg-[var(--bg-hover)] transition-colors group">
-              <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                file.format === 'Excel' ? 'bg-emerald-50 border border-emerald-100' : 'bg-blue-50 border border-blue-100'
-              }`}>
-                <FileSpreadsheet className={`w-4 h-4 ${file.format === 'Excel' ? 'text-emerald-500' : 'text-blue-500'}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[length:var(--text-sm)] font-medium text-[var(--text-primary)] truncate">{file.name}</p>
-                <p className="text-[length:var(--text-xs)] text-[var(--text-tertiary)]">{file.entity} · {t('entitySubmissions.rows', { count: file.rows })} · {file.date}</p>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <Badge variant={file.status === 'processed' ? 'green' : 'amber'} dot>
-                  {file.status === 'processed' ? t('entitySubmissions.processed') : t('entitySubmissions.warnings', { count: 2 })}
-                </Badge>
-                <Badge variant="gray">{file.format}</Badge>
-              </div>
-            </div>
+        <div className="grid grid-cols-2 lg:flex lg:flex-wrap gap-2">
+          {TEMPLATES.map((tpl) => (
+            <button
+              key={tpl.id}
+              type="button"
+              onClick={() => {
+                downloadCsv(`nexus-${tpl.id}-template.csv`, [tpl.headers])
+                notify.success(t('entitySubmissions.templates.downloaded', { name: t(`entitySubmissions.templates.${tpl.id}`) }))
+              }}
+              className="inline-flex items-center gap-2 h-10 px-3 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-small font-medium text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors duration-micro whitespace-nowrap min-w-0"
+            >
+              <Download className="w-3.5 h-3.5 text-[var(--color-brand)]" aria-hidden />
+              {t(`entitySubmissions.templates.${tpl.id}`)}
+              <span className="hidden sm:inline text-caption text-[var(--text-tertiary)] font-mono">.csv</span>
+            </button>
           ))}
         </div>
-      </Card>
+      </section>
 
-      {/* Submissions Table */}
-      <Card>
-        <h2 className="text-[length:var(--text-base)] font-semibold text-[var(--text-primary)] mb-4">
-          {t(`entitySubmissions.tableTitle.${activeTab}`)}
-        </h2>
-        <div className="overflow-x-auto rounded-lg border border-[var(--border-subtle)]">
-          <table className="w-full text-[length:var(--text-xs)]">
-            <thead>
-              <tr className="bg-[var(--bg-secondary)]">
-                {[t('entitySubmissions.col.entity'), t('entitySubmissions.col.dataType'), t('entitySubmissions.col.period'), t('entitySubmissions.col.format'), t('entitySubmissions.col.value'), t('entitySubmissions.col.submittedBy'), t('entitySubmissions.col.date'), t('common.status')].map((h) => (
-                  <th key={h} className="text-left font-semibold text-[var(--text-secondary)] px-4 py-2.5 whitespace-nowrap border-b border-[var(--border-subtle)]">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((sub) => {
-                const cfg = STATUS_CONFIG[sub.status]
-                return (
-                  <tr key={sub.id} className="border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-hover)] transition-colors">
-                    <td className="px-4 py-2.5 font-medium text-[var(--text-primary)] whitespace-nowrap">{sub.entityName}</td>
-                    <td className="px-4 py-2.5 text-[var(--text-secondary)] whitespace-nowrap">{sub.dataType}</td>
-                    <td className="px-4 py-2.5 text-[var(--text-secondary)] whitespace-nowrap">{sub.period}</td>
-                    <td className="px-4 py-2.5 whitespace-nowrap"><Badge variant={FORMAT_BADGE[sub.format]}>{t(`entitySubmissions.format.${sub.format}`, { defaultValue: sub.format })}</Badge></td>
-                    <td className="px-4 py-2.5 font-medium text-[var(--text-primary)] whitespace-nowrap tabular-nums">
-                      {sub.value} <span className="text-[var(--text-tertiary)] font-normal">{sub.unit}</span>
+      <div className="overflow-x-auto -mx-1 px-1 [scrollbar-width:none]">
+        <Tabs
+          className="w-max"
+          aria-label={t('entitySubmissions.tabsAria')}
+          tabs={(['intercompany', 'subsidiary', 'supplier'] as EntityTab[]).map((k) => ({
+            id: k,
+            label: t(`entitySubmissions.tabs.${k}`),
+            count: dataSubmissions.filter((s) => s.entityType === k).length,
+          }))}
+          activeTab={activeTab}
+          onChange={(id) => setActiveTab(id as EntityTab)}
+        />
+      </div>
+
+      <StatLedger
+        items={[
+          { id: 'total', label: t('entitySubmissions.stats.total'), value: filtered.length, tone: 'brand' },
+          { id: 'complete', label: t('entitySubmissions.stats.complete'), value: count((s) => s.status === 'complete'), tone: 'success' },
+          { id: 'pending', label: t('entitySubmissions.stats.pendingSubmitted'), value: count((s) => s.status === 'pending' || s.status === 'submitted'), tone: 'info' },
+          { id: 'overdue', label: t('entitySubmissions.stats.overdue'), value: count((s) => s.status === 'overdue'), tone: 'danger' },
+        ]}
+      />
+
+      {/* Submissions */}
+      <section className="surface-paper overflow-hidden" aria-labelledby="entity-table">
+        <header className="px-5 py-4 border-b border-[var(--border-subtle)]">
+          <h2 id="entity-table" className="type-h3 text-[var(--text-primary)]">
+            {t(`entitySubmissions.tableTitle.${activeTab}`)}
+          </h2>
+        </header>
+        {filtered.length === 0 ? (
+          <EmptyState density="compact" art="inbox" title={t('entitySubmissions.empty')} />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="data-table min-w-[880px]">
+              <thead>
+                <tr>
+                  <th scope="col">{t('entitySubmissions.col.entity')}</th>
+                  <th scope="col">{t('entitySubmissions.col.dataType')}</th>
+                  <th scope="col">{t('entitySubmissions.col.period')}</th>
+                  <th scope="col">{t('entitySubmissions.col.format')}</th>
+                  <th scope="col" className="num">
+                    {t('entitySubmissions.col.value')}
+                  </th>
+                  <th scope="col">{t('entitySubmissions.col.submittedBy')}</th>
+                  <th scope="col">{t('entitySubmissions.col.date')}</th>
+                  <th scope="col">{t('entitySubmissions.col.status')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((sub) => (
+                  <tr key={sub.id}>
+                    <td className="font-medium !text-[var(--text-primary)] whitespace-nowrap">{sub.entityName}</td>
+                    <td className="whitespace-nowrap">{sub.dataType}</td>
+                    <td className="whitespace-nowrap">{sub.period}</td>
+                    <td>
+                      <StatusPill tone="neutral" size="sm">
+                        {t(`entitySubmissions.format.${sub.format}`)}
+                      </StatusPill>
                     </td>
-                    <td className="px-4 py-2.5 text-[var(--text-secondary)] whitespace-nowrap">{sub.submittedBy}</td>
-                    <td className="px-4 py-2.5 text-[var(--text-tertiary)] whitespace-nowrap">{sub.submittedDate || '—'}</td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">
-                      <Badge variant={cfg.badge} dot>{t(`entitySubmissions.status.${sub.status}`, { defaultValue: sub.status.charAt(0).toUpperCase() + sub.status.slice(1) })}</Badge>
+                    <td className="num !text-[var(--text-primary)] font-semibold">
+                      {f.exact(sub.value)} <span className="font-normal text-caption text-[var(--text-tertiary)]">{f.unit(sub.unit)}</span>
+                    </td>
+                    <td className="whitespace-nowrap">{sub.submittedBy}</td>
+                    <td className="whitespace-nowrap tabular-nums">{sub.submittedDate ? f.date(sub.submittedDate) : '—'}</td>
+                    <td>
+                      <StatusPill tone={STATUS_TONE[sub.status].tone} dot={STATUS_TONE[sub.status].dot} size="sm">
+                        {t(`entitySubmissions.status.${sub.status}`)}
+                      </StatusPill>
                     </td>
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
-      {/* Upload Modal */}
-      {uploadModalOpen && (
-        <UploadModal onClose={() => setUploadModalOpen(false)} onComplete={handleUploadComplete} />
-      )}
+      {/* Recent uploads */}
+      <section className="surface-paper overflow-hidden" aria-labelledby="entity-recent">
+        <header className="px-5 py-4 border-b border-[var(--border-subtle)]">
+          <h2 id="entity-recent" className="type-h3 text-[var(--text-primary)]">
+            {t('entitySubmissions.recent')}
+          </h2>
+        </header>
+        <ul className="divide-y divide-[var(--border-subtle)]">
+          <AnimatePresence initial={false}>
+            {recent.map((file) => (
+              <motion.li
+                key={file.name + file.date}
+                layout
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: dur.base, ease: ease.out }}
+                className="overflow-hidden"
+              >
+                <div className="flex items-center gap-3 sm:gap-4 px-5 py-3.5">
+                  <FileSpreadsheet className="w-5 h-5 text-[var(--color-brand)] flex-shrink-0" aria-hidden />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-small font-medium text-[var(--text-primary)] truncate">{file.name}</p>
+                    <p className="text-caption text-[var(--text-tertiary)]">
+                      {file.entity} · {t('entitySubmissions.rows', { count: file.rows })} · <span className="whitespace-nowrap">{f.date(file.date)}</span>
+                    </p>
+                  </div>
+                  <StatusPill tone={file.status === 'processed' ? 'success' : 'warning'} dot size="sm">
+                    {file.status === 'processed' ? t('entitySubmissions.processed') : t('entitySubmissions.warnings', { count: file.warnings ?? 1 })}
+                  </StatusPill>
+                </div>
+              </motion.li>
+            ))}
+          </AnimatePresence>
+        </ul>
+      </section>
+
+      <AnimatePresence>{uploadOpen && <UploadDialog onClose={() => setUploadOpen(false)} onImported={handleImported} />}</AnimatePresence>
     </div>
   )
 }
 
-
 /* ══════════════════════════════════════
-   Upload Modal
+   Upload dialog: entity → file → validate → import
    ══════════════════════════════════════ */
-function UploadModal({ onClose, onComplete }: { onClose: () => void; onComplete: () => void }) {
-  const { t } = useTranslation()
-  const [dragOver, setDragOver] = useState(false)
-  const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null)
-  const [entity, setEntity] = useState('')
-  const fileInputRef = useRef<HTMLInputElement>(null)
+interface Pending {
+  name: string
+  size: number
+  status: 'validating' | 'validated'
+  rows: number
+  valid: number
+  warnings: number
+}
 
-  function simulateUpload(fileName: string, fileSize: number) {
-    const sizeStr = fileSize > 1024 * 1024
-      ? `${(fileSize / (1024 * 1024)).toFixed(1)} MB`
-      : `${(fileSize / 1024).toFixed(0)} KB`
-    setUploadedFile({ name: fileName, size: sizeStr, rows: 0, warnings: 0, status: 'validating' })
-    setTimeout(() => {
-      setUploadedFile({ name: fileName, size: sizeStr, rows: 14, warnings: 1, status: 'validated' })
+function UploadDialog({ onClose, onImported }: { onClose: () => void; onImported: (file: RecentFile) => void }) {
+  const { t } = useTranslation()
+  const f = useFmt()
+  const reduce = useReducedMotion()
+  const titleId = useId()
+  const [file, setFile] = useState<Pending | null>(null)
+  const [entity, setEntity] = useState('')
+  const [entityError, setEntityError] = useState(false)
+  const panel = useRef<HTMLDivElement>(null)
+  const selectRef = useRef<HTMLSelectElement>(null)
+  const timer = useRef<number | null>(null)
+
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null
+    selectRef.current?.focus()
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'Tab' && panel.current) {
+        const els = panel.current.querySelectorAll<HTMLElement>('button:not([disabled]), select, [tabindex="0"]')
+        if (!els.length) return
+        const first = els[0]
+        const last = els[els.length - 1]
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      if (timer.current) window.clearTimeout(timer.current)
+      prev?.focus?.()
+    }
+  }, [onClose])
+
+  function accept(picked: File) {
+    const ext = (picked.name.split('.').pop() ?? '').toLowerCase()
+    if (!['xlsx', 'xls', 'csv'].includes(ext)) {
+      notify.error(t('entitySubmissions.modal.badType'), { description: t('entitySubmissions.modal.formats') })
+      return
+    }
+    setFile({ name: picked.name, size: picked.size, status: 'validating', rows: 0, valid: 0, warnings: 0 })
+    timer.current = window.setTimeout(() => {
+      setFile((cur) => (cur && cur.name === picked.name ? { ...cur, status: 'validated', rows: 14, valid: 13, warnings: 1 } : cur))
     }, 1500)
   }
 
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault()
-    setDragOver(false)
-    const file = e.dataTransfer.files[0]
-    if (file) simulateUpload(file.name, file.size)
-  }
-
-  function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (file) simulateUpload(file.name, file.size)
+  function submit() {
+    if (!entity) {
+      setEntityError(true)
+      selectRef.current?.focus()
+      return
+    }
+    if (!file || file.status !== 'validated') return
+    const ent = dataEntities.find((e) => e.id === entity)
+    onImported({
+      name: file.name,
+      entity: ent?.name ?? entity,
+      date: new Date().toISOString().slice(0, 10),
+      rows: file.rows,
+      status: file.warnings ? 'warning' : 'processed',
+      warnings: file.warnings,
+    })
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg rounded-2xl bg-[var(--bg-primary)] border border-[var(--border-default)] shadow-2xl flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-default)]">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-[var(--accent-teal-light)] border border-teal-100 flex items-center justify-center">
-              <Upload className="w-4 h-4 text-[var(--accent-teal)]" />
-            </div>
-            <div>
-              <h3 className="font-display text-[length:var(--text-base)] font-bold text-[var(--text-primary)]">{t('entitySubmissions.modal.title')}</h3>
-              <p className="text-[length:var(--text-xs)] text-[var(--text-tertiary)]">{t('entitySubmissions.modal.formats')}</p>
-            </div>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-6">
+      <motion.div
+        className="absolute inset-0"
+        style={{ background: 'var(--bg-overlay)', backdropFilter: 'blur(2px)' }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: dur.fast }}
+        onClick={onClose}
+        aria-hidden
+      />
+      <motion.div
+        ref={panel}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        initial={reduce ? { opacity: 0 } : { opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
+        transition={{ duration: dur.base, ease: ease.out }}
+        className="relative w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-[var(--radius-2xl)] sm:rounded-[var(--radius-xl)] bg-[var(--bg-elevated)] border border-[var(--border-default)] shadow-[var(--shadow-overlay)] flex flex-col"
+      >
+        <header className="flex items-start justify-between gap-4 px-6 pt-5 pb-4 border-b border-[var(--border-subtle)]">
+          <div>
+            <h3 id={titleId} className="type-h3 text-[var(--text-primary)]">
+              {t('entitySubmissions.modal.title')}
+            </h3>
+            <p className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('entitySubmissions.modal.formats')}</p>
           </div>
-          <button onClick={onClose} aria-label={t('common.close')} className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t('common.close')}
+            className="w-10 h-10 -mr-2 -mt-1 rounded-[var(--radius-md)] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors duration-micro"
+          >
             <X className="w-4 h-4" />
           </button>
-        </div>
+        </header>
 
         <div className="p-6 space-y-5">
-          {/* Entity Selector */}
           <div>
-            <label className="block text-[length:var(--text-xs)] font-medium text-[var(--text-secondary)] mb-1.5">{t('entitySubmissions.modal.entity')}</label>
+            <label htmlFor={`${titleId}-entity`} className="block text-small font-medium text-[var(--text-secondary)] mb-1.5">
+              <span className="tabular-nums text-[var(--text-tertiary)] mr-1.5">1</span>
+              {t('entitySubmissions.modal.entity')}
+            </label>
             <select
+              id={`${titleId}-entity`}
+              ref={selectRef}
               value={entity}
-              onChange={(e) => setEntity(e.target.value)}
-              className="w-full h-10 px-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)] text-[var(--text-primary)] appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)] focus:ring-offset-1"
+              aria-invalid={entityError}
+              aria-describedby={entityError ? `${titleId}-entity-err` : undefined}
+              onChange={(e) => {
+                setEntity(e.target.value)
+                setEntityError(false)
+              }}
+              className={`w-full h-10 px-3 rounded-[var(--radius-md)] border bg-[var(--bg-primary)] text-small text-[var(--text-primary)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-soft)] focus:border-[var(--color-brand)] ${
+                entityError ? 'border-[var(--status-danger)]' : 'border-[var(--border-default)]'
+              }`}
             >
               <option value="">{t('entitySubmissions.modal.selectEntity')}</option>
               {dataEntities.map((ent) => (
-                <option key={ent.id} value={ent.id}>{ent.name} ({ent.type})</option>
+                <option key={ent.id} value={ent.id}>
+                  {ent.name} · {t(`entitySubmissions.tabs.${ent.type}`)}
+                </option>
               ))}
             </select>
+            {entityError && (
+              <p id={`${titleId}-entity-err`} className="text-caption text-[var(--status-danger)] mt-1.5">
+                {t('entitySubmissions.modal.entityRequired')}
+              </p>
+            )}
           </div>
 
-          {/* Drop Zone */}
-          {!uploadedFile ? (
-            <div
-              onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
-                dragOver
-                  ? 'border-[var(--accent-teal)] bg-[var(--accent-teal-subtle)]'
-                  : 'border-[var(--border-default)] hover:border-[var(--accent-teal)] hover:bg-[var(--bg-secondary)]'
-              }`}
-            >
-              <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={handleFileInput} className="hidden" />
-              <div className="w-12 h-12 rounded-2xl bg-[var(--bg-tertiary)] flex items-center justify-center mx-auto mb-4">
-                <FileSpreadsheet className="w-6 h-6 text-[var(--text-tertiary)]" />
-              </div>
-              <p className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)] mb-1">{t('entitySubmissions.modal.drop')}</p>
-              <p className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] mb-4">{t('entitySubmissions.modal.browse')}</p>
-              <div className="flex items-center justify-center gap-2">
-                <Badge variant="green">.xlsx</Badge>
-                <Badge variant="green">.xls</Badge>
-                <Badge variant="blue">.csv</Badge>
-              </div>
+          <div>
+            <div className="text-small font-medium text-[var(--text-secondary)] mb-1.5">
+              <span className="tabular-nums text-[var(--text-tertiary)] mr-1.5">2</span>
+              {t('entitySubmissions.modal.fileLabel')}
             </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
+            {!file ? (
+              <DropZone
+                compact
+                accept=".xlsx,.xls,.csv"
+                onFile={accept}
+                title={t('entitySubmissions.modal.drop')}
+                dragTitle={t('entitySubmissions.modal.dropHere')}
+                formats={['.xlsx', '.xls', '.csv']}
+              />
+            ) : (
+              <div className="rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-4" aria-live="polite">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center flex-shrink-0">
-                    <FileSpreadsheet className="w-5 h-5 text-emerald-500" />
-                  </div>
+                  <FileSpreadsheet className="w-5 h-5 text-[var(--color-brand)] flex-shrink-0 mt-0.5" aria-hidden />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[length:var(--text-sm)] font-medium text-[var(--text-primary)] truncate">{uploadedFile.name}</p>
-                    <p className="text-[length:var(--text-xs)] text-[var(--text-tertiary)]">{uploadedFile.size}</p>
+                    <p className="text-small font-medium text-[var(--text-primary)] truncate">{file.name}</p>
+                    <p className="text-caption text-[var(--text-tertiary)]">
+                      {file.size > 1024 * 1024 ? `${f.number(file.size / (1024 * 1024), { precision: 1 })} MB` : `${f.number(file.size / 1024, { precision: 1 })} KB`}
+                    </p>
                   </div>
-                  <button onClick={() => setUploadedFile(null)} className="p-1.5 rounded-lg hover:bg-[var(--bg-hover)] text-[var(--text-tertiary)] hover:text-[var(--accent-red)] transition-all cursor-pointer">
-                    <Trash2 className="w-3.5 h-3.5" />
+                  <button
+                    type="button"
+                    onClick={() => setFile(null)}
+                    aria-label={t('entitySubmissions.modal.remove')}
+                    className="w-9 h-9 -mr-1.5 -mt-1.5 rounded-[var(--radius-md)] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--status-danger)] hover:bg-[var(--bg-hover)] transition-colors duration-micro"
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
 
-                {uploadedFile.status === 'validating' && (
-                  <div className="mt-3 flex items-center gap-2 text-[var(--accent-blue)]">
-                    <div className="w-3.5 h-3.5 border-2 border-blue-200 border-t-[var(--accent-blue)] rounded-full animate-spin" />
-                    <span className="text-[length:var(--text-xs)] font-semibold">{t('entitySubmissions.modal.validating')}</span>
+                {file.status === 'validating' ? (
+                  <div className="mt-3 flex items-center gap-2 text-[var(--status-info)]">
+                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+                    <span className="text-caption font-semibold">{t('entitySubmissions.modal.validating')}</span>
                   </div>
-                )}
-
-                {uploadedFile.status === 'validated' && (
-                  <div className="mt-3 space-y-2">
-                    <div className="flex items-center gap-2 text-emerald-500">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span className="text-[length:var(--text-xs)] font-semibold">{t('entitySubmissions.modal.passed')}</span>
+                ) : (
+                  <div className="mt-3 space-y-3">
+                    <div className="flex items-center gap-2 text-[var(--status-success)]">
+                      <CheckCircle2 className="w-4 h-4" aria-hidden />
+                      <span className="text-caption font-semibold">{t('entitySubmissions.modal.passed')}</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-3">
+                    <dl className="grid grid-cols-3 gap-px rounded-[var(--radius-md)] overflow-hidden bg-[var(--border-subtle)]">
                       {[
-                        { label: t('entitySubmissions.modal.dataRows'), value: uploadedFile.rows, color: 'var(--text-primary)' },
-                        { label: t('entitySubmissions.modal.valid'), value: 12, color: 'var(--accent-green)' },
-                        { label: t('entitySubmissions.modal.warningsLabel'), value: uploadedFile.warnings, color: 'var(--accent-amber)' },
-                      ].map(s => (
-                        <div key={s.label} className="bg-[var(--bg-tertiary)] rounded-lg p-2.5 text-center">
-                          <p className="text-[length:var(--text-lg)] font-bold tabular-nums" style={{ color: s.color }}>{s.value}</p>
-                          <p className="text-caption text-[var(--text-tertiary)]">{s.label}</p>
+                        { k: 'dataRows', v: file.rows, tone: 'var(--text-primary)' },
+                        { k: 'valid', v: file.valid, tone: 'var(--status-success)' },
+                        { k: 'warningsLabel', v: file.warnings, tone: 'var(--status-warning)' },
+                      ].map((s) => (
+                        <div key={s.k} className="bg-[var(--bg-primary)] px-3 py-2.5">
+                          <dt className="text-caption text-[var(--text-tertiary)]">{t(`entitySubmissions.modal.${s.k}`)}</dt>
+                          <dd className="type-figure text-[20px] leading-7" style={{ color: s.tone }}>
+                            {f.number(s.v)}
+                          </dd>
                         </div>
                       ))}
-                    </div>
-                    {uploadedFile.warnings > 0 && (
-                      <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 flex items-start gap-2">
-                        <AlertTriangle className="w-3.5 h-3.5 text-[var(--accent-amber)] flex-shrink-0 mt-0.5" />
+                    </dl>
+                    {file.warnings > 0 && (
+                      <div className="rounded-[var(--radius-md)] border border-[var(--status-warning-line)] bg-[var(--status-warning-soft)] p-3 flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-[var(--status-warning)] flex-shrink-0 mt-0.5" aria-hidden />
                         <div>
-                          <p className="text-[length:var(--text-xs)] font-semibold text-[var(--accent-amber)]">{t('entitySubmissions.modal.warningFound', { count: 1 })}</p>
-                          <p className="text-[length:var(--text-xs)] text-amber-600/70 mt-0.5">{t('entitySubmissions.modal.warningDetail')}</p>
+                          <p className="text-caption font-semibold text-[var(--text-primary)]">{t('entitySubmissions.modal.warningFound', { count: file.warnings })}</p>
+                          <p className="text-caption text-[var(--text-secondary)] mt-0.5">{t('entitySubmissions.modal.warningDetail')}</p>
                         </div>
                       </div>
                     )}
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center gap-3 px-6 py-4 border-t border-[var(--border-default)] bg-[var(--bg-secondary)]">
-          <button onClick={onClose} className="flex-1 h-9 rounded-lg border border-[var(--border-default)] text-[length:var(--text-sm)] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer">
+        <footer className="flex items-center gap-3 px-6 py-4 border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)] mt-auto">
+          <Button variant="secondary" className="flex-1" onClick={onClose}>
             {t('common.cancel')}
-          </button>
-          <button
-            onClick={onComplete}
-            disabled={!uploadedFile || uploadedFile.status !== 'validated'}
-            className="flex-1 h-9 rounded-lg bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
-          >
-            <Upload className="w-4 h-4" /> {t('entitySubmissions.modal.import')}
-          </button>
-        </div>
-      </div>
+          </Button>
+          <Button variant="primary" className="flex-1" icon={<Upload className="w-4 h-4" />} disabled={!file || file.status !== 'validated'} onClick={submit}>
+            {t('entitySubmissions.modal.import')}
+          </Button>
+        </footer>
+      </motion.div>
     </div>
   )
 }

@@ -54,7 +54,8 @@
     "gri3033WaterRecycledAnd": "GRI 303-3——循环和再利用水",
     "gri3035WaterConsumptionPer": "GRI 303-5——单位产量耗水量",
     "gri3064WasteDivertedFrom": "GRI 306-4——从处置中转移的废弃物",
-    "gri2011HumanCapitalROI": "GRI 201-1——人力资本投资回报率"
+    "gri2011HumanCapitalROI": "GRI 201-1——人力资本投资回报率",
+    "chinaGridEFMEENBS": "中国电网排放因子：生态环境部 / 国家统计局 2023 年数据（2025-12-31 发布）— https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html"
   },
   "registry": {
     "scope-1-fuel": {
@@ -123,6 +124,42 @@
             "ppa-solar": {
               "label": "企业 PPA——太阳能",
               "note": "PPA 后的生命周期排放因子"
+            },
+            "cn-location": {
+              "label": "中国——全国平均（基于位置）",
+              "note": "生态环境部 / 国家统计局 2023 年数据（2025-12-31 发布）— 0.5306 kgCO2e/kWh · https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html"
+            },
+            "cn-market": {
+              "label": "中国——基于市场（剩余组合）",
+              "note": "生态环境部 / 国家统计局 2023 年数据（2025-12-31 发布）— 0.6096 kgCO2e/kWh · https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html"
+            },
+            "cn-north": {
+              "label": "中国——华北电网",
+              "note": "生态环境部 / 国家统计局 2023 年数据（2025-12-31 发布）— 0.6361 kgCO2e/kWh · https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html"
+            },
+            "cn-northeast": {
+              "label": "中国——东北电网",
+              "note": "生态环境部 / 国家统计局 2023 年数据（2025-12-31 发布）— 0.5122 kgCO2e/kWh · https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html"
+            },
+            "cn-east": {
+              "label": "中国——华东电网",
+              "note": "生态环境部 / 国家统计局 2023 年数据（2025-12-31 发布）— 0.5500 kgCO2e/kWh · https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html"
+            },
+            "cn-central": {
+              "label": "中国——华中电网",
+              "note": "生态环境部 / 国家统计局 2023 年数据（2025-12-31 发布）— 0.5271 kgCO2e/kWh · https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html"
+            },
+            "cn-northwest": {
+              "label": "中国——西北电网",
+              "note": "生态环境部 / 国家统计局 2023 年数据（2025-12-31 发布）— 0.5543 kgCO2e/kWh · https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html"
+            },
+            "cn-south": {
+              "label": "中国——南方电网",
+              "note": "生态环境部 / 国家统计局 2023 年数据（2025-12-31 发布）— 0.4042 kgCO2e/kWh · https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html"
+            },
+            "cn-southwest": {
+              "label": "中国——西南电网",
+              "note": "生态环境部 / 国家统计局 2023 年数据（2025-12-31 发布）— 0.2472 kgCO2e/kWh · https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html"
             }
           }
         },
@@ -294,5 +331,98 @@
         }
       }
     }
+  },
+  "hub": {
+    "ledgerLabel": "计算器覆盖情况",
+    "kpiCalculators": "计算器",
+    "kpiLineItems": "已覆盖指标项",
+    "kpiGap": "覆盖缺口",
+    "kpiGapHint": "计算器模式但尚无公式",
+    "kpiGapNone": "所有计算器指标项均已配置公式",
+    "noneTitle": "暂无适用的计算器",
+    "noneBody": "问卷中暂无指标项与已注册的计算器匹配。请打开 GRI 指标树检查填报方式。",
+    "noMatchBody": "可尝试输入 GRI 编码（如 305-2）或指标项中的关键词。",
+    "clearSearch": "清除搜索",
+    "shown_one": "{{count}} 个计算器",
+    "shown_other": "{{count}} 个计算器",
+    "inputs": "输入项",
+    "open": "打开计算器",
+    "gapTitle_one": "{{count}} 个指标项尚无公式",
+    "gapTitle_other": "{{count}} 个指标项尚无公式",
+    "gapBody": "这些指标项在问卷中标记为计算器模式，但尚未注册对应公式。目前请手动填报。",
+    "moreTitle": "更多计算器",
+    "scope3Title": "范围三计算器",
+    "scope3Body": "涵盖温室气体核算体系全部 15 个类别",
+    "pcafTitle": "PCAF 投融资排放",
+    "pcafBody": "投资组合归因与数据质量"
+  },
+  "form": {
+    "required": "必填",
+    "fixFields": "请检查标出的字段。",
+    "requiredError": "请填写此项。",
+    "positive": "请输入大于 0 的数值。",
+    "number": "请输入数字。",
+    "chooseOption": "请选择一项。"
+  },
+  "factors": {
+    "sources": {
+      "meeNbs": "生态环境部/国家统计局",
+      "mee": "生态环境部",
+      "gbt": "GB/T 32150",
+      "iea": "IEA",
+      "defra": "DEFRA",
+      "ipcc": "IPCC",
+      "epa": "美国环保署"
+    },
+    "regions": {
+      "CN": "全国电网",
+      "CN_NORTH": "华北电网",
+      "CN_NORTHEAST": "东北电网",
+      "CN_EAST": "华东电网",
+      "CN_CENTRAL": "华中电网",
+      "CN_NORTHWEST": "西北电网",
+      "CN_SOUTH": "南方电网",
+      "CN_SOUTHWEST": "西南电网",
+      "GLOBAL": "全球默认",
+      "GB": "英国",
+      "UK": "英国",
+      "US": "美国",
+      "EU": "欧盟",
+      "IN": "印度",
+      "JP": "日本",
+      "AU": "澳大利亚",
+      "CA": "加拿大",
+      "DE": "德国",
+      "FR": "法国",
+      "HK": "中国香港",
+      "APAC": "亚太"
+    },
+    "basis": {
+      "location": "基于位置",
+      "market": "基于市场的剩余排放因子",
+      "fossil": "化石能源电力排放因子"
+    },
+    "cnGridTitle": "中国电网排放因子",
+    "cnGridSubtitle": "所在区域首选因子 · 范围二外购电力",
+    "nationalAverage": "全国电网平均排放因子（基于位置）",
+    "regionalGrids": "区域电网",
+    "nationalMarker": "全国平均值",
+    "notPreferred": "非首选",
+    "cnGridFootnote": "由生态环境部、国家统计局发布，仅涵盖二氧化碳。已明确所属区域电网的场所，请采用区域电网排放因子。",
+    "cnEmptyTitle": "尚无中国电网排放因子",
+    "cnEmptyBody": "请在初始化设置中导入生态环境部因子包，或在排放因子库中手动添加。",
+    "loadErrorTitle": "排放因子加载失败",
+    "loadErrorBody": "为避免使用过期因子，此处暂不显示。请重试。",
+    "openLibrary": "排放因子库",
+    "gridTitle": "首选电网排放因子",
+    "gridSubtitle": "范围二外购电力，按区域",
+    "emptyTitle": "暂无首选电网排放因子",
+    "emptyBody": "请在排放因子库中添加电网排放因子。",
+    "inlineError": "电网排放因子暂不可用。",
+    "retry": "重试",
+    "preferredForRegion": "所在区域首选",
+    "preferred": "首选",
+    "preferredGridFactor": "首选电网排放因子",
+    "useFactor": "采用此因子"
   }
 }

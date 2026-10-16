@@ -104,7 +104,8 @@
       "chemicals": "Demo Co — 化工",
       "polymers": "Demo Co — 聚合物",
       "greenChemicals": "Demo Co — 绿色化工"
-    }
+    },
+    "remove": "移除{{name}}"
   },
   "subdivisions": {
     "registered": "所有集团下共登记 {{n}} 个下属单位",

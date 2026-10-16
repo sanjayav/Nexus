@@ -1,29 +1,39 @@
 {
   "title": "System status",
   "eyebrow": "Admin · System",
-  "subtitle": "Live health of the deployment and which integrations are wired up. Polls every 30s.",
+  "subtitle": "Live health of this deployment and which integrations are connected. Checks every 30 seconds.",
   "errors": {
-    "unreachable": "Failed to reach /api/health"
+    "unreachable": "Failed to reach /api/health",
+    "title": "Couldn't reach the health check",
+    "body": "The status service didn't respond, so the current state is unknown. This doesn't mean the platform is down.",
+    "stale": "The last check failed. Showing results from {{time}}."
   },
   "banner": {
     "allOk": "All systems operational",
-    "degraded": "Degraded",
+    "degraded": "Service degraded",
     "lastChecked": "Last checked {{time}}",
-    "probing": "Probing…"
+    "probing": "Probing…",
+    "allOkBody": "The database and API are responding normally.",
+    "degradedBody": "At least one core service is failing. Data entry may be affected until it recovers."
   },
   "db": {
-    "title": "Database (Neon Postgres)",
+    "title": "Database",
     "latency": "SELECT 1 returned in {{ms}}ms",
-    "unavailable": "unavailable",
-    "healthy": "healthy",
-    "down": "down"
+    "unavailable": "Unavailable",
+    "healthy": "Healthy",
+    "down": "Down",
+    "engine": "Neon Postgres",
+    "latencyLabel": "Database latency",
+    "latencyHint": "Round trip for SELECT 1",
+    "ms": "ms"
   },
   "integration": {
-    "configured": "configured",
-    "notConfigured": "not configured",
+    "configured": "Configured",
+    "notConfigured": "Not configured",
     "ready": "ready",
     "missing": "missing",
-    "setupGuide": "Setup guide →"
+    "setupGuide": "Setup guide",
+    "count": "{{configured}} of {{total}} configured"
   },
   "integrations": {
     "email": "Transactional email",
@@ -37,5 +47,13 @@
     "version": "Version",
     "region": "Region",
     "probedAt": "Probed at"
+  },
+  "checkNow": "Check now",
+  "checking": "Checking…",
+  "ledger": {
+    "label": "System health figures",
+    "integrations": "Integrations",
+    "integrationsHint": "Configured in this environment",
+    "version": "Version {{version}}"
   }
 }

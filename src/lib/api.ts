@@ -1252,6 +1252,11 @@ export interface ConnectorAdapterInfo {
   apiKeyFields: Array<{ label: string; key: string; secret: boolean; description?: string; placeholder?: string }> | null
   /** True when the server has the OAuth client_id/secret env vars set. */
   serverConfigured: boolean
+  /** 'coming_soon' entries are catalogue-only and can never be connected. */
+  status?: 'live' | 'coming_soon'
+  market?: string | null
+  nameZh?: string | null
+  descriptionZh?: string | null
 }
 
 export interface ConnectorConnectionRow {

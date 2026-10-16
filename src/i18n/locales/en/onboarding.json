@@ -12,7 +12,7 @@
     "inviteLimit": "You can invite up to 3 teammates here — add more later from Users & Roles.",
     "inviteDuplicate": "That email is already on the list.",
     "title": "Let's set up your workspace",
-    "subtitle": "Five quick steps. Anything you don't have yet, you can fill in later.",
+    "subtitle": "Five short steps. Anything you don't have yet, you can add later.",
     "skip": "Skip for now",
     "continue": "Continue",
     "goToDashboard": "Go to dashboard",
@@ -75,7 +75,60 @@
       "none": "None",
       "teammates_one": "{{count}} teammate",
       "teammates_other": "{{count}} teammates"
-    }
+    },
+    "eyebrow": "Guided setup",
+    "invalidEmail": "Enter a valid email address.",
+    "partial_one": "Workspace created — {{count}} item needs another try",
+    "partial_other": "Workspace created — {{count}} items need another try",
+    "partialBody": "The guided setup shows what is still open.",
+    "created": "{{name}} is ready",
+    "useSample": "Start with sample data instead",
+    "create": "Create workspace",
+    "progressAria": "Step {{step}} of {{total}}",
+    "stepLabels": {
+      "org": "Organisation",
+      "site": "First site",
+      "frameworks": "Frameworks",
+      "team": "Team",
+      "review": "Review"
+    },
+    "stepTitles": {
+      "org": "Tell us about your organisation",
+      "site": "Add your first site",
+      "frameworks": "Pick the frameworks you report against",
+      "team": "Invite up to 3 teammates",
+      "review": "Review and create"
+    },
+    "stepBodies": {
+      "org": "Your market decides the recommended frameworks, emission factors and compliance settings.",
+      "site": "A plant, office or warehouse. Add the rest of the tree afterwards.",
+      "frameworks": "We've pre-selected a starter set for your market. Change it any time in Settings.",
+      "team": "Optional. Invite the rest of your team from Users & roles later.",
+      "review": "Here's what we'll create. Nothing is published."
+    },
+    "market": {
+      "label": "Reporting market",
+      "hint": "You can change this later in Settings → Market & compliance.",
+      "global": {
+        "title": "Global",
+        "body": "GRI, ESRS, ISSB and TCFD; IEA / DEFRA factors.",
+        "short": "Global"
+      },
+      "cn": {
+        "title": "Chinese mainland & Hong Kong",
+        "body": "A-share and A+H issuers: CN-SSE, CSDS, HKEX ESG; MEE factors; data kept onshore.",
+        "short": "China market"
+      }
+    },
+    "cnGuidance": "For A-share issuers the exchange guideline (CN-SSE) is mandatory for in-scope companies; A+H issuers also report under HKEX ESG. Calculations will prefer MEE factors:",
+    "emailLabel": "Teammate email",
+    "roleLabel": "Role",
+    "cnReviewNote": "We'll also set the market to China, data residency to mainland China, the time zone to Asia/Shanghai and the currency to CNY.",
+    "previewAria": "Workspace preview",
+    "previewTitle": "Your workspace",
+    "previewGroup": "Your group",
+    "previewGroupHint": "Sector · country",
+    "previewSite": "First site"
   },
   "gics": {
     "Energy": "Energy",
@@ -105,11 +158,12 @@
       "entities": "Entities",
       "subsidiaries": "Subsidiaries",
       "plants": "Reporting plants",
-      "members": "Assigned members"
+      "members": "Assigned members",
+      "aria": "Org tree summary"
     },
     "treeTitle": "Reporting entity tree",
     "startWithGroup": "Start with a group",
-    "confirmRemove": "Remove this entity and all descendants?",
+    "confirmRemove": "This removes the entity and everything under it. Assignments for these entities stop showing in reports.",
     "pickEntity": "Pick an entity from the tree to view and assign members.",
     "readyTitle": "Ready to collect data?",
     "readyBody": "Once the tree looks right, jump into assignments — pick a GRI question, pick a user, pick the plant it applies to.",
@@ -132,6 +186,161 @@
     "members": "Members ({{count}})",
     "noMembers": "No members assigned to this entity yet.",
     "addMember": "Add member",
-    "scopeNote": "The tree you build here is shared across every reporting framework — you do it once, not per framework. Right now you're preparing to report against <b>{{framework}}</b>; the same entities will power CSRD, CDP, TCFD and ISSB when they come online."
+    "scopeNote": "The tree you build here is shared across every reporting framework — you do it once, not per framework. Right now you're preparing to report against <b>{{framework}}</b>; the same entities will power CSRD, CDP, TCFD and ISSB when they come online.",
+    "saveFailed": "Change not saved",
+    "loadFailed": "Couldn't load the org tree",
+    "nextStep": "The tree is in place. Next: {{step}}.",
+    "added": "Added {{name}}",
+    "removed": "Removed {{name}}",
+    "confirmRemoveTitle": "Remove {{name}}?",
+    "removeMember": "Remove {{name}}"
+  },
+  "setup": {
+    "title": "Set up your workspace",
+    "checking": "Checking your workspace…",
+    "allDone": "Everything is set up.",
+    "progress": "{{completed}} of {{total}} steps done",
+    "cnNote": "Includes the China-market steps: exchange frameworks, MEE factors and Market & compliance.",
+    "dismiss": "Hide setup guide",
+    "hideDone": "Hide completed",
+    "showDone_one": "Show {{count}} completed step",
+    "showDone_other": "Show {{count}} completed steps",
+    "takeTour": "Take the 1-minute tour",
+    "start": "Start",
+    "cnBadge": "China",
+    "sidebarTitle": "Setup",
+    "nextShort": "Next: {{step}}",
+    "openHub": "Open guided setup",
+    "collapsedTitle": "Setup: {{completed}} of {{total}} done",
+    "steps": {
+      "org_tree": {
+        "title": "Build the org tree",
+        "helper": "Add your group, subsidiaries and plants."
+      },
+      "market": {
+        "title": "Confirm market & compliance",
+        "helper": "Data residency, ICP filing, MLPS level and cross-border status."
+      },
+      "frameworks": {
+        "title": "Enable your frameworks",
+        "helper": "Exchange guidelines (CN-SSE, CSDS, HKEX ESG) or GRI, ESRS and ISSB."
+      },
+      "factors": {
+        "title": "Use MEE emission factors",
+        "helper": "China grid and fuel factors from the Ministry of Ecology and Environment."
+      },
+      "users": {
+        "title": "Invite your team",
+        "helper": "Add plant managers, reviewers and officers."
+      },
+      "materiality": {
+        "title": "Run the materiality assessment",
+        "helper": "Score financial and impact materiality for each topic."
+      },
+      "targets": {
+        "title": "Set a climate target",
+        "helper": "Commit to a near-term SBTi or net-zero target."
+      },
+      "period": {
+        "title": "Open a reporting cycle",
+        "helper": "Create the fiscal year you are reporting on."
+      },
+      "assign": {
+        "title": "Assign disclosures",
+        "helper": "Route each indicator to the right contributor."
+      },
+      "publish": {
+        "title": "Publish your first report",
+        "helper": "Once data is approved, generate the hash-anchored report."
+      }
+    }
+  },
+  "tour": {
+    "quickTour": "Quick tour",
+    "skip": "Skip tour",
+    "start": "Start using Nexus",
+    "steps": {
+      "welcome": {
+        "title": "Welcome to Nexus",
+        "body": "Your single workspace for collecting ESG data, drafting framework reports, and publishing assured disclosures. Take a quick tour to see where everything lives."
+      },
+      "day": {
+        "title": "This is your day",
+        "body": "Open assignments, review queue, and the next best action — all on one screen. Start here every morning."
+      },
+      "frameworks": {
+        "title": "Frameworks become documents",
+        "body": "Pick a framework, open the editor, and fill it in like a document. Values link automatically across every report."
+      },
+      "search": {
+        "title": "Cmd+K opens anything",
+        "body": "Press ⌘K to jump to any page, run an action, or find a framework. ⌘N adds something new."
+      }
+    },
+    "close": "Close tour"
+  },
+  "demo": {
+    "stages": {
+      "org": "Organisation tree (group + 3 subsidiaries + 3 plants)",
+      "targets": "Climate targets (SBTi + net-zero)",
+      "materiality": "Material topics (5 priority issues)",
+      "period": "FY2025 reporting cycle"
+    },
+    "seedFailed": "Seed failed",
+    "title": "Load demo sample",
+    "subtitle": "Pre-fills your workspace so you can try every flow in seconds.",
+    "intro": "This will create the following in your workspace. Existing data isn't touched. You can keep, edit, or delete anything afterwards.",
+    "recommended": "Existing data is not touched. Every step is also in the guided setup if you would rather start from scratch.",
+    "working": "Working…",
+    "done": "Done",
+    "allSet": "All set. Closing…",
+    "couldNotSeed": "Couldn't seed the workspace",
+    "load": "Load sample data",
+    "titleCn": "Load China-market sample",
+    "stagesCn": {
+      "org": "Org tree (A+H group, 2 subsidiaries, 3 sites)",
+      "targets": "Climate targets (2030 near-term, 2060 carbon neutrality)",
+      "materiality": "Material topics mapped to the CN-SSE topics",
+      "period": "FY2025 reporting cycle"
+    },
+    "retry": "Try again",
+    "hide": "Hide — I'll set up manually",
+    "ctaTitle": "Start with sample data",
+    "ctaBody": "One click fills an empty workspace with entities, targets, material topics and a reporting cycle, so you can try review, anomalies and publishing straight away."
+  },
+  "guard": {
+    "title": "Live data not found",
+    "message": "This screen reads directly from the Nexus backend. The database appears empty — run the idempotent setup to provision tables and seed FY2022–FY2025 historical values.",
+    "complete": "Setup complete",
+    "failed": "Setup failed",
+    "reloading": "Reloading with live data…",
+    "initializing": "Initializing…",
+    "retry": "Retry initialization",
+    "initialize": "Initialize database",
+    "footnote": "Idempotent. Creates tables if missing, seeds demo SPD data, safe to run multiple times.",
+    "unknownError": "Unknown error"
+  },
+  "hub": {
+    "errorTitle": "Couldn't check your setup",
+    "eyebrow": "Guided setup",
+    "title": "Finish setting up Nexus",
+    "doneTitle": "Your workspace is ready",
+    "body": "{{completed}} of {{total}} steps done. Each step is checked against your real data.",
+    "doneBody": "Every setup step is complete. Replay the tour any time.",
+    "myDay": "Go to My Day",
+    "tourTitle": "Optional tour",
+    "tourBody": "Four stops: My Day, frameworks, search and the review flow.",
+    "cnTitle": "Recommended for China-listed companies",
+    "cnBody": "SSE / SZSE / BSE guidelines, the MOF basic standard and HKEX ESG for A+H issuers.",
+    "globalTitle": "Recommended frameworks",
+    "globalBody": "A starter set most global reporters begin with.",
+    "enabled": "Enabled",
+    "enable": "Enable",
+    "marketSettings": "Review Market & compliance settings",
+    "factorTitle": "National grid factor",
+    "factorLoading": "Checking factors…",
+    "factorMissing": "No preferred China factor yet — open the factor library.",
+    "factorValue": "{{value}} {{unit}} · {{source}} {{version}}",
+    "factorLink": "Open factor library"
   }
 }

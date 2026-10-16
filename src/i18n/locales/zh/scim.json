@@ -2,20 +2,26 @@
   "breadcrumbAdmin": "管理",
   "breadcrumb": "SCIM 令牌",
   "eyebrow": "管理 · 身份",
-  "title": "SCIM 用户预配",
+  "title": "SCIM 预配",
   "subtitle": "签发 SCIM 2.0 Bearer 令牌，让身份提供商（Azure AD、Okta、OneLogin）自动将用户同步到此工作区。",
   "errors": {
     "load": "加载 SCIM 令牌失败",
     "create": "创建 SCIM 令牌失败",
-    "revoke": "吊销令牌失败"
+    "revoke": "吊销失败，该令牌仍然有效。",
+    "loadTitle": "SCIM 令牌未能加载",
+    "loadBody": "暂时无法连接服务器，列表内容尚未确认。所有令牌均未更改。",
+    "refresh": "令牌列表刷新失败"
   },
-  "confirmRevoke": "确定吊销此令牌吗？所有使用该令牌的身份提供商将立即失去访问权限。",
+  "confirmRevoke": "所有使用该令牌的身份提供商将立即停止预配，且无法撤销。",
   "reveal": {
-    "title": "令牌已生成",
-    "body": "此令牌仅显示这一次。请立即复制并粘贴到您的身份提供商中。我们仅存储其哈希值。",
-    "dismiss": "关闭",
+    "title": "请立即复制新的 SCIM 令牌",
+    "body": "此令牌不会再次显示。请立即粘贴到身份提供商中；我们仅存储其哈希值。",
+    "dismiss": "我已妥善保存",
     "copied": "已复制",
-    "copy": "复制"
+    "copy": "复制令牌",
+    "tokenLabel": "Bearer 令牌",
+    "copyFailed": "复制失败，请选中文本后手动复制。",
+    "role": "新用户默认获得“{{role}}”角色。"
   },
   "generate": {
     "heading": "生成新的 SCIM 令牌",
@@ -27,7 +33,8 @@
     "viewer": "查看者",
     "analyst": "分析师",
     "team-lead": "团队负责人",
-    "auditor": "审计员"
+    "auditor": "审计员",
+    "contributor": "填报人"
   },
   "setup": {
     "heading": "身份提供商配置说明",
@@ -42,12 +49,13 @@
     "azureTitle": "Azure AD",
     "azureBody": "企业应用程序 → 您的应用 → 预配。将“Tenant URL”（租户 URL）设为上方的基础 URL，并将令牌粘贴到“Secret Token”（机密令牌）中。测试连接后即可开始预配。",
     "oktaTitle": "Okta",
-    "oktaBody": "Application → Provisioning → Integration。启用 API 集成，将基础 URL 粘贴到“SCIM connector base URL”，并将令牌填入“OAuth Bearer Token”。"
+    "oktaBody": "Application → Provisioning → Integration。启用 API 集成，将基础 URL 粘贴到“SCIM connector base URL”，并将令牌填入“OAuth Bearer Token”。",
+    "copyUrl": "复制 URL"
   },
   "table": {
-    "heading": "有效令牌",
+    "heading": "令牌",
     "emptyTitle": "暂无 SCIM 令牌",
-    "emptyBody": "在上方生成 Bearer 令牌，并粘贴到您的身份提供商（Azure AD、Okta、Google Workspace）中，即可开始自动预配用户。",
+    "emptyBody": "生成 Bearer 令牌并粘贴到身份提供商（Azure AD、Okta、Google Workspace）中，即可开始自动预配用户。",
     "prefix": "前缀",
     "defaultRole": "默认角色",
     "status": "状态",
@@ -56,7 +64,17 @@
     "actions": "操作",
     "active": "有效",
     "revoked": "已吊销",
-    "never": "从未",
-    "revoke": "吊销"
+    "never": "从未使用",
+    "revoke": "吊销",
+    "count": "有效 {{active}} 个，共 {{total}} 个",
+    "revokeNamed": "吊销令牌 {{prefix}}"
+  },
+  "revokeSheet": {
+    "title": "吊销令牌 {{prefix}}…？",
+    "confirm": "吊销令牌"
+  },
+  "toast": {
+    "created": "已生成 SCIM 令牌",
+    "revoked": "已吊销令牌 {{prefix}}…"
   }
 }

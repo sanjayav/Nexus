@@ -13,7 +13,12 @@
     "refresh": "刷新",
     "addAsset": "添加资产",
     "loadFailed": "投资组合加载失败",
-    "loadingPortfolio": "正在加载投资组合…"
+    "loadingPortfolio": "正在加载投资组合…",
+    "lockedTitle": "您没有 PCAF 资产的访问权限",
+    "reportingYear": "报告年度",
+    "emptyTitle": "FY{{year}} 暂无 PCAF 资产",
+    "emptyBody": "添加上市股权、贷款、债券等持仓，开始核算投融资排放。",
+    "refreshFailed": "投资组合刷新失败，当前显示上次加载的数据"
   },
   "kpi": {
     "totalFinanced": "融资排放总量",
@@ -24,19 +29,23 @@
     "coverageSubtle": "占未偿余额",
     "outstanding": "投资组合未偿余额",
     "assetCount_one": "{{count}} 项资产",
-    "assetCount_other": "{{count}} 项资产"
+    "assetCount_other": "{{count}} 项资产",
+    "label": "投资组合概览"
   },
   "charts": {
     "byAssetClass": "按资产类别划分的融资排放",
     "contribution": "各资产类别贡献（tCO₂e）",
-    "empty": "本报告年度尚无资产。"
+    "empty": "本报告年度尚无资产。",
+    "unit": "tCO₂e，融资排放",
+    "financed": "融资排放"
   },
   "summaryTable": {
     "assetClass": "资产类别",
     "assets": "资产数",
     "outstanding": "未偿余额",
     "financedEmissions": "融资排放",
-    "weightedDq": "加权数据质量评分"
+    "weightedDq": "加权数据质量评分",
+    "title": "按资产类别"
   },
   "sync": {
     "title": "同步至范围三",
@@ -45,12 +54,17 @@
     "button": "同步至范围三",
     "pickFacility": "请选择要关联范围三记录的设施",
     "failed": "同步失败",
-    "success": "已同步 {{total}} CO₂e（加权数据质量评分 {{dq}}）——activity_data ID {{id}}…"
+    "success": "已同步 {{total}} CO₂e（加权数据质量评分 {{dq}}）——activity_data ID {{id}}…",
+    "facility": "设施",
+    "toast": "已将 {{total}} 同步至范围三类别 15",
+    "disabledHint": "请先添加资产再同步。"
   },
   "drawer": {
     "title": "添加 PCAF 资产",
     "pickDifferent": "← 选择其他资产类别",
-    "close": "关闭"
+    "close": "关闭",
+    "saved": "资产已保存",
+    "intro": "请选择与持仓相符的 PCAF 资产类别，各类别采用不同的归因规则。"
   },
   "grid": {
     "searchPlaceholder": "搜索交易对手…",
@@ -68,7 +82,17 @@
     "emptyAfter": "」添加第一项资产。",
     "confirm": "确认",
     "cancel": "取消",
-    "delete": "删除"
+    "delete": "删除",
+    "title": "投资组合",
+    "deleteTitle": "删除 {{name}}？",
+    "deleteBody": "该资产及其融资排放将从本报告年度移除，已同步的范围三记录不受影响。",
+    "deleted": "已删除 {{name}}",
+    "deleteFailed": "资产删除失败",
+    "emptyTitle": "暂无资产",
+    "emptyBody": "添加第一项持仓后，可在此查看其归因因子与数据质量。",
+    "actions": "操作",
+    "dqTitle": "PCAF 数据质量评分（1 最佳 – 5）",
+    "deleteAria": "删除 {{name}}"
   },
   "calculator": {
     "methodology": "PCAF 方法学",
@@ -91,7 +115,10 @@
       "dataQuality": "数据质量评分",
       "dqValue": "DQ {{score}} / 5",
       "rationale": "计算依据"
-    }
+    },
+    "verified": "服务器计算结果一致",
+    "serverVerified": "已经服务器验证",
+    "choose": "请选择……"
   },
   "assetClasses": {
     "listed_equity": {
@@ -458,5 +485,16 @@
     "projectType": "项目类型强度（{{intensity}} kgCO2e/USD，{{type}}）× 项目价值 × 归因因子",
     "reportedCountry": "已报告国家排放 {{mt}} MtCO2e × 归因因子（{{attr}}）",
     "countryEf": "国家排放因子 {{rate}} tCO2e/USDm（{{type}}）× GDP-PPP × 归因因子"
+  },
+  "dq": {
+    "title": "数据质量分布",
+    "subtitle": "按 PCAF 评分划分的未偿余额占比",
+    "level": "DQ {{n}}",
+    "desc1": "经核验的报告排放",
+    "desc2": "未经核验的报告排放",
+    "desc3": "基于实物活动的估算",
+    "desc4": "基于营业收入的估算",
+    "desc5": "基于资产的估算",
+    "footnote": "PCAF 评分从 1（最佳）到 5，应逐步提高 DQ 1–2 的未偿余额占比。"
   }
 }

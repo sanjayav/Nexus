@@ -10,7 +10,7 @@ import {
   FileText, BookMarked, Library,
   UserCog, Plug, BookOpen, Atom, Calculator as CalcIcon, AlertTriangle, Paperclip,
   Sparkles, Users, Scale, Target as TargetIcon, Settings as SettingsIcon,
-  ShieldCheck, Activity, KeyRound,
+  ShieldCheck, Activity, KeyRound, Leaf, CalendarRange, Hash,
   // Chrome
   ChevronLeft, ChevronRight, ChevronDown, LogOut,
 } from 'lucide-react'
@@ -22,6 +22,8 @@ import { orgStore } from '../../lib/orgStore'
 import NexusBrandCard from '../../components/NexusBrandCard'
 import { ContourField } from '../illustrations/ContourField'
 import { spring } from '../../motion/tokens'
+import { useFramework } from '../../lib/frameworks'
+import { isOpenAssignment } from '../../lib/journey'
 
 type NavItem = {
   path: string
@@ -76,7 +78,9 @@ const NAV: NavGroup[] = [
     key: 'data', label: 'shell.nav.groups.data', icon: Database,
     roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'plant_manager', 'data_contributor'],
     items: [
-      { path: '/data',                label: 'shell.nav.items.values',            icon: UserCog,
+      { path: '/admin/assignments',   label: 'shell.nav.items.assignments',       icon: UserCog,
+        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead'] },
+      { path: '/data',                label: 'shell.nav.items.dataCollection',    icon: Database,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead'] },
       { path: '/data/spreadsheet',    label: 'shell.nav.items.spreadsheet',       icon: ClipboardList,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'plant_manager', 'data_contributor'] },
@@ -84,6 +88,8 @@ const NAV: NavGroup[] = [
       { path: '/calculators',         label: 'shell.nav.items.calculators',       icon: CalcIcon },
       { path: '/calculators/pcaf',    label: 'shell.nav.items.pcafPortfolio',    icon: Scale, pin: true,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead'] },
+      { path: '/data/green-ledger',   label: 'shell.nav.items.greenLedger',       icon: Leaf,
+        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'plant_manager'] },
       { path: '/data/connectors',     label: 'shell.nav.items.connectors',        icon: Plug },
       { path: '/data/ef-library',     label: 'shell.nav.items.emissionFactors',  icon: BookOpen,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead'] },
@@ -107,13 +113,14 @@ const ADMIN_TRAY: NavItem[] = [
   // still reachable from the workspace setup card; the legacy org tree
   // editor lives on at /admin/org/legacy.
   { path: '/admin/users',         label: 'shell.nav.items.usersRoles',   icon: Users,        roles: ['platform_admin'] },
+  { path: '/admin/periods',       label: 'shell.nav.items.reportingCycles', icon: CalendarRange, roles: ['platform_admin', 'group_sustainability_officer'] },
   { path: '/admin/materiality',   label: 'shell.nav.items.materiality',     icon: Scale,        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner'] },
   { path: '/admin/targets',       label: 'shell.nav.items.climateTargets', icon: TargetIcon,   roles: ['platform_admin', 'group_sustainability_officer'] },
   { path: '/admin/data-standard', label: 'shell.nav.items.dataStandard',   icon: BookOpen,     roles: ['platform_admin', 'group_sustainability_officer'] },
   { path: '/admin/audit',         label: 'shell.nav.items.activityHistory', icon: ShieldCheck, roles: ['platform_admin', 'auditor'] },
   { path: '/admin/api-keys',      label: 'shell.nav.items.apiKeys',        icon: KeyRound,     roles: ['platform_admin'] },
   { path: '/admin/scim',          label: 'shell.nav.items.scim',            icon: KeyRound,     roles: ['platform_admin'] },
-  { path: '/admin/blockchain',    label: 'shell.nav.items.blockchain',      icon: ShieldCheck,  roles: ['platform_admin', 'auditor'] },
+  { path: '/admin/blockchain',    label: 'shell.nav.items.blockchain',      icon: Hash,  roles: ['platform_admin', 'auditor'] },
   { path: '/admin/system-status', label: 'shell.nav.items.systemStatus',   icon: Activity,     roles: ['platform_admin'] },
   { path: '/admin/settings',      label: 'shell.nav.items.settings',        icon: SettingsIcon, roles: ['platform_admin'] },
 ]
@@ -284,6 +291,15 @@ function isMatch(pathname: string, target: string): boolean {
   return pathname === target || pathname.startsWith(target + '/')
 }
 
+const ALL_PATHS = [...NAV.flatMap(g => g.items.map(it => it.path)), ...ADMIN_TRAY.map(it => it.path)]
+
+/** Active only when no more specific nav item also matches (so /data/evidence
+ *  lights "Evidence", not "Data collection" as well). */
+function isActivePath(pathname: string, target: string): boolean {
+  if (!isMatch(pathname, target)) return false
+  return !ALL_PATHS.some(p => p !== target && p.length > target.length && isMatch(pathname, p))
+}
+
 // ─── Section (collapsible) ─────────────────────────────────────
 
 type BadgeMap = { myTasks: number; reviewQueue: number; approvalQueue: number; anomalies: number }
@@ -441,7 +457,7 @@ function tourTagFor(path: string): string | undefined {
 function ChildItem({ item, badges, pathname }: { item: NavItem; badges: BadgeMap; pathname: string }) {
   const { t } = useTranslation()
   const Icon = item.icon
-  const isActive = isMatch(pathname, item.path)
+  const isActive = isActivePath(pathname, item.path)
   const badge = item.badgeKey ? badges[item.badgeKey] : 0
   const tourTag = tourTagFor(item.path)
 
@@ -498,7 +514,7 @@ function ChildItem({ item, badges, pathname }: { item: NavItem; badges: BadgeMap
 function IconOnlyItem({ item, badges, pathname }: { item: NavItem; badges: BadgeMap; pathname: string }) {
   const { t } = useTranslation()
   const Icon = item.icon
-  const isActive = isMatch(pathname, item.path)
+  const isActive = isActivePath(pathname, item.path)
   const badge = item.badgeKey ? badges[item.badgeKey] : 0
   const tourTag = tourTagFor(item.path)
 
@@ -551,6 +567,7 @@ function IconOnlyItem({ item, badges, pathname }: { item: NavItem; badges: Badge
 
 function useBadges() {
   const { user } = useAuth()
+  const { active: framework } = useFramework()
   const [badges, setBadges] = useState<BadgeMap>({ myTasks: 0, reviewQueue: 0, approvalQueue: 0, anomalies: 0 })
 
   useEffect(() => {
@@ -558,19 +575,20 @@ function useBadges() {
     let cancelled = false
     const load = async () => {
       try {
-        const [rows, anomalies] = await Promise.all([
+        const [mine, rows, anomalies] = await Promise.all([
+          // Same source and definition as My Day / My Tasks (lib/journey):
+          // my assignments in the active framework that are open — not
+          // started, in progress or sent back.
+          orgStore.myAssignments(),
           orgStore.listAssignments(),
           orgStore.anomalyScan('role', { limit: 1 }).catch(() => ({ summary: { critical: 0, warn: 0, info: 0, total: 0, suppressed_total: 0, by_type: {} } as any })),
         ])
         if (cancelled) return
-        const email = user.email.toLowerCase()
+        const fw = rows.filter(a => a.framework_id === framework.id)
         setBadges({
-          myTasks: rows.filter(a =>
-            a.assigneeEmail.toLowerCase() === email &&
-            (a.status === 'not_started' || a.status === 'in_progress' || a.status === 'rejected')
-          ).length,
-          reviewQueue: rows.filter(a => a.status === 'submitted').length,
-          approvalQueue: rows.filter(a => a.status === 'reviewed').length,
+          myTasks: mine.filter(a => a.framework_id === framework.id && isOpenAssignment(a)).length,
+          reviewQueue: fw.filter(a => a.status === 'submitted').length,
+          approvalQueue: fw.filter(a => a.status === 'reviewed').length,
           anomalies: anomalies.summary?.critical ?? 0,
         })
       } catch { /* silent */ }
@@ -578,7 +596,7 @@ function useBadges() {
     load()
     const iv = setInterval(load, 30000)
     return () => { cancelled = true; clearInterval(iv) }
-  }, [user?.email])
+  }, [user?.email, framework.id])
 
   return badges
 }

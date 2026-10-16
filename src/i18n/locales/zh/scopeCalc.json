@@ -87,7 +87,8 @@
     "verifiedOf12": "已验证 {{count}}/12",
     "submitting": "提交中…",
     "viewProof": "查看区块链证明",
-    "submitForReview": "提交审核"
+    "submitForReview": "提交审核",
+    "expand": "展开排放源明细"
   },
   "toast": {
     "monthSubmitted": "{{month}}数据已提交审核",
@@ -96,7 +97,8 @@
     "monthsSubmitted_other": "已提交 {{count}} 个月的数据供审核",
     "draftSaved": "草稿已保存",
     "exporting": "正在将{{scope}}数据导出为 {{format}}…",
-    "downloaded": "{{format}} 文件已下载"
+    "downloaded": "{{format}} 文件已下载",
+    "exportFailed": "导出失败"
   },
   "proofDataPoint": "{{scope}}排放 - {{month}}",
   "kpi": {
@@ -106,7 +108,8 @@
     "production": "产量",
     "productionUnit": "2026 财年产量（吨）",
     "completeness": "数据完整度",
-    "completenessSub": "12 个月中已有 {{count}} 个月提交或验证"
+    "completenessSub": "12 个月中已有 {{count}} 个月提交或验证",
+    "label": "排放强度与完整度"
   },
   "methodModal": {
     "title": "计算方法",
@@ -272,6 +275,11 @@
     "heading": "{{month}} — 排放源明细",
     "production": "产量：",
     "tonnes": "吨",
-    "intensity": "强度："
-  }
+    "intensity": "强度：",
+    "invalid": "请输入大于或等于 0 的数值。",
+    "edit": "编辑{{source}}"
+  },
+  "facilityLabel": "设施",
+  "scopeTabs": "范围",
+  "close": "关闭"
 }

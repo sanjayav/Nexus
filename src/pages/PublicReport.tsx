@@ -1,20 +1,22 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { CheckCircle2, ShieldCheck, FileText, Lock, AlertTriangle, Printer, ExternalLink } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { ArrowUpRight, BadgeCheck, ChevronDown, FileText, Lock, Printer, ShieldCheck } from 'lucide-react'
 import { itemLabel } from '../lib/itemLabel'
+import { useFmt } from '../lib/fmt'
+import { EmptyState, Skeleton, StatusPill } from '../components/ui'
+import PublicFrame from '../components/review/PublicFrame'
+import { frameworkName, usePublicLanguage } from '../components/review/reportLang'
+import { dur, ease, riseIn } from '../motion/tokens'
 
 /**
- * Public, no-auth view of a published report. Rendered OUTSIDE the AppShell.
+ * Public, no-auth view of a published report, rendered outside the AppShell.
  *
- * The endpoint enforces:
- *   · token validity + active flag
- *   · expiry
- *   · optional password (bcrypt-compared server-side)
- *   · is_draft = false (so unpublished/draft data never leaks)
- *
- * This page only displays fields the published-report shape allows — no
- * internal comments, no draft values, no user-private data.
+ * The endpoint enforces token validity, the active flag, expiry, an optional
+ * password (bcrypt-compared server-side) and is_draft = false, so draft data
+ * never leaks. This page only displays fields the published-report shape
+ * allows — no internal comments, no draft values, no private user data.
  */
 interface PublicReportPayload {
   ok: true
@@ -23,6 +25,8 @@ interface PublicReportPayload {
   report: {
     id: string
     framework_id: string
+    /** Report language, when the API provides it (report_artifacts.locale). */
+    locale?: string | null
     version: number
     published_at: string
     is_draft: boolean
@@ -52,270 +56,276 @@ interface PublicReportPayload {
   } | null
 }
 
+type Failure = { kind: 'gone' | 'notFound' | 'other'; message: string }
+
 export default function PublicReport() {
-  const { t, i18n } = useTranslation()
-  const zh = i18n.language?.startsWith('zh')
-  // Keep the browser default for English; force zh-CN dates when Chinese.
-  const locale = zh ? 'zh-CN' : undefined
+  const { t } = useTranslation()
   const { token } = useParams<{ token: string }>()
   const [search] = useSearchParams()
   const [data, setData] = useState<PublicReportPayload | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [failure, setFailure] = useState<Failure | null>(null)
   const [needsPassword, setNeedsPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(true)
+  const { lang, setLang } = usePublicLanguage(data?.report?.locale ?? null)
 
   const load = async (p?: string) => {
     if (!token) return
-    setLoading(true); setError(null)
+    setLoading(true)
+    setFailure(null)
     try {
       const u = new URL(`/api/org?view=public-report&token=${encodeURIComponent(token)}`, window.location.origin)
       if (p) u.searchParams.set('p', p)
       const res = await fetch(u.toString())
       const body = await res.json().catch(() => ({} as { error?: string; password_required?: boolean }))
       if (!res.ok) {
-        if (body.password_required) { setNeedsPassword(true); setError(p ? t('publicReportPage.errors.invalidPassword') : null); setLoading(false); return }
-        setError(body.error ?? t('publicReportPage.errors.loadFailed')); setLoading(false); return
+        if (body.password_required) {
+          setNeedsPassword(true)
+          setPasswordError(p ? t('publicReportPage.errors.invalidPassword') : null)
+          return
+        }
+        setFailure({
+          kind: res.status === 410 ? 'gone' : res.status === 404 ? 'notFound' : 'other',
+          message: body.error ?? t('publicReportPage.errors.loadFailed'),
+        })
+        return
       }
       setData(body as PublicReportPayload)
       setNeedsPassword(false)
     } catch (e) {
-      setError(e instanceof Error ? e.message : t('publicReportPage.errors.loadFailed'))
+      setFailure({ kind: 'other', message: e instanceof Error ? e.message : t('publicReportPage.errors.loadFailed') })
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    const p = search.get('p') ?? undefined
-    void load(p)
+    void load(search.get('p') ?? undefined)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
-  if (loading) {
+  const chip = <><FileText className="w-3.5 h-3.5" /> {t('publicReportPage.chip')}</>
+
+  if (loading && !data) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-[var(--text-secondary)]">
-        {t('publicReportPage.loading')}
-      </div>
+      <PublicFrame chip={chip} lang={lang} onLangChange={setLang} width="lg">
+        <div role="status" aria-busy="true" className="space-y-6">
+          <span className="sr-only">{t('publicReportPage.loading')}</span>
+          <Skeleton height={14} width={180} />
+          <Skeleton height={48} width="70%" />
+          <Skeleton height={16} width="50%" />
+          <Skeleton height={320} rounded="lg" className="block mt-8" />
+        </div>
+      </PublicFrame>
     )
   }
 
   if (needsPassword) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <form
-          onSubmit={(e) => { e.preventDefault(); void load(password) }}
-          className="max-w-sm w-full surface-paper p-6 space-y-4"
+      <PublicFrame chip={chip} lang={lang} onLangChange={setLang} width="sm">
+        <motion.form
+          {...riseIn(0)}
+          onSubmit={(e) => { e.preventDefault(); if (password) void load(password) }}
+          className="surface-paper max-w-md mx-auto p-6 sm:p-8"
         >
-          <div className="flex items-center gap-2 text-[var(--text-primary)]">
+          <span className="w-11 h-11 rounded-full inline-flex items-center justify-center bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)]">
             <Lock className="w-5 h-5" />
-            <h1 className="font-display text-[18px] font-semibold">{t('publicReportPage.password.title')}</h1>
-          </div>
-          <p className="text-[13px] text-[var(--text-secondary)]">
-            {t('publicReportPage.password.body')}
-          </p>
-          {error && <div className="text-[12px] text-[var(--accent-red)]">{error}</div>}
-          <input
-            autoFocus
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder={t('publicReportPage.password.placeholder')}
-            className="w-full px-3 py-2 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] text-[14px]"
+          </span>
+          <h1 className="type-h2 text-[var(--text-primary)] mt-4">{t('publicReportPage.password.title')}</h1>
+          <p className="type-small text-[var(--text-secondary)] mt-1.5">{t('publicReportPage.password.body')}</p>
+          <label className="block mt-5">
+            <span className="sr-only">{t('publicReportPage.password.placeholder')}</span>
+            <input
+              autoFocus
+              type="password"
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); setPasswordError(null) }}
+              placeholder={t('publicReportPage.password.placeholder')}
+              aria-invalid={!!passwordError}
+              aria-describedby={passwordError ? 'pw-err' : undefined}
+              className={`w-full h-11 px-3.5 rounded-[var(--radius-md)] border bg-[var(--bg-primary)] type-body text-[var(--text-primary)] outline-none ${passwordError ? 'border-[var(--status-danger)]' : 'border-[var(--border-default)] focus:border-[var(--border-focus)]'}`}
+            />
+          </label>
+          {passwordError && <p id="pw-err" role="alert" className="text-caption text-[var(--status-danger)] mt-1.5">{passwordError}</p>}
+          <button
+            type="submit"
+            disabled={!password || loading}
+            className="mt-4 w-full h-11 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] hover:bg-[var(--btn-primary-bg-hover)] text-small font-semibold disabled:opacity-50"
+          >
+            {t('publicReportPage.password.submit')}
+          </button>
+        </motion.form>
+      </PublicFrame>
+    )
+  }
+
+  if (failure || !data?.report) {
+    const gone = failure?.kind === 'gone'
+    return (
+      <PublicFrame chip={chip} lang={lang} onLangChange={setLang} width="sm">
+        <div className="surface-paper">
+          <EmptyState
+            variant={failure?.kind === 'other' ? 'error' : 'empty'}
+            art={failure?.kind === 'other' ? 'error' : 'offline'}
+            title={gone ? t('publicReportPage.errors.goneTitle') : failure?.kind === 'other' ? t('publicReportPage.errors.title') : t('publicReportPage.unavailable')}
+            body={gone ? t('publicReportPage.errors.goneBody') : failure?.kind === 'other' ? t('publicReportPage.errors.body') : t('publicReportPage.errors.notFoundBody')}
+            detail={failure?.kind === 'other' ? failure.message : null}
+            onRetry={failure?.kind === 'other' ? () => void load(password || undefined) : undefined}
           />
-          <button type="submit" className="w-full chip chip-active">{t('publicReportPage.password.submit')}</button>
-        </form>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="max-w-md w-full surface-paper p-6 text-center space-y-3">
-          <AlertTriangle className="w-8 h-8 mx-auto text-[var(--accent-amber)]" />
-          <h1 className="font-display text-[18px] font-semibold text-[var(--text-primary)]">{t('publicReportPage.errors.title')}</h1>
-          <p className="text-[13px] text-[var(--text-secondary)]">{error}</p>
         </div>
-      </div>
+      </PublicFrame>
     )
   }
-
-  const r = data?.report
-  if (!r) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-[var(--text-secondary)]">
-        {t('publicReportPage.unavailable')}
-      </div>
-    )
-  }
-
-  const numericSections = r.sections.filter(s => s.response_type !== 'narrative' && s.value !== null)
-  const narrativeSections = r.sections.filter(s => s.response_type === 'narrative' && s.narrative_body)
 
   return (
-    <div className="min-h-screen bg-[var(--bg-app)] print:bg-white">
-      {/* Brand strip */}
-      <header
-        className="border-b border-[var(--border-subtle)] bg-white print:border-b print:border-black"
-      >
-        <div className="max-w-[960px] mx-auto px-6 py-5 flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <span
-              className="w-8 h-8 rounded-md flex items-center justify-center text-white"
-              style={{ background: 'linear-gradient(135deg, #10B981, #047857)' }}
-            >
-              <ShieldCheck className="w-4 h-4" />
-            </span>
-            <div>
-              <div className="text-micro uppercase tracking-[0.06em] font-bold text-[var(--text-tertiary)]">
-                {t('publicReport.header')}
-              </div>
-              <div className="font-display text-[15px] font-semibold text-[var(--text-primary)]">
-                {r.org_name}
-              </div>
-            </div>
-          </div>
-          <button
-            onClick={() => window.print()}
-            className="chip inline-flex items-center gap-1.5 print:hidden"
-          >
-            <Printer className="w-3.5 h-3.5" /> {t('publicReportPage.print')}
-          </button>
+    <PublicFrame chip={chip} lang={lang} onLangChange={setLang} width="lg">
+      <ReportBody r={data.report} />
+    </PublicFrame>
+  )
+}
+
+function ReportBody({ r }: { r: NonNullable<PublicReportPayload['report']> }) {
+  const { t, i18n } = useTranslation()
+  const f = useFmt()
+  const numeric = useMemo(() => r.sections.filter(s => s.response_type !== 'narrative' && s.value !== null), [r.sections])
+  const narrative = useMemo(() => r.sections.filter(s => s.response_type === 'narrative' && s.narrative_body), [r.sections])
+  const fw = frameworkName(r.framework_id, i18n.language)
+
+  return (
+    <article className="space-y-10">
+      {/* Cover */}
+      <motion.header {...riseIn(0)} className="pb-8 border-b border-[var(--border-default)]">
+        <div className="text-small font-semibold text-[var(--color-brand-strong)]">{fw}</div>
+        <h1 className="type-display-xl text-[var(--text-primary)] mt-3 text-balance break-words">{r.org_name}</h1>
+        <p className="type-h3 font-normal text-[var(--text-secondary)] mt-3">
+          {t('publicReportPage.reportTitle', { period: r.period_label })}
+        </p>
+        <div className="mt-6 flex flex-wrap items-center gap-2">
+          {r.signed_at
+            ? <StatusPill tone="success" icon={<BadgeCheck />}>{t('publicReportPage.assuredBy', { firm: r.auditor_firm ?? t('publicReportPage.footer.auditor') })}</StatusPill>
+            : <StatusPill tone="neutral">{t('publicReportPage.notAssured')}</StatusPill>}
+          {r.anchor_tip_hash && <StatusPill tone="brand" icon={<ShieldCheck />}>{t('publicReportPage.anchored.pill')}</StatusPill>}
+          <span className="text-small text-[var(--text-tertiary)] ml-1">
+            {t('publicReportPage.meta', { version: r.version, date: f.date(r.published_at) })}
+          </span>
         </div>
-      </header>
+        <div className="mt-6 flex flex-wrap gap-2 print:hidden">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="h-10 px-4 inline-flex items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-small font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+          >
+            <Printer className="w-4 h-4" /> {t('publicReportPage.print')}
+          </button>
+          <a
+            href={`/verify/${r.verification_token}`}
+            className="h-10 px-4 inline-flex items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] hover:bg-[var(--btn-primary-bg-hover)] shadow-[var(--btn-primary-shadow)] text-small font-semibold"
+          >
+            <ShieldCheck className="w-4 h-4" /> {t('publicReportPage.verifyCta')}
+          </a>
+        </div>
+      </motion.header>
 
-      <main className="max-w-[960px] mx-auto px-6 py-8 space-y-8">
-        {/* Title + period + framework */}
-        <section className="space-y-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 chip chip-active">
-              <FileText className="w-3 h-3" /> {r.framework_id.toUpperCase()}
-            </span>
-            <span className="chip">{r.period_label} · {r.period_year}</span>
-            <span className="chip">v{r.version}</span>
-            {r.signed_at && <span className="chip inline-flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> {t('publicReportPage.assured')}</span>}
-          </div>
-          <h1 className="font-display text-[28px] font-bold text-[var(--text-primary)]">
-            {t('publicReportPage.reportTitle', { org: r.org_name })}
-          </h1>
-          <p className="text-[13px] text-[var(--text-secondary)]">
-            {t('publicReportPage.meta', {
-              period: r.period_label,
-              year: r.period_year,
-              framework: r.framework_id.toUpperCase(),
-              date: new Date(r.published_at).toLocaleDateString(locale),
-            })}
-          </p>
-        </section>
-
-        {/* Disclosure sections */}
-        {numericSections.length > 0 && (
-          <Accordion title={t('publicReportPage.quantitative')} defaultOpen>
-            <table className="w-full text-[13px]">
+      {numeric.length > 0 && (
+        <Section title={t('publicReportPage.quantitative')} count={numeric.length}>
+          <div className="overflow-x-auto -mx-1 px-1">
+            <table className="data-table min-w-[560px]">
               <thead>
-                <tr className="text-left text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)]">
-                  <th className="py-2 pr-4">{t('publicReportPage.table.code')}</th>
-                  <th className="py-2 pr-4">{t('publicReportPage.table.lineItem')}</th>
-                  <th className="py-2 pr-4 text-right">{t('publicReportPage.table.value')}</th>
-                  <th className="py-2 pr-4">{t('publicReportPage.table.unit')}</th>
+                <tr>
+                  <th className="w-[96px]">{t('publicReportPage.table.code')}</th>
+                  <th>{t('publicReportPage.table.lineItem')}</th>
+                  <th className="num">{t('publicReportPage.table.value')}</th>
+                  <th className="w-[120px]">{t('publicReportPage.table.unit')}</th>
                 </tr>
               </thead>
               <tbody>
-                {numericSections.map((s, i) => (
-                  <tr key={i} className="border-b border-[var(--border-subtle)]">
-                    <td className="py-2 pr-4 font-mono text-[12px]">{s.gri_code}</td>
-                    <td className="py-2 pr-4 text-[var(--text-primary)]">{itemLabel(s, i18n.language)}</td>
-                    <td className="py-2 pr-4 text-right tabular-nums font-semibold">
-                      {typeof s.value === 'number' ? s.value.toLocaleString(locale) : '—'}
-                    </td>
-                    <td className="py-2 pr-4 text-[var(--text-tertiary)]">{s.unit ?? ''}</td>
+                {numeric.map((s, i) => (
+                  <tr key={i}>
+                    <td className="font-mono text-caption whitespace-nowrap">{s.gri_code}</td>
+                    <td className="text-[var(--text-primary)]">{itemLabel(s, i18n.language)}</td>
+                    <td className="num font-semibold text-[var(--text-primary)]">{f.number(s.value)}</td>
+                    <td className="text-[var(--text-tertiary)] whitespace-nowrap">{f.unit(s.unit)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </Accordion>
-        )}
-
-        {narrativeSections.length > 0 && (
-          <Accordion title={t('publicReportPage.narrative')} defaultOpen>
-            <div className="space-y-4">
-              {narrativeSections.map((s, i) => (
-                <div key={i}>
-                  <div className="flex items-baseline gap-2 mb-1">
-                    <span className="font-mono text-caption text-[var(--text-tertiary)]">{s.gri_code}</span>
-                    <h3 className="text-[14px] font-semibold text-[var(--text-primary)]">{itemLabel(s, i18n.language)}</h3>
-                  </div>
-                  <p className="text-[13px] text-[var(--text-secondary)] whitespace-pre-line">
-                    {s.narrative_body}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </Accordion>
-        )}
-
-        {/* Verify on blockchain */}
-        {r.anchor_tip_hash && (
-          <section className="surface-paper p-4 text-[13px]">
-            <div className="flex items-center gap-2 mb-1">
-              <ShieldCheck className="w-4 h-4 text-[var(--color-brand)]" />
-              <span className="font-semibold text-[var(--text-primary)]">{t('publicReportPage.anchored.title')}</span>
-            </div>
-            <p className="text-[var(--text-secondary)]">
-              {t('publicReportPage.anchored.body')}{' '}
-              <a
-                href={`/verify/${r.verification_token}`}
-                className="inline-flex items-center gap-0.5 text-[var(--color-brand)] hover:underline"
-              >
-                {t('publicReport.verifyBlockchain')} <ExternalLink className="w-3 h-3" />
-              </a>
-            </p>
-          </section>
-        )}
-
-        {/* Footer */}
-        <footer className="border-t border-[var(--border-subtle)] pt-4 text-[12px] text-[var(--text-tertiary)] space-y-1">
-          <div>
-            {t('publicReportPage.footer.generated', { date: new Date(r.published_at).toLocaleString(locale) })}
-            {r.anchored_at && t('publicReportPage.footer.lastVerified', { date: new Date(r.anchored_at).toLocaleString(locale) })}
           </div>
+        </Section>
+      )}
+
+      {narrative.length > 0 && (
+        <Section title={t('publicReportPage.narrative')} count={narrative.length}>
+          <div className="space-y-8">
+            {narrative.map((s, i) => (
+              <div key={i} className="max-w-[70ch]">
+                <div className="font-mono text-caption text-[var(--text-tertiary)]">{s.gri_code}</div>
+                <h3 className="type-h3 text-[var(--text-primary)] mt-1">{itemLabel(s, i18n.language)}</h3>
+                <p className="type-body text-[var(--text-secondary)] mt-2 whitespace-pre-line text-pretty">{s.narrative_body}</p>
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {numeric.length === 0 && narrative.length === 0 && (
+        <EmptyState framed art="noData" title={t('publicReportPage.noSections')} body={t('publicReportPage.noSectionsBody')} />
+      )}
+
+      {/* Integrity */}
+      <section aria-labelledby="integrity-h" className="surface-paper p-6 sm:p-8 grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-end break-inside-avoid">
+        <div className="min-w-0">
+          <h2 id="integrity-h" className="type-h3 text-[var(--text-primary)]">{t('publicReportPage.integrity.title')}</h2>
+          <p className="type-small text-[var(--text-secondary)] mt-1.5 max-w-[62ch]">
+            {r.anchor_tip_hash ? t('publicReportPage.anchored.body') : t('publicReportPage.integrity.notAnchored')}
+          </p>
+          <div className="mt-4 text-caption text-[var(--text-tertiary)]">SHA-256</div>
+          <div className="font-mono text-caption text-[var(--text-primary)] break-all mt-0.5">{r.pdf_sha256}</div>
           {r.signed_at && (
-            <div>
-              {t('publicReportPage.footer.assuredBy', {
-                firm: r.auditor_firm ?? t('publicReportPage.footer.auditor'),
-                signer: r.signed_by,
-                date: new Date(r.signed_at).toLocaleDateString(locale),
-              })}
+            <p className="type-small text-[var(--text-secondary)] mt-4">
+              {t('publicReportPage.footer.assuredBy', { firm: r.auditor_firm ?? t('publicReportPage.footer.auditor'), signer: r.signed_by, date: f.date(r.signed_at) })}
               {r.opinion_type ? t('publicReportPage.footer.opinionOpen', { opinion: t(`publicReportPage.opinion.${r.opinion_type}`) }) : ''}
               {r.isae_reference ? t('publicReportPage.footer.isaeClose', { reference: r.isae_reference }) : r.opinion_type ? t('publicReportPage.footer.close') : ''}
-            </div>
+            </p>
           )}
-          <div>{t('publicReportPage.footer.publishedBy', { name: r.published_by_name, hash: r.pdf_sha256.slice(0, 16) })}</div>
-          <div className="text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] pt-1">{t('publicReportPage.footer.poweredBy')}</div>
-        </footer>
-      </main>
-    </div>
+          <p className="text-caption text-[var(--text-tertiary)] mt-4">
+            {t('publicReportPage.footer.generated', { date: f.dateTime(r.published_at) })}
+            {r.anchored_at && t('publicReportPage.footer.lastVerified', { date: f.dateTime(r.anchored_at) })}
+            {' · '}{t('publicReportPage.footer.publishedByName', { name: r.published_by_name })}
+          </p>
+        </div>
+        <a
+          href={`/verify/${r.verification_token}`}
+          className="h-10 px-4 inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-small font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap print:hidden"
+        >
+          {t('publicReport.verifyBlockchain')} <ArrowUpRight className="w-4 h-4" />
+        </a>
+      </section>
+    </article>
   )
 }
 
-function Accordion({ title, defaultOpen, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+function Section({ title, count, children }: { title: string; count: number; children: ReactNode }) {
+  const [open, setOpen] = useState(true)
   const { t } = useTranslation()
-  const [open, setOpen] = useState(!!defaultOpen)
   return (
-    <section className="surface-paper">
+    <section>
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-5 py-3 print:cursor-default"
         aria-expanded={open}
+        className="w-full flex items-center justify-between gap-3 pb-3 mb-4 border-b border-[var(--border-subtle)] text-left print:pointer-events-none"
       >
-        <span className="font-display text-[15px] font-semibold text-[var(--text-primary)]">{title}</span>
-        <span className="text-[12px] text-[var(--text-tertiary)] print:hidden">{open ? t('publicReportPage.hide') : t('publicReportPage.show')}</span>
+        <span className="type-h2 text-[var(--text-primary)]">
+          {title} <span className="text-[var(--text-tertiary)] font-normal tabular-nums">{count}</span>
+        </span>
+        <span className="inline-flex items-center gap-1 text-small text-[var(--text-tertiary)] print:hidden">
+          {open ? t('publicReportPage.hide') : t('publicReportPage.show')}
+          <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: dur.fast, ease: ease.out }}><ChevronDown className="w-4 h-4" /></motion.span>
+        </span>
       </button>
-      {(open || true) && (
-        <div className={`px-5 pb-5 ${open ? '' : 'hidden print:block'}`}>{children}</div>
-      )}
+      {/* Collapsed sections still print. */}
+      <div className={open ? '' : 'hidden print:block'}>{children}</div>
     </section>
   )
 }

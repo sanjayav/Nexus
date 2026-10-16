@@ -14,7 +14,10 @@
     "week": "本周",
     "month": "本月",
     "later": "以后",
-    "none": "无截止日期"
+    "none": "无截止日期",
+    "returned": "已退回修改",
+    "submitted": "已提交 · 待审核",
+    "done": "已批准"
   },
   "mode": {
     "Manual": "手动",
@@ -145,5 +148,82 @@
     "nothingInBucket": "此分类下无内容",
     "noneBody": "管理员尚未向您指派 GRI 指标项。指派后将立即显示在此处。",
     "filteredBody": "切换标签页或清除筛选条件以查看其他项目。"
+  },
+  "next": {
+    "aria": "您的下一步",
+    "kicker": "下一步",
+    "pipelineAria": "报告流程",
+    "yourStage": "您负责的阶段",
+    "stageOf": "第 {{n}}/{{total}} 阶段：{{label}}",
+    "kind": {
+      "fix": "已退回修改"
+    },
+    "answerNow": "立即填报",
+    "fixNow": "修改并重新提交",
+    "reason": {
+      "open_other": "您有 {{count}} 个披露项待填报，此项截止日期最近。",
+      "openOverdue_other": "您有 {{count}} 个披露项待填报，其中 {{overdue}} 个已逾期，请先处理逾期最久的一项。"
+    },
+    "errorTitle": "无法加载您的任务",
+    "errorBody": "尚未获取到任务数据，因此暂不显示状态。您已保存的内容不受影响。",
+    "unassigned": {
+      "title": "暂未向您指派披露项",
+      "body": "管理员为您指派本报告期的披露项后，将连同截止日期显示在此处。"
+    },
+    "waiting": {
+      "title_other": "您提交的 {{count}} 个披露项均在审核中",
+      "body": "目前无需您操作。审核人处理后，您会收到通知。",
+      "cta": "查看已提交"
+    },
+    "review": {
+      "title_other": "{{count}} 个提交待您审核",
+      "cta": "打开审核队列",
+      "body": "审核完成后将进入批准环节。"
+    },
+    "approve": {
+      "title_other": "{{count}} 个已审核事项待您批准",
+      "cta": "打开批准队列",
+      "body": "批准后的数据将汇总至集团报告。"
+    },
+    "onboard": {
+      "title": "完成组织架构设置",
+      "cta": "设置组织",
+      "body": "添加工厂并邀请成员，以便指派披露项。"
+    },
+    "assign": {
+      "title": "指派披露项，开始收集数据",
+      "cta": "创建指派",
+      "body": "组织架构已就绪。请将各披露项指派给对应的数据负责人。"
+    },
+    "publish": {
+      "title": "全部已批准，可以发布",
+      "cta": "前往发布",
+      "body": "检查就绪情况后发布报告。"
+    },
+    "thenOpen_other": "之后，您还有 {{count}} 个披露项待填报。"
+  },
+  "toast": {
+    "saveFailed": "无法保存更改",
+    "moved": "{{code}} 已移至“{{status}}”"
+  },
+  "inbox": {
+    "today": "今天",
+    "yesterday": "昨天",
+    "all": "全部",
+    "unreadOnly": "未读（{{count}}）",
+    "allKinds": "全部类型",
+    "filterAria": "筛选通知",
+    "errorTitle": "无法加载收件箱",
+    "errorBody": "无法连接服务器，此处内容尚未确认。",
+    "clearedTitle": "通知已全部读完",
+    "clearedBody": "暂无未读通知，新通知会显示在这里。",
+    "showAll": "显示全部",
+    "filteredTitle": "没有此类型的通知",
+    "filteredBody": "请选择其他类型或清除筛选。",
+    "openTasks": "打开我的任务",
+    "markedAll_other": "已将 {{count}} 条通知标为已读",
+    "markFailed": "无法更新通知",
+    "loadMoreFailed": "无法加载更多通知",
+    "unreadSr": "未读："
   }
 }

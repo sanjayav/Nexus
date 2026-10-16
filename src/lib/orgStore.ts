@@ -160,6 +160,9 @@ export interface ContentIndexRow {
   line_item_zh?: string | null
   section: string
   subsection: string
+  /** Simplified Chinese headings (null until the column is seeded). */
+  section_zh?: string | null
+  subsection_zh?: string | null
   unit: string | null
   reporting_scope: string
   total: number
@@ -905,6 +908,9 @@ export interface DisclosureStandard {
   line_item_zh?: string | null
   section: string | null
   subsection: string | null
+  /** Simplified Chinese headings (null until the column is seeded). */
+  section_zh?: string | null
+  subsection_zh?: string | null
   unit: string | null
   framework_id: string
   definition: string | null
@@ -985,6 +991,8 @@ export interface HistoricalReference {
 }
 
 export interface PublishedReport {
+  /** Report language ('en' | 'zh' | 'th'); null for reports published before locale existed. */
+  locale?: string | null
   id: string
   period_id: string
   framework_id: string
@@ -1007,6 +1015,8 @@ export interface PublishedReport {
 }
 
 export interface PublishReportResult {
+  /** Report language ('en' | 'zh' | 'th'); null for reports published before locale existed. */
+  locale?: string | null
   ok: true
   id: string
   version: number
@@ -1069,6 +1079,8 @@ export async function submitAssuranceStatement(payload: {
 }
 
 export interface VerifyReportResponse {
+  /** Report language ('en' | 'zh' | 'th'); null for reports published before locale existed. */
+  locale?: string | null
   verified: boolean
   organisation: string
   framework: string

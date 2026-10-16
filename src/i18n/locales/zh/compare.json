@@ -20,7 +20,8 @@
     "twoDays": "约 2 天",
     "fourMonths": "约 4 个月",
     "sixTemplates": "6 个模板",
-    "inProgress": "进行中"
+    "inProgress": "进行中",
+    "anthropicMainland": "Anthropic + 境内服务商"
   },
   "rows": {
     "pricingTransparency": {
@@ -64,7 +65,7 @@
     },
     "multiLlm": {
       "feature": "多 LLM 路由",
-      "note": "Workiva 宣称支持多供应商 LLM 路由；Nexus 按设计仅使用 Anthropic。"
+      "note": "Workiva 宣称支持多供应商 LLM 路由；Nexus 默认使用 Anthropic，并可按组织使用兼容 OpenAI 接口的境内模型服务商。"
     },
     "realtimeCollab": {
       "feature": "实时协作"
@@ -92,6 +93,14 @@
     },
     "selfServeTrial": {
       "feature": "自助试用"
+    },
+    "chinaFrameworks": {
+      "feature": "沪深北交易所、财政部及港交所框架包",
+      "note": "沪深北交易所指引、财政部 CSDS、港交所 ESG 守则及 CASS-ESG 均以框架包形式提供。我们尚未评估 Workiva 在此方面的覆盖情况。"
+    },
+    "bilingualReports": {
+      "feature": "简体中文报告输出（PDF / Word）",
+      "note": "未评估 Workiva 的情况。"
     }
   }
 }

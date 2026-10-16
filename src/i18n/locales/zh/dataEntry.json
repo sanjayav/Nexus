@@ -137,6 +137,23 @@
     "poweredBy": "由 HyperFormula 提供支持。完整参考请见 docs/FORMULAS.md。",
     "noRows": "没有符合当前筛选条件的行。",
     "crossFramework": "跨框架",
-    "footer_other": "{{framework}} · {{count}} 行。当前规模下未启用虚拟滚动 — 可见行超过约 500 行时请重新启用。"
+    "footer_other": "{{framework}} · {{count}} 行。当前规模下未启用虚拟滚动 — 可见行超过约 500 行时请重新启用。",
+    "notANumber": "“{{text}}”既不是数字也不是公式（公式需以 = 开头）",
+    "bulkSkipped_other": "{{count}} 行已越过该步骤",
+    "bulkNothing": "所选行均无法转到该状态",
+    "bulkFailed_other": "{{count}} 行未能更新",
+    "bulkSubmitted_other": "已提交 {{count}} 个数值供审核",
+    "bulkApproved_other": "已批准 {{count}} 个数值",
+    "noAssignmentsTitle": "暂无指派给您的指标项",
+    "noAssignmentsBody": "指派给您的数值会以行的形式显示在这里，可像电子表格一样填写。",
+    "openTasks": "打开我的任务"
+  },
+  "page": {
+    "backToTasks": "我的任务",
+    "contextAria": "披露项上下文",
+    "entity": "主体",
+    "due": "截止",
+    "yearErrorTitle": "无法确认报告年度",
+    "yearNoneWithAssignment": "您仍可填写并保存数值。上传证据和提交需要先开放报告年度。"
   }
 }

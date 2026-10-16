@@ -1,4 +1,5 @@
-import { Scope3Calculator, toNum } from './index'
+import type { Scope3Calculator } from './types'
+import { toNum } from './constants'
 
 // Well-to-tank (WTT) factors — kgCO2e per kWh of delivered fuel/energy.
 // Approximate values from DEFRA 2024-style WTT factors.

@@ -10,22 +10,21 @@
     "getStarted": "Get started",
     "openMenu": "Open menu",
     "homeAria": "Nexus — home",
-    "navAria": "Marketing navigation"
+    "navAria": "Marketing navigation",
+    "skip": "Skip to content",
+    "closeMenu": "Close menu"
   },
   "footer": {
     "tagline": "The sustainability intelligence platform — every framework, one dataset, auditor-ready.",
     "product": "Product",
     "company": "Company",
     "legal": "Legal",
-    "security": "Security",
-    "api": "API",
-    "careers": "Careers",
-    "blog": "Blog",
     "terms": "Terms",
     "privacy": "Privacy",
     "dpa": "DPA",
     "subprocessors": "Subprocessors",
-    "copyright": "© 2026 Aeiforo Ltd · All rights reserved"
+    "copyright": "© 2026 Aeiforo Ltd · All rights reserved",
+    "languages": "Available in English and 简体中文."
   },
   "cta": {
     "startFree": "Start free",
@@ -40,16 +39,6 @@
     "enterprise": "Enterprise",
     "custom": "Custom",
     "perMonth": "/mo"
-  },
-  "hero": {
-    "eyebrow": "Sustainability Intelligence Platform",
-    "titleLine1": "Every framework.",
-    "titleLine2": "One dataset.",
-    "subtitle": "Nexus is the reporting platform that turns sustainability data into auditor-ready disclosures across CSRD, ISSB, GRI, TCFD, CDP and more.",
-    "trust": "Built by ESG experts · SOC 2 (in progress) · GDPR compliant · Self-hosted available"
-  },
-  "logoCloud": {
-    "heading": "Trusted by sustainability teams at"
   },
   "comparison": {
     "feature": "Feature",
@@ -90,5 +79,8 @@
     },
     "closing": "All without a sales call. All without an implementation consultant. All published pricing.",
     "closingStrong": "£500/month Team tier."
+  },
+  "language": {
+    "label": "Language"
   }
 }

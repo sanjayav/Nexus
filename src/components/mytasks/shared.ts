@@ -1,15 +1,14 @@
 import type { QuestionAssignment } from '../../lib/orgStore'
 import type { NexusQuestionnaireItem } from '../../lib/api'
 import type { TFunction } from 'i18next'
+import { rankOpenAssignments, isAssignmentOverdue } from '../../lib/journey'
 
 export type FilterState = 'all' | 'overdue' | 'pending' | 'in_progress' | 'submitted' | 'approved'
 export type ViewMode = 'list' | 'board' | 'calendar'
 
+/** Same rule as `lib/journey.isAssignmentOverdue` (one definition of "overdue"). */
 export function isOverdue(a: { is_overdue?: boolean; due_date: string | null; status: string }): boolean {
-  if (a.is_overdue) return true
-  if (!a.due_date) return false
-  if (a.status === 'approved' || a.status === 'reviewed' || a.status === 'submitted') return false
-  return new Date(a.due_date).getTime() < Date.now()
+  return isAssignmentOverdue(a)
 }
 
 export function dueThisWeek(a: { due_date: string | null; status: string }): boolean {
@@ -47,10 +46,17 @@ export function deadlineLabel(due_date: string | null, status: string, t: TFunct
   return new Date(due_date).toLocaleDateString(locale, { month: 'short', day: 'numeric' })
 }
 
-/** Group bucket key for the date-grouped list. */
-export type DateGroupKey = 'overdue' | 'today' | 'week' | 'month' | 'later' | 'none'
+/**
+ * Group bucket key for the list view. Open work is bucketed by deadline;
+ * work that has left the user's hands gets its own groups so a submitted
+ * item never sits under "Due today" (audit: grouping was wrong).
+ */
+export type DateGroupKey = 'returned' | 'overdue' | 'today' | 'week' | 'month' | 'later' | 'none' | 'submitted' | 'done'
 
 export function groupKeyFor(a: QuestionAssignment): DateGroupKey {
+  if (a.status === 'rejected') return 'returned'
+  if (a.status === 'submitted' || a.status === 'reviewed') return 'submitted'
+  if (a.status === 'approved') return 'done'
   if (isOverdue(a)) return 'overdue'
   if (!a.due_date) return 'none'
   const d = daysUntilDue(a.due_date)
@@ -63,15 +69,34 @@ export function groupKeyFor(a: QuestionAssignment): DateGroupKey {
 
 /** i18n keys for each group bucket — resolve with `t(GROUP_LABELS[k])`. */
 export const GROUP_LABELS: Record<DateGroupKey, string> = {
+  returned: 'tasks.group.returned',
   overdue: 'tasks.group.overdue',
   today: 'tasks.group.today',
   week: 'tasks.group.week',
   month: 'tasks.group.month',
   later: 'tasks.group.later',
   none: 'tasks.group.none',
+  submitted: 'tasks.group.submitted',
+  done: 'tasks.group.done',
 }
 
-export const GROUP_ORDER: DateGroupKey[] = ['overdue', 'today', 'week', 'month', 'later', 'none']
+export const GROUP_ORDER: DateGroupKey[] = ['returned', 'overdue', 'today', 'week', 'month', 'later', 'none', 'submitted', 'done']
+
+/** Groups collapsed on first render (finished work stays out of the way). */
+export const DEFAULT_COLLAPSED: DateGroupKey[] = ['done']
+
+/** List order = visual order: group rank, then soonest deadline. Keeps j/k in step with the screen. */
+export function sortForList(assignments: QuestionAssignment[]): QuestionAssignment[] {
+  const rank = new Map(GROUP_ORDER.map((k, i) => [k, i]))
+  return [...assignments].sort((a, b) => {
+    const ga = rank.get(groupKeyFor(a)) ?? 99
+    const gb = rank.get(groupKeyFor(b)) ?? 99
+    if (ga !== gb) return ga - gb
+    const da = a.due_date ? new Date(a.due_date).getTime() : Infinity
+    const db = b.due_date ? new Date(b.due_date).getTime() : Infinity
+    return da - db
+  })
+}
 
 /** Status columns for the Board view. `label` is an i18n key — resolve with `t(label)`. */
 export type BoardColumnKey = 'not_started' | 'in_progress' | 'submitted' | 'approved' | 'rejected'
@@ -118,26 +143,9 @@ export function pickConnector(item: NexusQuestionnaireItem): string {
 }
 
 /**
- * Pick the single highest-priority open task for the FocusCard:
- *   1. Most overdue first.
- *   2. Then the closest upcoming deadline.
- *   3. Then anything with no deadline but in progress.
+ * Pick the single highest-priority open task. Delegates to the one ranking in
+ * `lib/journey` so My Day and My Tasks always suggest the same item.
  */
 export function pickFocus(assignments: QuestionAssignment[]): QuestionAssignment | null {
-  const open = assignments.filter(a =>
-    a.status === 'not_started' || a.status === 'in_progress' || a.status === 'rejected'
-  )
-  if (open.length === 0) return null
-  const scored = open.map(a => {
-    const overdue = isOverdue(a)
-    const d = daysUntilDue(a.due_date)
-    // Lower score == higher priority.
-    let score = 0
-    if (overdue && d != null) score = d // negative = most overdue ranks lowest
-    else if (d != null) score = d + 1
-    else score = 9999
-    return { a, score }
-  })
-  scored.sort((x, y) => x.score - y.score)
-  return scored[0].a
+  return rankOpenAssignments(assignments)[0] ?? null
 }

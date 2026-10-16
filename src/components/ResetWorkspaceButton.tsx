@@ -72,7 +72,7 @@ export default function ResetWorkspaceButton({ onReset, variant = 'subtle' }: Pr
       {open && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: 'rgba(11,18,32,0.5)', backdropFilter: 'blur(8px)' }}
+          style={{ background: 'var(--bg-overlay)', backdropFilter: 'blur(8px)' }}
           onClick={busy ? undefined : reset}
         >
           <div className="surface-paper w-full max-w-md" onClick={e => e.stopPropagation()}>

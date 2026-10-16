@@ -1,20 +1,21 @@
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { BookOpen, PencilLine, Send } from 'lucide-react'
+import { BookOpen, PencilLine, Send, Lock } from 'lucide-react'
 import { useAuth } from '../../auth/AuthContext'
 import { hasPermission } from '../../lib/rbac'
-import { barFill, EASE_OUT_EXPO } from '../motion'
+import { spring } from '../../motion/tokens'
 import { useIsInsideRoom, useOthers } from '../../lib/liveblocks'
 import { LiveblocksStatus } from '../LiveblocksStatus'
+import { StatusPill } from '../ui'
+import SaveStatus, { type SaveState } from '../entry/SaveStatus'
 
 export type DisclosureWorkflowStatus = 'draft' | 'in_review' | 'published'
 
 /**
- * Top status bar for the disclosure editor.
- *
- * Renders framework name + reporting year + workflow status pill, a "M of N
- * cells complete" counter with an animated progress fill, a Reading-mode toggle,
- * and a Publish CTA gated behind `reports.publish`.
+ * Sticky top bar of the disclosure editor: framework, reporting year and
+ * status; the autosave state; reading mode; publish (gated, with the reason
+ * shown when it can't be used); and the progress rail — approved, in review
+ * and drafted segments that grow on a spring as cells move forward.
  */
 export interface DisclosureProgressBarProps {
   frameworkName: string
@@ -23,131 +24,149 @@ export interface DisclosureProgressBarProps {
   workflowStatus: DisclosureWorkflowStatus
   completedCells: number
   totalCells: number
+  /** Optional breakdown for the segmented rail. Falls back to completed/total. */
+  breakdown?: { approved: number; inReview: number; drafted: number }
   readingMode: boolean
   onToggleReadingMode: () => void
   onPublish: () => void
   publishing?: boolean
+  /** Editor-wide autosave state. */
+  saveState?: SaveState
+  savedAt?: number | null
+  /** Publishing needs an open reporting year. */
+  canPublishYear?: boolean
 }
 
-/** i18n keys for each workflow status. */
-const STATUS_LABEL: Record<DisclosureWorkflowStatus, string> = {
-  draft: 'disclosureEditor.progress.status.draft',
-  in_review: 'disclosureEditor.progress.status.inReview',
-  published: 'disclosureEditor.progress.status.published',
-}
-
-const STATUS_PILL: Record<DisclosureWorkflowStatus, string> = {
-  draft: 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]',
-  in_review: 'bg-[var(--accent-blue-light)] text-[var(--status-pending)]',
-  published: 'bg-[var(--accent-green-light)] text-[var(--status-ok)]',
+const STATUS_PILL: Record<DisclosureWorkflowStatus, { status: string; label: string }> = {
+  draft: { status: 'draft', label: 'disclosureEditor.progress.status.draft' },
+  in_review: { status: 'submitted', label: 'disclosureEditor.progress.status.inReview' },
+  published: { status: 'approved', label: 'disclosureEditor.progress.status.published' },
 }
 
 export default function DisclosureProgressBar({
-  frameworkName,
-  frameworkCode,
-  reportingYear,
-  workflowStatus,
-  completedCells,
-  totalCells,
-  readingMode,
-  onToggleReadingMode,
-  onPublish,
-  publishing = false,
+  frameworkName, frameworkCode, reportingYear, workflowStatus, completedCells, totalCells, breakdown,
+  readingMode, onToggleReadingMode, onPublish, publishing = false, saveState = 'idle', savedAt = null, canPublishYear = true,
 }: DisclosureProgressBarProps) {
   const { permissions } = useAuth()
   const { t } = useTranslation()
   const canPublish = hasPermission(permissions, 'reports.publish')
   const pct = totalCells > 0 ? Math.round((completedCells / totalCells) * 100) : 0
   const remaining = Math.max(0, totalCells - completedCells)
-  const publishDisabled = !canPublish || remaining > 0 || publishing
-  const tooltip = !canPublish
+  const blockedReason = !canPublish
     ? t('disclosureEditor.progress.noPermission')
-    : remaining > 0
-      ? t('disclosureEditor.progress.remaining', { count: remaining })
-      : publishing
-        ? t('disclosureEditor.progress.publishing')
-        : t('disclosureEditor.progress.publishReport')
+    : !canPublishYear
+      ? t('disclosureEditor.progress.noYear')
+      : remaining > 0
+        ? t('disclosureEditor.progress.remaining', { count: remaining })
+        : null
+  const publishDisabled = !!blockedReason || publishing
+  const seg = breakdown ?? { approved: completedCells, inReview: 0, drafted: 0 }
+  const w = (n: number) => (totalCells > 0 ? `${(n / totalCells) * 100}%` : '0%')
+  const pill = STATUS_PILL[workflowStatus]
 
   return (
-    <div className="sticky top-0 z-30 border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/95 backdrop-blur">
-      <div className="px-4 sm:px-6 pt-3 pb-2 flex items-center gap-2 sm:gap-4 flex-wrap">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center px-2 h-5 rounded-[var(--radius-xs)] bg-[var(--color-brand-soft)] text-micro font-bold uppercase tracking-[0.06em] text-[var(--color-brand-strong)]">
+    <div className="sticky top-0 z-30 border-b border-[var(--border-subtle)] bg-[var(--bg-primary)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--bg-primary)]/85">
+      <div className="px-4 sm:px-6 pt-3 pb-2.5 flex items-center gap-x-4 gap-y-2 flex-wrap">
+        <div className="min-w-0 flex-1 basis-[260px]">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="inline-flex items-center px-2 h-6 rounded-[var(--radius-xs)] bg-[var(--color-brand-soft)] text-caption font-semibold text-[var(--color-brand-strong)] whitespace-nowrap flex-shrink-0">
               {frameworkCode}
             </span>
-            <h1 className="font-display text-[length:var(--text-lg)] font-semibold text-[var(--text-primary)] truncate">
-              {frameworkName}
-            </h1>
-            <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] font-mono">FY{reportingYear}</span>
-            <span className={`inline-flex items-center px-2 h-5 rounded-full text-micro font-semibold uppercase tracking-[0.06em] ${STATUS_PILL[workflowStatus]}`}>
-              {t(STATUS_LABEL[workflowStatus])}
-            </span>
+            <h1 className="type-h3 text-[var(--text-primary)] truncate min-w-0" title={frameworkName}>{frameworkName}</h1>
+            <span className="text-caption text-[var(--text-tertiary)] tabular-nums whitespace-nowrap flex-shrink-0">FY{reportingYear}</span>
+            <StatusPill status={pill.status} size="sm" className="flex-shrink-0">{t(pill.label)}</StatusPill>
           </div>
         </div>
 
-        <div className="hidden md:flex items-center gap-1 text-[length:var(--text-xs)] text-[var(--text-secondary)] tabular-nums">
-          <span className="font-semibold text-[var(--text-primary)]">{completedCells}</span>
-          <span>{t('disclosureEditor.progress.of')}</span>
-          <span className="font-semibold text-[var(--text-primary)]">{totalCells}</span>
-          <span>{t('disclosureEditor.progress.cellsComplete')}</span>
-          <span className="px-1.5 text-[var(--text-tertiary)]">·</span>
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <SaveStatus state={saveState} savedAt={savedAt} className="hidden sm:inline-flex mr-1" />
+          <button
+            type="button"
+            onClick={onToggleReadingMode}
+            className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-[var(--radius-md)] border text-small font-semibold transition-colors whitespace-nowrap ${
+              readingMode
+                ? 'border-[var(--color-brand)] bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)]'
+                : 'border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'
+            }`}
+            aria-pressed={readingMode}
+            title={readingMode ? t('disclosureEditor.progress.toEdit') : t('disclosureEditor.progress.toReading')}
+          >
+            {readingMode ? <PencilLine className="w-3.5 h-3.5" aria-hidden /> : <BookOpen className="w-3.5 h-3.5" aria-hidden />}
+            {readingMode ? t('disclosureEditor.progress.edit') : t('disclosureEditor.progress.reading')}
+          </button>
+          <LiveblocksStatus />
+          <PresenceAvatars />
+          <div className="flex items-center gap-2">
+            {blockedReason && (
+              <span id="publish-blocked" className="hidden lg:inline-flex items-center gap-1 text-caption text-[var(--text-tertiary)] whitespace-nowrap">
+                <Lock className="w-3 h-3" aria-hidden /> {blockedReason}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={onPublish}
+              disabled={publishDisabled}
+              aria-describedby={blockedReason ? 'publish-blocked' : undefined}
+              title={blockedReason ?? t('disclosureEditor.progress.publishReport')}
+              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-small font-semibold hover:bg-[var(--btn-primary-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+            >
+              <Send className="w-3.5 h-3.5" aria-hidden />
+              <span className="hidden sm:inline">{publishing ? t('disclosureEditor.progress.publishing') : t('disclosureEditor.progress.publishReport')}</span>
+              <span className="sm:hidden">{t('disclosureEditor.progress.publish')}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Progress rail */}
+      <div className="px-4 sm:px-6 pb-2.5 flex items-center gap-3">
+        <div
+          className="relative h-1.5 flex-1 rounded-full bg-[var(--bg-tertiary)] overflow-hidden flex"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={totalCells}
+          aria-valuenow={completedCells}
+          aria-label={t('disclosureEditor.progress.railAria', { done: completedCells, total: totalCells })}
+        >
+          <motion.span className="h-full bg-[var(--color-brand)]" initial={{ width: 0 }} animate={{ width: w(seg.approved) }} transition={spring.gentle} />
+          <motion.span className="h-full bg-[var(--chart-s2)] opacity-70" initial={{ width: 0 }} animate={{ width: w(seg.inReview) }} transition={{ ...spring.gentle, delay: 0.06 }} />
+          <motion.span className="h-full bg-[var(--chart-s3)] opacity-60" initial={{ width: 0 }} animate={{ width: w(seg.drafted) }} transition={{ ...spring.gentle, delay: 0.12 }} />
+        </div>
+        <div className="flex items-center gap-3 text-caption text-[var(--text-secondary)] tabular-nums whitespace-nowrap">
+          <span><strong className="font-semibold text-[var(--text-primary)]">{completedCells}</strong> / {totalCells} <span className="hidden sm:inline">{t('disclosureEditor.progress.cellsComplete')}</span></span>
           <span className="font-semibold text-[var(--color-brand-strong)]">{pct}%</span>
         </div>
-
-        <button
-          type="button"
-          onClick={onToggleReadingMode}
-          className={`inline-flex items-center gap-1.5 h-9 sm:h-8 min-h-[36px] px-3 rounded-[var(--radius-sm)] border text-[length:var(--text-xs)] font-semibold transition-colors ${
-            readingMode
-              ? 'border-[var(--color-brand)] bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)]'
-              : 'border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
-          }`}
-          aria-pressed={readingMode}
-          title={readingMode ? t('disclosureEditor.progress.toEdit') : t('disclosureEditor.progress.toReading')}
-        >
-          {readingMode ? <PencilLine className="w-3.5 h-3.5" /> : <BookOpen className="w-3.5 h-3.5" />}
-          {readingMode ? t('disclosureEditor.progress.edit') : t('disclosureEditor.progress.reading')}
-        </button>
-
-        <LiveblocksStatus />
-        <PresenceAvatars />
-
-        <button
-          type="button"
-          onClick={onPublish}
-          disabled={publishDisabled}
-          title={tooltip}
-          className="inline-flex items-center gap-1.5 h-9 sm:h-8 min-h-[36px] px-3 rounded-[var(--radius-sm)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-xs)] font-semibold hover:bg-[var(--btn-primary-bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          <Send className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">{t('disclosureEditor.progress.publishReport')}</span>
-          <span className="sm:hidden">{t('disclosureEditor.progress.publish')}</span>
-        </button>
       </div>
-
-      <div className="px-4 sm:px-6 pb-2">
-        <div className="h-1 w-full rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
-          <motion.div
-            className="h-full rounded-full bg-[var(--color-brand)]"
-            {...barFill(pct)}
-            transition={{ duration: 0.9, ease: EASE_OUT_EXPO }}
-          />
+      {breakdown && (
+        <div className="hidden md:flex px-4 sm:px-6 pb-2 -mt-1 items-center gap-4 text-caption text-[var(--text-tertiary)]">
+          <Legend swatch="bg-[var(--color-brand)]" label={t('disclosureEditor.progress.legendApproved', { count: breakdown.approved })} />
+          <Legend swatch="bg-[var(--chart-s2)] opacity-70" label={t('disclosureEditor.progress.legendReview', { count: breakdown.inReview })} />
+          <Legend swatch="bg-[var(--chart-s3)] opacity-60" label={t('disclosureEditor.progress.legendDraft', { count: breakdown.drafted })} />
+          {!readingMode && (
+            <span className="ml-auto hidden lg:inline-flex items-center gap-3" aria-hidden>
+              <span><kbd className="kbd">↑</kbd> <kbd className="kbd">↓</kbd> {t('disclosureEditor.document.kbMove')}</span>
+              <span><kbd className="kbd">Enter</kbd> {t('disclosureEditor.document.kbEdit')}</span>
+              <span><kbd className="kbd">Esc</kbd> {t('disclosureEditor.document.kbCancel')}</span>
+            </span>
+          )}
         </div>
-      </div>
+      )}
     </div>
+  )
+}
+
+function Legend({ swatch, label }: { swatch: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+      <span className={`w-2 h-2 rounded-full ${swatch}`} aria-hidden />
+      {label}
+    </span>
   )
 }
 
 /**
  * Stacked-avatar row for everyone else currently in the room. Renders nothing
- * when (a) we're not inside a `<RoomProvider>` (collab disabled) or (b)
- * nobody else is connected. Caps at 5 avatars + a "+N" pill to stop the bar
- * from collapsing under load — Liveblocks' free tier maxes out at 25/room.
- *
- * Self-guarded by `useIsInsideRoom` so the component can be safely dropped
- * into the progress bar even when its parent skips the RoomProvider (e.g.
- * on the public report viewer or under test).
+ * outside a `<RoomProvider>` or when nobody else is connected.
  */
 function PresenceAvatars() {
   const inside = useIsInsideRoom()
@@ -165,12 +184,11 @@ function PresenceAvatarsInner() {
     <div className="flex -space-x-2 items-center" aria-label={t('disclosureEditor.progress.othersAria', { count: others.length })}>
       {visible.map(({ connectionId, info }) => {
         const name = info?.name ?? t('disclosureEditor.progress.user')
-        const color = info?.color ?? '#10B981'
         return (
           <div
             key={connectionId}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-caption font-semibold text-white border-2 border-[var(--bg-primary)] shadow-sm"
-            style={{ background: color }}
+            className="w-7 h-7 rounded-full flex items-center justify-center text-caption font-semibold text-white border-2 border-[var(--bg-primary)]"
+            style={{ background: info?.color ?? 'var(--color-brand)' }}
             title={info?.email ? `${name} (${info.email})` : name}
           >
             {name.slice(0, 1).toUpperCase()}
@@ -179,7 +197,7 @@ function PresenceAvatarsInner() {
       })}
       {overflow > 0 && (
         <div
-          className="w-7 h-7 rounded-full bg-[var(--bg-tertiary)] text-caption font-semibold text-[var(--text-secondary)] flex items-center justify-center border-2 border-[var(--bg-primary)] shadow-sm tabular-nums"
+          className="w-7 h-7 rounded-full bg-[var(--bg-tertiary)] text-caption font-semibold text-[var(--text-secondary)] flex items-center justify-center border-2 border-[var(--bg-primary)] tabular-nums"
           title={t('disclosureEditor.progress.moreInRoom', { count: overflow })}
         >
           +{overflow}

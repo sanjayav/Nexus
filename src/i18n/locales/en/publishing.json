@@ -3,16 +3,19 @@
     "loadFailed": "Failed to load",
     "publishFailed": "Publish failed",
     "importFailed": "Import failed",
-    "unableToLoad": "Unable to load publish centre",
+    "unableToLoad": "The publish centre didn't load",
     "unableToGetLink": "Unable to get link",
     "failed": "Failed",
-    "auditorEmailRequired": "Auditor email is required",
-    "shareFailed": "Failed to create share link"
+    "auditorEmailRequired": "Enter the auditor's email address.",
+    "shareFailed": "Failed to create share link",
+    "unableToLoadBody": "We couldn't reach the server, so readiness and publish history can't be confirmed. Nothing was published or changed.",
+    "publishUnexpected": "The server didn't confirm the publish. Check Publish history before trying again.",
+    "downloadFailed": "Download failed"
   },
   "retry": "Retry",
   "breadcrumbReports": "Reports",
   "eyebrow": "Reports",
-  "title": "Publish Centre",
+  "title": "Publish centre",
   "subtitle": "Generate an auditor-grade PDF, anchor its hash to a public timestamp, and track the assurance workflow.",
   "actions": {
     "importing": "Importing…",
@@ -21,20 +24,24 @@
     "publishing": "Publishing…",
     "republish": "Re-publish",
     "publishReport": "Publish report",
-    "publishReportNow": "Publish report now"
+    "publishReportNow": "Publish report now",
+    "reviewPublish": "Review and publish",
+    "reviewRepublish": "Review and publish a new version"
   },
   "period": {
     "kicker": "Scope",
     "title": "Reporting period",
     "subtitle": "{{framework}} — pick a period to publish.",
-    "none": "No periods set up. Create one in Admin → Reporting cycles.",
+    "none": "Create a reporting period for this framework first. Publishing always happens against a period.",
     "status": {
-      "setup": "setup",
-      "active": "active",
-      "locked": "locked",
-      "published": "published",
-      "archived": "archived"
-    }
+      "setup": "Setup",
+      "active": "Active",
+      "locked": "Locked",
+      "published": "Published",
+      "archived": "Archived"
+    },
+    "noneTitle": "No reporting period yet",
+    "create": "Create a reporting period"
   },
   "readiness": {
     "kicker": "Readiness · {{period}}",
@@ -51,7 +58,8 @@
     "coverage": "Coverage",
     "approved": "Approved",
     "inReview": "In review",
-    "open": "Open"
+    "open": "Open",
+    "heading": "Publish readiness"
   },
   "latest": {
     "kicker": "Latest artifact",
@@ -63,7 +71,7 @@
     "title": "Publish history",
     "subtitle": "Every prior version is retained, hashed, and externally timestamped.",
     "emptyTitle": "No reports published yet",
-    "emptyDesc": "Approve at least one disclosure in this framework, then hit Publish.",
+    "emptyDesc": "Approve at least one disclosure in this framework, then review and publish.",
     "colVersion": "Version",
     "colPeriod": "Period",
     "colAssurance": "Assurance",
@@ -77,7 +85,8 @@
     "downloadPdf": "Download PDF",
     "downloadWord": "Download Word (.docx)",
     "downloadIxbrl": "Download iXBRL (ESRS)",
-    "sharePublicly": "Share publicly"
+    "sharePublicly": "Share publicly",
+    "colLanguage": "Language"
   },
   "assurance": {
     "kicker": "Assurance",
@@ -119,8 +128,8 @@
   },
   "artifact": {
     "version": "Version {{version}} · {{framework}}",
-    "draft": "DRAFT",
-    "assured": "ASSURED",
+    "draft": "Draft",
+    "assured": "Assured",
     "meta": "{{size}} KB · published by {{name}}",
     "anchoredOn": "Anchored to OpenTimestamps on {{date}}",
     "verify": "Verify",
@@ -133,23 +142,29 @@
   },
   "assuranceRow": {
     "status": {
-      "pending": "pending",
-      "signed": "signed",
-      "rejected": "rejected",
-      "withdrawn": "withdrawn"
+      "pending": "Pending",
+      "signed": "Signed",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn"
     },
     "reasonable": "Reasonable",
     "limited": "Limited",
     "requested": "{{email}} · requested {{date}}",
     "signedBy": " · signed {{date}} by {{name}}",
-    "statementHash": "statement sha-256: {{hash}}…",
+    "statementHash": "Statement SHA-256: {{hash}}…",
     "linkCopied": "Upload link (copied)",
     "linkHelp": "Send this to the auditor. They can upload the signed statement without a platform login.",
     "copyLink": "Copy upload link",
     "rotate": "Rotate",
     "withdraw": "Withdraw",
-    "confirmRotate": "Rotate the upload link? The previous one will stop working immediately.",
-    "confirmWithdraw": "Withdraw this assurance request?"
+    "confirmRotate": "The previous link stops working immediately. Send the new one to the auditor.",
+    "confirmWithdraw": "Withdraw this assurance request?",
+    "confirmRotateTitle": "Rotate the upload link?",
+    "confirmWithdrawBody": "The auditor's upload link stops working. You can create a new request at any time.",
+    "rotatedCopied": "New upload link copied",
+    "copied": "Upload link copied",
+    "copyManually": "Copy the link below and send it to the auditor.",
+    "withdrawn": "Assurance request withdrawn"
   },
   "modal": {
     "kicker": "New request",
@@ -159,7 +174,7 @@
     "firmPlaceholder": "e.g. LRQA Group, Deloitte",
     "contactName": "Contact name",
     "contactNamePlaceholder": "Partner / signing auditor",
-    "contactEmail": "Contact email*",
+    "contactEmail": "Contact email",
     "level": "Level of assurance",
     "limited": "Limited",
     "reasonable": "Reasonable",
@@ -167,7 +182,8 @@
     "notes": "Notes (optional)",
     "notesPlaceholder": "Scope, deadline, special instructions…",
     "cancel": "Cancel",
-    "create": "Create request"
+    "create": "Create request",
+    "created": "Assurance request created. Copy the upload link and send it to the auditor."
   },
   "share": {
     "title": "Share report publicly",
@@ -183,6 +199,65 @@
     "copy": "Copy",
     "expiresOn": "Expires {{date}}",
     "passwordActive": "Password protection active. Share the password through a separate channel.",
-    "done": "Done"
+    "done": "Done",
+    "readyBody": "Anyone with this link can read the published report. It's shown once: copy it now.",
+    "copyAndClose": "Copy link",
+    "copied": "Share link copied"
+  },
+  "checks": {
+    "aria": "Publish readiness checklist",
+    "approved": "Approved disclosures",
+    "approvedNone": "At least one approved disclosure is required to publish.",
+    "approvedAll": "Every assigned disclosure is approved.",
+    "approvedSome_one": "{{count}} disclosure is not approved yet and will be left out.",
+    "approvedSome_other": "{{count}} disclosures are not approved yet and will be left out.",
+    "openApproval": "Open approval queue",
+    "anomalies": "Unresolved anomalies",
+    "anomaliesUnknown": "The anomaly scan didn't respond, so this couldn't be checked.",
+    "anomaliesNone": "No open warnings or critical findings in this period.",
+    "anomaliesSome": "{{critical}} critical, {{count}} open in total. Resolve or suppress them with a reason.",
+    "openAnomalies": "Review anomalies",
+    "assurance": "Assurance",
+    "assuranceSigned": "Signed by {{firm}}. The report publishes without a draft watermark.",
+    "assuranceDraft": "Without a signed statement the report publishes with a DRAFT watermark.",
+    "evidence": "Evidence coverage",
+    "evidenceNone": "Measured once disclosures are approved.",
+    "evidenceSome": "{{with}} of {{count}} approved disclosures cite a source document."
+  },
+  "blocked": {
+    "noPeriod": "Pick a reporting period first.",
+    "noAssignments": "Nothing is assigned in this period yet.",
+    "noneApproved": "Approve at least one disclosure to publish."
+  },
+  "sheet": {
+    "title": "Publish {{period}}?",
+    "titleRepublish": "Publish {{period}} as version {{version}}?",
+    "irreversible_one": "This generates a PDF of the {{count}} approved disclosure, computes its SHA-256 fingerprint and anchors it to a public timestamp calendar. That can't be undone: this version, its hash and its timestamp stay on the public record. You can publish a newer version later; this one is never deleted.",
+    "irreversible_other": "This generates a PDF of the {{count}} approved disclosures, computes its SHA-256 fingerprint and anchors it to a public timestamp calendar. That can't be undone: this version, its hash and its timestamp stay on the public record. You can publish a newer version later; this one is never deleted.",
+    "confirm": "Publish and anchor",
+    "language": "Report language",
+    "languageHint": "The PDF, Word and iXBRL files are rendered in this language.",
+    "draftWarning": "No signed assurance statement for this period: the report will carry a DRAFT watermark until an auditor signs.",
+    "lowCritical_one": "{{count}} critical anomaly is still open. Type the period name to confirm you want to publish anyway.",
+    "lowCritical_other": "{{count}} critical anomalies are still open. Type the period name to confirm you want to publish anyway.",
+    "lowCoverage": "Only {{pct}}% of disclosures are approved. Type the period name to confirm you want to publish anyway."
+  },
+  "moment": {
+    "title": "Version {{version}} of {{period}} is published",
+    "fingerprint": "SHA-256 fingerprint",
+    "noHash": "The server stored the report but didn't return its fingerprint. You'll find it in Publish history.",
+    "anchored": "Anchored to OpenTimestamps",
+    "anchoredBody": "Bitcoin confirmation usually follows within 1–6 hours. The verification page updates on its own.",
+    "anchorPending": "Hash stored, anchoring pending",
+    "anchorPendingBody": "The timestamp calendar didn't respond. The hash is saved and can be anchored later.",
+    "draft": "Draft · unaudited",
+    "assured": "Assured",
+    "copyLink": "Copy verification link",
+    "copied": "Verification link copied",
+    "copyFailed": "Couldn't copy. Select the link and copy it manually.",
+    "openVerify": "Open verification page",
+    "download": "Download PDF",
+    "done": "Done",
+    "close": "Close"
   }
 }

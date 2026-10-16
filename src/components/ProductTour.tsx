@@ -1,35 +1,33 @@
-import { useEffect, useLayoutEffect, useState, useCallback } from 'react'
+import { useEffect, useLayoutEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Sparkles, ArrowRight, X } from 'lucide-react'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
+import { ArrowLeft, ArrowRight, Compass, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { TOUR_EVENT, TOUR_KEY_PREFIX } from './onboarding/tour'
+import { spring, transition } from '../motion/tokens'
 
 /**
- * ProductTour — a one-time, 4-step onboarding tour that shows the very first
- * time a user lands in the authed shell. Each step is a small "spotlight"
- * card anchored to a `data-tour="…"` target element (or centred for the
- * welcome step). Backdrop is a translucent veil with a punched-out hole
- * around the target so attention naturally tracks there.
+ * ProductTour — the one optional product tour (four steps). It shows once on
+ * a user's first visit to the authed shell and can be replayed any time from
+ * the guided setup (`startTour()` in components/onboarding/tour). Each step
+ * is a paper card anchored to a `data-tour="…"` element (or centred), with
+ * an emerald spotlight that glides between targets.
  *
- * Persistence: per-user via `localStorage` — once a user completes or
- * skips the tour, it never reappears for them.
+ * Persistence: per-user via `localStorage` — once a user completes or skips
+ * the tour it never auto-starts again for them.
  *
  *   localStorage[`aeiforo_tour_completed_${userId}`] = "1"
  *
  * UX contract:
  *   - ESC always closes + marks complete (never traps the user)
- *   - Backdrop click is a no-op (avoid accidental dismiss)
- *   - Navigation is not blocked — pointer events on the page underneath
- *     still work; the backdrop is non-interactive.
- *   - All targets fall back to "centre of screen" if their `data-tour`
- *     anchor isn't present.
+ *   - The page underneath stays usable; only the card is interactive
+ *   - Targets that aren't on screen (e.g. sidebar on mobile) fall back to a
+ *     centred card
  */
-const TOUR_KEY_PREFIX = 'aeiforo_tour_completed_'
-
 export type TourStep = {
-  /** Optional i18n id — title/body resolve from `components.tour.steps.<key>.*`. */
+  /** Optional i18n id — title/body resolve from `onboarding.tour.steps.<key>.*`. */
   key?: string
-  /** Optional data-tour selector. Centred modal when omitted. */
+  /** Optional data-tour selector. Centred card when omitted. */
   target?: string
   title: string
   body: string
@@ -55,7 +53,7 @@ const STEPS: TourStep[] = [
     target: 'sidebar-templates',
     key: 'frameworks',
     title: 'Frameworks become documents',
-    body: "Pick a framework, open the editor, and fill it in like a document. Values link automatically across every report.",
+    body: 'Pick a framework, open the editor, and fill it in like a document. Values link automatically across every report.',
     placement: 'right',
   },
   {
@@ -76,12 +74,14 @@ interface ProductTourProps {
 
 export default function ProductTour({ userId, steps = STEPS }: ProductTourProps) {
   const { t } = useTranslation()
+  const reduce = useReducedMotion()
   const storageKey = TOUR_KEY_PREFIX + userId
   const [active, setActive] = useState(false)
   const [stepIdx, setStepIdx] = useState(0)
   const [rect, setRect] = useState<DOMRect | null>(null)
+  const primaryRef = useRef<HTMLButtonElement>(null)
 
-  // On mount, decide whether to show the tour for this user.
+  // First run: decide whether to show the tour for this user.
   useEffect(() => {
     try {
       if (!localStorage.getItem(storageKey)) setActive(true)
@@ -90,30 +90,42 @@ export default function ProductTour({ userId, steps = STEPS }: ProductTourProps)
     }
   }, [storageKey])
 
+  // Replay from the guided setup.
+  useEffect(() => {
+    const start = () => { setStepIdx(0); setActive(true) }
+    window.addEventListener(TOUR_EVENT, start)
+    return () => window.removeEventListener(TOUR_EVENT, start)
+  }, [])
+
   const complete = useCallback(() => {
     try { localStorage.setItem(storageKey, '1') } catch { /* ignore */ }
     setActive(false)
   }, [storageKey])
 
-  // ESC always exits the tour (with completion stamped).
+  // ESC always exits the tour (with completion stamped); arrows step.
   useEffect(() => {
     if (!active) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') complete()
+      else if (e.key === 'ArrowRight') setStepIdx(i => Math.min(i + 1, steps.length - 1))
+      else if (e.key === 'ArrowLeft') setStepIdx(i => Math.max(i - 1, 0))
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [active, complete])
+  }, [active, complete, steps.length])
 
-  // Resolve the target rect for the current step. We recompute on resize
-  // and on step change so the spotlight tracks the element accurately.
+  useEffect(() => { if (active) primaryRef.current?.focus() }, [active, stepIdx])
+
+  // Resolve the target rect for the current step; track resize/scroll.
   const step = steps[stepIdx]
   useLayoutEffect(() => {
     if (!active) { setRect(null); return }
     const resolve = () => {
       if (!step?.target) { setRect(null); return }
       const el = document.querySelector<HTMLElement>(`[data-tour="${step.target}"]`)
-      setRect(el ? el.getBoundingClientRect() : null)
+      const r = el?.getBoundingClientRect()
+      // Hidden targets (collapsed mobile sidebar) have no size — centre instead.
+      setRect(r && r.width > 0 && r.height > 0 ? r : null)
     }
     resolve()
     window.addEventListener('resize', resolve)
@@ -124,17 +136,13 @@ export default function ProductTour({ userId, steps = STEPS }: ProductTourProps)
     }
   }, [active, stepIdx, step])
 
-  if (!active || typeof document === 'undefined') return null
+  if (!active || typeof document === 'undefined' || !step) return null
 
   const isLast = stepIdx === steps.length - 1
-  const next = () => {
-    if (isLast) complete()
-    else setStepIdx(i => Math.min(i + 1, steps.length - 1))
-  }
-
-  const cardPos = computeCardPosition(rect, step?.placement ?? 'center')
-  const title = step.key ? t(`components.tour.steps.${step.key}.title`, { defaultValue: step.title }) : step.title
-  const body = step.key ? t(`components.tour.steps.${step.key}.body`, { defaultValue: step.body }) : step.body
+  const next = () => (isLast ? complete() : setStepIdx(i => Math.min(i + 1, steps.length - 1)))
+  const cardPos = computeCardPosition(rect, step.placement ?? 'center')
+  const title = step.key ? t(`onboarding.tour.steps.${step.key}.title`, { defaultValue: step.title }) : step.title
+  const body = step.key ? t(`onboarding.tour.steps.${step.key}.body`, { defaultValue: step.body }) : step.body
 
   return createPortal(
     <AnimatePresence>
@@ -143,85 +151,92 @@ export default function ProductTour({ userId, steps = STEPS }: ProductTourProps)
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.18 }}
+        transition={transition.fast}
         className="fixed inset-0 z-[2000] pointer-events-none"
-        aria-modal="true"
         role="dialog"
-        aria-label={title}
+        aria-modal="true"
+        aria-labelledby="product-tour-title"
+        aria-describedby="product-tour-body"
       >
-        {/* Backdrop — translucent veil. Pointer events stay off so the
-            page underneath remains usable; only the card itself is
-            interactive. */}
-        <div className="absolute inset-0 bg-black/55" aria-hidden />
+        {/* Veil — non-interactive so the page underneath stays usable. */}
+        {!rect && <div className="absolute inset-0" style={{ background: 'var(--bg-overlay)' }} aria-hidden />}
 
-        {/* Spotlight ring around the target element (when one is set) */}
+        {/* Spotlight: glides between targets (layout spring). */}
         {rect && (
           <motion.div
-            key={`spot-${stepIdx}`}
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.18 }}
-            className="absolute pointer-events-none rounded-2xl"
-            style={{
-              left: rect.left - 8,
-              top: rect.top - 8,
-              width: rect.width + 16,
-              height: rect.height + 16,
-              boxShadow: '0 0 0 9999px rgba(0,0,0,0.55), 0 0 0 2px rgba(15,123,111,0.75), 0 8px 24px rgba(15,123,111,0.35)',
-              background: 'transparent',
-            }}
+            className="absolute pointer-events-none rounded-[var(--radius-xl)]"
+            initial={false}
+            animate={{ left: rect.left - 8, top: rect.top - 8, width: rect.width + 16, height: rect.height + 16 }}
+            transition={reduce ? { duration: 0 } : spring.gentle}
+            style={{ boxShadow: '0 0 0 9999px var(--bg-overlay), 0 0 0 2px var(--sidebar-accent), 0 0 24px 2px rgba(52, 211, 153, 0.35)' }}
+            aria-hidden
           />
         )}
 
-        {/* Step card */}
         <motion.div
           key={`card-${stepIdx}`}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.22 }}
-          className="absolute pointer-events-auto w-[360px] max-w-[88vw] rounded-2xl bg-[var(--bg-primary)] border border-[var(--border-default)] shadow-2xl p-5"
+          initial={reduce ? false : { opacity: 0, y: 8, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={spring.gentle}
+          className="absolute pointer-events-auto w-[360px] max-w-[calc(100vw-32px)] rounded-[var(--radius-xl)] border border-[var(--border-default)] bg-[var(--bg-elevated)] shadow-[var(--shadow-overlay)] p-5"
           style={cardPos}
           data-testid="product-tour-card"
         >
-          <div className="flex items-start justify-between gap-3 mb-2">
-            <div className="flex items-center gap-2 text-[var(--color-brand)]">
-              <Sparkles className="w-4 h-4" />
-              <span className="text-micro font-semibold uppercase tracking-wider">{t('components.tour.quickTour')}</span>
-            </div>
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <span className="inline-flex items-center gap-1.5 text-caption font-medium text-[var(--color-brand)]">
+              <Compass className="w-3.5 h-3.5" aria-hidden /> {t('onboarding.tour.quickTour', { defaultValue: 'Quick tour' })}
+            </span>
             <button
               type="button"
               onClick={complete}
-              aria-label={t('components.tour.skip')}
-              className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+              aria-label={t('onboarding.tour.close', { defaultValue: 'Close tour' })}
+              className="w-9 h-9 -mr-2 -mt-1 rounded-[var(--radius-md)] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]"
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4" aria-hidden />
             </button>
           </div>
-          <h3 className="font-display text-[length:var(--text-lg)] font-semibold text-[var(--text-primary)] leading-snug">
-            {title}
-          </h3>
-          <p className="mt-2 text-[length:var(--text-sm)] text-[var(--text-secondary)] leading-relaxed">
-            {body}
-          </p>
-          <div className="mt-5 flex items-center justify-between">
+          <h3 id="product-tour-title" className="type-h3 text-[var(--text-primary)]">{title}</h3>
+          <p id="product-tour-body" className="mt-1.5 text-small text-[var(--text-secondary)]">{body}</p>
+
+          {/* progress dots */}
+          <div className="mt-4 flex items-center gap-1.5" aria-hidden>
+            {steps.map((_, i) => (
+              <span key={i} className="relative h-1.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden" style={{ width: i === stepIdx ? 20 : 6 }}>
+                {i <= stepIdx && <motion.span layoutId={i === stepIdx ? 'tour-dot' : undefined} className="absolute inset-0 rounded-full bg-[var(--color-brand)]" transition={spring.snappy} />}
+              </span>
+            ))}
+          </div>
+
+          <div className="mt-4 flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={complete}
-              className="text-[length:var(--text-xs)] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+              className="min-h-[36px] px-1 text-caption font-medium text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]"
             >
-              {t('components.tour.skip')}
+              {t('onboarding.tour.skip', { defaultValue: 'Skip tour' })}
             </button>
-            <div className="flex items-center gap-3">
-              <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] tabular-nums">
+            <div className="flex items-center gap-2">
+              <span className="text-caption text-[var(--text-tertiary)] tabular-nums">
                 {stepIdx + 1} / {steps.length}
               </span>
+              {stepIdx > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setStepIdx(i => Math.max(0, i - 1))}
+                  aria-label={t('common.back')}
+                  className="w-9 h-9 rounded-[var(--radius-md)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                >
+                  <ArrowLeft className="w-4 h-4" aria-hidden />
+                </button>
+              )}
               <button
+                ref={primaryRef}
                 type="button"
                 onClick={next}
-                className="inline-flex items-center gap-1.5 px-3 h-8 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold hover:bg-[var(--btn-primary-bg-hover)] transition-colors"
+                className="inline-flex items-center gap-1.5 min-h-[36px] px-3.5 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-small font-semibold hover:bg-[var(--btn-primary-bg-hover)] transition-colors duration-micro"
               >
-                {isLast ? t('components.tour.start') : t('common.next')}
-                {!isLast && <ArrowRight className="w-3.5 h-3.5" />}
+                {isLast ? t('onboarding.tour.start', { defaultValue: 'Start using Nexus' }) : t('common.next')}
+                {!isLast && <ArrowRight className="w-3.5 h-3.5" aria-hidden />}
               </button>
             </div>
           </div>
@@ -233,8 +248,8 @@ export default function ProductTour({ userId, steps = STEPS }: ProductTourProps)
 }
 
 /**
- * Pick a card position next to the target (or centre when no target).
- * Falls back to centred when the rect would land off-screen.
+ * Card position next to the target (or centred when there is none / it
+ * would land off-screen). On narrow screens the card docks to the bottom.
  */
 function computeCardPosition(
   rect: DOMRect | null,
@@ -242,21 +257,15 @@ function computeCardPosition(
 ): React.CSSProperties {
   const PADDING = 16
   const CARD_W = 360
-  const CARD_H = 220
+  const CARD_H = 230
   const vw = typeof window !== 'undefined' ? window.innerWidth : 1280
   const vh = typeof window !== 'undefined' ? window.innerHeight : 800
 
-  if (!rect || placement === 'center') {
-    return {
-      left: '50%',
-      top: '50%',
-      transform: 'translate(-50%, -50%)',
-    }
-  }
+  if (vw < 640) return { left: PADDING, right: PADDING, bottom: PADDING, width: 'auto' }
+  if (!rect || placement === 'center') return { left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }
 
   let left = rect.left
   let top = rect.bottom + PADDING
-
   switch (placement) {
     case 'bottom':
       left = Math.min(Math.max(rect.left, PADDING), vw - CARD_W - PADDING)
@@ -275,6 +284,5 @@ function computeCardPosition(
       top = Math.min(Math.max(rect.top, PADDING), vh - CARD_H - PADDING)
       break
   }
-
   return { left, top }
 }

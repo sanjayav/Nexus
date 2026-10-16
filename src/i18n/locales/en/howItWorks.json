@@ -7,11 +7,11 @@
     "heading": "Four design choices that compress months into days.",
     "frameworks": {
       "title": "Frameworks pre-loaded",
-      "body": "24 frameworks and 700+ datapoints are ready on day one — CSRD, ISSB, GRI, TCFD, CDP, SEC, EU Taxonomy and more. No template buildouts, no consultant-led configuration."
+      "body": "{{count}} framework packs and {{items}} disclosure items are ready on day one — CSRD, ISSB, GRI, TCFD, CDP, SEC, EU Taxonomy, China's exchange guidelines and more. No template buildouts, no consultant-led configuration."
     },
     "ai": {
       "title": "AI does the heavy lifting",
-      "body": "Claude-powered evidence extraction reads supplier PDFs and invoices, draft generators write the narrative, and a vendor-to-emission-factor matcher handles the spend-based maths."
+      "body": "AI evidence extraction reads supplier PDFs and invoices, draft generators write the narrative, and a vendor-to-emission-factor matcher handles the spend-based maths — Claude by default, or a mainland provider per organisation."
     },
     "linked": {
       "title": "Linked data, set once",

@@ -26,31 +26,6 @@
       "body": "No dark patterns. No surprise upsells. The product gets out of your way so you can do the work."
     }
   },
-  "team": {
-    "eyebrow": "Team",
-    "heading": "Small team. Long horizons.",
-    "note": "Bios are placeholders until the team is ready to be named publicly.",
-    "ceo": {
-      "name": "Founder",
-      "role": "CEO",
-      "bio": "Background in sustainability consulting + enterprise software."
-    },
-    "cto": {
-      "name": "Co-founder",
-      "role": "CTO",
-      "bio": "Built reporting platforms at two prior fintech companies."
-    },
-    "esg": {
-      "name": "Head of ESG",
-      "role": "Product",
-      "bio": "Ten years in CSRD/ISSB implementation across European utilities."
-    },
-    "engineering": {
-      "name": "Lead Engineer",
-      "role": "Engineering",
-      "bio": "Specialises in linked-data and audit infrastructure."
-    }
-  },
   "cta": {
     "heading": "Want to know more about what we're building?",
     "primary": "Try Nexus free",

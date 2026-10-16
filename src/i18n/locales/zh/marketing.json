@@ -10,22 +10,21 @@
     "getStarted": "立即开始",
     "openMenu": "打开菜单",
     "homeAria": "Nexus — 首页",
-    "navAria": "网站导航"
+    "navAria": "网站导航",
+    "skip": "跳到正文",
+    "closeMenu": "关闭菜单"
   },
   "footer": {
     "tagline": "可持续发展智能平台——覆盖所有框架，只需一套数据，随时满足审计要求。",
     "product": "产品",
     "company": "公司",
     "legal": "法律",
-    "security": "安全",
-    "api": "API",
-    "careers": "加入我们",
-    "blog": "博客",
     "terms": "服务条款",
     "privacy": "隐私政策",
     "dpa": "数据处理协议（DPA）",
     "subprocessors": "子处理方",
-    "copyright": "© 2026 Aeiforo Ltd · 保留所有权利"
+    "copyright": "© 2026 Aeiforo Ltd · 保留所有权利",
+    "languages": "提供英文与简体中文版本。"
   },
   "cta": {
     "startFree": "免费开始",
@@ -40,16 +39,6 @@
     "enterprise": "企业版",
     "custom": "定制",
     "perMonth": "/月"
-  },
-  "hero": {
-    "eyebrow": "可持续发展智能平台",
-    "titleLine1": "覆盖所有框架。",
-    "titleLine2": "只需一套数据。",
-    "subtitle": "Nexus 报告平台将可持续发展数据转化为可直接交付审计的披露，全面覆盖 CSRD、ISSB、GRI、TCFD、CDP 等框架。",
-    "trust": "由 ESG 专家打造 · SOC 2（认证进行中）· 符合 GDPR · 支持私有化部署"
-  },
-  "logoCloud": {
-    "heading": "深受以下企业可持续发展团队信赖"
   },
   "comparison": {
     "feature": "功能",
@@ -90,5 +79,8 @@
     },
     "closing": "全程无需销售电话，无需实施顾问，价格完全公开。",
     "closingStrong": "团队版仅需 £500/月。"
+  },
+  "language": {
+    "label": "语言"
   }
 }

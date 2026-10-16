@@ -2,10 +2,6 @@
   "eyebrow": "Contact",
   "title": "Get in touch.",
   "intro": "Questions about pricing, security, deployment, or just want to see Nexus on your own data? Drop us a note and a human will reply within one working day.",
-  "success": {
-    "title": "We’ll be in touch.",
-    "body": "Thanks for reaching out — we’ve received your message and will respond shortly."
-  },
   "form": {
     "name": "Your name",
     "namePlaceholder": "Jane Doe",
@@ -16,15 +12,23 @@
     "message": "Message",
     "messagePlaceholder": "What would you like to know?",
     "required": "Please add at least an email and a message.",
-    "sending": "Sending…",
-    "send": "Send message"
+    "send": "Compose email",
+    "mailNote": "Opens your email app — nothing is sent from this page."
   },
   "sidebar": {
     "sales": "Sales",
     "support": "Support",
     "address": "Address",
-    "addressLine2": "Office address placeholder",
     "addressLine3": "London, United Kingdom",
     "security": "For security disclosures, please email <email>security@aeiforo.local</email> rather than using the form."
+  },
+  "mail": {
+    "subject": "Nexus enquiry — {{company}}"
+  },
+  "handoff": {
+    "title": "Finish in your email app",
+    "body": "We opened a new email to {{email}} with your message. Press send there — nothing has been sent yet. No email app? Copy the message instead.",
+    "copy": "Copy message",
+    "copied": "Copied"
   }
 }

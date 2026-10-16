@@ -15,7 +15,7 @@
   },
   "title": "鉴证审核",
   "subtitle": "第三方验证流程。鉴证团队在数据包发布到各框架之前进行审核、提出发现事项并予以通过。",
-  "reportingYear": "报告年度：{{year}}",
+  "reportingYear": "报告年度 {{year}}",
   "dataPackages": "个数据包",
   "pipeline": "鉴证流程",
   "total_other": "共 {{count}} 项",
@@ -47,5 +47,7 @@
   "resolved": "解决日期：{{date}}",
   "linkedAnomalies": "关联异常",
   "blockchainAnchors": "区块链锚点",
-  "nothingLinked": "尚未关联任何发现事项、异常或区块链锚点。"
+  "nothingLinked": "尚未关联任何发现事项、异常或区块链锚点。",
+  "filterAria": "按状态筛选",
+  "expand": "显示详情"
 }

@@ -1,6 +1,6 @@
 {
   "failedToLoad": "加载失败",
-  "unableToLoad": "无法加载预览",
+  "unableToLoad": "预览未能加载",
   "retry": "重试",
   "backToPublish": "返回发布中心",
   "auditorView": "审计师视图",
@@ -86,5 +86,6 @@
     "Operational_Eco_Efficiency": "运营生态效率",
     "Product_Stewardship": "产品责任管理",
     "Hazardous_Substances": "有害物质"
-  }
+  },
+  "unableToLoadBody": "无法连接服务器，暂时无法生成报告预览。"
 }

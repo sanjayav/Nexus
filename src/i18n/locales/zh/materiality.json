@@ -17,7 +17,13 @@
     "create": "创建失败：{{message}}",
     "update": "更新失败：{{message}}",
     "iroSave": "IRO 保存失败：{{message}}",
-    "save": "保存失败：{{message}}"
+    "save": "保存失败：{{message}}",
+    "loadTitle": "重要性评估加载失败",
+    "updateTitle": "修改未保存",
+    "createTitle": "议题添加失败",
+    "finalizeTitle": "定稿失败",
+    "iroTitle": "影响、风险和机遇保存失败",
+    "saveTitle": "评分未保存"
   },
   "finalized": "重要性结论已最终确定。",
   "crumbStrategy": "战略",
@@ -29,7 +35,8 @@
     "topics": "议题",
     "iros": "影响、风险和机遇",
     "stakeholders": "利益相关方",
-    "matrix": "矩阵"
+    "matrix": "矩阵",
+    "cnsse": "交易所议题"
   },
   "universe": "CSRD 议题库 — 添加到范围",
   "topicsCount": "议题（{{count}}）",
@@ -50,7 +57,8 @@
     "likelihood": "可能性",
     "severity": "严重程度",
     "horizon": "时间范围",
-    "material": "实质性"
+    "material": "重要性结论",
+    "cnsse": "交易所议题"
   },
   "aria": {
     "impact": "{{topic}} 的影响评分",
@@ -58,7 +66,9 @@
     "likelihood": "{{topic}} 的可能性",
     "severity": "{{topic}} 的严重程度",
     "horizon": "{{topic}} 的时间范围",
-    "score": "评分（1 至 5）"
+    "score": "评分（1 至 5）",
+    "cnsse": "{{topic}} 对应的交易所议题",
+    "concern": "{{group}}对{{topic}}的关注度"
   },
   "horizon": {
     "short": "短期",
@@ -67,7 +77,8 @@
   },
   "empty": {
     "title": "暂无实质性议题",
-    "body": "从上方 CSRD 议题库中选择，或添加自定义议题，以开始双重重要性评估。"
+    "body": "从上方 CSRD 议题库中选择，或添加自定义议题，以开始双重重要性评估。",
+    "bodyCn": "可从上方交易所指引的 21 个议题开始，或添加自定义议题，启动双重重要性评估。"
   },
   "iros": {
     "addTopicsFirst": "请先在“议题”标签页中添加议题。",
@@ -101,12 +112,101 @@
     "thresholdSuffix": "（任一轴达到即为实质性）。",
     "finalize": "最终确定重要性",
     "financial": "财务重要性",
-    "financialAxis": "财务重要性 →",
+    "financialAxis": "财务重要性",
     "impact": "影响重要性",
-    "impactAxis": "↑ 影响重要性",
-    "verdict": "结论",
-    "material": "实质性",
-    "notMaterial": "非实质性",
-    "pending": "待最终确定"
+    "impactAxis": "影响重要性",
+    "verdict": "评估结论",
+    "material": "具有重要性",
+    "notMaterial": "不具有重要性",
+    "pending": "待定稿",
+    "aria": "包含 {{count}} 个议题的双重重要性矩阵",
+    "pointAria": "{{topic}}：财务 {{financial}}，影响 {{impact}}",
+    "tipScores": "财务 {{financial}} · 影响 {{impact}}",
+    "quadDouble": "双重重要性",
+    "quadImpact": "影响重要性",
+    "quadFinancial": "财务重要性",
+    "emptyTitle": "暂无可显示的议题",
+    "emptyBody": "请在“议题”分区为议题完成双维度评分，即可在矩阵中显示。",
+    "viewAria": "矩阵视图",
+    "view": {
+      "cnsse": "交易所 21 个议题",
+      "topics": "评估议题"
+    },
+    "legendMaterial": "具有重要性",
+    "legendPending": "已评分，未定稿",
+    "legendThreshold": "阈值"
+  },
+  "tabsAria": "重要性评估分区",
+  "universeTitle": "将议题纳入评估范围",
+  "ledger": {
+    "aria": "重要性评估概览",
+    "topics": "评估范围内议题",
+    "assessed": "已完成双维度评分",
+    "assessedHint": "共 {{total}} 个议题",
+    "material": "具有重要性",
+    "materialHint": "以最近一次定稿为准",
+    "cnsse": "已覆盖的交易所议题",
+    "cnsseHint": "交易所指引共 21 个议题",
+    "iros": "影响、风险和机遇",
+    "irosHint": "已关联至议题"
+  },
+  "toast": {
+    "added": "已将“{{topic}}”纳入评估范围",
+    "iroAdded": "已记录影响、风险或机遇"
+  },
+  "finalizedCounts": "具有重要性 {{material}} 项 · 不具有重要性 {{not}} 项",
+  "finalizeSheet": {
+    "title": "确认定稿重要性评估结论？",
+    "body": "{{total}} 个议题中已评分 {{assessed}} 个。任一维度得分达到 {{threshold}} 的议题将被认定为具有重要性并纳入报告范围。之后可重新评分并再次定稿。"
+  },
+  "status": {
+    "unscored": "未评分"
+  },
+  "verdict": {
+    "double": "双重重要性",
+    "financial": "具有财务重要性",
+    "impact": "具有影响重要性",
+    "not": "不具有重要性",
+    "unassessed": "未评分"
+  },
+  "cnsse": {
+    "universe": "沪深北交易所《可持续发展报告指引》21 个可持续发展议题",
+    "intro": "交易所指引要求对 21 个议题逐一评估财务重要性（对企业价值的影响）与影响重要性（企业对经济、社会和环境的影响）。任一维度得分达到 {{threshold}} 即具有重要性；此处得分取所映射议题中的最高分。",
+    "pillars": {
+      "environment": "环境",
+      "social": "社会",
+      "governance": "可持续发展相关治理"
+    },
+    "pillarCount": "{{count}} 个议题",
+    "topics": {
+      "CLIM": "应对气候变化",
+      "POL": "污染物排放",
+      "WST": "废弃物处理",
+      "BIO": "生态系统和生物多样性保护",
+      "ENVC": "环境合规管理",
+      "ENE": "能源利用",
+      "WAT": "水资源利用",
+      "CIR": "循环经济",
+      "RUR": "乡村振兴",
+      "SOC": "社会贡献",
+      "INN": "创新驱动",
+      "ETH": "科技伦理",
+      "SUP": "供应链安全",
+      "SME": "平等对待中小企业",
+      "PRD": "产品和服务安全与质量",
+      "DAT": "数据安全与客户隐私保护",
+      "EMP": "员工",
+      "DD": "尽职调查",
+      "STK": "利益相关方沟通",
+      "ABC": "反商业贿赂及反贪污",
+      "AUC": "反不正当竞争"
+    },
+    "unmapped": "未映射",
+    "notInScope": "尚未评估",
+    "scores": "财务 {{f}} · 影响 {{i}}",
+    "addToScope": "纳入评估",
+    "mapExisting": "映射现有议题…",
+    "mapExistingAria": "将现有议题映射至{{topic}}",
+    "unmap": "取消 {{topic}} 与该交易所议题的映射"
   }
 }

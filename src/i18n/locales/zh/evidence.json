@@ -15,7 +15,7 @@
   },
   "uploadPrompt": {
     "title": "为披露附加证据",
-    "body": "证据需关联到具体数值。请从「我的任务」中打开一项披露，然后使用右侧栏的「附加证据」按钮上传文件。",
+    "body": "证据需关联到具体数值。请从“我的任务”中打开一项披露，在其“证据”区域上传文件。",
     "openMyTasks": "打开我的任务",
     "dismiss": "关闭"
   },
@@ -28,7 +28,11 @@
     "disclosure": "披露",
     "files": "文件",
     "assignee": "负责人",
-    "lastUpdated": "最近更新"
+    "lastUpdated": "最近更新",
+    "status": "状态"
   },
-  "openDisclosure": "打开披露"
+  "openDisclosure": "打开披露",
+  "error": {
+    "title": "无法加载证据"
+  }
 }

@@ -1,4 +1,5 @@
-import { Scope3Calculator, toNum } from './index'
+import type { Scope3Calculator } from './types'
+import { toNum } from './constants'
 
 // kgCO2e per passenger-km.
 const COMMUTE_EF: Record<string, number> = {

@@ -3,19 +3,25 @@
   "breadcrumb": "SCIM tokens",
   "eyebrow": "Admin · Identity",
   "title": "SCIM provisioning",
-  "subtitle": "Issue a SCIM 2.0 bearer token so an identity provider (Azure AD, Okta, OneLogin) can sync users into this workspace automatically.",
+  "subtitle": "Issue a SCIM 2.0 bearer token so your identity provider (Azure AD, Okta, OneLogin) can sync users into this workspace automatically.",
   "errors": {
     "load": "Failed to load SCIM tokens",
     "create": "Failed to create SCIM token",
-    "revoke": "Failed to revoke token"
+    "revoke": "Couldn't revoke the token. It is still active.",
+    "loadTitle": "SCIM tokens didn't load",
+    "loadBody": "We couldn't reach the server, so this list isn't confirmed. No tokens were changed.",
+    "refresh": "Couldn't refresh the token list"
   },
-  "confirmRevoke": "Revoke this token? Any IdP using it will lose access immediately.",
+  "confirmRevoke": "Any identity provider using this token stops provisioning immediately. This can't be undone.",
   "reveal": {
-    "title": "Token generated",
-    "body": "This is the only time you will see this token. Copy it now and paste it into your IdP. We store only a hash.",
-    "dismiss": "Dismiss",
+    "title": "Copy your new SCIM token now",
+    "body": "You won't see this token again. Paste it into your identity provider now; we store only a hash.",
+    "dismiss": "I've stored it safely",
     "copied": "Copied",
-    "copy": "Copy"
+    "copy": "Copy token",
+    "tokenLabel": "Bearer token",
+    "copyFailed": "Couldn't copy. Select the text and copy it manually.",
+    "role": "New users get the {{role}} role by default."
   },
   "generate": {
     "heading": "Generate a new SCIM token",
@@ -24,15 +30,16 @@
     "button": "Generate token"
   },
   "roles": {
-    "viewer": "viewer",
-    "analyst": "analyst",
-    "team-lead": "team-lead",
-    "auditor": "auditor"
+    "viewer": "Viewer",
+    "analyst": "Analyst",
+    "team-lead": "Team lead",
+    "auditor": "Auditor",
+    "contributor": "Contributor"
   },
   "setup": {
     "heading": "IdP setup instructions",
     "intro": "SCIM 2.0 base URL and configuration for Azure AD, Okta, and OneLogin.",
-    "baseUrl": "SCIM Base URL",
+    "baseUrl": "SCIM base URL",
     "authentication": "Authentication",
     "authBody": "Bearer token (paste the value shown when generating).",
     "endpoints": "Supported endpoints",
@@ -42,21 +49,32 @@
     "azureTitle": "Azure AD",
     "azureBody": "Enterprise applications → your app → Provisioning. Set \"Tenant URL\" to the base URL above and paste the token into \"Secret Token\". Test connection then start provisioning.",
     "oktaTitle": "Okta",
-    "oktaBody": "Application → Provisioning → Integration. Enable API integration, paste the base URL into \"SCIM connector base URL\" and the token under \"OAuth Bearer Token\"."
+    "oktaBody": "Application → Provisioning → Integration. Enable API integration, paste the base URL into \"SCIM connector base URL\" and the token under \"OAuth Bearer Token\".",
+    "copyUrl": "Copy URL"
   },
   "table": {
-    "heading": "Active tokens",
+    "heading": "Tokens",
     "emptyTitle": "No SCIM tokens yet",
-    "emptyBody": "Generate a bearer token above and paste it into your IdP (Azure AD, Okta, Google Workspace) to start auto-provisioning users.",
+    "emptyBody": "Generate a bearer token and paste it into your identity provider (Azure AD, Okta, Google Workspace) to start provisioning users automatically.",
     "prefix": "Prefix",
     "defaultRole": "Default role",
     "status": "Status",
     "lastUsed": "Last used",
     "created": "Created",
     "actions": "Actions",
-    "active": "active",
-    "revoked": "revoked",
-    "never": "never",
-    "revoke": "Revoke"
+    "active": "Active",
+    "revoked": "Revoked",
+    "never": "Never used",
+    "revoke": "Revoke",
+    "count": "{{active}} active of {{total}}",
+    "revokeNamed": "Revoke token {{prefix}}"
+  },
+  "revokeSheet": {
+    "title": "Revoke token {{prefix}}…?",
+    "confirm": "Revoke token"
+  },
+  "toast": {
+    "created": "SCIM token generated",
+    "revoked": "Token {{prefix}}… revoked"
   }
 }

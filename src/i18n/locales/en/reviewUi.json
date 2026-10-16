@@ -1,0 +1,33 @@
+{
+  "lang": {
+    "en": "English",
+    "zh": "简体中文"
+  },
+  "public": {
+    "languageLabel": "Page language",
+    "poweredBy": "Verified via <brand>Nexus</brand> by Aeiforo",
+    "tamperNote": "Hash-anchored. Any change to the file changes its fingerprint."
+  },
+  "decision": {
+    "region": "Decision",
+    "commentLabel": "Comment for this decision",
+    "prev": "Previous item",
+    "next": "Next item",
+    "position": "{{index}} of {{total}}",
+    "navHint": "to move",
+    "done": "Done"
+  },
+  "comments": {
+    "loadFailed": "Comments didn't load.",
+    "retry": "Try again"
+  },
+  "history": {
+    "loadFailedTitle": "History didn't load",
+    "loadFailedBody": "Prior-year values couldn't be fetched, so no trend check has run.",
+    "pending": "FY{{year}} entry",
+    "reported": "Reported",
+    "vsAvg": "Δ vs {{n}}-yr avg",
+    "yoyTitle": "Change vs FY{{year}}",
+    "zWarnTitle": "Outside 2σ (|z| = {{z}})"
+  }
+}

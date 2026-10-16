@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { UserPlus, Building2, ClipboardCheck, FileCheck2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { ease } from '../../motion/tokens'
 
 /**
  * TimelineGraphic — the "time-to-disclosure" story.
@@ -57,7 +58,7 @@ export default function TimelineGraphic() {
 
   return (
     <section className="py-16 sm:py-20">
-      <div className="max-w-[1180px] mx-auto px-5 sm:px-8" ref={ref}>
+      <div className="max-w-[1180px] mx-auto px-4 sm:px-8" ref={ref}>
         {/* Desktop / tablet — horizontal */}
         <div className="hidden md:block relative">
           {/* Connecting line */}
@@ -81,12 +82,12 @@ export default function TimelineGraphic() {
               y1="2"
               x2="940"
               y2="2"
-              stroke="var(--accent-500)"
+              stroke="var(--color-brand)"
               strokeWidth="2.5"
               strokeLinecap="round"
               initial={{ pathLength: 0 }}
               animate={{ pathLength: lineProgress }}
-              transition={{ duration: 1.2, ease: 'easeOut' }}
+              transition={{ duration: 1.2, ease: ease.out }}
               style={{ pathLength: lineProgress }}
             />
           </svg>
@@ -98,22 +99,22 @@ export default function TimelineGraphic() {
                 className="flex flex-col items-center text-center"
                 initial={reduce ? false : { opacity: 0, y: 12 }}
                 animate={inView || reduce ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.5, delay: 0.15 + i * 0.18 }}
+                transition={{ duration: 0.5, ease: ease.out, delay: 0.15 + i * 0.18 }}
               >
                 <div
                   className="relative z-10 w-[68px] h-[68px] rounded-full flex items-center justify-center"
                   style={{
                     background: 'var(--bg-primary)',
-                    border: '2px solid var(--accent-500)',
-                    color: 'var(--accent-600)',
+                    border: '2px solid var(--color-brand)',
+                    color: 'var(--text-link)',
                     boxShadow: '0 0 0 4px color-mix(in srgb, var(--accent-500) 12%, transparent)',
                   }}
                 >
                   <m.Icon className="w-6 h-6" />
                 </div>
                 <p
-                  className="mt-5 text-micro font-semibold uppercase tracking-[0.06em]"
-                  style={{ color: 'var(--accent-600)' }}
+                  className="mt-5 type-small font-semibold tabular-nums"
+                  style={{ color: 'var(--text-link)' }}
                 >
                   {t(`marketing.timeline.${m.id}.when`)}
                 </p>
@@ -124,7 +125,7 @@ export default function TimelineGraphic() {
                   {t(`marketing.timeline.${m.id}.title`)}
                 </h3>
                 <p
-                  className="mt-2 text-[13px] leading-relaxed max-w-[220px]"
+                  className="mt-2 type-small max-w-[220px]"
                   style={{ color: 'var(--text-secondary)' }}
                 >
                   {t(`marketing.timeline.${m.id}.body`)}
@@ -142,7 +143,7 @@ export default function TimelineGraphic() {
               className="flex gap-4 relative"
               initial={reduce ? false : { opacity: 0, x: -8 }}
               animate={inView || reduce ? { opacity: 1, x: 0 } : {}}
-              transition={{ duration: 0.45, delay: 0.1 + i * 0.15 }}
+              transition={{ duration: 0.45, ease: ease.out, delay: 0.1 + i * 0.15 }}
             >
               {/* Vertical line column */}
               <div className="flex flex-col items-center">
@@ -150,8 +151,8 @@ export default function TimelineGraphic() {
                   className="w-[56px] h-[56px] rounded-full flex items-center justify-center shrink-0"
                   style={{
                     background: 'var(--bg-primary)',
-                    border: '2px solid var(--accent-500)',
-                    color: 'var(--accent-600)',
+                    border: '2px solid var(--color-brand)',
+                    color: 'var(--text-link)',
                     boxShadow: '0 0 0 3px color-mix(in srgb, var(--accent-500) 12%, transparent)',
                   }}
                 >
@@ -170,8 +171,8 @@ export default function TimelineGraphic() {
 
               <div className="pb-8 pt-1">
                 <p
-                  className="text-micro font-semibold uppercase tracking-[0.06em]"
-                  style={{ color: 'var(--accent-600)' }}
+                  className="type-small font-semibold tabular-nums"
+                  style={{ color: 'var(--text-link)' }}
                 >
                   {t(`marketing.timeline.${m.id}.when`)}
                 </p>
@@ -182,7 +183,7 @@ export default function TimelineGraphic() {
                   {t(`marketing.timeline.${m.id}.title`)}
                 </h3>
                 <p
-                  className="mt-1.5 text-[13px] leading-relaxed"
+                  className="mt-1.5 type-small"
                   style={{ color: 'var(--text-secondary)' }}
                 >
                   {t(`marketing.timeline.${m.id}.body`)}

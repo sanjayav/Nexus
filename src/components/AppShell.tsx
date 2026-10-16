@@ -166,7 +166,7 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
             transition={{ duration: dur.fast, ease: ease.out }}
             onClick={onClose}
             className="fixed inset-0 z-40 lg:hidden"
-            style={{ background: 'rgba(4, 12, 10, 0.5)' }}
+            style={{ background: 'var(--bg-overlay)' }}
             aria-hidden="true"
           />
           <motion.div

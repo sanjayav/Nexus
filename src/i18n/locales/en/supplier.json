@@ -1,94 +1,123 @@
 {
-  "title": "Raw & Supplier Data Ingestion",
-  "subtitle": "Upload Excel/CSV files, auto-map columns, preview and validate data before ingestion.",
-  "uploadFile": "Upload File",
+  "title": "Raw and supplier data upload",
+  "subtitle": "Upload Excel or CSV files, map columns to the GHG data model, then preview and validate before anything is stored.",
+  "uploadFile": "Upload file",
+  "stepsAria": "Upload steps",
   "tabs": {
     "upload": "Upload",
-    "preview": "Data Preview",
-    "mapping": "Column Mapping",
-    "pipeline": "Pipeline",
+    "preview": "Preview",
+    "mapping": "Map columns",
+    "pipeline": "Validate",
     "history": "History"
   },
   "fields": {
     "skip": "— Skip column —",
-    "facility_name": "Facility / Site Name",
+    "facility_name": "Facility / site name",
     "source_id": "Source ID",
-    "source_type": "Source Type",
-    "emission_scope": "Emission Scope (1/2/3)",
-    "activity_type": "Activity Type",
-    "fuel_type": "Fuel Type",
-    "quantity": "Quantity / Amount",
+    "source_type": "Source type",
+    "emission_scope": "Emission scope (1/2/3)",
+    "activity_type": "Activity type",
+    "fuel_type": "Fuel type",
+    "quantity": "Quantity / amount",
     "unit": "Unit",
-    "emission_factor": "Emission Factor",
-    "ef_unit": "EF Unit",
+    "emission_factor": "Emission factor",
+    "ef_unit": "Emission factor unit",
     "co2e_tonnes": "CO₂e (tonnes)",
     "co2": "CO₂ (tonnes)",
     "ch4": "CH₄ (tonnes)",
     "n2o": "N₂O (tonnes)",
-    "reporting_period": "Reporting Period",
+    "reporting_period": "Reporting period",
     "date": "Date",
     "country": "Country",
     "region": "Region",
-    "supplier_name": "Supplier Name",
-    "notes": "Notes / Comments"
+    "supplier_name": "Supplier name",
+    "notes": "Notes / comments"
   },
   "empty": {
     "noFile": "No file uploaded yet",
     "noFileSub": "Upload an Excel or CSV file to preview its contents.",
-    "noMapData": "No data to map",
-    "noMapDataSub": "Upload a file first, then map columns.",
-    "goToUpload": "Go to Upload",
-    "noPipeline": "No data in pipeline",
-    "noPipelineSub": "Upload a file and confirm column mapping to run the validation pipeline.",
-    "noHistory": "No upload history",
-    "noHistorySub": "Files you upload will appear here."
+    "noMapData": "Nothing to map yet",
+    "noMapDataSub": "Upload a file first, then map its columns.",
+    "goToUpload": "Go to upload",
+    "noPipeline": "Nothing to validate yet",
+    "noPipelineSub": "Upload a file and confirm the column mapping to run validation.",
+    "noHistory": "No uploads this session",
+    "noHistorySub": "Files you upload appear here so you can reopen them."
+  },
+  "errors": {
+    "xls": {
+      "title": "Legacy .xls files can't be read",
+      "body": "Open the file in Excel and save it as .xlsx or .csv, then upload it again."
+    },
+    "tooLarge": {
+      "title": "This file is too large",
+      "body": "The limit is {{max}}. Split the workbook by site or period and upload each part."
+    },
+    "empty": {
+      "title": "No data rows found",
+      "body": "The first row should hold column headers and at least one row of data should follow."
+    },
+    "unreadable": {
+      "title": "This file couldn't be read",
+      "body": "It may be password-protected or damaged. Save a fresh copy as .xlsx or .csv and try again."
+    }
+  },
+  "toast": {
+    "parsed": "{{file}} parsed — {{rows}} rows ready to preview",
+    "autoMapped": "{{mapped}} of {{total}} columns mapped automatically",
+    "cleared_one": "Upload history cleared ({{count}} file)",
+    "cleared_other": "Upload history cleared ({{count}} files)",
+    "mapped": "Mapping confirmed — {{mapped}} columns, {{rows}} rows validated"
   },
   "upload": {
-    "kpiFiles": "Files Uploaded",
-    "kpiRows": "Total Rows",
-    "kpiSheets": "Sheets Parsed",
+    "kpiFiles": "Files uploaded",
+    "kpiRows": "Total rows",
+    "kpiSheets": "Sheets parsed",
     "kpiStatus": "Status",
     "statusParsing": "Parsing…",
     "statusReady": "Ready",
     "parsingFile": "Parsing file…",
-    "dropHere": "Drop file here",
-    "dropPrompt": "Drop Excel or CSV file here",
+    "dropHere": "Release to upload",
+    "dropPrompt": "Drop an Excel or CSV file here",
     "or": "or",
-    "clickToBrowse": "click to browse",
-    "limits": "Max file size: 50 MB. Data is parsed locally in your browser — nothing is sent to a server.",
-    "channelsTitle": "All Input Channels",
+    "clickToBrowse": "browse your files",
+    "limits": "Up to 50 MB. Files are parsed in your browser; nothing is stored until you confirm the mapping. GB18030 / GBK CSV from Chinese Excel is detected automatically.",
+    "channelsTitle": "Input channels",
     "active": "Active",
     "comingSoon": "Coming soon",
     "channels": {
       "manual": {
-        "title": "Manual Entry",
-        "desc": "Form-based input with real-time validation"
+        "title": "Manual entry",
+        "desc": "Form-based input with live validation"
       },
       "csv": {
-        "title": "CSV / Excel Upload",
-        "desc": "Active — bulk upload with auto-mapping"
+        "title": "CSV / Excel upload",
+        "desc": "Bulk upload with automatic column mapping"
       },
       "api": {
-        "title": "API Connectors",
-        "desc": "ERP & utility provider live feeds"
+        "title": "API connectors",
+        "desc": "Live feeds from ERP and utility providers"
       },
       "ocr": {
-        "title": "Document Parse / OCR",
-        "desc": "AI extraction from invoices & bills"
+        "title": "Document parsing / OCR",
+        "desc": "AI extraction from invoices and bills"
       }
     }
   },
   "preview": {
     "sheets_one": "{{count}} sheet",
     "sheets_other": "{{count}} sheets",
+    "sheetsAria": "Worksheets",
     "rowsUnit": "rows",
     "columnsUnit": "columns",
-    "mapColumns": "Map Columns",
+    "mapColumns": "Map columns",
     "mapped": "Mapped:",
     "searchPlaceholder": "Search rows…",
     "matches_one": "{{n}} match",
     "matches_other": "{{n}} matches",
-    "colFallback": "Col {{n}}",
+    "prev": "Previous page",
+    "next": "Next page",
+    "colFallback": "Column {{n}}",
     "showing": "Showing {{from}}–{{to}} of {{total}} rows",
     "columns_one": "{{count}} column",
     "columns_other": "{{count}} columns",
@@ -96,57 +125,67 @@
     "rows_other": "{{n}} rows"
   },
   "mapping": {
-    "title": "Column Mapping",
-    "help": "Map your source columns to the GHG data model. Auto-mapped columns are highlighted.",
-    "columnsMapped": "columns mapped",
-    "sourceColumn": "Source Column",
-    "targetField": "Target Field",
+    "title": "Map columns",
+    "help": "Match each source column to a field in the GHG data model. Recognised headers are mapped for you.",
+    "columnsMapped": "Columns mapped",
+    "sourceColumn": "Source column",
+    "targetField": "Maps to",
     "sample": "Sample",
-    "unmappedNote": "Unmapped columns will be stored as raw data and can be mapped later.",
-    "confirm": "Confirm Mapping & Run Pipeline"
+    "duplicate": "Also mapped from “{{column}}” — choose one source per field.",
+    "noMeasure": "No quantity or CO₂e column is mapped yet. Rows will be stored without a value to calculate from.",
+    "unmappedNote": "Skipped columns are kept as raw data and can be mapped later.",
+    "back": "Back to preview",
+    "blocked": "Map at least one column and resolve duplicate fields first",
+    "confirm": "Confirm mapping and validate"
   },
   "pipeline": {
     "stages": {
       "schema": {
-        "title": "Schema Validation",
-        "desc": "Data type checks, required fields, format conformance"
+        "title": "Schema validation",
+        "desc": "Data types, required fields, formats"
       },
       "semantic": {
-        "title": "Semantic Validation",
-        "desc": "Cross-field logic, unit consistency, threshold guards"
+        "title": "Semantic validation",
+        "desc": "Cross-field logic, unit consistency, thresholds"
       },
       "enrichment": {
-        "title": "Data Enrichment",
-        "desc": "Auto-fill emission factors, add metadata, normalise units"
+        "title": "Enrichment",
+        "desc": "Emission factors, metadata, unit normalisation"
       },
       "routing": {
-        "title": "Calculator Routing",
-        "desc": "Route to correct GHG Protocol calculator module"
+        "title": "Calculator routing",
+        "desc": "Routes to the right GHG Protocol calculator"
       },
       "repository": {
-        "title": "Data Repository",
-        "desc": "Immutable storage with blockchain-anchored audit trail"
+        "title": "Repository",
+        "desc": "Immutable storage with an anchored audit trail"
       }
     },
-    "mappingRequired": "Column mapping required",
-    "mappingRequiredSub": "Go to the Column Mapping tab and confirm your mappings before running the pipeline.",
-    "title": "5-Stage Validation Pipeline",
-    "processing": "Processing {{rows}} rows from {{file}}",
-    "awaiting": "Awaiting data input and column mapping",
-    "complete": "Pipeline Complete",
-    "flagged": "{{count}} flagged",
-    "throughput": "Pipeline Throughput",
-    "rowsPassed": "{{passed}} / {{total}} rows passed",
-    "exceptions": "Validation Exceptions",
-    "total": "{{count}} total",
-    "schemaFailures": "Schema validation failures (type mismatches, missing required fields)",
+    "mappingRequired": "Confirm the column mapping first",
+    "mappingRequiredSub": "Validation runs on the mapped columns, so it starts once the mapping is confirmed.",
+    "title": "Five-stage validation",
+    "processing": "{{rows}} rows from {{file}}",
+    "awaiting": "Waiting for data and a confirmed mapping",
+    "complete": "Validation complete",
+    "flagged_one": "{{n}} flagged",
+    "flagged_other": "{{n}} flagged",
+    "throughput": "Throughput",
+    "rowsPassed": "{{passed}} of {{total}} rows passed",
+    "passed": "Passed",
+    "flaggedLabel": "Flagged for review",
+    "exceptions": "Validation exceptions",
+    "total_one": "{{n}} exception",
+    "total_other": "{{n}} exceptions",
+    "noExceptions": "No exceptions — every row passed",
+    "schemaFailures": "Schema failures (type mismatches, missing required fields)",
     "schemaBadge": "Schema",
-    "semanticFailures": "Semantic validation failures (threshold exceeded, unit inconsistencies)",
+    "semanticFailures": "Semantic failures (threshold exceeded, inconsistent units)",
     "semanticBadge": "Semantic"
   },
   "history": {
     "filesThisSession_one": "{{count}} file uploaded this session",
     "filesThisSession_other": "{{count}} files uploaded this session",
-    "clearAll": "Clear All"
+    "clearAll": "Clear history",
+    "current": "Open"
   }
 }

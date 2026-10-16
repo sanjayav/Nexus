@@ -3,13 +3,13 @@
     "eyebrow": "ESG Reporting — Reimagined",
     "titleLead": "Disclosures shouldn't take six months.",
     "titleAccent": "Nexus does it in two days.",
-    "subtitle": "One platform. Every framework — CSRD, ISSB, GRI, TCFD, CDP, SEC, EU Taxonomy, and more. Auditor-ready. Built ESG-first.",
+    "subtitle": "One platform. Every framework — CSRD, ISSB, GRI, TCFD, CDP, SEC, EU Taxonomy and China's exchange guidelines. Auditor-ready. Built ESG-first.",
     "trust": {
       "noSalesCall": "No sales call required",
       "transparentPricing": "Transparent pricing",
-      "csrdReady": "CSRD-ready in 2 days",
-      "frameworks": "24 frameworks",
-      "blockchain": "Blockchain audit trail"
+      "frameworks": "{{count}} framework packs",
+      "blockchain": "Blockchain audit trail",
+      "bilingual": "Reports in English and 中文"
     }
   },
   "versus": {
@@ -28,7 +28,8 @@
       "label": "Pricing",
       "legacy": "Quote required",
       "nexus": "£500/mo Team tier"
-    }
+    },
+    "title": "Legacy ESG platforms compared with Nexus"
   },
   "pillars": {
     "eyebrow": "Why Nexus",
@@ -41,7 +42,7 @@
     },
     "ai": {
       "title": "AI that drafts and extracts",
-      "body": "Claude-powered narrative generation, evidence extraction from supplier PDFs, and vendor-to-emission-factor matching. Humans approve every number.",
+      "body": "AI narrative drafting, evidence extraction from supplier PDFs, and vendor-to-emission-factor matching — Claude by default, or a mainland China model provider per organisation. Humans approve every number.",
       "link": "How the AI works"
     },
     "linkedData": {
@@ -49,11 +50,6 @@
       "body": "Change a value once. It propagates to every framework, every disclosure, every chart it appears in. Auditors love it; analysts get their evenings back.",
       "link": "Explore the data model"
     }
-  },
-  "testimonial": {
-    "eyebrow": "Customer story",
-    "quote": "Nexus collapsed our disclosure cycle from 6 weeks to 4 days. The linked-data model is exactly the architecture we'd have built in-house — if we had the team.",
-    "author": "Head of Sustainability, Demo Co (placeholder until real customer quote available)"
   },
   "capabilities": {
     "eyebrow": "The full toolkit",
@@ -111,7 +107,7 @@
     },
     "frameworks": {
       "q": "Which frameworks are supported?",
-      "a": "CSRD/ESRS, ISSB (IFRS S1 & S2), GRI Universal + sector, TCFD, CDP (Climate, Water, Forests), SEC climate disclosure, and SASB. 24 frameworks in total, with new ones added as they mature."
+      "a": "CSRD/ESRS, ISSB (IFRS S1 & S2), GRI Universal + topic standards, TCFD, CDP, SEC climate disclosure, California SB 253 / SB 261 and the EU Taxonomy — plus China's SSE / SZSE / BSE guidelines, the MOF CSDS basic standard, the HKEX ESG Code and CASS-ESG. New packs are added as standards mature."
     },
     "timeline": {
       "q": "What's the implementation timeline?",
@@ -128,9 +124,90 @@
     "api": {
       "q": "Is there an API?",
       "a": "Yes. REST + JSON, fully versioned. Every action in the UI is available via API, including evidence upload, disclosure publishing, and verification. SDKs for Python and TypeScript are in beta."
+    },
+    "china": {
+      "q": "Does Nexus support Chinese listed-company reporting?",
+      "a": "Yes. China framework packs (SSE / SZSE / BSE guidelines, MOF CSDS, HKEX ESG Code, CASS-ESG), MEE emission factors, Simplified Chinese PDF and Word reports, and DingTalk / Feishu / WeCom notifications are built in. Mainland hosting is not offered today — talk to us about your deployment requirements."
     }
   },
   "ctaBand": {
     "heading": "Stop quoting six months. Start in two days."
+  },
+  "workflow": {
+    "aria": "Illustration: one Scope 1 emissions value moving through assign, fill, review, approve and publish, with sample data.",
+    "entity": "Plant 01 · Scope 1",
+    "status": {
+      "assign": "Assigned",
+      "fill": "Submitted",
+      "review": "Reviewed",
+      "approve": "Approved",
+      "publish": "Published"
+    },
+    "stages": {
+      "assign": "Assign",
+      "fill": "Fill",
+      "review": "Review",
+      "approve": "Approve",
+      "publish": "Publish"
+    },
+    "trail": {
+      "assign": "Assigned to the plant's data owner",
+      "fill": "Value submitted with 3 evidence files",
+      "review": "Reviewed · within ±20% of last year",
+      "approve": "Approved by the group sustainability officer",
+      "publish": "Published to GRI, ESRS, ISSB and HKEX reports"
+    },
+    "anchored": "Published · hash anchored"
+  },
+  "frameworks": {
+    "heading": "Every framework your exchange, regulator and investors ask for.",
+    "lead": "Framework packs ship with the product — question sets, units and mappings included. Global standards and China's exchange guidelines sit side by side.",
+    "stat": {
+      "frameworks": "framework packs",
+      "items": "disclosure items",
+      "languages": "report languages"
+    },
+    "listAria": "Framework packs included in Nexus",
+    "note": "The framework catalogue as it ships in the product. Names identify the standards; they do not imply endorsement."
+  },
+  "china": {
+    "kicker": "China-ready",
+    "heading": "Built for A-share and A+H disclosure.",
+    "lead": "Report against the Shanghai, Shenzhen and Beijing exchange guidelines, the Ministry of Finance basic standard and the HKEX ESG Code from the same approved data — in Simplified Chinese and English.",
+    "points": {
+      "frameworks": {
+        "title": "China framework packs",
+        "body": "SSE / SZSE / BSE guidelines (2024 trial), MOF CSDS, HKEX ESG Code (Appendix C2) and CASS-ESG 5.0."
+      },
+      "factors": {
+        "title": "MEE emission factors",
+        "body": "2023 national and regional grid factors from MEE and NBS, plus GB/T 32150 fuel defaults — preferred automatically for China organisations."
+      },
+      "reports": {
+        "title": "Chinese PDF and Word reports",
+        "body": "Reports render in Simplified Chinese with embedded CJK fonts and proper line breaking, in PDF, Word and iXBRL."
+      },
+      "bilingual": {
+        "title": "Language per person",
+        "body": "Each person works in English or 简体中文. The market — frameworks, factors, AI provider — is set per organisation."
+      },
+      "im": {
+        "title": "DingTalk, Feishu and WeCom",
+        "body": "Assignment, review and approval notifications post to your group chats through each organisation's own bot webhooks."
+      },
+      "ai": {
+        "title": "Mainland-compatible AI",
+        "body": "Per organisation, route AI drafting to an OpenAI-compatible mainland model provider, label AI-generated text, or switch AI off."
+      }
+    },
+    "preview": {
+      "label": "One report, two languages",
+      "toggle": "Report language",
+      "note": "Illustrative sample data."
+    }
+  },
+  "pricing": {
+    "heading": "Published pricing. No sales call required.",
+    "lead": "Start free, and upgrade when your team is ready."
   }
 }

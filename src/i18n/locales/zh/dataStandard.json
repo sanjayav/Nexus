@@ -2,18 +2,24 @@
   "header": {
     "eyebrow": "数据治理",
     "title": "ESG 数据标准",
-    "subtitle": "每项披露采用统一的全公司定义、计算方法、报送频率和责任链，以此确保各工厂数据的可比性。"
+    "subtitle": "每项披露采用统一的定义、计算方法、报送频率与责任链，确保各工厂数据可比。"
   },
+  "framework": "框架",
   "loadFailed": "加载失败",
+  "errorTitle": "数据标准加载失败",
+  "emptyTitle": "{{code}} 暂无数据标准",
+  "emptyBody": "该框架的披露项完成指派后，定义、方法与责任人将显示在此处。",
   "stats": {
     "disclosures": "披露项",
     "definitions": "已备定义",
     "ofTotal": "{{n}}／{{total}}",
     "calcMethods": "计算方法",
-    "ownershipChains": "责任链"
+    "ownershipChains": "责任链",
+    "completeChains": "{{n}}／{{total}} 已完整指派"
   },
-  "searchPlaceholder": "按代码、条目或定义搜索…",
-  "allCadences": "全部频率",
+  "searchPlaceholder": "按编号、披露项或定义搜索…",
+  "cadenceAria": "按报送频率筛选",
+  "allCadences": "全部",
   "cadence": {
     "daily": "每日",
     "monthly": "每月",
@@ -24,7 +30,7 @@
     "kicker": "目录",
     "title_one": "{{count}} 项披露 · {{code}}",
     "title_other": "{{count}} 项披露 · {{code}}",
-    "subtitle": "点击任意行，查看完整定义、计算方法及责任链。"
+    "subtitle": "展开任一行，查看定义、计算方法与责任链。"
   },
   "otherSection": "其他",
   "sectionCount_one": "{{count}} 项披露",
@@ -32,16 +38,20 @@
   "row": {
     "definition": "定义",
     "method": "方法",
-    "canonicalDefinition": "标准定义",
-    "calcMethod": "计算方法"
+    "noDefinition": "缺少定义",
+    "noMethod": "缺少方法",
+    "canonicalDefinition": "统一定义",
+    "calcMethod": "计算方法",
+    "noDefinitionBody": "尚无统一定义。在达成一致前，各工厂对该披露项的理解可能不同。",
+    "noMethodBody": "尚未记录计算方法。"
   },
   "chain": {
     "title": "责任链",
-    "dataOwner": "数据负责人",
+    "dataOwner": "填报人",
     "reviewer": "审核人",
-    "approver": "批准人",
-    "unassigned": "未分配",
-    "note": "提交内容按顺序流经各角色，每次流转均以哈希链记录，以供审计。"
+    "approver": "审批人",
+    "unassigned": "未指派",
+    "note": "填报依次流经各角色，每次流转均记入哈希链以供审计。"
   },
   "roles": {
     "plant_manager": "工厂经理",

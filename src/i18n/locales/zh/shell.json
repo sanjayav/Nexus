@@ -9,16 +9,19 @@
     },
     "items": {
       "myDay": "我的一天",
-      "tasks": "任务",
+      "tasks": "我的任务",
       "inbox": "收件箱",
-      "activeReports": "进行中的报告",
-      "templates": "模板",
-      "disclosuresLibrary": "披露库",
-      "values": "数值",
+      "activeReports": "发布中心",
+      "templates": "框架问题",
+      "disclosuresLibrary": "披露项库",
+      "values": "数据采集",
+      "dataCollection": "数据采集",
+      "assignments": "指派管理",
       "spreadsheet": "电子表格",
       "evidence": "证据",
       "calculators": "计算器",
       "pcafPortfolio": "PCAF 投资组合",
+      "greenLedger": "绿电与碳信用",
       "connectors": "连接器",
       "emissionFactors": "排放因子",
       "anomalies": "异常",
@@ -27,13 +30,15 @@
       "usersRoles": "用户与角色",
       "materiality": "重要性评估",
       "climateTargets": "气候目标",
-      "dataStandard": "数据标准",
-      "activityHistory": "活动记录",
+      "dataStandard": "ESG 数据标准",
+      "reportingCycles": "报告周期",
+      "activityHistory": "审计日志",
       "apiKeys": "API 密钥",
-      "scim": "SCIM",
-      "blockchain": "区块链",
+      "scim": "SCIM 预配",
+      "blockchain": "哈希链",
       "systemStatus": "系统状态",
-      "settings": "设置"
+      "settings": "设置",
+      "orgStructure": "组织架构"
     }
   },
   "sidebar": {
@@ -72,7 +77,7 @@
     }
   },
   "routes": {
-    "overview": "概览",
+    "overview": "我的一天",
     "calendar": "日历",
     "reviewQueue": "审核队列",
     "approvalQueue": "审批队列",
@@ -82,7 +87,12 @@
     "organisation": "组织",
     "reportingCycles": "报告周期",
     "materialityAssessment": "重要性评估",
-    "gwpValues": "GWP 值"
+    "gwpValues": "GWP 值",
+    "organisationSetup": "组织设置",
+    "connectorDetail": "连接器",
+    "guidedSetup": "引导设置",
+    "ixbrlPreview": "iXBRL 预览",
+    "performanceReport": "绩效报告"
   },
   "topbar": {
     "there": "您",
@@ -127,30 +137,30 @@
       "sys-theme": "浅色 / 深色"
     },
     "cmd": {
-      "nav-dash": "概览",
+      "nav-dash": "我的一天",
       "nav-tasks": "我的任务",
       "nav-review": "审核队列",
       "nav-approval": "审批队列",
       "nav-rollup": "集团汇总",
       "nav-reports": "发布中心",
-      "nav-gri": "GRI 索引",
+      "nav-gri": "披露项库",
       "nav-analytics": "分析",
       "nav-anomalies": "异常",
-      "nav-standard": "数据标准",
+      "nav-standard": "ESG 数据标准",
       "nav-calc": "计算器",
       "nav-scope3": "范围三计算器",
-      "nav-ef": "排放因子库",
+      "nav-ef": "排放因子",
       "nav-gwp": "GWP 值",
       "nav-setup": "设置指南",
-      "nav-welcome": "欢迎向导",
+      "nav-welcome": "引导设置",
       "nav-periods": "报告周期",
       "nav-mat": "重要性评估",
-      "nav-assign": "任务指派",
+      "nav-assign": "指派管理",
       "nav-users": "用户与角色",
-      "nav-audit": "审计追踪",
+      "nav-audit": "审计日志",
       "nav-connectors": "连接器",
       "nav-inbox": "收件箱",
-      "nav-scim": "SCIM 令牌",
+      "nav-scim": "SCIM 预配",
       "nav-apikeys": "API 密钥",
       "nav-system": "系统状态",
       "nav-settings": "设置",
@@ -162,7 +172,8 @@
       "act-export": "下载数据导出",
       "act-toggle-mfa": "切换多因素认证",
       "sys-theme": "切换主题",
-      "sys-logout": "退出登录"
+      "sys-logout": "退出登录",
+      "nav-green": "绿电与碳信用"
     }
   }
 }

@@ -1,8 +1,8 @@
 {
   "breadcrumbAdmin": "Admin",
-  "title": "Users & Roles",
+  "title": "Users & roles",
   "eyebrow": "Admin",
-  "description": "Each user has one role. Roles bundle a set of permissions across the app. Click any role to see exactly what it can do.",
+  "description": "Each person has one role, and each role bundles a set of permissions. Open any role to see exactly what it can do.",
   "addUser": "Add user",
   "demoBanner": {
     "strong": "Demo mode",
@@ -12,8 +12,10 @@
   "kpi": {
     "teamMembers": "Team members",
     "active": "Active",
-    "ofTotal": "of {{total}}",
-    "rolesDefined": "Roles defined"
+    "ofTotal": "of {{total}} members",
+    "rolesDefined": "Roles defined",
+    "label": "Team summary",
+    "inactive": "Inactive"
   },
   "users": {
     "heading": "Team members",
@@ -30,7 +32,11 @@
     "deactivateUser": "Deactivate user",
     "reactivateUser": "Reactivate user",
     "deactivate": "Deactivate",
-    "reactivate": "Reactivate"
+    "reactivate": "Reactivate",
+    "intro": "Select people to change roles or deactivate in bulk.",
+    "searchLabel": "Search team members",
+    "colStatus": "Status",
+    "active": "Active"
   },
   "empty": {
     "noMatchTitle": "No users match that search",
@@ -38,10 +44,12 @@
     "noMatchBody": "Try a different keyword, or clear the search to see everyone.",
     "noUsersBody": "Add your first team member and assign them a role. They'll get an email to log in.",
     "clearSearch": "Clear search",
-    "addFirst": "Add the first user"
+    "addFirst": "Add the first user",
+    "noRolesTitle": "No roles defined",
+    "noRolesBody": "Create a role to group permissions, then assign it to people."
   },
   "switcher": {
-    "heading": "Switch role · demo",
+    "heading": "Switch role (demo)",
     "intro": "One-click sign-in as any role to preview their experience. Lands you on that role's home page.",
     "footnote": "Each click signs you out and back in as that user. Useful for showing a customer the same workflow from different perspectives."
   },
@@ -53,11 +61,12 @@
     "userCount_other": "{{count}} users",
     "permissionCount_one": "{{count}} permission",
     "permissionCount_other": "{{count}} permissions",
-    "viewDetails": "{{perms}} · view details →",
+    "viewDetails": "{{perms}} · View details",
     "editDescriptionSystem": "Edit description (system role)",
     "editRole": "Edit role",
     "deleteRole": "Delete role",
-    "systemNotEditable": "System role · not editable"
+    "systemNotEditable": "System role · not editable",
+    "system": "System role"
   },
   "roleEditor": {
     "editTitle": "Edit role",
@@ -95,7 +104,8 @@
     "saveChange": "Save change"
   },
   "roleDetail": {
-    "close": "Close"
+    "close": "Close",
+    "notGranted": "Not granted"
   },
   "dbSetup": {
     "title": "Connect Postgres",
@@ -169,28 +179,89 @@
     }
   },
   "permResources": {
-    "dashboard": "dashboard",
-    "data": "data",
-    "reports": "reports",
-    "workflow": "workflow",
-    "admin": "admin",
-    "audit": "audit"
+    "dashboard": "Dashboard",
+    "data": "Data",
+    "reports": "Reports",
+    "workflow": "Workflow",
+    "admin": "Admin",
+    "audit": "Audit"
   },
   "permActions": {
-    "view": "view",
-    "upload": "upload",
-    "approve": "approve",
-    "create": "create",
-    "publish": "publish",
-    "users": "users",
-    "roles": "roles"
+    "view": "View",
+    "upload": "Upload",
+    "approve": "Approve",
+    "create": "Create",
+    "publish": "Publish",
+    "users": "Users",
+    "roles": "Roles"
   },
   "permDescriptions": {
-    "dashboard": { "view": "View dashboard" },
-    "data": { "view": "View data", "upload": "Upload data", "approve": "Approve data" },
-    "reports": { "view": "View reports", "create": "Create reports", "publish": "Publish reports" },
-    "workflow": { "view": "View workflow", "approve": "Approve workflow" },
-    "admin": { "users": "Manage users", "roles": "Manage roles" },
-    "audit": { "view": "View audit trail" }
+    "dashboard": {
+      "view": "View dashboard"
+    },
+    "data": {
+      "view": "View data",
+      "upload": "Upload data",
+      "approve": "Approve data"
+    },
+    "reports": {
+      "view": "View reports",
+      "create": "Create reports",
+      "publish": "Publish reports"
+    },
+    "workflow": {
+      "view": "View workflow",
+      "approve": "Approve workflow"
+    },
+    "admin": {
+      "users": "Manage users",
+      "roles": "Manage roles"
+    },
+    "audit": {
+      "view": "View audit trail"
+    }
+  },
+  "error": {
+    "title": "Team members didn't load",
+    "rolesTitle": "Roles didn't load",
+    "body": "We couldn't reach the server, so no list is shown rather than an incomplete one. Try again."
+  },
+  "confirm": {
+    "deleteRoleTitle": "Delete the {{name}} role?",
+    "deleteRoleBody_one": "{{count}} person has this role. People with only this role lose access until they are given another one.",
+    "deleteRoleBody_other": "{{count}} people have this role. People with only this role lose access until they are given another one.",
+    "deactivateTitle": "Deactivate {{name}}?",
+    "deactivateBody": "They are signed out and can no longer sign in. Their assignments, submissions and audit history are kept, and you can reactivate them at any time."
+  },
+  "bulk": {
+    "toolbar": "Bulk actions for selected people",
+    "selected_one": "{{count}} selected",
+    "selected_other": "{{count}} selected",
+    "clear": "Clear selection",
+    "selectAll": "Select all shown",
+    "selectUser": "Select {{name}}",
+    "roleSubtitle_one": "Applies to {{count}} person",
+    "roleSubtitle_other": "Applies to {{count}} people",
+    "roleChanged_one": "Role changed for {{count}} person",
+    "roleChanged_other": "Role changed for {{count}} people",
+    "roleChangedDemo_one": "Role changed for {{count}} person (demo)",
+    "roleChangedDemo_other": "Role changed for {{count}} people (demo)",
+    "deactivateTitle_one": "Deactivate {{count}} person?",
+    "deactivateTitle_other": "Deactivate {{count}} people?",
+    "deactivateBody": "They are signed out and can no longer sign in. Assignments, submissions and audit history are kept; you can reactivate them at any time.",
+    "deactivateConfirm_one": "Deactivate {{count}}",
+    "deactivateConfirm_other": "Deactivate {{count}}",
+    "deactivated_one": "{{count}} person deactivated",
+    "deactivated_other": "{{count}} people deactivated",
+    "deactivatedDemo_one": "{{count}} person deactivated (demo)",
+    "deactivatedDemo_other": "{{count}} people deactivated (demo)",
+    "reactivated_one": "{{count}} person reactivated",
+    "reactivated_other": "{{count}} people reactivated",
+    "reactivatedDemo_one": "{{count}} person reactivated (demo)",
+    "reactivatedDemo_other": "{{count}} people reactivated (demo)",
+    "partialFailure": "{{failed}} of {{count}} updates failed. The list shows the current state."
+  },
+  "modal": {
+    "close": "Close"
   }
 }

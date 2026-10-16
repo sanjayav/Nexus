@@ -15,7 +15,7 @@
   },
   "uploadPrompt": {
     "title": "Attach evidence to a disclosure",
-    "body": "Evidence is anchored to a specific value. Open a disclosure from My Tasks and use the right-rail \"Attach evidence\" button to upload a file.",
+    "body": "Evidence is attached to a specific value. Open a disclosure from My Tasks and add files in its Evidence section.",
     "openMyTasks": "Open My Tasks",
     "dismiss": "Dismiss"
   },
@@ -28,7 +28,11 @@
     "disclosure": "Disclosure",
     "files": "Files",
     "assignee": "Assignee",
-    "lastUpdated": "Last updated"
+    "lastUpdated": "Last updated",
+    "status": "Status"
   },
-  "openDisclosure": "Open disclosure"
+  "openDisclosure": "Open disclosure",
+  "error": {
+    "title": "Couldn't load evidence"
+  }
 }

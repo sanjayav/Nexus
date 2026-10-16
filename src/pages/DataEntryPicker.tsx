@@ -3,12 +3,15 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { itemLabel } from '../lib/itemLabel'
 import {
-  Loader2, AlertCircle, ChevronRight, ChevronDown, Search,
+  ChevronRight, ChevronDown, Search,
   PencilLine, Calculator, Plug, Bot,
 } from 'lucide-react'
+import { StateBoundary } from '../components/ui'
+import { SkeletonTable } from '../components/Skeleton'
+import { sectionLabel, subsectionLabel } from '../components/entry/labels'
 import { nexus, type NexusQuestionnaireItem } from '../lib/api'
 import SetupGuard from '../components/SetupGuard'
-import { CAPITAL_ORDER, SUBSECTION_ORDER, capitalLabelKey, subsectionLabelKey } from '../reports/spdTemplate'
+import { CAPITAL_ORDER, SUBSECTION_ORDER } from '../reports/spdTemplate'
 
 type LoadState =
   | { kind: 'loading' }
@@ -72,30 +75,28 @@ export default function DataEntryPicker() {
       .filter(c => c.subsections.length > 0)
   }, [state, query, i18n.language])
 
-  if (state.kind === 'loading') return <div className="flex items-center justify-center py-20"><Loader2 className="w-6 h-6 animate-spin text-[var(--color-brand)]" /></div>
   if (state.kind === 'empty') return <SetupGuard onReady={load} />
-  if (state.kind === 'error') {
+  if (state.kind !== 'ready') {
     return (
-      <div className="max-w-lg mx-auto mt-20 p-6 rounded-[var(--radius-lg)] border border-[var(--status-reject)]/20 bg-[var(--accent-red-light)]">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-[var(--status-reject)] flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 className="font-semibold text-[var(--text-primary)]">{t('dataEntry.picker.unableToLoad')}</h3>
-            <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] font-mono mt-1">{state.error}</p>
-            <button onClick={load} className="mt-3 text-[length:var(--text-sm)] font-medium text-[var(--color-brand)] hover:underline">{t('dataEntry.picker.retry')}</button>
-          </div>
-        </div>
-      </div>
+      <StateBoundary
+        loading={state.kind === 'loading'}
+        error={state.kind === 'error' ? state.error : null}
+        onRetry={() => void load()}
+        errorState={{ title: t('dataEntry.picker.unableToLoad') }}
+        skeleton={<SkeletonTable rows={6} cols={2} />}
+      >
+        {null}
+      </StateBoundary>
     )
   }
 
   const total = state.items.filter(i => i.reporting_scope === 'group').length
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="space-y-5">
       <header>
-        <h1 className="font-display text-[length:var(--text-2xl)] font-bold text-[var(--text-primary)]">{t('dataEntry.picker.title')}</h1>
-        <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] mt-1">
+        <h1 className="type-h1 text-[var(--text-primary)]">{t('dataEntry.picker.title')}</h1>
+        <p className="text-small text-[var(--text-secondary)] mt-1">
           {t('dataEntry.picker.subtitle', { year: 'FY2026' })}
           <span className="text-[var(--text-tertiary)] ml-2">{t('dataEntry.picker.seeded', { count: total, year: 'FY2025' })}</span>
         </p>
@@ -108,7 +109,8 @@ export default function DataEntryPicker() {
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder={t('dataEntry.picker.search')}
-          className="w-full pl-10 pr-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none"
+          aria-label={t('dataEntry.picker.search')}
+          className="w-full pl-10 pr-3 h-10 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none"
         />
       </div>
 
@@ -126,17 +128,17 @@ export default function DataEntryPicker() {
               >
                 <div className="flex items-center gap-3">
                   {isOpen ? <ChevronDown className="w-4 h-4 text-[var(--text-tertiary)]" /> : <ChevronRight className="w-4 h-4 text-[var(--text-tertiary)]" />}
-                  <span className="font-display text-[length:var(--text-base)] font-semibold text-[var(--text-primary)]">{t(capitalLabelKey(cap.capital), { defaultValue: cap.capital })}</span>
+                  <span className="type-h3 text-[var(--text-primary)]">{sectionLabel(t, cap.capital)}</span>
                 </div>
-                <span className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] tabular-nums">{t('dataEntry.picker.items', { count })}</span>
+                <span className="text-caption text-[var(--text-tertiary)] tabular-nums">{t('dataEntry.picker.items', { count })}</span>
               </button>
 
               {isOpen && (
                 <div className="border-t border-[var(--border-subtle)] divide-y divide-[var(--border-subtle)]">
                   {cap.subsections.map(sub => (
                     <div key={sub.name} className="px-5 py-3">
-                      <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--color-brand)] mb-2">{t(subsectionLabelKey(sub.name), { defaultValue: sub.name })}</div>
-                      <div className="grid grid-cols-2 gap-1.5">
+                      <div className="text-caption font-semibold text-[var(--color-brand-strong)] mb-2">{subsectionLabel(t, sub.name)}</div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
                         {sub.rows.map(it => <LineItemRow key={it.id} item={it} onOpen={() => navigate(`/data/entry/${it.id}`)} />)}
                       </div>
                     </div>
@@ -163,11 +165,11 @@ function LineItemRow({ item, onOpen }: { item: NexusQuestionnaireItem; onOpen: (
     <button
       type="button"
       onClick={onOpen}
-      className="group text-left flex items-center gap-3 px-3 py-2 rounded-[var(--radius-md)] hover:bg-[var(--color-brand-soft)] transition-colors min-w-0"
+      className="group text-left flex items-center gap-3 px-3 py-2 min-h-[44px] rounded-[var(--radius-md)] hover:bg-[var(--color-brand-soft)] transition-colors min-w-0"
     >
       <ModeIcon className="w-3.5 h-3.5 text-[var(--text-tertiary)] group-hover:text-[var(--color-brand)] flex-shrink-0" />
       <div className="min-w-0 flex-1">
-        <div className="text-[length:var(--text-xs)] font-medium text-[var(--text-primary)] truncate group-hover:text-[var(--color-brand-strong)]">
+        <div className="text-small font-medium text-[var(--text-primary)] truncate group-hover:text-[var(--color-brand-strong)]">
           {itemLabel(item, i18n.language)}
         </div>
         <div className="text-caption text-[var(--text-tertiary)] font-mono">
@@ -176,7 +178,7 @@ function LineItemRow({ item, onOpen }: { item: NexusQuestionnaireItem; onOpen: (
           {item.unit ? ` · ${item.unit}` : ''}
         </div>
       </div>
-      <span className="px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[var(--bg-secondary)] group-hover:bg-white text-caption font-semibold text-[var(--text-tertiary)] flex-shrink-0 inline-flex items-center gap-1">
+      <span className="px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[var(--bg-secondary)] group-hover:bg-[var(--bg-primary)] text-caption font-semibold text-[var(--text-tertiary)] flex-shrink-0 inline-flex items-center gap-1 whitespace-nowrap">
         {RoleBadge && <RoleBadge className="w-2.5 h-2.5" />}
         {t(`workflowStatus.role.${item.default_workflow_role}`, { defaultValue: item.default_workflow_role })}
       </span>

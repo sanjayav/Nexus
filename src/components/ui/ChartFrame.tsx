@@ -224,13 +224,17 @@ export function AreaGradient({ id, color, from = 0.12 }: { id: string; color: st
   )
 }
 
+/** Props Recharts passes to a Line/Area `label` render function. */
+export interface EndLabelProps { x?: number | string; y?: number | string; index?: number }
+
 /**
  * Direct end-of-series label for a Line/Area `label` prop: renders `name`
- * beside the last point only.
+ * beside the last point only. Typed to Recharts' `ImplicitLabelType` function
+ * form (must return an SVG element, never null) so callers need no casts.
  */
-export function endLabel(name: string, color: string, lastIndex: number) {
-  return function EndLabel(props: { x?: number | string; y?: number | string; index?: number }) {
-    if (props.index !== lastIndex || props.x == null || props.y == null) return null
+export function endLabel(name: string, color: string, lastIndex: number): (props: EndLabelProps) => ReactElement<SVGElement> {
+  return function EndLabel(props: EndLabelProps) {
+    if (props.index !== lastIndex || props.x == null || props.y == null) return <g />
     return (
       <text x={Number(props.x) + 8} y={Number(props.y)} dy={4} fill={color} fontSize={11} fontWeight={600}>
         {name}

@@ -1,21 +1,36 @@
 {
-  "banner": {
-    "title": "AI 功能已停用",
-    "body": "请在 Vercel 环境中设置 <code>ANTHROPIC_API_KEY</code>，以启用 AI 报告起草、证据提取、供应商 → 排放因子匹配及异常说明功能。"
+  "breadcrumb": {
+    "reports": "报告",
+    "here": "人工智能起草"
   },
-  "title": "AI 报告起草",
-  "subtitle": "基于已验证的披露数据，起草与框架对齐的叙述内容。以已批准数值为依据——缺失的输入将被标记，绝不凭空生成。",
+  "title": "人工智能叙述起草",
+  "subtitle": "基于已批准的披露数据起草符合框架要求的叙述内容。所有数字仅取自已批准数值；缺失的输入会被标出，绝不凭空生成。",
+  "provider": {
+    "default": "人工智能服务",
+    "checking": "正在检查人工智能可用性…",
+    "on": "{{provider}} 可用",
+    "off": "人工智能起草已关闭",
+    "tooltip": "人工智能服务商按组织在“设置 → 市场与合规”中配置。"
+  },
+  "brief": {
+    "title": "起草要求",
+    "body": "选择要起草的内容。模型只读取本报告年度的已批准数值。"
+  },
   "fields": {
     "framework": "框架",
     "section": "章节",
     "tone": "语气"
   },
-  "tones": {
-    "formal": "正式",
-    "narrative": "叙述",
-    "concise": "简洁"
+  "frameworks": {
+    "gri": "GRI 标准",
+    "csrd": "CSRD / ESRS",
+    "tcfd": "TCFD",
+    "cdp": "CDP",
+    "issb": "ISSB IFRS S2",
+    "cn-sse": "上交所指引第 14 号",
+    "hkex-esg": "港交所 ESG 守则"
   },
-  "toneInline": {
+  "tones": {
     "formal": "正式",
     "narrative": "叙述",
     "concise": "简洁"
@@ -30,7 +45,7 @@
     "esrsE1": "ESRS E1 — 气候变化",
     "esrsE2": "ESRS E2 — 污染",
     "esrsE3": "ESRS E3 — 水与海洋资源",
-    "esrsE5": "ESRS E5 — 循环经济",
+    "esrsE5": "ESRS E5 — 资源利用与循环经济",
     "esrsS1": "ESRS S1 — 自有员工",
     "esrsG1": "ESRS G1 — 商业行为",
     "tcfdGovernance": "TCFD — 治理",
@@ -44,39 +59,89 @@
     "issbGovernance": "IFRS S2 — 治理",
     "issbStrategy": "IFRS S2 — 战略",
     "issbRisk": "IFRS S2 — 风险管理",
-    "issbMetrics": "IFRS S2 — 指标与目标"
+    "issbMetrics": "IFRS S2 — 指标与目标",
+    "sseClimateGov": "应对气候变化 — 治理",
+    "sseClimateStrategy": "应对气候变化 — 战略",
+    "sseClimateMetrics": "应对气候变化 — 指标与目标",
+    "sseEnergy": "能源利用",
+    "ssePollutants": "污染物排放",
+    "sseEmployees": "员工",
+    "sseAntiBribery": "反商业贿赂及反贪污",
+    "hkexA1": "A1 — 排放物",
+    "hkexA2": "A2 — 资源使用",
+    "hkexB1": "B1 — 雇佣",
+    "hkexB2": "B2 — 健康与安全",
+    "hkexB5": "B5 — 供应链管理",
+    "hkexB7": "B7 — 反贪污"
   },
-  "grounded": "以当前报告年度的已批准数据为依据",
-  "notConfiguredHint": "AI 尚未配置。请联系管理员设置 ANTHROPIC_API_KEY。",
+  "assurances": {
+    "anchored": "所有数字均取自已批准数值",
+    "gaps": "缺失的输入列为数据缺口，不作估算",
+    "labelled": "输出内容标注“人工智能生成”，复制时同样保留"
+  },
   "buttons": {
-    "unavailable": "AI 不可用",
-    "drafting": "起草中…",
-    "draft": "AI 起草",
+    "unavailable": "人工智能起草不可用",
+    "drafting": "正在起草…",
+    "draft": "使用人工智能起草",
+    "regenerate": "重新起草",
     "copied": "已复制",
     "copy": "复制",
-    "regenerate": "重新生成",
     "clear": "清除",
-    "inserted": "已插入",
     "insert": "插入报告"
   },
-  "draftPreview": "草稿预览",
-  "errors": {
-    "notConfigured": "当前环境尚未配置 AI。请联系管理员在 Vercel 中设置 ANTHROPIC_API_KEY。",
-    "generateFailed": "草稿生成失败",
-    "notConfiguredTitle": "AI 尚未配置",
-    "draftFailed": "起草失败"
+  "progress": {
+    "gather": "正在汇总“{{section}}”的已批准数值",
+    "draft": "正在由 {{provider}} 起草叙述",
+    "check": "正在逐项核对数字与来源数值",
+    "elapsed": "已用时 {{s}} 秒"
+  },
+  "label": {
+    "generated": "人工智能生成",
+    "meta": "{{model}} · {{time}}",
+    "review": "本稿由人工智能生成，发布前须经人工审核。",
+    "clipboard": "【{{label}} · {{model}} · 发布前须经人工审核】"
+  },
+  "toast": {
+    "copied": "已复制草稿，并保留“人工智能生成”标识",
+    "copyFailed": "无法复制到剪贴板，请手动选中文本复制。",
+    "insertTitle": "草稿已复制，可插入报告",
+    "insertBody": "请粘贴到披露编辑器的相应章节，已附带“人工智能生成”标识。",
+    "cleared": "草稿已清除"
   },
   "usage": {
-    "tokensIn": "输入 {{n}} 个 token",
-    "cached": "（{{n}} 个已缓存）",
-    "out": "输出 {{n}} 个"
+    "tokensIn": "输入 {{n}} 个词元",
+    "cached": "（缓存 {{n}} 个）",
+    "out": "输出 {{n}} 个",
+    "sep": " · "
+  },
+  "errors": {
+    "generateFailed": "草稿生成失败。",
+    "draftFailed": "未能取回草稿",
+    "draftFailedBody": "未保存任何内容。请重试；如持续失败，可能是人工智能服务暂不可用。"
+  },
+  "disabled": {
+    "whoLabel": "谁可以开启",
+    "whereLabel": "开启位置",
+    "meanwhileLabel": "目前可以",
+    "meanwhile": "在披露编辑器中撰写叙述，已批准数值仍可在该处引用。",
+    "openSettings": "前往设置",
+    "writeManually": "在披露编辑器中撰写",
+    "organisation": {
+      "title": "贵组织已关闭人工智能起草",
+      "body": "管理员已为本工作区停用人工智能功能，因此无法生成草稿，也不会向任何人工智能服务商发送数据。",
+      "who": "工作区管理员",
+      "where": "设置 → 市场与合规 → 人工智能功能"
+    },
+    "deployment": {
+      "title": "当前部署未配置人工智能服务",
+      "body": "本 Nexus 环境未配置人工智能服务凭据，因此所有组织均无法使用起草功能。",
+      "who": "平台管理员（负责运维本 Nexus 部署的团队）",
+      "where": "部署环境：人工智能服务 API 密钥"
+    }
   },
   "empty": {
-    "title": "准备起草",
-    "body": "选择框架和章节，然后点击<bold>AI 起草</bold>，即可基于已批准数据生成可供审计的叙述内容。",
-    "anchored": "以您的数据为依据",
-    "aligned": "与框架对齐",
-    "noHallucination": "不会虚构数字"
+    "title": "可以开始起草",
+    "body": "选择框架和章节，然后点击“使用人工智能起草”。草稿将显示在此处，并标注“人工智能生成”，供您审核。"
   },
-  "drafting": "Claude 正在起草…"
+  "emptyDraft": "模型返回了空白草稿。请重试或选择其他章节。"
 }

@@ -3,7 +3,6 @@
   "title": "Built for every role on the sustainability team.",
   "intro": "From carbon accountants chasing emission factors to auditors verifying disclosures — Nexus gives each role exactly the surface they need, with the data linked underneath.",
   "forRole": "For {{role}}",
-  "roleView": "{{role}} VIEW",
   "roles": {
     "carbon": {
       "role": "Carbon accountants",
@@ -30,7 +29,7 @@
       },
       "narrative": {
         "title": "AI narrative drafts",
-        "body": "Claude drafts disclosure prose from your actual data, ready for human edit."
+        "body": "AI drafts disclosure prose from your actual data — Claude by default, or a mainland China model provider — ready for human edit."
       },
       "mapping": {
         "title": "Cross-framework mapping",
@@ -88,11 +87,20 @@
     "aiSafety": {
       "title": "AI safety layer",
       "body": "No customer data leaves your tenant to train models. Every AI output is human-reviewed."
+    },
+    "china": {
+      "title": "China framework packs",
+      "body": "SSE / SZSE / BSE guidelines, MOF CSDS, HKEX ESG Code and CASS-ESG, with MEE emission factors."
+    },
+    "bilingual": {
+      "title": "Bilingual reports",
+      "body": "Publish in Simplified Chinese or English — PDF, Word and iXBRL — from the same approved values."
     }
   },
   "cta": {
     "heading": "See it on your own data.",
     "primary": "Start free trial",
     "secondary": "Talk to sales"
-  }
+  },
+  "rolesNav": "Roles"
 }

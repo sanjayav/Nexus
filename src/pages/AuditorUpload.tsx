@@ -1,11 +1,15 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { Trans, useTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { ShieldCheck, Upload, CheckCircle2, AlertCircle, Leaf, FileText, X } from 'lucide-react'
+import { AlertCircle, FileText, ShieldCheck, Upload, X } from 'lucide-react'
 import { submitAssuranceStatement } from '../lib/orgStore'
+import { useFmt } from '../lib/fmt'
 import Button from '../design-system/components/Button'
-import { SPRING } from '../components/motion'
+import { SealCheck } from '../components/ui'
+import PublicFrame from '../components/review/PublicFrame'
+import { usePublicLanguage } from '../components/review/reportLang'
+import { riseIn } from '../motion/tokens'
 
 /**
  * Auditor upload page — public, token-authenticated (no platform login).
@@ -15,6 +19,8 @@ import { SPRING } from '../components/motion'
 export default function AuditorUpload() {
   const { token = '' } = useParams<{ token: string }>()
   const { t } = useTranslation()
+  const f = useFmt()
+  const { lang, setLang } = usePublicLanguage(null)
   const [firm, setFirm] = useState('')
   const [signedBy, setSignedBy] = useState('')
   const [opinion, setOpinion] = useState<'limited' | 'reasonable'>('limited')
@@ -25,30 +31,33 @@ export default function AuditorUpload() {
   const [submitting, setSubmitting] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fileError, setFileError] = useState<string | null>(null)
+  const [signerError, setSignerError] = useState<string | null>(null)
+  const signerRef = useRef<HTMLInputElement>(null)
 
-  const onFile = (f: File | null) => {
-    setError(null)
-    if (!f) { setFile(null); return }
-    if (f.type && f.type !== 'application/pdf') {
-      setError(t('auditor.upload.mustBePdf'))
-      return
-    }
-    if (f.size > 10 * 1024 * 1024) {
-      setError(t('auditor.upload.tooLarge'))
-      return
-    }
-    setFile(f)
+  const onFile = (fl: File | null) => {
+    setFileError(null)
+    if (!fl) { setFile(null); return }
+    if (fl.type && fl.type !== 'application/pdf') { setFileError(t('auditor.upload.mustBePdf')); return }
+    if (fl.size > 10 * 1024 * 1024) { setFileError(t('auditor.upload.tooLarge')); return }
+    setFile(fl)
   }
 
   const submit = async () => {
     setError(null)
-    if (!signedBy.trim()) return setError(t('auditor.upload.needSigner'))
+    if (!signedBy.trim()) {
+      setSignerError(t('auditor.upload.needSigner'))
+      signerRef.current?.focus()
+      return
+    }
     setSubmitting(true)
     try {
       let pdfB64: string | undefined
       if (file) {
-        const buf = await file.arrayBuffer()
-        pdfB64 = btoa(String.fromCharCode(...new Uint8Array(buf)))
+        const bytes = new Uint8Array(await file.arrayBuffer())
+        let bin = ''
+        for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+        pdfB64 = btoa(bin)
       }
       await submitAssuranceStatement({
         upload_token: token,
@@ -67,157 +76,141 @@ export default function AuditorUpload() {
     }
   }
 
+  const chip = <><ShieldCheck className="w-3.5 h-3.5" /> {t('auditor.upload.chip')}</>
+
   return (
-    <div
-      className="min-h-screen"
-      style={{
-        background:
-          'radial-gradient(900px 500px at 10% -10%, rgba(4, 120, 87,0.08), transparent 60%), radial-gradient(800px 500px at 90% 110%, rgba(46,125,50,0.06), transparent 60%), var(--bg-secondary)',
-      }}
-    >
-      <header className="px-8 py-5 flex items-center justify-between">
-        <a href="/" className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-[10px] flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #047857, #059669)', boxShadow: '0 4px 12px rgba(4, 120, 87,0.3)' }}>
-            <Leaf className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-display font-bold tracking-[-0.02em] text-[15px]">Nexus</span>
-        </a>
-        <span className="chip">
-          <ShieldCheck className="w-3 h-3" /> {t('auditor.upload.chip')}
-        </span>
-      </header>
+    <PublicFrame chip={chip} lang={lang} onLangChange={setLang} width="sm">
+      {done ? (
+        <motion.section {...riseIn(0)} role="status" className="surface-paper px-6 py-12 sm:p-14 flex flex-col items-center text-center">
+          <SealCheck size={72} ripple delay={0.15} label={t('auditor.upload.receivedTitle')} />
+          <h1 className="type-h1 text-[var(--text-primary)] mt-6">{t('auditor.upload.receivedTitle')}</h1>
+          <p className="type-body text-[var(--text-secondary)] mt-3 max-w-md text-pretty">{t('auditor.upload.receivedBody')}</p>
+          <p className="text-caption text-[var(--text-tertiary)] mt-6">{t('auditor.upload.inactive')}</p>
+        </motion.section>
+      ) : (
+        <motion.form
+          {...riseIn(0)}
+          noValidate
+          onSubmit={(e) => { e.preventDefault(); void submit() }}
+          className="surface-paper p-6 sm:p-10"
+        >
+          <div className="text-small font-semibold text-[var(--color-brand-strong)]">{t('auditor.upload.kicker')}</div>
+          <h1 className="type-h1 text-[var(--text-primary)] mt-1">{t('auditor.upload.title')}</h1>
+          <p className="type-small text-[var(--text-secondary)] mt-2 max-w-[62ch]">{t('auditor.upload.intro')}</p>
 
-      <main className="max-w-[720px] mx-auto px-6 py-10">
-        {done ? (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={SPRING} className="surface-paper p-12 text-center">
-            <div className="inline-flex w-16 h-16 rounded-full items-center justify-center mb-5" style={{ background: 'linear-gradient(135deg, #10B981, #2E7D32)', boxShadow: '0 6px 16px rgba(46,125,50,0.3)' }}>
-              <CheckCircle2 className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-display text-[28px] text-[var(--text-primary)]">{t('auditor.upload.receivedTitle')}</h1>
-            <p className="text-[13.5px] text-[var(--text-secondary)] mt-3 max-w-md mx-auto leading-relaxed">
-              {t('auditor.upload.receivedBody')}
-            </p>
-            <div className="text-caption text-[var(--text-tertiary)] mt-5">{t('auditor.upload.inactive')}</div>
-          </motion.div>
-        ) : (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={SPRING} className="surface-paper p-8">
-            <span className="kicker">{t('auditor.upload.kicker')}</span>
-            <h1 className="text-display text-[28px] text-[var(--text-primary)] mt-1">{t('auditor.upload.title')}</h1>
-            <p className="text-[13px] text-[var(--text-secondary)] mt-2 leading-relaxed">
-              {t('auditor.upload.intro')}
-            </p>
+          <div className="h-px bg-[var(--border-subtle)] my-7" />
 
-            <div className="hairline my-6" />
+          <div className="space-y-5">
+            <Field label={t('auditor.upload.firm')} value={firm} onChange={setFirm} placeholder={t('auditor.upload.firmPlaceholder')} autoComplete="organization" />
+            <Field
+              inputRef={signerRef}
+              label={t('auditor.upload.signer')}
+              required
+              value={signedBy}
+              onChange={v => { setSignedBy(v); setSignerError(null) }}
+              placeholder={t('auditor.upload.signerPlaceholder')}
+              error={signerError}
+              autoComplete="name"
+            />
+            <fieldset>
+              <legend className="text-small font-semibold text-[var(--text-secondary)] mb-1.5">{t('auditor.upload.level')}</legend>
+              <div className="grid grid-cols-2 gap-2" role="radiogroup">
+                {(['limited', 'reasonable'] as const).map(o => (
+                  <button
+                    key={o}
+                    type="button"
+                    role="radio"
+                    aria-checked={opinion === o}
+                    onClick={() => setOpinion(o)}
+                    className={`h-11 rounded-[var(--radius-md)] border text-small font-semibold transition-colors ${opinion === o ? 'border-[var(--border-focus)] bg-[var(--color-brand-soft)] text-[var(--text-primary)]' : 'border-[var(--border-default)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]'}`}
+                  >
+                    {o === 'limited' ? t('auditor.upload.limited') : t('auditor.upload.reasonable')}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+            <Field label={t('auditor.upload.standard')} value={isae} onChange={setIsae} placeholder="ISAE 3000 (Revised)" />
+            <Field label={t('auditor.upload.notes')} value={notes} onChange={setNotes} as="textarea" placeholder={t('auditor.upload.notesPlaceholder')} />
 
-            <div className="space-y-4">
-              <Field label={t('auditor.upload.firm')} value={firm} onChange={setFirm} placeholder={t('auditor.upload.firmPlaceholder')} />
-              <Field label={t('auditor.upload.signer')} value={signedBy} onChange={setSignedBy} placeholder={t('auditor.upload.signerPlaceholder')} />
-              <div>
-                <label className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{t('auditor.upload.level')}</label>
-                <div className="flex gap-1.5">
-                  {(['limited', 'reasonable'] as const).map(o => (
-                    <button key={o} onClick={() => setOpinion(o)} className={`chip flex-1 justify-center ${opinion === o ? 'chip-active' : ''}`}>
-                      {o === 'limited' ? t('auditor.upload.limited') : t('auditor.upload.reasonable')}
+            <div>
+              <div className="text-small font-semibold text-[var(--text-secondary)] mb-1.5">{t('auditor.upload.statement')}</div>
+              <div
+                onDragOver={e => { e.preventDefault(); setDragging(true) }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={e => { e.preventDefault(); setDragging(false); onFile(e.dataTransfer.files[0] ?? null) }}
+                className={`relative rounded-[var(--radius-lg)] p-6 border border-dashed transition-colors ${
+                  dragging ? 'border-[var(--border-focus)] bg-[var(--color-brand-soft)]' : fileError ? 'border-[var(--status-danger)] bg-[var(--status-danger-soft)]' : 'border-[var(--border-strong)] bg-[var(--bg-secondary)]'
+                }`}
+              >
+                {file ? (
+                  <div className="flex items-center gap-3">
+                    <span className="w-10 h-10 rounded-[var(--radius-md)] flex items-center justify-center bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)]">
+                      <FileText className="w-5 h-5" />
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="type-small font-semibold text-[var(--text-primary)] truncate">{file.name}</div>
+                      <div className="text-caption text-[var(--text-tertiary)]">{f.number(file.size / 1024, { maxFraction: 1 })} KB</div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onFile(null)}
+                      aria-label={t('auditor.upload.removeFile')}
+                      className="w-9 h-9 rounded-[var(--radius-md)] flex items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]"
+                    >
+                      <X className="w-4 h-4" />
                     </button>
-                  ))}
-                </div>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center text-center cursor-pointer">
+                    <input type="file" accept="application/pdf" onChange={e => onFile(e.target.files?.[0] ?? null)} className="sr-only" />
+                    <Upload className="w-6 h-6 text-[var(--text-tertiary)] mb-2" aria-hidden />
+                    <span className="type-small font-semibold text-[var(--text-primary)]">{t('auditor.upload.drop')}</span>
+                    <span className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('auditor.upload.dropHint')}</span>
+                  </label>
+                )}
               </div>
-              <Field label={t('auditor.upload.standard')} value={isae} onChange={setIsae} placeholder="ISAE 3000 (Revised)" />
-              <Field label={t('auditor.upload.notes')} value={notes} onChange={setNotes} as="textarea" placeholder={t('auditor.upload.notesPlaceholder')} />
-
-              <div>
-                <label className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{t('auditor.upload.statement')}</label>
-                <div
-                  onDragOver={e => { e.preventDefault(); setDragging(true) }}
-                  onDragLeave={() => setDragging(false)}
-                  onDrop={e => { e.preventDefault(); setDragging(false); onFile(e.dataTransfer.files[0] ?? null) }}
-                  className="relative rounded-[12px] p-6 border-2 border-dashed transition-all cursor-pointer"
-                  style={{
-                    borderColor: dragging ? 'var(--color-brand)' : 'var(--border-default)',
-                    background: dragging ? 'var(--accent-teal-subtle)' : 'var(--bg-secondary)',
-                  }}
-                >
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    onChange={e => onFile(e.target.files?.[0] ?? null)}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                  />
-                  {file ? (
-                    <div className="flex items-center gap-3">
-                      <span className="w-10 h-10 rounded-[10px] flex items-center justify-center" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)' }}>
-                        <FileText className="w-5 h-5" />
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-semibold text-[var(--text-primary)] truncate">{file.name}</div>
-                        <div className="text-caption text-[var(--text-tertiary)]">{(file.size / 1024).toFixed(1)} KB</div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); onFile(null) }}
-                        aria-label={t('auditor.upload.removeFile')}
-                        className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-tertiary)] hover:bg-white hover:text-[var(--text-primary)]"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="text-center">
-                      <Upload className="w-6 h-6 text-[var(--text-tertiary)] mx-auto mb-2" />
-                      <div className="text-[13px] font-semibold text-[var(--text-primary)]">{t('auditor.upload.drop')}</div>
-                      <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('auditor.upload.dropHint')}</div>
-                    </div>
-                  )}
-                </div>
-              </div>
+              {fileError && <p role="alert" className="text-caption text-[var(--status-danger)] mt-1.5">{fileError}</p>}
             </div>
+          </div>
 
-            {error && (
-              <div className="mt-4 p-3 rounded-[8px] bg-[var(--accent-red-light)] text-[var(--status-reject)] text-[12.5px] font-medium flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            <div className="mt-7 flex items-center justify-between gap-3">
-              <p className="text-caption text-[var(--text-tertiary)] leading-snug max-w-xs">
-                {t('auditor.upload.attest')}
-              </p>
-              <Button variant="brand" size="md" icon={<ShieldCheck className="w-4 h-4" />} onClick={submit} loading={submitting}>
-                {t('auditor.upload.submit')}
-              </Button>
+          {error && (
+            <div role="alert" className="mt-5 p-3 rounded-[var(--radius-md)] bg-[var(--status-danger-soft)] text-[var(--status-danger)] type-small flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>{error}</span>
             </div>
-          </motion.div>
-        )}
-      </main>
+          )}
 
-      <footer className="text-center py-8 text-caption text-[var(--text-tertiary)]">
-        <Trans i18nKey="auditor.upload.footer" components={{ a: <a href="/" className="link-underline text-[var(--color-brand)] hover:text-[var(--color-brand-strong)]" /> }} />
-      </footer>
-    </div>
+          <div className="mt-8 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4">
+            <p className="text-caption text-[var(--text-tertiary)] max-w-sm">{t('auditor.upload.attest')}</p>
+            <Button type="submit" variant="primary" size="lg" icon={<ShieldCheck className="w-4 h-4" />} loading={submitting}>
+              {t('auditor.upload.submit')}
+            </Button>
+          </div>
+        </motion.form>
+      )}
+    </PublicFrame>
   )
 }
 
-function Field({ label, value, onChange, placeholder, as = 'input' }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; as?: 'input' | 'textarea' }) {
+function Field({ label, value, onChange, placeholder, as = 'input', required, error, inputRef, autoComplete }: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+  as?: 'input' | 'textarea'
+  required?: boolean
+  error?: string | null
+  inputRef?: React.Ref<HTMLInputElement>
+  autoComplete?: string
+}) {
+  const cls = `w-full px-3 rounded-[var(--radius-md)] border bg-[var(--bg-primary)] type-small text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none transition-colors ${error ? 'border-[var(--status-danger)]' : 'border-[var(--border-default)] focus:border-[var(--border-focus)]'}`
   return (
     <label className="block">
-      <span className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">{label}</span>
-      {as === 'textarea' ? (
-        <textarea
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder={placeholder}
-          rows={3}
-          className="w-full px-3 py-2.5 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13px] text-[var(--text-primary)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/15 outline-none resize-none transition-all"
-        />
-      ) : (
-        <input
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="w-full px-3 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13px] text-[var(--text-primary)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/15 outline-none transition-all"
-        />
-      )}
+      <span className="text-small font-semibold text-[var(--text-secondary)] mb-1.5 block">{label}</span>
+      {as === 'textarea'
+        ? <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={3} className={`${cls} py-2.5 resize-none`} />
+        : <input ref={inputRef} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required={required} aria-invalid={!!error} autoComplete={autoComplete} className={`${cls} h-11`} />}
+      {error && <span role="alert" className="text-caption text-[var(--status-danger)] mt-1 block">{error}</span>}
     </label>
   )
 }

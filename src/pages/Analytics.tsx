@@ -1,76 +1,76 @@
 import { useEffect, useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
+import { motion, useReducedMotion } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import {
-  TrendingUp, TrendingDown, Minus, AlertTriangle,
-  CheckCircle2, Clock, Factory, Target as TargetIcon, Scale,
-} from 'lucide-react'
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  AreaChart, Area, ReferenceLine,
-} from 'recharts'
+import { ArrowRight, Check, Factory, Scale, Target as TargetIcon, TrendingUp } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { useFramework } from '../lib/frameworks'
 import { useOrgData } from '../lib/useOrgData'
 import { orgStore, type QuestionAssignment, type OrgTarget, type MaterialTopic } from '../lib/orgStore'
 import { FrameworkBadge } from '../components/FrameworkBadge'
 import PageHeader from '../components/PageHeader'
-import { AnimatedNumber, formatBig } from '../components/AnimatedNumber'
-import { riseIn, popIn, slideInLeft } from '../components/motion'
 import SectionHeader from '../design-system/components/SectionHeader'
-import { SkeletonCard } from '../design-system/components/Skeleton'
-import EmptyState from '../components/EmptyState'
+import { StatLedger, StateBoundary, StatusPill, NumberTicker, SkeletonLedger, SkeletonCard, type StatLedgerItem } from '../components/ui'
+import { useFmt } from '../lib/fmt'
 import { itemLabel } from '../lib/itemLabel'
+import { dur, ease, transition } from '../motion/tokens'
+import TargetGapChart from '../components/analytics/TargetGapChart'
+import ScopeBars from '../components/analytics/ScopeBars'
+import { computeTargetGap, scopesCovered } from '../components/analytics/targetGap'
+import useEmissionsActuals, { actualsFor } from '../components/analytics/useEmissionsActuals'
+
+type Hist = Array<{ year: number; value: number; source_report: string }>
+type Flag = 'ok' | 'watch' | 'warn' | 'no-baseline'
+
+const scoreTone = (n: number) => (n >= 85 ? 'success' : n >= 65 ? 'warning' : 'danger') as 'success' | 'warning' | 'danger'
+const toneVar = { success: 'var(--status-success)', warning: 'var(--status-warning)', danger: 'var(--status-danger)' } as const
 
 /**
  * Analytics — every chart and table is computed from live org data.
- * Six sections: Data Quality Index, YoY Variance, Target gap, Plant scorecard,
- * Materiality coverage, Emissions decomposition.
+ * Ledger → Data Quality Index → target pathway + plant × scope → YoY variance
+ * → plant scorecard + material topic coverage. Panels without data collapse
+ * into one "Unlock more analytics" checklist instead of dashed empty cards.
  */
 export default function Analytics() {
   const { t, i18n } = useTranslation()
+  const f = useFmt()
   const { user } = useAuth()
-  const navigate = useNavigate()
   const { active: framework } = useFramework()
-  const { data: orgData, loading } = useOrgData()
+  const { data: orgData, loading, error, reload } = useOrgData()
 
   const assignments = useMemo(() => {
     if (!orgData) return [] as QuestionAssignment[]
     return orgData.assignments.filter(a => a.framework_id === framework.id)
   }, [orgData, framework.id])
 
-  // Load targets + materiality
   const [targets, setTargets] = useState<OrgTarget[]>([])
   const [materialTopics, setMaterialTopics] = useState<MaterialTopic[]>([])
   useEffect(() => {
     if (!user) return
-    orgStore.listTargets().then(setTargets).catch(() => setTargets([]))
-    orgStore.listMaterialTopics().then(setMaterialTopics).catch(() => setMaterialTopics([]))
+    orgStore.listTargets().then(r => setTargets(Array.isArray(r) ? r : [])).catch(() => setTargets([]))
+    orgStore.listMaterialTopics().then(r => setMaterialTopics(Array.isArray(r) ? r : [])).catch(() => setMaterialTopics([]))
   }, [user?.id])
 
-  // Load historical values for every approved numeric assignment (for YoY variance)
-  const [histByQuestion, setHistByQuestion] = useState<Map<string, Array<{ year: number; value: number; source_report: string }>>>(new Map())
+  const actuals = useEmissionsActuals(orgData ? assignments : null)
+
+  // Historical values for every approved numeric assignment (for YoY variance)
+  const [histByQuestion, setHistByQuestion] = useState<Map<string, Hist>>(new Map())
   useEffect(() => {
     const approved = assignments.filter(a => a.status === 'approved' && a.response_type !== 'narrative' && a.value != null)
     if (approved.length === 0) return
     let cancelled = false
     ;(async () => {
-      type H = Array<{ year: number; value: number; source_report: string }>
-      const pairs: Array<[string, H]> = await Promise.all(
+      const pairs: Array<[string, Hist]> = await Promise.all(
         approved.map(async a => {
           try {
-            const h = await orgStore.historical(a.questionId)
-            return [a.questionId, h] as [string, H]
+            return [a.questionId, await orgStore.historical(a.questionId)] as [string, Hist]
           } catch {
-            return [a.questionId, [] as H] as [string, H]
+            return [a.questionId, [] as Hist] as [string, Hist]
           }
-        })
+        }),
       )
       if (cancelled) return
-      const m = new Map<string, H>()
-      for (const [qid, h] of pairs) m.set(qid, h)
-      setHistByQuestion(m)
+      setHistByQuestion(new Map(pairs))
     })()
     return () => { cancelled = true }
   }, [assignments])
@@ -80,13 +80,10 @@ export default function Analytics() {
     if (assignments.length === 0) return null
     const total = assignments.length
     const approved = assignments.filter(a => a.status === 'approved').length
-    const submitted = assignments.filter(a => a.status === 'submitted' || a.status === 'reviewed').length
     const rejected = assignments.filter(a => a.status === 'rejected').length
-    const withEvidence = assignments.filter(a =>
-      a.response_type !== 'narrative' && (a.evidence_ids?.length ?? 0) > 0
-    ).length
+    const withEvidence = assignments.filter(a => a.response_type !== 'narrative' && (a.evidence_ids?.length ?? 0) > 0).length
     const needsEvidence = assignments.filter(a =>
-      a.response_type !== 'narrative' && (a.status === 'submitted' || a.status === 'reviewed' || a.status === 'approved')
+      a.response_type !== 'narrative' && (a.status === 'submitted' || a.status === 'reviewed' || a.status === 'approved'),
     ).length
     const onTime = assignments.filter(a => {
       if (!a.due_date) return true
@@ -95,172 +92,180 @@ export default function Analytics() {
     }).length
     const dueEligible = assignments.filter(a => a.due_date).length
 
-    // Component scores (0-100)
-    const completeness = total === 0 ? 0 : (approved / total) * 100
-    const timeliness   = dueEligible === 0 ? 100 : (onTime / dueEligible) * 100
+    const completeness = (approved / total) * 100
+    const timeliness = dueEligible === 0 ? 100 : (onTime / dueEligible) * 100
     const evidenceRate = needsEvidence === 0 ? 100 : (withEvidence / needsEvidence) * 100
-    const rejectionPenalty = total === 0 ? 100 : Math.max(0, 100 - (rejected / total) * 100)
-    // Variance pass rate — % of approved numeric where YoY within ±20% or no prior year
+    const rejectionPenalty = Math.max(0, 100 - (rejected / total) * 100)
     const approvedNum = assignments.filter(a => a.status === 'approved' && a.response_type !== 'narrative' && a.value != null)
     let variancePass = 0
     for (const a of approvedNum) {
       const hist = histByQuestion.get(a.questionId) || []
       const latest = hist.length > 0 ? [...hist].sort((h1, h2) => h2.year - h1.year)[0] : null
       if (!latest || latest.value === 0) { variancePass++; continue }
-      const delta = Math.abs(((a.value! - latest.value) / latest.value) * 100)
-      if (delta <= 20) variancePass++
+      if (Math.abs(((a.value! - latest.value) / latest.value) * 100) <= 20) variancePass++
     }
     const varianceScore = approvedNum.length === 0 ? 100 : (variancePass / approvedNum.length) * 100
 
     const composite = Math.round(
-      completeness * 0.35 +
-      timeliness * 0.15 +
-      evidenceRate * 0.20 +
-      rejectionPenalty * 0.15 +
-      varianceScore * 0.15
+      completeness * 0.35 + timeliness * 0.15 + evidenceRate * 0.2 + rejectionPenalty * 0.15 + varianceScore * 0.15,
     )
-
     return {
       composite,
       components: [
-        { key: 'completeness', value: Math.round(completeness),     weight: 35, hintVars: { approved, total } },
-        { key: 'timeliness',   value: Math.round(timeliness),       weight: 15, hintVars: { onTime, dueEligible } },
-        { key: 'evidence',     value: Math.round(evidenceRate),     weight: 20, hintVars: { withEvidence, needsEvidence } },
-        { key: 'rework',       value: Math.round(rejectionPenalty), weight: 15, hintVars: { rejected } },
-        { key: 'variance',     value: Math.round(varianceScore),    weight: 15, hintVars: { variancePass, approvedNum: approvedNum.length } },
+        { key: 'completeness', value: Math.round(completeness), weight: 35, hintVars: { approved, total } },
+        { key: 'timeliness', value: Math.round(timeliness), weight: 15, hintVars: { onTime, dueEligible } },
+        { key: 'evidence', value: Math.round(evidenceRate), weight: 20, hintVars: { withEvidence, needsEvidence } },
+        { key: 'rework', value: Math.round(rejectionPenalty), weight: 15, hintVars: { rejected } },
+        { key: 'variance', value: Math.round(varianceScore), weight: 15, hintVars: { variancePass, approvedNum: approvedNum.length } },
       ],
-      counts: { total, approved, submitted, rejected },
+      counts: { total, approved, rejected },
     }
   }, [assignments, histByQuestion])
 
-  // ── YoY Variance table — every approved numeric line item vs its most recent historical point ──
+  // ── YoY Variance table ──
   const varianceRows = useMemo(() => {
-    const rows = assignments
+    return assignments
       .filter(a => a.status === 'approved' && a.response_type !== 'narrative' && a.value != null)
       .map(a => {
         const hist = histByQuestion.get(a.questionId) || []
         const latest = hist.length > 0 ? [...hist].sort((h1, h2) => h2.year - h1.year)[0] : null
         const delta = latest && latest.value !== 0 ? ((a.value! - latest.value) / Math.abs(latest.value)) * 100 : null
-        return {
-          assignment: a,
-          priorYear: latest?.year ?? null,
-          priorValue: latest?.value ?? null,
-          delta,
-        }
+        const abs = Math.abs(delta ?? 0)
+        const flag: Flag = delta == null ? 'no-baseline' : abs > 20 ? 'warn' : abs > 5 ? 'watch' : 'ok'
+        return { assignment: a, priorYear: latest?.year ?? null, priorValue: latest?.value ?? null, delta, flag }
       })
       .sort((a, b) => Math.abs(b.delta ?? 0) - Math.abs(a.delta ?? 0))
-    return rows
   }, [assignments, histByQuestion])
 
-  // ── Target gap analysis — for the primary SBTi target ──
+  // ── Target gap — primary SBTi near-term target, measured on the scopes it covers ──
   const targetGap = useMemo(() => {
-    const t = targets.find(x => x.kind === 'sbti_near_term') ?? targets[0]
-    if (!t) return null
-    const baseline = Number(t.baseline_value)
-    const targetValue = baseline * (1 - t.target_reduction_pct / 100)
-    // Current: sum of approved S1+S2+S3 GRI 305
-    const current = assignments
-      .filter(a => a.status === 'approved' && (a.gri_code.startsWith('305-1') || a.gri_code.startsWith('305-2') || a.gri_code.startsWith('305-3')) && a.value != null)
-      .reduce((s, a) => s + (a.value ?? 0), 0)
-    const effectiveCurrent = current > 0 ? current : baseline
-    const thisYear = new Date().getFullYear()
-    const yearsElapsed = Math.max(0, thisYear - t.baseline_year)
-    const yearsRemaining = Math.max(0, t.target_year - thisYear)
-    const totalYears = t.target_year - t.baseline_year
-
-    // Build a pathway: linear interpolation from baseline → target year
-    const pathway: Array<{ year: number; linear: number; actual: number | null }> = []
-    for (let y = t.baseline_year; y <= t.target_year; y++) {
-      const linear = baseline - ((baseline - targetValue) * ((y - t.baseline_year) / totalYears))
-      const actual = y === thisYear ? effectiveCurrent : y === t.baseline_year ? baseline : null
-      pathway.push({ year: y, linear, actual })
-    }
-    const currentlyExpected = baseline - ((baseline - targetValue) * (yearsElapsed / totalYears))
-    const gap = effectiveCurrent - currentlyExpected
-    const requiredAnnualAbatement = yearsRemaining === 0 ? 0 : (effectiveCurrent - targetValue) / yearsRemaining
-
-    return {
-      target: t, baseline, targetValue, current: effectiveCurrent, pathway, gap,
-      requiredAnnualAbatement, yearsRemaining, onTrack: gap <= 0,
-    }
-  }, [targets, assignments])
+    const tg = targets.find(x => x.kind === 'sbti_near_term') ?? targets[0]
+    if (!tg) return null
+    return computeTargetGap(tg, actualsFor(actuals.history, scopesCovered(tg.scope_coverage)))
+  }, [targets, actuals.history])
 
   // ── Plant scorecard ──
   const plantScores = useMemo(() => {
     if (!orgData) return []
-    const plants = orgData.entities.filter(e => e.type === 'plant' || e.type === 'office')
-    return plants.map(p => {
-      const plantA = assignments.filter(a => a.entityId === p.id)
-      const total = plantA.length
-      const approved = plantA.filter(a => a.status === 'approved').length
-      const rejected = plantA.filter(a => a.status === 'rejected').length
-      const now = Date.now()
-      const overdue = plantA.filter(a => a.due_date && a.status !== 'approved' && new Date(a.due_date).getTime() < now).length
-      const approvedTs = plantA.filter(a => a.status === 'approved' && a.last_updated && a.assigned_at).map(a =>
-        (new Date(a.last_updated!).getTime() - new Date(a.assigned_at).getTime()) / (1000 * 60 * 60 * 24)
-      )
-      const avgDays = approvedTs.length > 0 ? approvedTs.reduce((s, n) => s + n, 0) / approvedTs.length : null
-      const completion = total === 0 ? 0 : Math.round((approved / total) * 100)
-      // Composite score: completion (60) + low-rework (20) + no-overdue (20)
-      const score = Math.round(
-        completion * 0.6 +
-        (total === 0 ? 20 : Math.max(0, 20 - (rejected / total) * 100)) +
-        (total === 0 ? 20 : Math.max(0, 20 - (overdue / total) * 100))
-      )
-      return { plant: p, total, approved, rejected, overdue, avgDays, completion, score }
-    }).sort((a, b) => b.score - a.score)
+    const now = Date.now()
+    return orgData.entities
+      .filter(e => e.type === 'plant' || e.type === 'office')
+      .map(p => {
+        const plantA = assignments.filter(a => a.entityId === p.id)
+        const total = plantA.length
+        const approved = plantA.filter(a => a.status === 'approved').length
+        const rejected = plantA.filter(a => a.status === 'rejected').length
+        const overdue = plantA.filter(a => a.due_date && a.status !== 'approved' && new Date(a.due_date).getTime() < now).length
+        const approvedTs = plantA
+          .filter(a => a.status === 'approved' && a.last_updated && a.assigned_at)
+          .map(a => (new Date(a.last_updated!).getTime() - new Date(a.assigned_at).getTime()) / 86400000)
+        const avgDays = approvedTs.length > 0 ? approvedTs.reduce((s, n) => s + n, 0) / approvedTs.length : null
+        const completion = total === 0 ? 0 : Math.round((approved / total) * 100)
+        const score = Math.round(
+          completion * 0.6 +
+          (total === 0 ? 20 : Math.max(0, 20 - (rejected / total) * 100)) +
+          (total === 0 ? 20 : Math.max(0, 20 - (overdue / total) * 100)),
+        )
+        return { plant: p, total, approved, rejected, overdue, avgDays, completion, score }
+      })
+      .sort((a, b) => b.score - a.score)
   }, [orgData, assignments])
 
   // ── Materiality coverage ──
   const materialityCoverage = useMemo(() => {
     const assignedCodes = new Set(assignments.map(a => a.gri_code.split(' ')[0]))
     return materialTopics
-      .filter(t => t.framework_id === framework.id && t.dma_status === 'material')
-      .map(t => {
-        const codes = t.linked_gri_codes || []
-        const coveredCodes = codes.filter(c => assignedCodes.has(c))
-        const approvedCodes = codes.filter(c => assignments.some(a => a.gri_code.startsWith(c) && a.status === 'approved'))
+      .filter(tp => tp.framework_id === framework.id && tp.dma_status === 'material')
+      .map(tp => {
+        const codes = tp.linked_gri_codes || []
+        const covered = codes.filter(c => assignedCodes.has(c)).length
+        const approved = codes.filter(c => assignments.some(a => a.gri_code.startsWith(c) && a.status === 'approved')).length
         return {
-          topic: t,
+          topic: tp,
           total: codes.length,
-          covered: coveredCodes.length,
-          approved: approvedCodes.length,
-          coveragePct: codes.length === 0 ? 0 : Math.round((coveredCodes.length / codes.length) * 100),
-          approvedPct: codes.length === 0 ? 0 : Math.round((approvedCodes.length / codes.length) * 100),
+          covered,
+          approved,
+          coveragePct: codes.length === 0 ? 0 : Math.round((covered / codes.length) * 100),
+          approvedPct: codes.length === 0 ? 0 : Math.round((approved / codes.length) * 100),
         }
-      }).sort((a, b) => a.coveragePct - b.coveragePct)
+      })
+      .sort((a, b) => a.coveragePct - b.coveragePct)
   }, [materialTopics, assignments, framework.id])
 
   // ── Emissions decomposition: plant × scope ──
   const emissionsDecomp = useMemo(() => {
     if (!orgData) return []
-    const plants = orgData.entities.filter(e => e.type === 'plant' || e.type === 'office')
-    return plants.map(p => {
-      const roll = (prefix: string) => assignments
-        .filter(a => a.entityId === p.id && a.status === 'approved' && a.gri_code.startsWith(prefix) && a.value != null)
-        .reduce((s, a) => s + (a.value ?? 0), 0)
-      const s1 = roll('305-1')
-      const s2 = roll('305-2')
-      const s3 = roll('305-3')
-      return { plant: p.name, s1, s2, s3, total: s1 + s2 + s3 }
-    }).filter(p => p.total > 0).sort((a, b) => b.total - a.total)
+    return orgData.entities
+      .filter(e => e.type === 'plant' || e.type === 'office')
+      .map(p => {
+        const roll = (prefix: string) => assignments
+          .filter(a => a.entityId === p.id && a.status === 'approved' && a.gri_code.startsWith(prefix) && a.value != null)
+          .reduce((s, a) => s + (a.value ?? 0), 0)
+        const s1 = roll('305-1'), s2 = roll('305-2'), s3 = roll('305-3')
+        return { label: p.name, s1, s2, s3, total: s1 + s2 + s3 }
+      })
+      .filter(p => p.total > 0)
+      .sort((a, b) => b.total - a.total)
   }, [orgData, assignments])
 
-  if (loading && !orgData) {
-    return (
-      <div className="space-y-6">
-        <div className="h-[120px] rounded-[18px] skeleton" />
-        <SkeletonCard />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <SkeletonCard />
-          <SkeletonCard />
-        </div>
-      </div>
-    )
-  }
+  const flagged = varianceRows.filter(r => r.flag === 'warn').length
+  const coveredTopics = materialityCoverage.filter(r => r.coveragePct === 100).length
+
+  // Panels with no data collapse into the "Unlock more analytics" checklist.
+  const unlock = [
+    { key: 'target', done: !!targetGap, to: '/admin/targets', icon: TargetIcon },
+    { key: 'emissions', done: emissionsDecomp.length > 0, to: '/work/approval', icon: Factory },
+    { key: 'variance', done: varianceRows.length > 0, to: '/my-tasks', icon: TrendingUp },
+    { key: 'materiality', done: materialityCoverage.length > 0, to: '/admin/materiality', icon: Scale },
+  ]
+  const pending = unlock.filter(u => !u.done)
+
+  const ledger: StatLedgerItem[] = [
+    {
+      id: 'dqi',
+      label: t('analytics.ledger.dqi'),
+      value: dqi?.composite ?? null,
+      tone: dqi ? scoreTone(dqi.composite) : 'neutral',
+      hint: dqi ? t(`analytics.dqi.ring.${dqi.composite >= 85 ? 'strong' : dqi.composite >= 65 ? 'improving' : 'needsWork'}`) : t('analytics.ledger.noData'),
+    },
+    {
+      id: 'approved',
+      label: t('analytics.ledger.approved'),
+      value: dqi?.counts.approved ?? 0,
+      tone: 'brand',
+      hint: t('analytics.ledger.ofTotal', { total: f.number(dqi?.counts.total ?? 0) }),
+    },
+    {
+      id: 'gap',
+      label: t('analytics.ledger.gap'),
+      value: targetGap?.gap != null ? Math.abs(targetGap.gap) : null,
+      format: 'compact',
+      unit: targetGap?.gap != null ? f.unit(targetGap.target.baseline_unit || 'tCO2e') : undefined,
+      tone: targetGap?.gap == null ? 'neutral' : targetGap.gap > 0 ? 'danger' : 'success',
+      hint: targetGap?.gap == null
+        ? t('analytics.ledger.noTarget')
+        : targetGap.gap > 0 ? t('analytics.ledger.abovePathway') : t('analytics.ledger.belowPathway'),
+      to: targetGap ? undefined : '/admin/targets',
+    },
+    {
+      id: 'variance',
+      label: t('analytics.ledger.variance'),
+      value: flagged,
+      tone: flagged > 0 ? 'warning' : 'success',
+      hint: t('analytics.ledger.varianceHint', { count: varianceRows.length }),
+    },
+    {
+      id: 'topics',
+      label: t('analytics.ledger.topics'),
+      value: materialityCoverage.length ? `${f.number(coveredTopics)} / ${f.number(materialityCoverage.length)}` : '—',
+      tone: materialityCoverage.length && coveredTopics === materialityCoverage.length ? 'success' : 'neutral',
+      hint: t('analytics.ledger.topicsHint'),
+      to: '/admin/materiality',
+    },
+  ]
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <PageHeader
         eyebrow={t('analytics.header.eyebrow')}
         title={t('analytics.header.title')}
@@ -268,472 +273,435 @@ export default function Analytics() {
         actions={<FrameworkBadge size="md" />}
       />
 
-      {/* ── Data Quality Index ── */}
-      <section>
-        <SectionHeader
-          kicker={t('analytics.dqi.kicker')}
-          title={t('analytics.dqi.title')}
-          subtitle={t('analytics.dqi.subtitle')}
-        />
-        <motion.div {...popIn(0)} className="surface-paper overflow-hidden">
-          {!dqi ? (
-            <EmptyState
-              icon={CheckCircle2}
-              title={t('analytics.dqi.emptyTitle')}
-              body={t('analytics.dqi.emptyBody')}
-              cta={{ label: t('analytics.dqi.emptyCta'), onClick: () => navigate('/my-tasks') }}
-            />
-          ) : (
-            <div className="p-6 grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-8 items-center">
-              <DqiRing score={dqi.composite} />
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                {dqi.components.map(c => (
-                  <DqiComponent
-                    key={c.key}
-                    label={t(`analytics.dqi.components.${c.key}.label`)}
-                    value={c.value}
-                    weight={c.weight}
-                    hint={t(`analytics.dqi.components.${c.key}.hint`, c.hintVars)}
-                  />
-                ))}
-              </div>
+      <StateBoundary
+        loading={loading}
+        error={error}
+        onRetry={reload}
+        hasData={!!orgData}
+        skeleton={
+          <div className="space-y-6">
+            <SkeletonLedger items={5} />
+            <SkeletonCard />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4"><SkeletonCard /><SkeletonCard /></div>
+          </div>
+        }
+        errorState={{ title: t('analytics.error.title'), body: t('analytics.error.body') }}
+      >
+        <div className="space-y-10">
+          <StatLedger items={ledger} aria-label={t('analytics.ledger.aria')} />
+
+          {/* ── Data Quality Index ── */}
+          <section aria-labelledby="dqi-h">
+            <SectionHeader kicker={t('analytics.dqi.kicker')} title={t('analytics.dqi.title')} subtitle={t('analytics.dqi.subtitle')} />
+            <div className="surface-paper overflow-hidden">
+              <StateBoundary
+                empty={!dqi}
+                emptyState={{
+                  art: 'noData',
+                  title: t('analytics.dqi.emptyTitle'),
+                  body: t('analytics.dqi.emptyBody'),
+                  cta: { label: t('analytics.dqi.emptyCta'), to: '/my-tasks' },
+                }}
+              >
+                {dqi && (
+                  <div className="p-5 sm:p-6 grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6 lg:gap-10 items-center">
+                    <DqiRing score={dqi.composite} />
+                    <ul className="divide-y divide-[var(--border-subtle)]">
+                      {dqi.components.map((c, i) => (
+                        <DqiRow
+                          key={c.key}
+                          index={i}
+                          label={t(`analytics.dqi.components.${c.key}.label`)}
+                          weight={t('analytics.dqi.weight', { pct: c.weight })}
+                          value={c.value}
+                          hint={t(`analytics.dqi.components.${c.key}.hint`, c.hintVars)}
+                        />
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </StateBoundary>
             </div>
-          )}
-        </motion.div>
-      </section>
+          </section>
 
-      {/* ── Target gap + Emissions decomp ── */}
-      <section>
-        <SectionHeader
-          kicker={t('analytics.pathway.kicker')}
-          title={t('analytics.pathway.title')}
-          subtitle={t('analytics.pathway.subtitle')}
-        />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <motion.div {...popIn(0)}>
-            <TargetGapCard gap={targetGap} navigate={navigate} />
-          </motion.div>
-          <motion.div {...popIn(1)}>
-            <EmissionsDecomp data={emissionsDecomp} />
-          </motion.div>
-        </div>
-      </section>
+          {pending.length > 0 && <UnlockChecklist items={unlock} />}
 
-      {/* ── YoY Variance Investigator ── */}
-      <section>
-        <SectionHeader
-          kicker={t('analytics.variance.kicker')}
-          title={t('analytics.variance.title')}
-          subtitle={t('analytics.variance.subtitle')}
-        />
-        <motion.div {...riseIn(0)} className="surface-paper overflow-hidden">
-          {varianceRows.length === 0 ? (
-            <div className="p-12 text-center text-[13px] text-[var(--text-tertiary)]">{t('analytics.variance.empty')}</div>
-          ) : (
-            <table className="w-full text-[13px]">
-              <thead>
-                <tr className="text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)]">
-                  <th className="text-left px-5 py-3 font-semibold">{t('analytics.variance.columns.disclosure')}</th>
-                  <th className="text-right px-3 py-3 font-semibold">{t('analytics.variance.columns.prior')}</th>
-                  <th className="text-right px-3 py-3 font-semibold">{t('analytics.variance.columns.current')}</th>
-                  <th className="text-right px-3 py-3 font-semibold">{t('analytics.variance.columns.delta')}</th>
-                  <th className="text-left px-3 py-3 font-semibold">{t('analytics.variance.columns.assessment')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border-subtle)]">
-                {varianceRows.slice(0, 12).map((r, i) => {
-                  const deltaAbs = Math.abs(r.delta ?? 0)
-                  const flag = r.delta == null ? 'no-baseline' : deltaAbs > 20 ? 'warn' : deltaAbs > 5 ? 'watch' : 'ok'
-                  return (
-                    <motion.tr key={r.assignment.id} {...slideInLeft(i)} className="hover:bg-[var(--bg-secondary)] transition-colors">
-                      <td className="px-5 py-3.5">
-                        <div className="text-micro font-bold text-[var(--color-brand)] tracking-[0.05em] uppercase">{r.assignment.gri_code}</div>
-                        <div className="text-[13px] text-[var(--text-primary)] truncate max-w-[420px] font-medium mt-0.5">{itemLabel(r.assignment, i18n.language)}</div>
-                      </td>
-                      <td className="px-3 py-3.5 text-right tabular-nums">
-                        {r.priorValue != null ? (
-                          <>
-                            <div className="text-[13px] text-[var(--text-secondary)] font-medium">{formatBig(r.priorValue)}</div>
-                            <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('analytics.variance.fy', { year: r.priorYear })}</div>
-                          </>
-                        ) : <span className="text-[var(--text-tertiary)] italic">—</span>}
-                      </td>
-                      <td className="px-3 py-3.5 text-right font-bold tabular-nums text-[var(--text-primary)] text-[14px] tracking-[-0.01em]">
-                        {formatBig(r.assignment.value!)}
-                      </td>
-                      <td className="px-3 py-3.5 text-right">
-                        {r.delta == null ? <span className="text-[var(--text-tertiary)]">—</span> : (
-                          <span className={`inline-flex items-center gap-1 font-bold tabular-nums text-[12.5px] px-2 py-0.5 rounded-[6px] ${
-                            r.delta < 0 ? 'text-[var(--status-ok)] bg-[var(--accent-green-light)]' : r.delta > 0 ? 'text-[var(--status-reject)] bg-[var(--accent-red-light)]' : 'text-[var(--text-tertiary)]'
-                          }`}>
-                            {r.delta < -0.5 ? <TrendingDown className="w-3 h-3" /> : r.delta > 0.5 ? <TrendingUp className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
-                            {r.delta > 0 ? '+' : ''}{r.delta.toFixed(1)}%
+          {/* ── Target gap + Emissions decomposition ── */}
+          {(targetGap || emissionsDecomp.length > 0) && (
+            <section>
+              <SectionHeader kicker={t('analytics.pathway.kicker')} title={t('analytics.pathway.title')} subtitle={t('analytics.pathway.subtitle')} />
+              <div className={`grid grid-cols-1 gap-4 ${targetGap && emissionsDecomp.length > 0 ? 'lg:grid-cols-2' : ''}`}>
+                {targetGap && (
+                  <TargetGapChart
+                    gap={targetGap}
+                    title={t('analytics.target.title')}
+                    subtitle={targetGap.target.scope_coverage && targetGap.target.label.includes(targetGap.target.scope_coverage) ? targetGap.target.label : `${targetGap.target.label} · ${targetGap.target.scope_coverage || t('analytics.target.allScopes')}`}
+                    actions={
+                      targetGap.onTrack == null ? (
+                        <StatusPill tone="neutral">{t('analytics.target.noActuals')}</StatusPill>
+                      ) : (
+                        <StatusPill tone={targetGap.onTrack ? 'success' : 'danger'} dot>
+                          {targetGap.onTrack ? t('analytics.target.onPathway') : t('analytics.target.behindPathway')}
+                        </StatusPill>
+                      )
+                    }
+                    footnote={
+                      <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+                        {targetGap.requiredAnnual != null && (
+                          <span>
+                            {t('analytics.target.stats.requiredAbatement')}{' '}
+                            <strong className="text-[var(--text-primary)] tabular-nums">{f.value(targetGap.requiredAnnual, targetGap.target.baseline_unit, { compact: true })}</strong>
+                            {t('analytics.target.perYearSuffix')}
                           </span>
                         )}
-                      </td>
-                      <td className="px-3 py-3.5">
-                        <VarianceFlag flag={flag} />
-                      </td>
-                    </motion.tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                        <span>
+                          {t('analytics.target.stats.yearsToTarget')}{' '}
+                          <strong className="text-[var(--text-primary)] tabular-nums">{f.number(targetGap.yearsRemaining)}</strong>
+                        </span>
+                        <Link to="/admin/targets" className="ml-auto inline-flex items-center gap-1 font-medium text-[var(--color-brand)] hover:underline">
+                          {t('analytics.target.manageLink')} <ArrowRight className="w-3 h-3" aria-hidden />
+                        </Link>
+                      </div>
+                    }
+                  />
+                )}
+                {emissionsDecomp.length > 0 && (
+                  <ScopeBars
+                    rows={emissionsDecomp}
+                    title={t('analytics.emissions.title')}
+                    subtitle={t('analytics.emissions.subtitle')}
+                    footnote={t('analytics.emissions.footnote')}
+                  />
+                )}
+              </div>
+            </section>
           )}
-        </motion.div>
-      </section>
 
-      {/* ── Plant scorecard + Materiality coverage ── */}
-      <section>
-        <SectionHeader
-          kicker={t('analytics.performance.kicker')}
-          title={t('analytics.performance.title')}
-          subtitle={t('analytics.performance.subtitle')}
-        />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <motion.div {...popIn(0)}>
-            <PlantScorecard rows={plantScores} navigate={navigate} />
-          </motion.div>
-          <motion.div {...popIn(1)}>
-            <MaterialityCoverage rows={materialityCoverage} navigate={navigate} />
-          </motion.div>
+          {/* ── YoY Variance Investigator ── */}
+          {varianceRows.length > 0 && (
+            <section>
+              <SectionHeader kicker={t('analytics.variance.kicker')} title={t('analytics.variance.title')} subtitle={t('analytics.variance.subtitle')} />
+              <div className="surface-paper overflow-hidden">
+                <ul className="sm:hidden divide-y divide-[var(--border-subtle)]">
+                  {varianceRows.slice(0, 12).map(r => (
+                    <li key={r.assignment.id} className="px-4 py-3.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-caption font-semibold text-[var(--color-brand)] tabular-nums">{r.assignment.gri_code}</div>
+                          <div className="text-small text-[var(--text-primary)] font-medium mt-0.5">{itemLabel(r.assignment, i18n.language)}</div>
+                        </div>
+                        <VarianceFlag flag={r.flag} />
+                      </div>
+                      <div className="mt-2 flex items-baseline gap-2 text-caption text-[var(--text-tertiary)] tabular-nums flex-wrap">
+                        <span>{r.priorValue != null ? `${f.number(r.priorValue, { maxFraction: 1 })} (${t('analytics.variance.fy', { year: r.priorYear })})` : '—'}</span>
+                        <ArrowRight className="w-3 h-3 self-center" aria-hidden />
+                        <span className="text-small font-semibold text-[var(--text-primary)]">{f.number(r.assignment.value!, { maxFraction: 1 })}</span>
+                        {r.assignment.unit && <span>{f.unit(r.assignment.unit)}</span>}
+                        {r.delta != null && <span className={`ml-auto font-semibold ${Math.abs(r.delta) > 20 ? 'text-[var(--status-danger)]' : 'text-[var(--text-secondary)]'}`}>{f.delta(r.delta, { percent: true })}</span>}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                <div className="hidden sm:block overflow-x-auto">
+                  <table className="w-full min-w-[640px] text-small">
+                    <thead>
+                      <tr className="text-caption text-[var(--text-tertiary)] border-b border-[var(--border-subtle)]">
+                        <th scope="col" className="text-left px-5 py-3 font-medium">{t('analytics.variance.columns.disclosure')}</th>
+                        <th scope="col" className="text-right px-3 py-3 font-medium">{t('analytics.variance.columns.prior')}</th>
+                        <th scope="col" className="text-right px-3 py-3 font-medium">{t('analytics.variance.columns.current')}</th>
+                        <th scope="col" className="text-right px-3 py-3 font-medium">{t('analytics.variance.columns.delta')}</th>
+                        <th scope="col" className="text-left px-5 py-3 font-medium">{t('analytics.variance.columns.assessment')}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--border-subtle)]">
+                      {varianceRows.slice(0, 12).map(r => (
+                        <tr key={r.assignment.id} className="hover:bg-[var(--bg-hover)] transition-colors duration-micro">
+                          <td className="px-5 py-3.5 max-w-[420px]">
+                            <div className="text-caption font-semibold text-[var(--color-brand)] tabular-nums">{r.assignment.gri_code}</div>
+                            <div className="text-small text-[var(--text-primary)] font-medium mt-0.5 line-clamp-2">{itemLabel(r.assignment, i18n.language)}</div>
+                          </td>
+                          <td className="px-3 py-3.5 text-right tabular-nums whitespace-nowrap">
+                            {r.priorValue != null ? (
+                              <>
+                                <div className="text-[var(--text-secondary)]">{f.number(r.priorValue, { maxFraction: 1 })}</div>
+                                <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('analytics.variance.fy', { year: r.priorYear })}</div>
+                              </>
+                            ) : <span className="text-[var(--text-tertiary)]">—</span>}
+                          </td>
+                          <td className="px-3 py-3.5 text-right font-semibold tabular-nums text-[var(--text-primary)] whitespace-nowrap">
+                            {f.number(r.assignment.value!, { maxFraction: 1 })}
+                            {r.assignment.unit && <span className="ml-1 text-caption font-normal text-[var(--text-tertiary)]">{f.unit(r.assignment.unit)}</span>}
+                          </td>
+                          <td className="px-3 py-3.5 text-right tabular-nums whitespace-nowrap font-semibold">
+                            {r.delta == null ? <span className="text-[var(--text-tertiary)] font-normal">—</span> : (
+                              <span className={Math.abs(r.delta) > 20 ? 'text-[var(--status-danger)]' : Math.abs(r.delta) > 5 ? 'text-[var(--status-warning)]' : 'text-[var(--text-secondary)]'}>
+                                {f.delta(r.delta, { percent: true })}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <VarianceFlag flag={r.flag} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* ── Plant scorecard + Materiality coverage ── */}
+          {(plantScores.length > 0 || materialityCoverage.length > 0) && (
+            <section>
+              <SectionHeader kicker={t('analytics.performance.kicker')} title={t('analytics.performance.title')} subtitle={t('analytics.performance.subtitle')} />
+              <div className={`grid grid-cols-1 gap-4 ${plantScores.length > 0 && materialityCoverage.length > 0 ? 'lg:grid-cols-2' : ''}`}>
+                {plantScores.length > 0 && <PlantScorecard rows={plantScores} />}
+                {materialityCoverage.length > 0 && <MaterialityCoverage rows={materialityCoverage} />}
+              </div>
+            </section>
+          )}
         </div>
-      </section>
+      </StateBoundary>
     </div>
   )
 }
 
-// ─── DQI ring + components ─────────────────────────────────────
+// ─── DQI ring + component rows ─────────────────────────────────
 
 function DqiRing({ score }: { score: number }) {
   const { t } = useTranslation()
-  const radius = 80
+  const reduce = useReducedMotion()
+  const radius = 84
   const c = 2 * Math.PI * radius
-  const color = score >= 85 ? '#10B981' : score >= 65 ? '#F59E0B' : '#EF4444'
-  const label = score >= 85 ? t('analytics.dqi.ring.strong') : score >= 65 ? t('analytics.dqi.ring.improving') : t('analytics.dqi.ring.needsWork')
+  const tone = scoreTone(score)
+  const label = tone === 'success' ? t('analytics.dqi.ring.strong') : tone === 'warning' ? t('analytics.dqi.ring.improving') : t('analytics.dqi.ring.needsWork')
   return (
-    <div className="relative w-[200px] h-[200px] mx-auto">
-      <svg width={200} height={200} viewBox="0 0 200 200">
-        <circle cx={100} cy={100} r={radius} fill="none" stroke="var(--bg-tertiary)" strokeWidth={14} />
+    <figure className="relative w-[200px] h-[200px] mx-auto" aria-label={t('analytics.dqi.ring.aria', { score, label })}>
+      <svg width={200} height={200} viewBox="0 0 200 200" aria-hidden>
+        <circle cx={100} cy={100} r={radius} fill="none" stroke="var(--bg-tertiary)" strokeWidth={10} />
+        {/* 5 weight ticks: where each component's share of the composite begins */}
+        {[0, 35, 50, 70, 85].map(p => {
+          const a = (p / 100) * 2 * Math.PI - Math.PI / 2
+          return <line key={p} x1={100 + Math.cos(a) * 76} y1={100 + Math.sin(a) * 76} x2={100 + Math.cos(a) * 92} y2={100 + Math.sin(a) * 92} stroke="var(--bg-primary)" strokeWidth={2} />
+        })}
         <motion.circle
-          cx={100} cy={100} r={radius} fill="none" stroke={color}
-          strokeWidth={14} strokeLinecap="round"
+          cx={100} cy={100} r={radius} fill="none" stroke={toneVar[tone]}
+          strokeWidth={10} strokeLinecap="round"
           strokeDasharray={`${c} ${c}`}
-          initial={{ strokeDashoffset: c }}
+          initial={reduce ? false : { strokeDashoffset: c }}
           animate={{ strokeDashoffset: c - (score / 100) * c }}
-          transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 1.1, ease: ease.out, delay: 0.1 }}
           transform="rotate(-90 100 100)"
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div className="text-[44px] font-bold leading-none tabular-nums" style={{ color }}>
-          <AnimatedNumber value={score} />
-        </div>
-        <div className="text-micro uppercase tracking-[0.06em] font-bold mt-1" style={{ color }}>{label}</div>
-        <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('analytics.dqi.ring.composite')}</div>
-      </div>
-    </div>
+      <figcaption className="absolute inset-0 flex flex-col items-center justify-center">
+        <NumberTicker value={score} className="type-figure text-[48px] leading-none text-[var(--text-primary)]" />
+        <span className="mt-2 text-caption font-semibold" style={{ color: toneVar[tone] }}>{label}</span>
+        <span className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('analytics.dqi.ring.composite')}</span>
+      </figcaption>
+    </figure>
   )
 }
 
-function DqiComponent({ label, value, weight, hint }: { label: string; value: number; weight: number; hint: string }) {
-  const color = value >= 85 ? 'var(--status-ok)' : value >= 65 ? 'var(--status-draft)' : 'var(--status-reject)'
+function DqiRow({ label, weight, value, hint, index }: { label: string; weight: string; value: number; hint: string; index: number }) {
+  const tone = scoreTone(value)
+  const reduce = useReducedMotion()
   return (
-    <div className="rounded-[10px] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-3.5 transition-all hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-xs)]">
-      <div className="flex items-center justify-between">
-        <span className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">{label}</span>
-        <span className="text-caption text-[var(--text-quaternary)] tabular-nums font-medium">{weight}%</span>
+    <li className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(140px,180px)_minmax(0,1fr)_56px] items-center gap-x-4 gap-y-2 py-3 first:pt-0 last:pb-0">
+      <div className="min-w-0">
+        <div className="text-small font-medium text-[var(--text-primary)]">{label}</div>
+        <div className="text-caption text-[var(--text-tertiary)]">{weight}</div>
       </div>
-      <div className="text-[26px] font-bold tabular-nums leading-none mt-2 tracking-[-0.02em]" style={{ color }}>
-        <AnimatedNumber value={value} />
+      <div className="order-3 col-span-2 sm:order-none sm:col-span-1 min-w-0">
+        <div className="h-1.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+          <motion.div
+            className="h-full rounded-full"
+            style={{ background: toneVar[tone] }}
+            initial={reduce ? false : { width: '0%' }}
+            animate={{ width: `${value}%` }}
+            transition={{ duration: dur.slow * 2, ease: ease.out, delay: 0.15 + index * 0.05 }}
+          />
+        </div>
+        <div className="text-caption text-[var(--text-tertiary)] mt-1.5">{hint}</div>
       </div>
-      <div className="text-caption text-[var(--text-tertiary)] mt-1.5 line-clamp-1">{hint}</div>
-      <div className="mt-2.5 h-1.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
-        <motion.div className="h-full rounded-full"
-                    initial={{ width: 0 }} animate={{ width: `${value}%` }} transition={{ duration: 0.9, delay: 0.2 }}
-                    style={{ background: color, boxShadow: value > 0 ? `0 0 6px ${color}55` : 'none' }} />
+      <div className="text-right">
+        <NumberTicker value={value} className="type-figure text-[22px] leading-7 text-[var(--text-primary)]" />
       </div>
-    </div>
+    </li>
   )
 }
 
-// ─── Target gap ───────────────────────────────────────────
+// ─── Unlock checklist (replaces dashed empty cards) ────────────
 
-function TargetGapCard({ gap, navigate }: { gap: ReturnType<typeof useMemo> extends infer T ? T : never; navigate: (p: string) => void }) {
+function UnlockChecklist({ items }: { items: Array<{ key: string; done: boolean; to: string; icon: typeof TargetIcon }> }) {
   const { t } = useTranslation()
-  if (!gap) {
-    return (
-      <div className="surface-outlined p-6 h-full">
-        <div className="flex items-center gap-2.5 mb-2">
-          <span className="w-8 h-8 rounded-[9px] flex items-center justify-center" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)' }}>
-            <TargetIcon className="w-4 h-4" />
-          </span>
-          <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">{t('analytics.target.emptyTitle')}</h3>
-        </div>
-        <p className="text-[12.5px] text-[var(--text-tertiary)] leading-relaxed mt-3">
-          {t('analytics.target.emptyBody')}
-        </p>
-      </div>
-    )
-  }
-  const g = gap as {
-    target: OrgTarget; baseline: number; targetValue: number; current: number
-    pathway: Array<{ year: number; linear: number; actual: number | null }>
-    gap: number; requiredAnnualAbatement: number; yearsRemaining: number; onTrack: boolean
-  }
-
+  const done = items.filter(i => i.done).length
   return (
-    <div className="surface-paper overflow-hidden h-full">
-      <header className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <span className="w-7 h-7 rounded-[8px] flex items-center justify-center" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)' }}>
-            <TargetIcon className="w-3.5 h-3.5" />
-          </span>
-          <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">{t('analytics.target.title')}</h3>
+    <section className="surface-paper p-5 sm:p-6" aria-labelledby="unlock-h">
+      <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+        <div>
+          <h2 id="unlock-h" className="type-h3 text-[var(--text-primary)]">{t('analytics.unlock.title')}</h2>
+          <p className="text-small text-[var(--text-tertiary)] mt-0.5">{t('analytics.unlock.body')}</p>
         </div>
-        <span className={`text-micro font-bold uppercase tracking-[0.06em] px-2 py-0.5 rounded-full ${g.onTrack ? 'bg-[var(--accent-green-light)] text-[var(--status-ok)]' : 'bg-[var(--accent-red-light)] text-[var(--status-reject)]'}`}>
-          {g.onTrack ? t('analytics.target.onPathway') : t('analytics.target.behindPathway')}
-        </span>
-      </header>
-
-      <div className="p-5">
-        <div className="h-[200px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={g.pathway} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="linear-grad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--color-brand)" stopOpacity={0.2} />
-                  <stop offset="100%" stopColor="var(--color-brand)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
-              <XAxis dataKey="year" tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} tickFormatter={v => formatBig(v)} width={38} />
-              <Tooltip formatter={(v: number) => formatBig(v) + ' ' + g.target.baseline_unit} contentStyle={{ fontSize: 11, border: '1px solid var(--border-default)', borderRadius: 4 }} />
-              <Area type="monotone" dataKey="linear" name={t('analytics.target.series.pathway')} stroke="var(--color-brand)" strokeWidth={2} fill="url(#linear-grad)" strokeDasharray="4 4" />
-              <Area type="monotone" dataKey="actual" name={t('analytics.target.series.actual')} stroke="#EF4444" strokeWidth={3} fill="transparent" dot={{ r: 4, fill: '#EF4444' }} connectNulls />
-              <ReferenceLine y={g.targetValue} stroke="var(--status-ok)" strokeDasharray="2 2" label={{ value: t('analytics.target.series.target'), position: 'right', fill: 'var(--status-ok)', fontSize: 9 }} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2 mt-3">
-          <Stat label={t('analytics.target.stats.currentGap')}            value={g.gap > 0 ? `+${formatBig(g.gap)}` : formatBig(-g.gap)} tone={g.gap <= 0 ? 'ok' : 'reject'} suffix={g.target.baseline_unit} />
-          <Stat label={t('analytics.target.stats.requiredAbatement')} value={formatBig(Math.max(0, g.requiredAnnualAbatement))} tone="neutral" suffix={t('analytics.target.perYear', { unit: g.target.baseline_unit })} />
-          <Stat label={t('analytics.target.stats.yearsToTarget')}          value={String(g.yearsRemaining)} tone="neutral" />
-        </div>
-        {!g.onTrack && (
-          <div className="mt-3 p-2.5 rounded-[var(--radius-sm)] bg-[var(--accent-red-light)]/50 border border-[var(--status-reject)]/20 text-caption text-[var(--status-reject)]">
-            <AlertTriangle className="w-3 h-3 inline -mt-0.5 mr-1" />
-            {t('analytics.target.behindWarning', { gap: formatBig(g.gap), abatement: formatBig(Math.max(0, g.requiredAnnualAbatement)), unit: g.target.baseline_unit })}
-          </div>
-        )}
-        <div className="mt-3">
-          <button onClick={() => navigate('/admin/materiality')} className="text-caption text-[var(--color-brand)] hover:underline">{t('analytics.target.manageLink')}</button>
-        </div>
+        <span className="text-caption text-[var(--text-tertiary)] tabular-nums">{t('analytics.unlock.progress', { done, total: items.length })}</span>
       </div>
-    </div>
-  )
-}
-
-function Stat({ label, value, tone, suffix }: { label: string; value: string; tone: 'ok' | 'reject' | 'neutral'; suffix?: string }) {
-  const color = tone === 'ok' ? 'var(--status-ok)' : tone === 'reject' ? 'var(--status-reject)' : 'var(--text-primary)'
-  return (
-    <div className="p-3 rounded-[8px] bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-      <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">{label}</div>
-      <div className="text-[15px] font-bold tabular-nums mt-1 tracking-[-0.01em]" style={{ color }}>{value}{suffix && <span className="text-caption text-[var(--text-tertiary)] ml-1 font-medium">{suffix}</span>}</div>
-    </div>
-  )
-}
-
-// ─── Emissions decomposition ──────────────────────────────
-
-function EmissionsDecomp({ data }: { data: Array<{ plant: string; s1: number; s2: number; s3: number; total: number }> }) {
-  const { t } = useTranslation()
-  if (data.length === 0) {
-    return (
-      <div className="surface-outlined p-6 h-full">
-        <div className="flex items-center gap-2.5 mb-2">
-          <span className="w-8 h-8 rounded-[9px] flex items-center justify-center" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)' }}>
-            <Factory className="w-4 h-4" />
-          </span>
-          <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">{t('analytics.emissions.title')}</h3>
-        </div>
-        <p className="text-[12.5px] text-[var(--text-tertiary)] leading-relaxed mt-3">
-          {t('analytics.emissions.empty')}
-        </p>
-      </div>
-    )
-  }
-  return (
-    <div className="surface-paper overflow-hidden h-full">
-      <header className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center gap-2.5">
-        <span className="w-7 h-7 rounded-[8px] flex items-center justify-center" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)' }}>
-          <Factory className="w-3.5 h-3.5" />
-        </span>
-        <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">{t('analytics.emissions.title')}</h3>
-      </header>
-      <div className="p-5">
-        <div className="h-[240px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 30 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" vertical={false} />
-              <XAxis dataKey="plant" tick={{ fontSize: 9, fill: 'var(--text-tertiary)' }} angle={-20} textAnchor="end" height={50} interval={0} />
-              <YAxis tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} tickFormatter={v => formatBig(v)} width={42} />
-              <Tooltip formatter={(v: number) => formatBig(v) + ' tCO₂e'} contentStyle={{ fontSize: 11, border: '1px solid var(--border-default)', borderRadius: 4 }} />
-              <Bar dataKey="s1" stackId="s" fill="#0F7B6F" name={t('analytics.emissions.scope1')} />
-              <Bar dataKey="s2" stackId="s" fill="#2563EB" name={t('analytics.emissions.scope2')} />
-              <Bar dataKey="s3" stackId="s" fill="#7C3AED" name={t('analytics.emissions.scope3')} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="flex items-center gap-4 mt-2 text-caption text-[var(--text-tertiary)]">
-          <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ background: '#0F7B6F' }} /> {t('analytics.emissions.scope1')}</span>
-          <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ background: '#2563EB' }} /> {t('analytics.emissions.scope2')}</span>
-          <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded" style={{ background: '#7C3AED' }} /> {t('analytics.emissions.scope3')}</span>
-        </div>
-      </div>
-    </div>
+      <ul className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        {items.map((it, i) => {
+          const Icon = it.icon
+          return (
+            <motion.li key={it.key} className={it.done ? 'hidden sm:block' : undefined} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ ...transition.base, delay: i * 0.04 }}>
+              {it.done ? (
+                <div className="h-full flex items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] p-3.5 text-[var(--text-tertiary)]">
+                  <span className="mt-0.5 w-6 h-6 rounded-full flex items-center justify-center bg-[var(--status-success)] text-[var(--bg-primary)] flex-shrink-0"><Check className="w-3.5 h-3.5" aria-hidden /></span>
+                  <div className="min-w-0">
+                    <div className="text-small font-medium line-through decoration-[var(--border-strong)]">{t(`analytics.unlock.items.${it.key}.title`)}</div>
+                    <div className="text-caption mt-0.5">{t('analytics.unlock.unlocked')}</div>
+                  </div>
+                </div>
+              ) : (
+                <Link
+                  to={it.to}
+                  className="group h-full flex items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--border-default)] p-3.5 hover:border-[var(--color-brand)] hover:bg-[var(--bg-hover)] transition-colors duration-micro"
+                >
+                  <span className="mt-0.5 w-6 h-6 rounded-full flex items-center justify-center border border-[var(--border-strong)] text-[var(--text-tertiary)] group-hover:text-[var(--color-brand)] group-hover:border-[var(--color-brand)] flex-shrink-0">
+                    <Icon className="w-3.5 h-3.5" aria-hidden />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-small font-medium text-[var(--text-primary)]">{t(`analytics.unlock.items.${it.key}.title`)}</div>
+                    <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{t(`analytics.unlock.items.${it.key}.body`)}</div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 mt-1 text-[var(--text-quaternary)] group-hover:text-[var(--color-brand)] group-hover:translate-x-0.5 transition-transform duration-micro" aria-hidden />
+                </Link>
+              )}
+            </motion.li>
+          )
+        })}
+      </ul>
+    </section>
   )
 }
 
 // ─── Variance flag pill ──────────────────────────────────
 
-function VarianceFlag({ flag }: { flag: 'ok' | 'watch' | 'warn' | 'no-baseline' }) {
+function VarianceFlag({ flag }: { flag: Flag }) {
   const { t } = useTranslation()
-  const map: Record<typeof flag, { label: string; bg: string; fg: string; icon: typeof CheckCircle2 }> = {
-    ok:            { label: t('analytics.variance.flags.ok'),         bg: 'var(--accent-green-light)', fg: 'var(--status-ok)',     icon: CheckCircle2 },
-    watch:         { label: t('analytics.variance.flags.watch'),      bg: 'var(--accent-amber-light)', fg: 'var(--status-draft)',  icon: Clock },
-    warn:          { label: t('analytics.variance.flags.warn'),       bg: 'var(--accent-red-light)',   fg: 'var(--status-reject)', icon: AlertTriangle },
-    'no-baseline': { label: t('analytics.variance.flags.noBaseline'), bg: 'var(--bg-tertiary)',        fg: 'var(--text-tertiary)', icon: Minus },
-  }
+  const map = {
+    ok: { tone: 'success', label: t('analytics.variance.flags.ok') },
+    watch: { tone: 'warning', label: t('analytics.variance.flags.watch') },
+    warn: { tone: 'danger', label: t('analytics.variance.flags.warn') },
+    'no-baseline': { tone: 'neutral', label: t('analytics.variance.flags.noBaseline') },
+  } as const
   const m = map[flag]
-  const Icon = m.icon
-  return (
-    <span className="inline-flex items-center gap-1 text-micro font-bold uppercase tracking-[0.06em] px-1.5 py-0.5 rounded" style={{ background: m.bg, color: m.fg }}>
-      <Icon className="w-2.5 h-2.5" /> {m.label}
-    </span>
-  )
+  return <StatusPill tone={m.tone} dot={flag === 'warn'}>{m.label}</StatusPill>
 }
 
 // ─── Plant scorecard ──────────────────────────────────────
 
-function PlantScorecard({ rows, navigate }: {
+function PlantScorecard({ rows }: {
   rows: Array<{ plant: { id: string; name: string; country?: string }; total: number; approved: number; rejected: number; overdue: number; avgDays: number | null; completion: number; score: number }>
-  navigate: (p: string) => void
 }) {
   const { t } = useTranslation()
+  const f = useFmt()
   return (
     <div className="surface-paper overflow-hidden h-full">
-      <header className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <span className="w-7 h-7 rounded-[8px] flex items-center justify-center" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)' }}>
-            <Factory className="w-3.5 h-3.5" />
-          </span>
-          <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">{t('analytics.plant.title')}</h3>
-        </div>
-        <button onClick={() => navigate('/aggregator')} className="text-[12px] font-semibold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] link-underline">{t('analytics.plant.rollup')}</button>
+      <header className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between gap-3">
+        <h3 className="type-h3 text-[var(--text-primary)]">{t('analytics.plant.title')}</h3>
+        <Link to="/aggregator" className="text-caption font-medium text-[var(--color-brand)] hover:underline inline-flex items-center gap-1">
+          {t('analytics.plant.rollup')} <ArrowRight className="w-3 h-3" aria-hidden />
+        </Link>
       </header>
-      {rows.length === 0 ? (
-        <div className="p-10 text-center text-[13px] text-[var(--text-tertiary)]">{t('analytics.plant.empty')}</div>
-      ) : (
-        <table className="w-full text-[13px]">
+      <div className="overflow-x-auto">
+        <table className="w-full text-small">
           <thead>
-            <tr className="text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)]">
-              <th className="text-left px-5 py-3 font-semibold">{t('analytics.plant.columns.plant')}</th>
-              <th className="text-center px-2 py-3 font-semibold">{t('analytics.plant.columns.score')}</th>
-              <th className="text-center px-2 py-3 font-semibold">{t('analytics.plant.columns.complete')}</th>
-              <th className="text-center px-2 py-3 font-semibold">{t('analytics.plant.columns.reject')}</th>
-              <th className="text-center px-2 py-3 font-semibold">{t('analytics.plant.columns.overdue')}</th>
-              <th className="text-center px-3 py-3 font-semibold">{t('analytics.plant.columns.days')}</th>
+            <tr className="text-caption text-[var(--text-tertiary)] border-b border-[var(--border-subtle)]">
+              <th scope="col" className="text-left px-5 py-2.5 font-medium">{t('analytics.plant.columns.plant')}</th>
+              <th scope="col" className="text-left px-2 py-2.5 font-medium w-[34%]">{t('analytics.plant.columns.score')}</th>
+              <th scope="col" className="hidden sm:table-cell text-right px-2 py-2.5 font-medium">{t('analytics.plant.columns.reject')}</th>
+              <th scope="col" className="hidden sm:table-cell text-right px-2 py-2.5 font-medium">{t('analytics.plant.columns.overdue')}</th>
+              <th scope="col" className="hidden sm:table-cell text-right px-5 py-2.5 font-medium">{t('analytics.plant.columns.days')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--border-subtle)]">
-            {rows.map((r, i) => (
-              <motion.tr key={r.plant.id} {...slideInLeft(i)} className="hover:bg-[var(--bg-secondary)] transition-colors">
-                <td className="px-5 py-3">
-                  <div className="text-[13px] font-semibold text-[var(--text-primary)] truncate tracking-[-0.005em]">{r.plant.name}</div>
-                  {r.plant.country && <div className="text-micro text-[var(--text-tertiary)] uppercase tracking-[0.06em] mt-0.5 font-medium">{r.plant.country}</div>}
-                </td>
-                <td className="px-2 py-3 text-center">
-                  <ScorePill score={r.score} />
-                </td>
-                <td className="px-2 py-3 text-center text-caption tabular-nums text-[var(--text-secondary)] font-medium">{r.completion}%</td>
-                <td className="px-2 py-3 text-center text-caption tabular-nums">
-                  {r.rejected === 0 ? <span className="text-[var(--text-quaternary)]">—</span> : <span className="text-[var(--status-reject)] font-bold">{r.rejected}</span>}
-                </td>
-                <td className="px-2 py-3 text-center text-caption tabular-nums">
-                  {r.overdue === 0 ? <span className="text-[var(--text-quaternary)]">—</span> : <span className="text-[var(--status-reject)] font-bold">{r.overdue}</span>}
-                </td>
-                <td className="px-3 py-3 text-center text-caption tabular-nums text-[var(--text-secondary)] font-medium">
-                  {r.avgDays != null ? t('analytics.plant.daysValue', { days: r.avgDays.toFixed(0) }) : '—'}
-                </td>
-              </motion.tr>
-            ))}
+            {rows.map(r => {
+              const tone = scoreTone(r.score)
+              return (
+                <tr key={r.plant.id} className="hover:bg-[var(--bg-hover)] transition-colors duration-micro">
+                  <td className="px-5 py-3">
+                    <div className="font-medium text-[var(--text-primary)] truncate max-w-[200px]">{r.plant.name}</div>
+                    <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('analytics.plant.complete', { pct: r.completion })}</div>
+                  </td>
+                  <td className="px-2 sm:px-2 py-3 pr-5 sm:pr-2">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-8 text-right font-semibold tabular-nums" style={{ color: toneVar[tone] }}>{r.score}</span>
+                      <span className="flex-1 h-1.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+                        <span className="block h-full rounded-full" style={{ width: `${r.score}%`, background: toneVar[tone] }} />
+                      </span>
+                    </div>
+                  </td>
+                  <td className="hidden sm:table-cell px-2 py-3 text-right tabular-nums">
+                    {r.rejected === 0 ? <span className="text-[var(--text-quaternary)]">—</span> : <span className="text-[var(--status-danger)] font-semibold">{r.rejected}</span>}
+                  </td>
+                  <td className="hidden sm:table-cell px-2 py-3 text-right tabular-nums">
+                    {r.overdue === 0 ? <span className="text-[var(--text-quaternary)]">—</span> : <span className="text-[var(--status-danger)] font-semibold">{r.overdue}</span>}
+                  </td>
+                  <td className="hidden sm:table-cell px-5 py-3 text-right tabular-nums text-[var(--text-secondary)] whitespace-nowrap">
+                    {r.avgDays != null ? t('analytics.plant.daysValue', { days: f.number(r.avgDays, { maxFraction: 0 }) }) : '—'}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
-      )}
+      </div>
     </div>
   )
 }
 
-function ScorePill({ score }: { score: number }) {
-  const color = score >= 85 ? 'var(--status-ok)' : score >= 65 ? 'var(--status-draft)' : 'var(--status-reject)'
-  const bg = score >= 85 ? 'var(--accent-green-light)' : score >= 65 ? 'var(--accent-amber-light)' : 'var(--accent-red-light)'
-  return <span className="inline-block text-[12px] font-bold tabular-nums px-2.5 py-1 rounded-full tracking-[-0.01em]" style={{ background: bg, color }}>{score}</span>
-}
-
 // ─── Materiality coverage ─────────────────────────────────
 
-function MaterialityCoverage({ rows, navigate }: {
+function MaterialityCoverage({ rows }: {
   rows: Array<{ topic: MaterialTopic; total: number; covered: number; approved: number; coveragePct: number; approvedPct: number }>
-  navigate: (p: string) => void
 }) {
   const { t } = useTranslation()
+  const reduce = useReducedMotion()
   return (
     <div className="surface-paper overflow-hidden h-full">
-      <header className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <span className="w-7 h-7 rounded-[8px] flex items-center justify-center" style={{ background: 'var(--accent-purple-light)', color: 'var(--accent-purple)' }}>
-            <Scale className="w-3.5 h-3.5" />
-          </span>
-          <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)] tracking-[-0.01em]">{t('analytics.materiality.title')}</h3>
-        </div>
-        <button onClick={() => navigate('/admin/materiality')} className="text-[12px] font-semibold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] link-underline">{t('analytics.materiality.manage')}</button>
+      <header className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between gap-3">
+        <h3 className="type-h3 text-[var(--text-primary)]">{t('analytics.materiality.title')}</h3>
+        <Link to="/admin/materiality" className="text-caption font-medium text-[var(--color-brand)] hover:underline inline-flex items-center gap-1">
+          {t('analytics.materiality.manage')} <ArrowRight className="w-3 h-3" aria-hidden />
+        </Link>
       </header>
-      {rows.length === 0 ? (
-        <div className="p-10 text-center text-[13px] text-[var(--text-tertiary)]">
-          {t('analytics.materiality.empty')}
-        </div>
-      ) : (
-        <ul className="divide-y divide-[var(--border-subtle)]">
-          {rows.map((r, i) => (
-            <motion.li key={r.topic.id} {...slideInLeft(i)} className="px-5 py-3 hover:bg-[var(--bg-secondary)] transition-colors">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-[13px] font-semibold text-[var(--text-primary)] truncate flex-1 tracking-[-0.005em]">{r.topic.topic_name}</span>
-                <span className="text-micro text-[var(--text-tertiary)] uppercase tracking-[0.06em] font-medium">{r.topic.topic_category}</span>
+      <ul className="divide-y divide-[var(--border-subtle)]">
+        {rows.map((r, i) => (
+          <li key={r.topic.id} className="px-5 py-3">
+            <div className="flex items-baseline gap-2 mb-2">
+              <span className="text-small font-medium text-[var(--text-primary)] truncate flex-1">{r.topic.topic_name}</span>
+              {r.topic.topic_category && <span className="text-caption text-[var(--text-tertiary)]">{r.topic.topic_category}</span>}
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-1.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full"
+                  initial={reduce ? false : { width: '0%' }}
+                  animate={{ width: `${r.approvedPct}%` }}
+                  transition={{ duration: 0.8, ease: ease.out, delay: 0.1 + Math.min(i, 8) * 0.04 }}
+                  style={{ background: r.approvedPct === 100 ? 'var(--status-success)' : 'var(--chart-s2)' }}
+                />
               </div>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-1.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
-                  <motion.div
-                    className="h-full rounded-full"
-                    initial={{ width: 0 }} animate={{ width: `${r.approvedPct}%` }} transition={{ duration: 0.9, delay: 0.1 + i * 0.04 }}
-                    style={{ background: r.approvedPct === 100 ? 'var(--status-ok)' : r.approvedPct >= 50 ? 'var(--color-brand)' : 'var(--status-draft)' }}
-                  />
-                </div>
-                <span className="text-caption tabular-nums text-[var(--text-tertiary)] flex-shrink-0 font-medium">
-                  {r.approved}<span className="text-[var(--text-quaternary)]">/{r.total}</span>
-                </span>
+              <span className="text-caption tabular-nums text-[var(--text-tertiary)] flex-shrink-0">
+                {t('analytics.materiality.approvedOf', { approved: r.approved, total: r.total })}
+              </span>
+            </div>
+            {r.coveragePct < 100 && (
+              <div className="text-caption text-[var(--status-warning)] mt-1.5">
+                {t('analytics.materiality.unassigned', { count: r.total - r.covered })}
               </div>
-              {r.coveragePct < 100 && (
-                <div className="text-caption text-[var(--status-draft)] mt-1.5 font-medium">
-                  {t('analytics.materiality.unassigned', { count: r.total - r.covered })}
-                </div>
-              )}
-            </motion.li>
-          ))}
-        </ul>
-      )}
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

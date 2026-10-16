@@ -11,7 +11,8 @@
   "scope": {
     "mine": "我的",
     "role": "我的范围",
-    "all": "全组织"
+    "all": "全组织",
+    "aria": "异常范围"
   },
   "scanNowTitle": "重新运行异常扫描",
   "filters": {
@@ -38,7 +39,8 @@
     "info": "提示",
     "infoHint": "值得关注",
     "suppressed": "已抑制",
-    "suppressedHint": "已附原因确认"
+    "suppressedHint": "已附原因确认",
+    "aria": "异常概览"
   },
   "distribution": {
     "kicker": "分布",
@@ -52,7 +54,8 @@
   "method": {
     "kicker": "方法",
     "title": "九项规则",
-    "subtitle": "每项检查都是外部审计师会手动执行的检查。没有黑箱，也不炒作 AI——只有统计上可靠的行业标准检查。"
+    "subtitle": "每项检查都是外部审计师会手动执行的检查。没有黑箱，也不炒作 AI——只有统计上可靠的行业标准检查。",
+    "short": "九项审计级检查规则，全程可追溯。"
   },
   "triage": {
     "kicker": "分诊",
@@ -72,7 +75,11 @@
     "investigateTitle": "标记为调查中",
     "resolve": "解决",
     "resolveTitle": "标记为已解决",
-    "dismissTitle": "填写原因后忽略"
+    "dismissTitle": "填写原因后忽略",
+    "clearedTitle": "暂无待处理异常",
+    "clearedBody": "范围内所有数据均处于历史区间内，且证据齐全。",
+    "showingFirst": "显示前 {{shown}} 项，共 {{total}} 项。请缩小筛选范围查看其余项。",
+    "vsYear": "较 {{year}} 财年"
   },
   "feed": {
     "kicker": "动态",
@@ -93,12 +100,13 @@
     "statusUpdateFailed": "状态更新失败",
     "couldNotDismiss": "无法忽略",
     "aiNotConfigured": "AI 尚未配置。请联系管理员设置 ANTHROPIC_API_KEY。",
-    "aiRequestFailed": "AI 请求失败"
+    "aiRequestFailed": "AI 请求失败",
+    "loadTitle": "异常扫描运行失败"
   },
   "ai": {
     "kicker": "AI",
     "title": "AI 解读",
-    "subtitle": "已持久化的异常，可选由 Claude 生成解读说明。点击星形图标，即可展开基于底层活动数据的通俗解释。",
+    "subtitle": "已存档的异常可附带人工智能说明，基于底层活动数据给出通俗解释。",
     "disabledTitle": "AI 解读已停用。",
     "disabledBodyBefore": "请联系管理员在服务器环境中设置",
     "disabledBodyAfter": "以生成通俗解释。此前生成的解读仍可在下方查看。",
@@ -123,7 +131,17 @@
     "generating": "正在生成解读…",
     "generatedBy": "由 Claude 生成，分享前请核实。",
     "lastUpdated": "最近更新于{{when}}",
-    "noNarrative": "暂无解读。"
+    "noNarrative": "暂无解读。",
+    "copyFailed": "复制到剪贴板失败",
+    "orgOffTitle": "贵组织已关闭人工智能功能",
+    "orgOffBody": "已生成的说明仍可查看。管理员可在「设置 → 市场与合规」中重新开启。",
+    "deploymentOffBody": "当前部署尚未配置人工智能服务。已生成的说明仍可查看，请联系管理员接入。",
+    "openSettings": "打开设置",
+    "emptyTitle": "暂无已存档的异常",
+    "read": "查看",
+    "generatedNote": "由人工智能基于底层活动数据生成，使用前请核实。",
+    "label": "人工智能生成",
+    "labelTitle": "本内容由人工智能模型生成，须经人工审核"
   },
   "relative": {
     "justNow": "刚刚",
@@ -191,5 +209,59 @@
       "desc": "同一披露下，该工厂数值偏离同级工厂超过 2σ——可能存在边界或运营差异。",
       "severity": "警告"
     }
+  },
+  "feedWidget": {
+    "title": "已标记的异常",
+    "critical": "{{count}} 项严重",
+    "warn": "{{count}} 项警告",
+    "info": "{{count}} 项提示",
+    "noneDetected": "未检测到异常",
+    "noneDetectedTitle": "未检测到异常",
+    "noneAt": "“{{severity}}”级别下无异常",
+    "hideSuppressed": "隐藏 {{count}} 项已忽略",
+    "showSuppressed": "显示 {{count}} 项已忽略",
+    "tabCrit": "严重",
+    "tabWarn": "警告",
+    "tabInfo": "提示",
+    "refreshAria": "刷新异常",
+    "refresh": "刷新",
+    "allClear": "所有数值均处于历史范围内，证据完整。",
+    "seeAll": "查看全部 {{count}} 项异常",
+    "suppressedBy": "由 {{by}} 忽略：“{{reason}}”",
+    "openDisclosure": "打开披露项",
+    "open": "打开",
+    "restoreTitle": "恢复——重新显示此异常",
+    "restore": "恢复",
+    "suppressTitle": "忽略——注明原因并标记为已知悉",
+    "suppress": "忽略",
+    "reasonTooShort": "请至少输入 10 个字符说明原因——这将记入审计追踪。",
+    "suppressFailed": "忽略失败",
+    "suppressAnomaly": "忽略异常",
+    "suppressBody": "不会删除任何内容——异常仍会保留记录，可通过“显示已忽略”查看。您填写的原因将记入审计链。",
+    "reason": "原因",
+    "reasonPlaceholder": "例如：“FY2026 边界扩大至包含 D 工厂，数值不可直接比较”",
+    "charCount": "{{n}}／10+ 个字符",
+    "types": {
+      "yoy_spike": "同比激增",
+      "magnitude_jump": "数量级跳变",
+      "z_score_outlier": "离群值",
+      "trend_break": "趋势中断",
+      "unit_change": "单位变更",
+      "missing_evidence": "缺少证据",
+      "late_submission": "逾期",
+      "narrative_gap": "叙述缺失",
+      "peer_deviation": "同级偏差"
+    },
+    "suppressed": "已忽略",
+    "loadFailed": "异常加载失败",
+    "suppressedToast": "已忽略该异常，原因已记录",
+    "restoredToast": "已恢复该异常",
+    "restoreFailed": "恢复失败"
+  },
+  "toast": {
+    "open": "已重新打开“{{title}}”",
+    "investigating": "已标记为调查中",
+    "resolved": "已标记为已解决",
+    "dismissed": "已忽略，原因已记入审计追踪"
   }
 }

@@ -2,12 +2,18 @@
   "header": {
     "eyebrow": "报告期",
     "title": "报告周期",
-    "subtitle": "设置 → 进行中 → 已锁定 → 已发布。锁定后将冻结任务编辑；发布时将生成哈希，报告期永久只读。"
+    "subtitle": "每个报告期依次经历设置、进行中、已锁定和已发布。锁定后冻结任务编辑；发布时生成哈希，报告期永久只读。",
+    "framework": "框架"
   },
   "newPeriod": "新建报告期",
   "empty": {
     "title": "暂无报告期",
-    "body": "创建报告期以开放任务并开始收集数据。"
+    "body": "为当前框架创建报告期，以开放任务并开始收集数据。",
+    "cta": "创建报告期"
+  },
+  "error": {
+    "title": "报告周期加载失败",
+    "body": "无法连接服务器，因此不显示空列表。请重试。"
   },
   "card": {
     "fy": "{{year}} 财年",
@@ -16,7 +22,21 @@
     "deadline": "截止日期",
     "framework": "框架",
     "lockedAt": "锁定于 {{date}}",
-    "published": "已发布"
+    "published": "已发布",
+    "publishedAt": "发布于 {{date}}",
+    "hash": "发布哈希",
+    "archivedNote": "已归档。只读，保留用于重述和审计。"
+  },
+  "lifecycle": {
+    "label": "生命周期",
+    "done": "已完成",
+    "current": "当前阶段"
+  },
+  "next": {
+    "setup": "启动报告期以开放任务。",
+    "active": "数据收集完成后锁定。",
+    "locked": "发布后将以哈希封存报告期。",
+    "published": "报告报送完成后归档。"
   },
   "actions": {
     "start": "启动报告期",
@@ -27,7 +47,21 @@
   "confirm": {
     "lock": "确定锁定「{{label}}」？锁定后将无法编辑任务。",
     "publish": "确定发布「{{label}}」？发布将生成哈希，报告期将永久只读。",
-    "archive": "确定归档「{{label}}」？"
+    "archive": "确定归档「{{label}}」？",
+    "lockTitle": "锁定「{{label}}」？",
+    "lockBody": "所有人将无法编辑任务。已提交的数值仍可继续审核和审批。",
+    "publishTitle": "发布「{{label}}」？",
+    "publishBody": "发布将对所有已审批数值生成防篡改哈希，报告期将永久只读。此操作不可撤销，如需更正须进行重述。",
+    "archiveTitle": "归档「{{label}}」？",
+    "archiveBody": "报告期将移出活动列表，已发布数据及哈希仍可供审计查阅。"
+  },
+  "toast": {
+    "active": "「{{label}}」已启动",
+    "locked": "「{{label}}」已锁定",
+    "published": "「{{label}}」已发布",
+    "archived": "「{{label}}」已归档",
+    "setup": "「{{label}}」已更新",
+    "created": "「{{label}}」已创建"
   },
   "alerts": {
     "transitionFailed": "状态变更失败：{{message}}",
@@ -42,10 +76,13 @@
   },
   "drawer": {
     "title": "新建报告期",
+    "subtitle": "日期为选填项，报告期锁定前均可补充。",
+    "close": "关闭",
     "year": "年度",
     "label": "名称",
     "deadline": "提交截止日期",
     "notes": "备注（选填）",
-    "create": "创建"
+    "create": "创建报告期",
+    "creating": "正在创建…"
   }
 }

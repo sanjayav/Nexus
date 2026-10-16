@@ -14,6 +14,8 @@ import PageHeader from '../components/PageHeader'
 import { Trans, useTranslation } from 'react-i18next'
 import i18n from '../i18n'
 import { frameworkName } from '../components/FrameworkBadge'
+import { StatLedger, StateBoundary, notify, useConfirm, SkeletonCard, Illustration } from '../components/ui'
+import useSetupProgress, { invalidateSetup } from '../components/onboarding/useSetupProgress'
 
 /** Localised entity-type label (TYPE_META.label stays as the English fallback). */
 function typeLabel(type: EntityType): string {
@@ -21,11 +23,12 @@ function typeLabel(type: EntityType): string {
 }
 
 const TYPE_META: Record<EntityType, { label: string; icon: typeof Building2; tint: string; tintFg: string }> = {
-  group:        { label: 'Group',        icon: Landmark,   tint: 'var(--accent-teal)',    tintFg: '#fff' },
-  business_unit:{ label: 'Business Unit', icon: Globe2,    tint: 'var(--accent-purple)',  tintFg: '#fff' },
-  subsidiary:   { label: 'Subsidiary',   icon: Building2,  tint: 'var(--accent-blue)',    tintFg: '#fff' },
-  plant:        { label: 'Plant',        icon: Factory,    tint: 'var(--accent-amber)',   tintFg: '#1f1404' },
-  office:       { label: 'Office',       icon: Building2,  tint: 'var(--text-tertiary)',  tintFg: '#fff' },
+  // Emerald ordinal scale by depth: group darkest → site lightest.
+  group:        { label: 'Group',        icon: Landmark,   tint: 'var(--chart-s1)',   tintFg: 'var(--bg-primary)' },
+  business_unit:{ label: 'Business Unit', icon: Globe2,    tint: 'var(--chart-target)', tintFg: 'var(--bg-primary)' },
+  subsidiary:   { label: 'Subsidiary',   icon: Building2,  tint: 'var(--chart-s2)',   tintFg: 'var(--bg-primary)' },
+  plant:        { label: 'Plant',        icon: Factory,    tint: 'var(--bg-tertiary)', tintFg: 'var(--text-primary)' },
+  office:       { label: 'Office',       icon: Building2,  tint: 'var(--bg-tertiary)', tintFg: 'var(--text-secondary)' },
 }
 
 const CHILD_TYPE_FOR: Record<EntityType, EntityType[]> = {
@@ -45,8 +48,13 @@ export default function OrgOnboarding() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [addingUnder, setAddingUnder] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const confirm = useConfirm()
+  const setup = useSetupProgress()
 
   const refresh = async () => {
+    setLoadError(null)
     try {
       const [ents, mems] = await Promise.all([orgStore.listEntities(), orgStore.listMembers()])
       setEntities(ents)
@@ -54,7 +62,16 @@ export default function OrgOnboarding() {
       if (ents.length && !selectedId) setSelectedId(ents[0].id)
       const groups = ents.filter(e => e.type === 'group' || e.type === 'business_unit').map(e => e.id)
       setExpanded(prev => new Set([...prev, ...groups]))
-    } catch { /* silent */ }
+      invalidateSetup()
+    } catch (e) {
+      // Never show an empty tree for a failed load — that reads as "start from scratch".
+      setLoadError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setLoading(false)
+    }
+  }
+  const guard = async (fn: () => Promise<unknown>) => {
+    try { await fn() } catch (e) { notify.error(t('onboarding.org.saveFailed'), { description: e instanceof Error ? e.message : undefined }) }
   }
 
   useEffect(() => { refresh() }, [])
@@ -102,18 +119,46 @@ export default function OrgOnboarding() {
         <FrameworkScopeNote />
       </PageHeader>
 
-      <div className="grid grid-cols-4 gap-3 mb-5">
-        <Stat label={t('onboarding.org.stats.entities')} value={stats.total} />
-        <Stat label={t('onboarding.org.stats.subsidiaries')} value={stats.subs} />
-        <Stat label={t('onboarding.org.stats.plants')} value={stats.plants} />
-        <Stat label={t('onboarding.org.stats.members')} value={stats.members} />
-      </div>
+      <StateBoundary
+        loading={loading}
+        error={loadError}
+        onRetry={refresh}
+        hasData={entities.length > 0}
+        skeleton={<div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-5"><SkeletonCard /><SkeletonCard /></div>}
+        errorState={{ title: t('onboarding.org.loadFailed') }}
+      >
+      <StatLedger
+        className="mb-5"
+        aria-label={t('onboarding.org.stats.aria')}
+        items={[
+          { id: 'entities', label: t('onboarding.org.stats.entities'), value: stats.total, tone: 'brand' },
+          { id: 'subs', label: t('onboarding.org.stats.subsidiaries'), value: stats.subs, tone: 'neutral' },
+          { id: 'plants', label: t('onboarding.org.stats.plants'), value: stats.plants, tone: 'neutral' },
+          { id: 'members', label: t('onboarding.org.stats.members'), value: stats.members, tone: stats.members > 0 ? 'success' : 'warning' },
+        ]}
+      />
 
-      <div className="grid grid-cols-[1fr_400px] gap-5">
+      {/* The real next action sits on top, not at the bottom of the rail. */}
+      {entities.length >= 2 && setup.next && setup.next.key !== 'org_tree' && (
+        <div className="surface-paper mb-5 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="text-small font-semibold text-[var(--text-primary)]">{t('onboarding.org.readyTitle')}</div>
+            <div className="text-caption text-[var(--text-secondary)] mt-0.5">{t('onboarding.org.nextStep', { step: t(`onboarding.setup.steps.${setup.next.key}.title`) })}</div>
+          </div>
+          <button
+            onClick={() => navigate(setup.next!.route)}
+            className="inline-flex items-center justify-center gap-2 min-h-[40px] px-4 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-small font-semibold hover:bg-[var(--btn-primary-bg-hover)] transition-colors duration-micro"
+          >
+            {t(`onboarding.setup.steps.${setup.next.key}.title`)} <ArrowRight className="w-4 h-4" aria-hidden />
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-5">
         {/* TREE */}
-        <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-5 min-h-[480px]">
+        <div className="surface-paper p-4 sm:p-5 min-h-[360px] min-w-0">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-[length:var(--text-base)] font-semibold text-[var(--text-primary)]">
+            <h2 className="type-h3 text-[var(--text-primary)]">
               {t('onboarding.org.treeTitle')}
             </h2>
             {roots.length === 0 && (
@@ -135,7 +180,7 @@ export default function OrgOnboarding() {
               allowedTypes={['group']}
               parent={null}
               onCancel={() => setAddingUnder(null)}
-              onSave={async data => { await orgStore.addEntity(data); setAddingUnder(null); await refresh() }}
+              onSave={data => guard(async () => { await orgStore.addEntity(data); setAddingUnder(null); await refresh(); notify.success(t('onboarding.org.added', { name: data.name })) })}
             />
           )}
 
@@ -157,19 +202,26 @@ export default function OrgOnboarding() {
               onSelect={setSelectedId}
               onAddChild={id => { setAddingUnder(id); setExpanded(new Set([...expanded, id])) }}
               onEdit={setEditingId}
-              onDelete={id => {
-                if (confirm(t('onboarding.org.confirmRemove'))) { (async () => { await orgStore.removeEntity(id); await refresh() })() }
+              onDelete={async id => {
+                const ent = entities.find(e => e.id === id)
+                const ok = await confirm({
+                  title: t('onboarding.org.confirmRemoveTitle', { name: ent?.name ?? '' }),
+                  description: t('onboarding.org.confirmRemove'),
+                  tone: 'destructive',
+                  confirmLabel: t('onboarding.org.remove'),
+                })
+                if (ok) await guard(async () => { await orgStore.removeEntity(id); await refresh(); notify.success(t('onboarding.org.removed', { name: ent?.name ?? '' })) })
               }}
-              onSave={async (id, patch) => { await orgStore.updateEntity(id, patch); setEditingId(null); await refresh() }}
+              onSave={(id, patch) => guard(async () => { await orgStore.updateEntity(id, patch); setEditingId(null); await refresh() })}
               onCancelEdit={() => setEditingId(null)}
-              onAddSubmit={async (parentId, data) => { await orgStore.addEntity({ ...data, parentId }); setAddingUnder(null); await refresh() }}
+              onAddSubmit={(parentId, data) => guard(async () => { await orgStore.addEntity({ ...data, parentId }); setAddingUnder(null); await refresh(); notify.success(t('onboarding.org.added', { name: data.name })) })}
               onAddCancel={() => setAddingUnder(null)}
             />
           ))}
         </div>
 
         {/* SIDE — detail + assign members */}
-        <aside className="space-y-4 sticky top-[72px] self-start">
+        <aside className="space-y-4 lg:sticky lg:top-[72px] self-start min-w-0">
           {selected ? (
             <DetailPanel
               entity={selected}
@@ -178,39 +230,17 @@ export default function OrgOnboarding() {
               onUpdated={refresh}
             />
           ) : (
-            <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)] p-8 text-center">
-              <Building2 className="w-8 h-8 text-[var(--text-tertiary)] mx-auto mb-2" />
-              <p className="text-[length:var(--text-sm)] text-[var(--text-tertiary)]">
+            <div className="surface-paper p-8 text-center">
+              <Illustration name="connect" size={96} className="mx-auto" />
+              <p className="text-small text-[var(--text-tertiary)] mt-2">
                 {t('onboarding.org.pickEntity')}
               </p>
             </div>
           )}
 
-          <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--color-brand-soft)] p-5">
-            <h3 className="text-[length:var(--text-sm)] font-semibold text-[var(--color-brand-strong)] mb-1">
-              {t('onboarding.org.readyTitle')}
-            </h3>
-            <p className="text-[length:var(--text-xs)] text-[var(--color-brand-strong)]/80 mb-3">
-              {t('onboarding.org.readyBody')}
-            </p>
-            <button
-              onClick={() => navigate('/admin/assignments')}
-              className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold hover:bg-[var(--btn-primary-bg-hover)] transition-colors"
-            >
-              {t('onboarding.org.openAssignments')} <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
         </aside>
       </div>
-    </div>
-  )
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-4">
-      <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">{label}</div>
-      <div className="text-[22px] font-bold tabular-nums text-[var(--text-primary)] mt-1">{value}</div>
+      </StateBoundary>
     </div>
   )
 }
@@ -218,21 +248,15 @@ function Stat({ label, value }: { label: string; value: number }) {
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   const { t } = useTranslation()
   return (
-    <div className="text-center py-14">
-      <div className="w-14 h-14 mx-auto rounded-2xl bg-[var(--color-brand-soft)] flex items-center justify-center">
-        <Landmark className="w-7 h-7 text-[var(--color-brand)]" />
-      </div>
-      <h3 className="font-display text-[length:var(--text-lg)] font-semibold text-[var(--text-primary)] mt-3">
-        {t('onboarding.org.emptyTitle')}
-      </h3>
-      <p className="text-[length:var(--text-sm)] text-[var(--text-tertiary)] mt-1 max-w-sm mx-auto">
-        {t('onboarding.org.emptyBody')}
-      </p>
+    <div className="text-center py-10">
+      <Illustration name="connect" size={140} className="mx-auto" />
+      <h3 className="type-h3 text-[var(--text-primary)] mt-3">{t('onboarding.org.emptyTitle')}</h3>
+      <p className="text-small text-[var(--text-tertiary)] mt-1 max-w-sm mx-auto">{t('onboarding.org.emptyBody')}</p>
       <button
         onClick={onAdd}
-        className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-sm)] font-semibold hover:bg-[var(--btn-primary-bg-hover)]"
+        className="mt-4 inline-flex items-center gap-1.5 min-h-[40px] px-4 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-small font-semibold hover:bg-[var(--btn-primary-bg-hover)] transition-colors duration-micro"
       >
-        <Plus className="w-4 h-4" /> {t('onboarding.org.addGroup')}
+        <Plus className="w-4 h-4" aria-hidden /> {t('onboarding.org.addGroup')}
       </button>
     </div>
   )
@@ -272,9 +296,9 @@ function TreeNode(p: TreeNodeProps) {
     <div>
       <div
         className={`group flex items-center gap-2 py-2 px-2 rounded-[var(--radius-md)] transition-colors cursor-pointer ${
-          selected ? 'bg-[var(--color-brand-soft)] border border-[var(--color-brand)]/30' : 'hover:bg-[var(--bg-secondary)] border border-transparent'
+          selected ? 'bg-[var(--bg-hover)] border border-[var(--color-brand)]/40' : 'hover:bg-[var(--bg-hover)] border border-transparent'
         }`}
-        style={{ paddingLeft: `${depth * 20 + 8}px` }}
+        style={{ paddingLeft: `${Math.min(depth, 4) * 16 + 8}px` }}
         onClick={() => p.onSelect(entity.id)}
       >
         <button
@@ -303,18 +327,18 @@ function TreeNode(p: TreeNodeProps) {
             <div className="min-w-0 flex-1">
               <div className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{entity.name}</div>
               <div className="text-caption text-[var(--text-tertiary)] flex items-center gap-2">
-                <span className="uppercase tracking-wider font-semibold">{typeLabel(entity.type)}</span>
+                <span className="font-medium">{typeLabel(entity.type)}</span>
                 {entity.code && <span>· {entity.code}</span>}
                 {entity.country && <span>· {entity.country}</span>}
                 {entity.equity != null && <span>· {t('onboarding.org.equityPct', { pct: entity.equity })}</span>}
               </div>
             </div>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity">
               {canAddChild && (
                 <button
                   type="button"
                   onClick={e => { e.stopPropagation(); p.onAddChild(entity.id) }}
-                  className="w-6 h-6 rounded hover:bg-[var(--color-brand-soft)] text-[var(--color-brand)] flex items-center justify-center"
+                  className="w-9 h-9 rounded-[var(--radius-md)] hover:bg-[var(--bg-hover)] text-[var(--color-brand)] flex items-center justify-center" aria-label={t('onboarding.org.addChild')}
                   title={t('onboarding.org.addChild')}
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -323,16 +347,18 @@ function TreeNode(p: TreeNodeProps) {
               <button
                 type="button"
                 onClick={e => { e.stopPropagation(); p.onEdit(entity.id) }}
-                className="w-6 h-6 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] flex items-center justify-center"
+                className="w-9 h-9 rounded-[var(--radius-md)] hover:bg-[var(--bg-hover)] text-[var(--text-tertiary)] flex items-center justify-center"
                 title={t('common.edit')}
+                aria-label={t('common.edit')}
               >
                 <Pencil className="w-3 h-3" />
               </button>
               <button
                 type="button"
                 onClick={e => { e.stopPropagation(); p.onDelete(entity.id) }}
-                className="w-6 h-6 rounded hover:bg-[var(--accent-red-light)] text-[var(--status-reject)] flex items-center justify-center"
+                className="w-9 h-9 rounded-[var(--radius-md)] hover:bg-[var(--bg-hover)] text-[var(--status-danger)] flex items-center justify-center"
                 title={t('onboarding.org.remove')}
+                aria-label={t('onboarding.org.remove')}
               >
                 <Trash2 className="w-3 h-3" />
               </button>
@@ -389,7 +415,7 @@ function AddRow({
 
   return (
     <div className="rounded-[var(--radius-md)] border border-[var(--color-brand)]/40 bg-[var(--color-brand-soft)]/40 p-3 space-y-2">
-      <div className="grid grid-cols-[140px_1fr_140px] gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-[140px_1fr_140px] gap-2">
         <select
           value={type}
           onChange={e => setType(e.target.value as EntityType)}
@@ -412,7 +438,7 @@ function AddRow({
           className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-xs)] font-mono"
         />
       </div>
-      <div className="grid grid-cols-[1fr_140px_auto_auto] gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-[1fr_140px_auto_auto] gap-2">
         <input
           value={country}
           onChange={e => setCountry(e.target.value)}
@@ -524,12 +550,12 @@ function DetailPanel({
       setAddOpen(false)
       await onUpdated()
     } catch (e) {
-      alert(t('onboarding.org.addMemberFailed', { error: e instanceof Error ? e.message : String(e) }))
+      notify.error(t('onboarding.org.addMemberFailed', { error: e instanceof Error ? e.message : String(e) }))
     }
   }
 
   return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] overflow-hidden">
+    <div className="surface-paper overflow-hidden">
       <div className="p-5 border-b border-[var(--border-subtle)]">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-10 h-10 rounded-[var(--radius-md)] flex items-center justify-center"
@@ -537,7 +563,7 @@ function DetailPanel({
             <Icon className="w-5 h-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">
+            <div className="text-caption font-medium text-[var(--text-tertiary)]">
               {typeLabel(entity.type)}
             </div>
             <h3 className="font-display text-[length:var(--text-base)] font-bold text-[var(--text-primary)] truncate">{entity.name}</h3>
@@ -562,7 +588,7 @@ function DetailPanel({
 
         <div>
           <div className="flex items-center justify-between mb-2">
-            <h4 className="text-[length:var(--text-xs)] font-semibold text-[var(--text-primary)] uppercase tracking-wider">
+            <h4 className="text-[length:var(--text-xs)] font-semibold text-[var(--text-primary)] ">
               <Users className="w-3 h-3 inline -mt-0.5 mr-1" />
               {t('onboarding.org.members', { count: entityMembers.length })}
             </h4>
@@ -588,12 +614,13 @@ function DetailPanel({
                   <div className="text-[length:var(--text-xs)] font-semibold text-[var(--text-primary)] truncate">{m.name}</div>
                   <div className="text-caption text-[var(--text-tertiary)] truncate">{m.email}</div>
                 </div>
-                <span className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--color-brand)] bg-[var(--color-brand-soft)] px-1.5 py-0.5 rounded">
-                  {ROLE_CATALOG[m.role].name.split(' ').map(w => w[0]).join('')}
+                <span className="text-caption font-medium text-[var(--color-brand)] bg-[var(--color-brand-soft)] px-1.5 py-0.5 rounded">
+                  {t(`shell.roles.${m.role}.name`, { defaultValue: ROLE_CATALOG[m.role]?.name ?? m.role })}
                 </span>
                 <button
-                  onClick={async () => { await orgStore.removeMember(m.id); await onUpdated() }}
-                  className="w-5 h-5 rounded text-[var(--text-tertiary)] hover:text-[var(--status-reject)] hover:bg-[var(--accent-red-light)] flex items-center justify-center"
+                  onClick={async () => { try { await orgStore.removeMember(m.id); await onUpdated() } catch (e) { notify.error(t('onboarding.org.saveFailed'), { description: e instanceof Error ? e.message : undefined }) } }}
+                  aria-label={t('onboarding.org.removeMember', { name: m.name })}
+                  className="w-8 h-8 rounded text-[var(--text-tertiary)] hover:text-[var(--status-reject)] hover:bg-[var(--accent-red-light)] flex items-center justify-center"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -654,7 +681,7 @@ function FrameworkScopeNote() {
 function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <div className="text-micro uppercase tracking-[0.06em] text-[var(--text-tertiary)] font-semibold">{label}</div>
+      <div className="text-caption font-medium text-[var(--text-tertiary)]">{label}</div>
       <div className={`text-[length:var(--text-sm)] text-[var(--text-primary)] font-medium ${mono ? 'font-mono' : ''}`}>{value}</div>
     </div>
   )

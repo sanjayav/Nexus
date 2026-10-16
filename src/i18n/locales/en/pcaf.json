@@ -13,7 +13,12 @@
     "refresh": "Refresh",
     "addAsset": "Add asset",
     "loadFailed": "Failed to load portfolio",
-    "loadingPortfolio": "Loading portfolio…"
+    "loadingPortfolio": "Loading portfolio…",
+    "lockedTitle": "You don't have access to PCAF assets",
+    "reportingYear": "Reporting year",
+    "emptyTitle": "No PCAF assets for FY{{year}}",
+    "emptyBody": "Add a listed equity, loan, bond or other holding to start measuring financed emissions.",
+    "refreshFailed": "Couldn't refresh the portfolio — showing the last loaded figures"
   },
   "kpi": {
     "totalFinanced": "Total financed emissions",
@@ -24,19 +29,23 @@
     "coverageSubtle": "of outstanding",
     "outstanding": "Portfolio outstanding",
     "assetCount_one": "{{count}} asset",
-    "assetCount_other": "{{count}} assets"
+    "assetCount_other": "{{count}} assets",
+    "label": "Portfolio summary"
   },
   "charts": {
     "byAssetClass": "Financed emissions by asset class",
     "contribution": "Asset-class contribution (tCO₂e)",
-    "empty": "No assets in this reporting year yet."
+    "empty": "No assets in this reporting year yet.",
+    "unit": "tCO₂e, financed",
+    "financed": "Financed emissions"
   },
   "summaryTable": {
     "assetClass": "Asset class",
     "assets": "Assets",
     "outstanding": "Outstanding",
     "financedEmissions": "Financed emissions",
-    "weightedDq": "Weighted DQ"
+    "weightedDq": "Weighted DQ",
+    "title": "By asset class"
   },
   "sync": {
     "title": "Sync to Scope 3",
@@ -45,12 +54,17 @@
     "button": "Sync to Scope 3",
     "pickFacility": "Pick a facility to attach the Scope 3 row to",
     "failed": "Sync failed",
-    "success": "Synced {{total}} CO₂e (weighted DQ {{dq}}) — activity_data id {{id}}…"
+    "success": "Synced {{total}} CO₂e (weighted DQ {{dq}}) — activity_data id {{id}}…",
+    "facility": "Facility",
+    "toast": "Synced {{total}} to Scope 3 Category 15",
+    "disabledHint": "Add an asset before syncing."
   },
   "drawer": {
     "title": "Add PCAF asset",
     "pickDifferent": "← Pick a different asset class",
-    "close": "Close"
+    "close": "Close",
+    "saved": "Asset saved",
+    "intro": "Choose the PCAF asset class that matches the holding. Each one has its own attribution rule."
   },
   "grid": {
     "searchPlaceholder": "Search counterparty…",
@@ -68,7 +82,17 @@
     "emptyAfter": " to add the first one.",
     "confirm": "Confirm",
     "cancel": "Cancel",
-    "delete": "Delete"
+    "delete": "Delete",
+    "title": "Portfolio",
+    "deleteTitle": "Delete {{name}}?",
+    "deleteBody": "The asset and its financed emissions are removed from this reporting year. Synced Scope 3 rows are not changed.",
+    "deleted": "Deleted {{name}}",
+    "deleteFailed": "Couldn't delete the asset",
+    "emptyTitle": "No assets yet",
+    "emptyBody": "Add the first holding to see its attribution and data quality here.",
+    "actions": "Actions",
+    "dqTitle": "PCAF data-quality score (1 best – 5)",
+    "deleteAria": "Delete {{name}}"
   },
   "calculator": {
     "methodology": "PCAF methodology",
@@ -91,7 +115,10 @@
       "dataQuality": "Data quality",
       "dqValue": "DQ {{score}} / 5",
       "rationale": "Rationale"
-    }
+    },
+    "verified": "Server compute matches",
+    "serverVerified": "Server-verified",
+    "choose": "Choose…"
   },
   "assetClasses": {
     "listed_equity": {
@@ -458,5 +485,16 @@
     "projectType": "Project-type intensity ({{intensity}} kgCO2e/USD, {{type}}) × project value × attribution",
     "reportedCountry": "Reported country emissions {{mt}} MtCO2e × attribution ({{attr}})",
     "countryEf": "Country EF {{rate}} tCO2e/USDm ({{type}}) × GDP-PPP × attribution"
+  },
+  "dq": {
+    "title": "Data quality profile",
+    "subtitle": "Share of outstanding by PCAF score",
+    "level": "DQ {{n}}",
+    "desc1": "Verified reported emissions",
+    "desc2": "Unverified reported emissions",
+    "desc3": "Physical-activity estimate",
+    "desc4": "Revenue-based estimate",
+    "desc5": "Asset-based estimate",
+    "footnote": "PCAF scores run from 1 (best) to 5. Aim to move outstanding towards DQ 1–2."
   }
 }

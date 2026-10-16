@@ -1,63 +1,129 @@
 {
+  "breadcrumbReports": "报告",
   "breadcrumb": "iXBRL 申报",
-  "title": "iXBRL 预览 · FY{{year}}",
-  "summary": "{{concepts}} 个概念事实 · {{contexts}} 个上下文 · {{units}} 个单位 · {{warnings}} 条警告",
-  "emptyDescription": "生成内联 XBRL（iXBRL）草稿，用于后续申报或校验工具审阅。",
+  "title": "iXBRL 预览 · {{year}} 财年",
+  "summary": "{{concepts}} 个概念 · {{contexts}} 个上下文 · {{units}} 个单位 · {{warnings}} 条警告",
+  "emptyDescription": "生成内联 XBRL 草稿，用于申报或校验工具审阅。",
+  "sep": " · ",
   "errors": {
-    "generate": "iXBRL 生成失败",
-    "validate": "校验失败"
+    "generate": "iXBRL 文档生成失败",
+    "generateTitle": "iXBRL 文档生成失败",
+    "generateBody": "未作任何更改。请检查年度和框架列表后重试。",
+    "validate": "无法运行校验"
   },
   "actions": {
-    "generating": "生成中……",
+    "generating": "正在生成…",
     "generate": "生成",
+    "regenerate": "重新生成",
     "validate": "校验",
     "download": "下载 .xhtml"
   },
   "filters": {
-    "year": "年份",
+    "year": "报告年度",
     "frameworks": "框架",
-    "includeUnapproved": "包含未批准数据"
+    "frameworksHint": "以逗号分隔的框架编号，例如 csrd-e1、issb-s2、cn-sse。",
+    "includeUnapproved": "包含未批准数值"
   },
+  "stale": {
+    "pill": "已过期",
+    "body": "生成文档后筛选条件已更改。"
+  },
+  "unapprovedNote": "本草稿包含尚未批准的数值。所有数值通过批准前，请勿提交申报。",
   "stats": {
-    "concepts": "概念",
-    "contexts": "上下文",
-    "units": "单位",
-    "mapped": "已映射",
-    "gaps": "缺口",
-    "warnings": "警告",
-    "errors": "错误",
-    "validated": "校验结果",
-    "ok": "通过"
+    "label": "文档概要",
+    "facts": "已标记事实",
+    "mapped": "已映射概念",
+    "ofConcepts": "共 {{count}} 个概念",
+    "gaps": "概念缺口",
+    "gapsHint": "必填但无数值",
+    "noGaps": "所有概念均有数值",
+    "contextsUnits": "上下文 / 单位",
+    "validation": "校验",
+    "notRun": "未运行",
+    "passed": "通过",
+    "errorCount_one": "{{count}} 个错误",
+    "errorCount_other": "{{count}} 个错误"
   },
   "tabs": {
-    "preview": "预览",
+    "label": "iXBRL 视图",
+    "facts": "已标记事实",
+    "preview": "文档",
     "coverage": "概念覆盖",
     "validation": "校验"
   },
-  "iframeTitle": "iXBRL 预览",
-  "generatingPreview": "正在生成预览……",
-  "noPreview": "暂无预览，请点击「生成」。",
+  "facts": {
+    "concept": "概念",
+    "value": "数值",
+    "unit": "单位",
+    "period": "期间",
+    "source": "来源",
+    "status": "状态",
+    "tagged": "已标记",
+    "nil": "无数值",
+    "asAt": "截至 {{date}}",
+    "range": "{{from}} 至 {{to}}",
+    "none": "本文档中没有已标记的事实",
+    "noneBody": "请先批准所选框架的数值，然后重新生成。"
+  },
+  "units": {
+    "CNY": "元",
+    "CNYm": "百万元",
+    "tce": "吨标准煤",
+    "pure": "比率",
+    "m3": "立方米",
+    "t": "吨",
+    "hour": "小时",
+    "MWh": "兆瓦时",
+    "kWh": "千瓦时",
+    "GBP": "英镑",
+    "EUR": "欧元",
+    "USD": "美元",
+    "HKD": "港元"
+  },
+  "frameworks": {
+    "csrd-e1": "ESRS E1",
+    "csrd-e2": "ESRS E2",
+    "csrd-e3": "ESRS E3",
+    "csrd-e5": "ESRS E5",
+    "issb-s2": "IFRS S2",
+    "cn-sse": "上交所指引",
+    "cn-csds": "基本准则",
+    "hkex-esg": "港交所 ESG"
+  },
+  "iframeTitle": "iXBRL 文档预览",
+  "previewNote": "在沙箱中按生成结果原样呈现。渲染视图中不显示标记，请查看“已标记事实”。",
+  "empty": {
+    "title": "{{year}} 财年没有事实",
+    "body": "所选框架在该年度均无已映射数值。请检查框架列表或报告年度。",
+    "cta": "编辑框架"
+  },
+  "toast": {
+    "downloaded": "已下载 {{file}}"
+  },
   "coverage": {
     "concept": "概念",
-    "label": "标签",
     "framework": "框架",
     "source": "来源",
     "status": "状态",
     "mapped": "已映射",
     "missing": "缺失（必填）",
-    "empty": "暂无映射，请先生成。"
+    "empty": "暂无概念映射，请先生成。"
   },
   "validation": {
-    "promptPrefix": "点击",
-    "promptAction": "校验",
-    "promptSuffix": "，对生成的文档执行结构检查。",
+    "notRunTitle": "尚未运行校验",
+    "notRunBody": "对生成的文档进行结构性检查：上下文、单位、数值内容和日期。",
+    "running": "正在校验…",
     "valid": "文档结构有效",
     "failed": "校验未通过",
+    "failedToast_one": "校验发现 {{count}} 个错误",
+    "failedToast_other": "校验发现 {{count}} 个错误",
     "stats": "{{facts}} 个事实 · {{contexts}} 个上下文 · {{units}} 个单位",
-    "unknownConcepts": " · {{count}} 个未知概念",
-    "errors": "错误（{{count}}）",
-    "warnings": "警告（{{count}}）",
-    "line": "第 {{line}} 行：",
-    "footnote": "此处仅为结构校验——正式申报还需通过经认证的校验工具（CoreFiling、ParsePort、IRIS Carbon）使用完整的 EFRAG ESRS 链接库进行校验。"
+    "unknownConcepts_one": " · {{count}} 个未知概念",
+    "unknownConcepts_other": " · {{count}} 个未知概念",
+    "error": "错误",
+    "warning": "警告",
+    "line": "第 {{line}} 行",
+    "noIssues": "无错误或警告。",
+    "footnote": "仅为结构性校验。正式申报还需由认证校验工具（CoreFiling、ParsePort、IRIS Carbon）依据完整的 EFRAG ESRS 链接库进行检查。"
   }
 }

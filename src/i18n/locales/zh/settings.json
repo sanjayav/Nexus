@@ -1,25 +1,319 @@
 {
   "title": "设置",
-  "description": "此 Nexus 工作区的个人偏好设置。更改即时生效，并按用户保存。",
-  "themes": {
-    "demoFlat": { "label": "扁平演示主题", "description": "默认主题。青绿色品牌色、8px 网格、扁平界面，符合 WCAG 2.1 AA。" },
-    "glass": { "label": "玻璃质感 UI", "description": "Nexus 经典主题。柔和阴影、毛玻璃界面、圆角设计。" }
+  "description": "工作区与个人设置。工作区设置对所有成员生效，并记入审计日志。",
+  "tabs": {
+    "aria": "设置分区",
+    "attention": "需要处理",
+    "organisation": "组织",
+    "market": "市场与合规",
+    "frameworks": "框架",
+    "notifications": "通知",
+    "ai": "AI",
+    "security": "安全",
+    "language": "语言与显示"
+  },
+  "saveBar": {
+    "region": "未保存的更改",
+    "unsaved": "有未保存的更改",
+    "discard": "放弃",
+    "save": "保存更改",
+    "saving": "正在保存…"
+  },
+  "org": {
+    "heroAria": "工作区概况",
+    "kicker": "工作区",
+    "summary": {
+      "market": "市场",
+      "residency": "数据驻留",
+      "ai": "AI 服务商",
+      "frameworks": "框架",
+      "frameworksValue_one": "已启用 {{count}} 个",
+      "frameworksValue_other": "已启用 {{count}} 个",
+      "notSet": "未设置"
+    },
+    "period": {
+      "title": "报告期",
+      "description": "当前正在采集数据的报告期。可在“报告周期”中锁定并发布。",
+      "emptyTitle": "尚无报告期",
+      "emptyBody": "请先创建本次报告的财年，指派任务才能开始采集数据。",
+      "create": "创建报告期",
+      "manage": "管理报告周期",
+      "noDates": "未设置日期",
+      "deadline": "提交截止：{{date}}",
+      "status": {
+        "setup": "设置中",
+        "active": "进行中",
+        "locked": "已锁定",
+        "published": "已发布",
+        "archived": "已归档"
+      }
+    },
+    "admin": {
+      "title": "管理",
+      "description": "成员、组织架构、访问权限，以及谁在何时修改了什么。",
+      "links": {
+        "users": {
+          "label": "用户与角色",
+          "hint": "邀请成员并设置各角色权限"
+        },
+        "structure": {
+          "label": "组织架构",
+          "hint": "集团、子公司、工厂与办公室"
+        },
+        "periods": {
+          "label": "报告周期",
+          "hint": "开启、锁定并发布财年"
+        },
+        "apiKeys": {
+          "label": "API 密钥",
+          "hint": "供 BI 与 ERP 同步的程序化访问"
+        },
+        "scim": {
+          "label": "SCIM 预配",
+          "hint": "从身份提供商同步成员"
+        },
+        "audit": {
+          "label": "审计日志",
+          "hint": "每次更改、操作人与时间"
+        },
+        "status": {
+          "label": "系统状态",
+          "hint": "数据库与集成运行状况"
+        }
+      }
+    }
   },
   "frameworks": {
-    "heading": "报告模板",
-    "phase": "第一阶段",
-    "intro": "选择此工作区需遵循的报告框架。我们率先推出 {{name}}，其他框架将在通过验证后陆续开放。",
+    "heading": "框架",
+    "intro": "选择本工作区遵循的报告框架。当前启用的是 {{name}}，其他框架可按需开启。",
     "currentlyActive": "当前启用",
-    "comingSoon": "即将推出",
+    "comingSoon": "即将上线",
     "lineItems_one": "{{count}} 个条目",
     "lineItems_other": "{{count}} 个条目",
-    "requestEarlyAccess": "申请抢先体验",
-    "on": "开",
-    "off": "关"
+    "enabledCount": "已启用 {{count}} / {{total}}",
+    "regionAria": "按地区筛选",
+    "keepOne": "请至少保留一个已开启的框架。",
+    "turnedOff": "已关闭 {{name}}",
+    "toggleAria": "使用 {{name}}",
+    "regions": {
+      "all": "全部",
+      "global": "全球",
+      "eu": "欧盟",
+      "us": "美国",
+      "cn": "大中华区"
+    },
+    "coverage": {
+      "Adaptation": "适应",
+      "Air": "空气",
+      "Anti-corruption": "反腐败",
+      "Assurance": "鉴证",
+      "Board statement": "董事会声明",
+      "CapEx": "资本支出",
+      "Circularity": "循环性",
+      "Climate": "气候",
+      "Consumption": "消耗",
+      "DNSH": "无重大损害",
+      "Discharge": "排放",
+      "Diversity": "多元化",
+      "Double materiality": "双重重要性",
+      "Due diligence": "尽职调查",
+      "Economic": "经济",
+      "Emissions": "排放",
+      "Energy": "能源",
+      "Engagement": "参与",
+      "Environment": "环境",
+      "Environmental": "环境",
+      "Environmental (A1–A3)": "环境（A1–A3）",
+      "Financed emissions": "融资排放",
+      "Financial statements": "财务报表",
+      "GHG": "温室气体",
+      "GHG (stayed)": "温室气体（暂缓）",
+      "Governance": "治理",
+      "Grievances": "申诉",
+      "H&S": "健康与安全",
+      "Headcount": "员工人数",
+      "IRO mgmt": "影响、风险和机遇管理",
+      "Impact metrics": "影响指标",
+      "Industry-specific": "行业特定",
+      "Inflows": "资源流入",
+      "Marketing": "营销",
+      "Metrics": "指标",
+      "Metrics & targets": "指标与目标",
+      "Mitigation": "减缓",
+      "OpEx": "运营支出",
+      "Pay": "薪酬",
+      "Payments": "付款",
+      "Physical": "实体",
+      "Physical risk": "实体风险",
+      "Political": "政治",
+      "Privacy": "隐私",
+      "Products": "产品",
+      "Remediation": "补救",
+      "Restoration": "修复",
+      "Risk mgmt": "风险管理",
+      "Risks": "风险",
+      "Safeguards": "保障措施",
+      "Safety": "安全",
+      "Scope 1": "范围一",
+      "Scope 2": "范围二",
+      "Scope 3": "范围三",
+      "Severe incidents": "严重事件",
+      "Sites": "场地",
+      "Social": "社会",
+      "Social (B1–B8)": "社会（B1–B8）",
+      "Soil": "土壤",
+      "Species": "物种",
+      "Strategy": "战略",
+      "Substances of concern": "关注物质",
+      "TCFD alignment": "TCFD 一致性",
+      "Targets": "目标",
+      "Training": "培训",
+      "Transition": "转型",
+      "Transition plan": "转型计划",
+      "Turnover": "营业额",
+      "Universal": "通用",
+      "Value creation": "价值创造",
+      "Verification": "核查",
+      "Waste": "废弃物",
+      "Water": "水",
+      "Water stress": "水资源压力",
+      "Whistleblower": "举报人",
+      "Withdrawal": "取水"
+    },
+    "versions": {
+      "2021 · topic standards 2016–2020": "2021 · 议题标准 2016–2020",
+      "2024 (trial)": "2024（试行）",
+      "2024 · Climate (trial)": "2024 · 气候（试行）",
+      "Appendix C2": "附录 C2",
+      "Reg 2020/852": "条例 2020/852"
+    }
   },
-  "theme": {
-    "heading": "主题",
-    "intro": "在扁平演示主题与 Nexus 经典玻璃质感 UI 之间切换。"
+  "notifications": {
+    "heading": "邮件通知",
+    "intro": "您个人的邮件提醒。更改即时保存。",
+    "loadFailed": "无法加载您的通知偏好",
+    "saveFailed": "无法保存该更改",
+    "assignment": {
+      "label": "有披露项指派给我时发送邮件",
+      "description": "管理员向您指派需填报的披露项时发送。"
+    },
+    "review": {
+      "label": "有提交内容需要我审核时发送邮件",
+      "description": "有数据值提交并等待您审核或审批时发送。"
+    },
+    "anomaly": {
+      "label": "我负责范围内出现异常时发送邮件",
+      "description": "异常检测引擎标记了您负责的数据值时触发。"
+    },
+    "digest": "摘要频率",
+    "digestHint": "Nexus 将您的通知汇总为一封摘要邮件的频率。",
+    "digestAria": "摘要频率",
+    "digestOptions": {
+      "none": "不发送",
+      "daily": "每日",
+      "weekly": "每周"
+    },
+    "saved": "已于 {{time}} 保存",
+    "saving": "正在保存…"
+  },
+  "channels": {
+    "title": "团队通知渠道",
+    "description": "将工作流通知推送至钉钉、飞书或企业微信群机器人。每个应用一个机器人；Webhook 地址与密钥加密保存，之后不再显示。"
+  },
+  "ai": {
+    "readOnly": "仅工作区管理员可修改 AI 设置。",
+    "loadError": "无法加载 AI 设置",
+    "saveFailed": "无法保存 AI 设置",
+    "audited": "已记入审计日志。",
+    "status": {
+      "title": "当前运行",
+      "description": "本工作区用于 AI 撰写、信息提取与差距分析的服务商和模型。"
+    },
+    "state": {
+      "ready": "可用",
+      "off": "已关闭",
+      "notConfigured": "服务器未配置"
+    },
+    "fields": {
+      "provider": "服务商",
+      "model": "模型",
+      "modelUnset": "服务器未设置",
+      "reads": "可读取",
+      "pdf": "PDF 文件",
+      "images": "图片",
+      "unsupported": "{{what}}：不支持"
+    },
+    "deploymentOff": {
+      "title": "本部署已关闭 AI",
+      "body": "Nexus 运维方已在服务器端关闭 AI，因此无法在此开启。"
+    },
+    "notConfigured": {
+      "title": "服务器未配置 {{provider}}",
+      "body": "服务器缺少该服务商的凭据，AI 功能暂不可用。请联系 Nexus 运维方添加凭据，或改选已配置的服务商。"
+    },
+    "controls": {
+      "title": "控制",
+      "description": "完全关闭 AI，或选择用于撰写内容的服务商。更改对工作区所有成员生效。"
+    },
+    "enabled": {
+      "label": "在本工作区使用 AI",
+      "hint": "关闭后，所有成员都将看不到 AI 撰写、文档提取与叙述建议。"
+    },
+    "provider": {
+      "label": "服务商",
+      "hint": "中国大陆工作区应使用境内服务商，确保提示词与数据留存境内。"
+    },
+    "providers": {
+      "auto": {
+        "name": "自动",
+        "body": "跟随市场设置：{{provider}}。"
+      },
+      "anthropic": {
+        "name": "Anthropic（全球）",
+        "body": "Claude 模型，托管于中国大陆境外。"
+      },
+      "openai_compatible": {
+        "name": "境内服务商",
+        "body": "兼容 OpenAI 接口的境内模型，如通义千问或 DeepSeek。"
+      }
+    },
+    "effective": "当前生效：{{provider}}。",
+    "toast": {
+      "on": "已开启 AI",
+      "off": "已为本工作区关闭 AI",
+      "provider": "AI 服务商已设为 {{provider}}"
+    }
+  },
+  "security": {
+    "mfaTitle": "双重身份验证"
+  },
+  "export": {
+    "heading": "数据导出",
+    "body": "下载包含此工作区全部数据的可移植 ZIP 压缩包，涵盖用户、设施、活动数据、任务分配、数据值、工作流任务、通知、报告及审计日志。密码哈希、MFA 密钥以及 SCIM/API 令牌哈希绝不包含在内。",
+    "lastExport": "上次导出：{{date}}",
+    "none": "暂无导出记录。",
+    "building": "正在生成压缩包…",
+    "download": "下载数据导出",
+    "done": "数据导出已下载",
+    "failed": "无法生成数据导出"
+  },
+  "language": {
+    "title": "界面语言",
+    "description": "仅对您本人生效，不会影响其他成员。发给您的邮件与群通知也将使用该语言。",
+    "saved": "已保存",
+    "saveFailed": "界面语言已切换，但未能保存到邮件设置",
+    "saveFailedHint": "在保存成功前，邮件与通知仍使用之前的语言。请稍后重试。",
+    "clearedToast": "已清除语言偏好",
+    "server": {
+      "title": "邮件与通知",
+      "description": "Nexus 在应用外联系您时使用的语言。",
+      "loadError": "无法加载已保存的语言",
+      "resolved": "发给您的邮件与通知使用{{language}}。",
+      "explicit": "已保存偏好：{{language}}。",
+      "following": "未保存偏好：跟随浏览器与工作区市场设置。",
+      "useDefault": "使用工作区默认",
+      "sync": "同时将邮件语言设为{{language}}"
+    }
   },
   "display": {
     "heading": "显示",
@@ -32,32 +326,18 @@
     "comfortable": "舒适",
     "compact": "紧凑"
   },
-  "reportingYear": {
-    "heading": "报告年度",
-    "active": "当前报告年度",
-    "inherits": "FY2026 — 沿用 FY2025 的结构",
-    "badge": "FY2026 · 进行中"
+  "theme": {
+    "heading": "主题",
+    "intro": "在扁平演示主题与 Nexus 经典玻璃质感 UI 之间切换。"
   },
-  "export": {
-    "heading": "数据导出（GDPR）",
-    "body": "下载包含此工作区全部数据的可移植 ZIP 压缩包，涵盖用户、设施、活动数据、任务分配、数据值、工作流任务、通知、报告及审计日志。密码哈希、MFA 密钥以及 SCIM/API 令牌哈希绝不包含在内。",
-    "lastExport": "上次导出：{{date}}",
-    "none": "暂无导出记录。",
-    "building": "正在生成压缩包…",
-    "download": "下载数据导出"
-  },
-  "notifications": {
-    "heading": "通知偏好",
-    "intro": "选择您希望接收哪些与任务相关的邮件提醒。更改将自动保存。",
-    "loadFailed": "加载失败",
-    "saveFailed": "保存失败",
-    "assignment": { "label": "有新披露项分配给我时发送邮件", "description": "管理员向您分配 GRI/ESRS 条目时触发。" },
-    "review": { "label": "有提交内容需要我审核时发送邮件", "description": "下属提交的数据值等待您审批时触发。" },
-    "anomaly": { "label": "我负责范围内出现异常时发送邮件", "description": "异常检测引擎标记了您负责的数据值时触发。" },
-    "digest": "摘要频率",
-    "digestHint": "Nexus 将您的通知汇总为一封摘要邮件的频率。",
-    "digestAria": "摘要频率",
-    "digestOptions": { "none": "不发送", "daily": "每日", "weekly": "每周" },
-    "saved": "已于 {{time}} 保存"
+  "themes": {
+    "demoFlat": {
+      "label": "扁平演示主题",
+      "description": "默认主题。翡翠绿品牌色、扁平纸面风格，符合 WCAG 2.1 AA。"
+    },
+    "glass": {
+      "label": "玻璃质感 UI",
+      "description": "Nexus 经典主题。柔和阴影、毛玻璃界面、圆角设计。"
+    }
   }
 }

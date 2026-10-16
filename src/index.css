@@ -138,6 +138,8 @@
   --bg-primary:   #FFFFFF;
   --bg-surface:   var(--bg-primary);
   --bg-elevated:  #FFFFFF;
+  /* Modal / sheet scrim behind overlays */
+  --bg-overlay:   rgba(4, 12, 10, 0.48);
   --bg-secondary: #F3F5F4;
   --bg-tertiary:  #EAEDEC;
   --bg-hover:     #F1F4F3;
@@ -296,6 +298,7 @@
   --bg-app:       #0B0E13;
   --bg-primary:   #111520;
   --bg-elevated:  #141925;
+  --bg-overlay:   rgba(2, 4, 8, 0.66);
   --bg-secondary: #161B27;
   --bg-tertiary:  #1D2330;
   --bg-hover:     #1A202C;

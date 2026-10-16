@@ -1,9 +1,21 @@
 {
   "kinds": {
-    "sbti_near_term": { "label": "SBTi near-term", "helper": "5–10 year reduction target validated by Science Based Targets initiative." },
-    "sbti_long_term": { "label": "SBTi long-term", "helper": "15+ year decarbonisation pathway aligned to 1.5°C." },
-    "net_zero": { "label": "Net-zero", "helper": "A long-horizon (typically 2040–2050) commitment to zero net emissions." },
-    "custom": { "label": "Custom target", "helper": "Internal commitment that doesn't map to SBTi or net-zero categories." }
+    "sbti_near_term": {
+      "label": "SBTi near-term",
+      "helper": "5–10 year reduction target validated by Science Based Targets initiative."
+    },
+    "sbti_long_term": {
+      "label": "SBTi long-term",
+      "helper": "15+ year decarbonisation pathway aligned to 1.5°C."
+    },
+    "net_zero": {
+      "label": "Net-zero",
+      "helper": "A long-horizon (typically 2040–2050) commitment to zero net emissions."
+    },
+    "custom": {
+      "label": "Custom target",
+      "helper": "Internal commitment that doesn't map to SBTi or net-zero categories."
+    }
   },
   "status": {
     "committed": "Committed",
@@ -46,7 +58,13 @@
     "reduction": "Reduction",
     "target": "Target",
     "by": "by {{year}}",
-    "validatedBy": "Validated by {{name}}"
+    "validatedBy": "Validated by {{name}}",
+    "edit": "Edit target",
+    "progress": "Reduction achieved",
+    "progressValue": "{{pct}}% of committed cut · FY{{year}}",
+    "noActuals": "No actuals yet",
+    "expected": "Where the pathway expects you",
+    "expectedHint": "Marker: pathway expects {{pct}}% by now"
   },
   "empty": {
     "title": "No climate targets yet",
@@ -72,12 +90,45 @@
     "notesPlaceholder": "Reference SBTi case ID, board approval date, or methodology footnote.",
     "invalid": "Fill in a label, positive baseline value, and ensure target year is after the baseline year.",
     "saveChanges": "Save changes",
-    "create": "Create target"
+    "create": "Create target",
+    "errors": {
+      "label": "Give the target a name.",
+      "year": "Enter a year between 1901 and 2099.",
+      "targetYear": "Target year must be after the baseline year.",
+      "baseline": "Baseline must be greater than zero.",
+      "pct": "Enter a reduction between 1 and 100%."
+    }
   },
   "remove": {
     "title": "Remove climate target?",
     "body": "<strong>{{label}}</strong> will be removed from this workspace. The dashboard tracker and reports will stop showing it.",
     "keep": "Keep target",
     "confirm": "Remove"
+  },
+  "ledger": {
+    "aria": "Climate target summary",
+    "targets": "Targets",
+    "validated": "Validated",
+    "validatedHint": "Independently validated or achieved",
+    "gap": "Gap to pathway",
+    "noActuals": "Awaiting actuals",
+    "behind": "Above pathway — behind",
+    "ahead": "Below pathway — on track",
+    "nextMilestone": "Next milestone",
+    "yearsLeft_one": "{{count}} year left",
+    "yearsLeft_other": "{{count}} years left"
+  },
+  "pathway": {
+    "title": "Pathway tracker",
+    "subtitle": "Actual emissions for the scopes each target covers, against a straight-line pathway from baseline to target.",
+    "pick": "Choose a target",
+    "baselineTo": "{{from}}–{{to}}",
+    "onTrack": "On pathway",
+    "behind": "Behind pathway",
+    "noActuals": "Awaiting actuals",
+    "noActualsBody": "No recorded emissions after the baseline year yet. Approved Scope 1–3 figures will plot here.",
+    "required": "Required average abatement",
+    "perYear": " per year to reach the target",
+    "partial": "Server history unavailable — showing approved figures only"
   }
 }

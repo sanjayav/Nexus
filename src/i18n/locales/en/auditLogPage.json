@@ -1,11 +1,13 @@
 {
-  "title": "Activity History",
-  "description": "Immutable record of authentication, role, assignment and configuration events. Use the filters below to narrow the view; export filtered results as CSV for evidence packs.",
+  "title": "Audit log",
+  "description": "Immutable record of sign-ins, role, assignment and configuration events. Filter to narrow the view, then export the results as CSV for evidence packs.",
   "exportCsv": "Export CSV",
   "exporting": "Exporting…",
   "errors": {
     "load": "Failed to load audit log",
-    "export": "Export failed"
+    "export": "Export failed",
+    "loadTitle": "The audit log didn't load",
+    "loadBody": "We couldn't reach the server, so these events aren't confirmed. Nothing was changed."
   },
   "filters": {
     "title": "Filters",
@@ -29,17 +31,93 @@
     "target": "Target",
     "ip": "IP",
     "details": "Details",
-    "system": "system",
+    "system": "System",
     "hide": "Hide",
     "show": "Show"
   },
   "empty": {
     "title": "No audit events match",
-    "body": "Try widening your date range or clearing filters. Every change in the workspace is recorded here for assurance."
+    "body": "Try widening your date range or clearing filters. Every change in the workspace is recorded here for assurance.",
+    "noneTitle": "No audit events yet",
+    "noneBody": "Every sign-in, role change and edit in the workspace will be recorded here for assurance."
   },
   "pagination": {
     "pageOf": "Page {{page}} of {{total}}",
-    "prev": "Prev",
-    "next": "Next"
+    "prev": "Previous",
+    "next": "Next",
+    "range": "{{start}}–{{end}} of {{total}}"
+  },
+  "events": "Events",
+  "exportNothing": "No events to export",
+  "exported_one": "Exported {{formattedCount}} event",
+  "exported_other": "Exported {{formattedCount}} events",
+  "actions": {
+    "auth": {
+      "login": "Signed in",
+      "logout": "Signed out"
+    },
+    "user": {
+      "create": "User added",
+      "update": "User updated",
+      "roles_change": "Roles changed"
+    },
+    "role": {
+      "update": "Role permissions updated"
+    },
+    "assignment": {
+      "create": "Assignment created",
+      "created": "Assignment created",
+      "submitted": "Submitted for review",
+      "reviewed": "Reviewed",
+      "approved": "Approved",
+      "rejected": "Sent back"
+    },
+    "period": {
+      "activated": "Reporting cycle opened"
+    },
+    "evidence": {
+      "uploaded": "Evidence uploaded"
+    },
+    "report": {
+      "share_link_created": "Report share link created"
+    },
+    "materiality": {
+      "finalized": "Materiality assessment finalised"
+    },
+    "anomaly": {
+      "status_change": "Anomaly status changed"
+    },
+    "org_settings": {
+      "update": "Workspace settings updated"
+    },
+    "org_webhook": {
+      "upsert": "Webhook saved",
+      "update": "Webhook updated",
+      "test": "Webhook tested",
+      "delete": "Webhook deleted"
+    },
+    "emission_factor": {
+      "delete": "Emission factor deleted"
+    },
+    "carbon_credit": {
+      "create": "Carbon credit added",
+      "update": "Carbon credit updated",
+      "delete": "Carbon credit deleted"
+    },
+    "green_certificate": {
+      "create": "Green certificate added",
+      "update": "Green certificate updated",
+      "delete": "Green certificate deleted"
+    }
+  },
+  "resources": {
+    "user": "User",
+    "role": "Role",
+    "assignment": "Assignment",
+    "organisation": "Organisation",
+    "report": "Report",
+    "reporting_period": "Reporting cycle",
+    "evidence": "Evidence",
+    "period": "Reporting cycle"
   }
 }

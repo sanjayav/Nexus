@@ -1,23 +1,25 @@
 {
   "eyebrow": "集团汇总",
-  "title": "工厂数据 · 集团累计总量",
-  "intro": "每个工厂填报自身数据；子公司按股权比例汇总其下属工厂，集团再汇总各子公司。最终批准的集团数值将直接进入 GRI 报告。",
-  "searchPlaceholder": "查找 GRI 披露项……",
+  "title": "集团合并",
+  "intro": "各工厂填报自身数据；子公司按持股比例合并下属工厂，集团再合并各子公司。经批准的集团数值将进入报告。",
+  "searchPlaceholder": "查找披露项…",
+  "pickerAria": "选择要合并的披露项",
   "hasPlantData": "已有工厂数据",
   "unit": "单位：{{unit}}",
-  "groupTotal": "集团总量",
+  "groupTotal": "集团合计",
+  "noValueYet": "暂无已提交数值",
   "chips": {
     "approved": "已批准",
     "inReview": "审核中",
     "outstanding": "待填报"
   },
-  "approvedOf": "已批准 {{approved}}/{{assigned}}",
+  "approvedOf": "已批准 {{approved}}／{{assigned}}",
   "readyForReport": "可纳入报告",
-  "pickQuestion": "选择一个问题以查看其汇总",
-  "pickHint": "请在左侧列表中选择一个 GRI 披露项。",
+  "pickQuestion": "选择披露项以查看合并结果",
+  "pickHint": "从列表中选择一个披露项，查看各实体如何并入集团合计。",
   "fullyApproved": {
-    "title": "该披露项已全部批准",
-    "body": "汇总后的集团数值将直接填入下一份 GRI 报告。",
+    "title": "该披露项所有实体均已批准",
+    "body": "合并后的集团数值将填入下一份报告。",
     "cta": "前往报告"
   },
   "entityType": {
@@ -28,5 +30,35 @@
     "office": "办公室"
   },
   "equity": "持股 {{equity}}%",
-  "noData": "暂无数据"
+  "noData": "暂无数据",
+  "errorTitle": "合并数据加载失败",
+  "empty": {
+    "noEntitiesTitle": "尚未设置组织架构",
+    "noEntitiesBody": "请先添加集团、子公司与工厂，合并将按实体架构进行。",
+    "noEntitiesCta": "设置组织",
+    "noQuestionsTitle": "暂无可合并的 {{code}} 披露项",
+    "noQuestionsBody": "启用该框架并指派披露项后，集团合计将显示在此处。"
+  },
+  "scope": {
+    "s1": "范围一",
+    "s2": "范围二",
+    "s3": "范围三",
+    "title": "按范围划分的合并排放量",
+    "subtitle": "集团合计 · {{unit}} · 按持股比例并表",
+    "emptyTitle": "尚无已提交的范围数据",
+    "emptyBody": "工厂提交范围一、二或三数值后将显示合计。",
+    "footnote": "包含已提交、已审核及已批准的数值。点击柱条可打开对应披露项。"
+  },
+  "table": {
+    "aria": "按实体的合并明细",
+    "entity": "实体",
+    "reported": "自身填报",
+    "consolidated": "合并值",
+    "share": "占集团比例",
+    "approval": "审批进度",
+    "collapse": "收起{{name}}",
+    "expand": "展开{{name}}",
+    "footnote": "自身填报为该实体本身的数值；合并值加总下属实体并按持股比例计算。数值均为精确值，未做四舍五入。",
+    "notAssigned": "未指派"
+  }
 }

@@ -1,4 +1,5 @@
-import { Scope3Calculator, toNum, ILLUSTRATIVE_NOTE } from './index'
+import type { Scope3Calculator } from './types'
+import { toNum, ILLUSTRATIVE_NOTE } from './constants'
 
 // kgCO2e per passenger-km — DEFRA-style.
 const TRAVEL_EF: Record<string, number> = {

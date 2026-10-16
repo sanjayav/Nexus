@@ -1,12 +1,5 @@
 {
-  "eyebrow": "Reports",
-  "title": "Sustainability Performance Data",
-  "subtitleTail": ". Year columns are dynamic; import a new year to append a column.",
-  "jargon": {
-    "gri": "Global Reporting Initiative — the most widely-adopted standard for sustainability reporting. GRI Standards 2021 covers economic, environmental, and social topics with specific disclosures (e.g. 305-1 = direct GHG emissions).",
-    "ifrsS1S2": "IFRS Sustainability Disclosure Standards — issued by the ISSB (International Sustainability Standards Board). S1 covers general sustainability-related financial disclosures; S2 specifically targets climate-related risks and opportunities.",
-    "sasb": "Sustainability Accounting Standards Board — industry-specific metrics designed for investor decision-useful disclosures. Now part of the IFRS Foundation alongside ISSB."
-  },
+  "title": "Sustainability performance data",
   "actions": {
     "downloadTemplate": "Download Excel template",
     "addYear": "Add reporting year"
@@ -14,7 +7,9 @@
   "summary": {
     "added_one": "{{year}} column added · {{count}} indicator populated",
     "added_other": "{{year}} column added · {{count}} indicators populated",
-    "unmatched": "{{count}} row(s) in the file did not match any indicator. Examples: {{examples}}"
+    "unmatched": "{{count}} row(s) in the file did not match any indicator. Examples: {{examples}}",
+    "sep": " · ",
+    "dismiss": "Dismiss"
   },
   "cover": {
     "intro": "Operational performance for the period 1 January – 31 December, including companies in which Demo Co holds 50%+ shares and Polymers JV Ltd. Prepared in accordance with ",
@@ -26,22 +21,17 @@
       "ifrsS1": "General Requirements for Disclosure of Sustainability-related Financial Information — investors-first sustainability reporting baseline issued by the ISSB.",
       "ifrsS2": "Climate-related Disclosures — sets out specific requirements for reporting climate risks, opportunities, scenario analysis, and Scope 1/2/3 emissions.",
       "sasb": "Sustainability Accounting Standards Board — industry-specific KPIs (e.g. for chemicals, oil & gas) designed for investor relevance."
-    }
-  },
-  "accent": {
-    "financial_capital": "Financial Capital",
-    "manufacture_capital": "Manufacture Capital",
-    "human_capital": "Human Capital",
-    "social_capital": "Social Capital",
-    "natural_capital": "Natural Capital",
-    "jv": "JV"
+    },
+    "title": "Sustainability performance data",
+    "period": "FY{{from}}–FY{{to}} · {{count}} reporting years"
   },
   "table": {
     "requiredData": "Required Data",
     "unit": "Unit",
     "male": "Male",
     "female": "Female",
-    "na": "NA"
+    "na": "NA",
+    "gri": "GRI"
   },
   "modal": {
     "kicker": "Append",
@@ -52,14 +42,41 @@
     "dropHint": "Use the downloaded template — the <mono>id</mono> column is the key",
     "generateSample": "Or generate sample {{year}} data (demo)",
     "noSheets": "Workbook has no sheets",
-    "parseFailed": "Failed to parse Excel"
+    "parseFailed": "Failed to parse Excel",
+    "parsing": "Reading the workbook…",
+    "yearExists": "FY{{year}} already has a column. Importing replaces its values."
   },
   "capitals": {
     "financial_capital": "Financial Capital",
     "manufacture_capital": "Manufacture Capital",
     "human_capital": "Human Capital",
     "social_relationship_capital": "Social & Relationship Capital",
-    "natural_capital": "Natural Capital"
+    "natural_capital": "Natural Capital",
+    "emissions": "Emissions",
+    "energy": "Energy",
+    "water": "Water",
+    "waste": "Waste",
+    "diversity": "Diversity",
+    "health_safety": "Health & Safety",
+    "anti_corruption": "Anti-corruption",
+    "governance": "Governance",
+    "environment": "Environment",
+    "environmental": "Environmental",
+    "social": "Social",
+    "universal": "Universal",
+    "general": "General",
+    "climate_change": "Climate change",
+    "climate": "Climate",
+    "pollution": "Pollution",
+    "biodiversity": "Biodiversity",
+    "employment": "Employment",
+    "training": "Training",
+    "community": "Community",
+    "supply_chain": "Supply chain",
+    "economic": "Economic",
+    "strategy": "Strategy",
+    "risk_management": "Risk management",
+    "metrics_and_targets": "Metrics and targets"
   },
   "subsections": {
     "direct_economic_value_generated": "Direct Economic Value Generated",
@@ -95,7 +112,27 @@
     "spills": "Spills",
     "operational_eco_efficiency": "Operational Eco-Efficiency",
     "product_stewardship": "Product Stewardship",
-    "hazardous_substances": "Hazardous Substances"
+    "hazardous_substances": "Hazardous Substances",
+    "emissions": "Emissions",
+    "diversity": "Diversity",
+    "anti_corruption": "Anti-corruption",
+    "governance": "Governance",
+    "environment": "Environment",
+    "environmental": "Environmental",
+    "social": "Social",
+    "universal": "Universal",
+    "general": "General",
+    "climate_change": "Climate change",
+    "climate": "Climate",
+    "pollution": "Pollution",
+    "biodiversity": "Biodiversity",
+    "employment": "Employment",
+    "training": "Training",
+    "community": "Community",
+    "economic": "Economic",
+    "strategy": "Strategy",
+    "risk_management": "Risk management",
+    "metrics_and_targets": "Metrics and targets"
   },
   "demo": {
     "subtitle": "Sustainability Performance Data",
@@ -314,5 +351,54 @@
       "tons_vocs": "Tons VOCs",
       "year": "Year"
     }
-  }
+  },
+  "breadcrumb": {
+    "reports": "Reports",
+    "here": "Performance data"
+  },
+  "subtitle": "Multi-year performance tables in the published report layout. Each year is a column; import a new year to append one.",
+  "contents": {
+    "title": "Contents"
+  },
+  "kpi": {
+    "title": "Headline indicators, FY{{year}}",
+    "scope": "Demo Co and subsidiaries; excludes joint ventures",
+    "scope12": "Scope 1 + 2 emissions",
+    "scope3": "Scope 3 emissions",
+    "energy": "Energy consumed",
+    "water": "Water withdrawn",
+    "employees": "Employees",
+    "vs": "vs FY{{year}}",
+    "noData": "No value reported",
+    "mlUnit": "ML",
+    "personsUnit": "people"
+  },
+  "charts": {
+    "ghgTitle": "GHG emissions by scope",
+    "ghgSubtitle": "{{unit}}, by reporting year",
+    "ghgFootnote": "Scope 2 is market-based. Scope 3 covers the relevant categories reported under GRI 305-3.",
+    "scope1": "Scope 1",
+    "scope2": "Scope 2",
+    "scope3": "Scope 3",
+    "mtUnit": "Mt CO2e",
+    "energyTitle": "Energy consumption",
+    "energySubtitle": "MWh, direct non-renewable and indirect",
+    "energyFootnote": "GRI 302-1. Direct energy is non-renewable fuel consumed on site.",
+    "direct": "Direct",
+    "indirect": "Indirect",
+    "noData": "No values reported for these years"
+  },
+  "section": {
+    "jv": "Joint venture",
+    "count_one": "{{count}} indicator",
+    "count_other": "{{count}} indicators"
+  },
+  "toast": {
+    "templateReady": "Excel template downloaded",
+    "templateFailed": "The template couldn’t be created"
+  },
+  "sheet": {
+    "close": "Close"
+  },
+  "footnote": "NA: not applicable or not reported for that year. Figures are shown exactly as reported."
 }

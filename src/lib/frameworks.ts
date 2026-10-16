@@ -29,6 +29,8 @@ export interface Framework {
   nameZh?: string
   bodyZh?: string
   descriptionZh?: string
+  /** Simplified Chinese version label (only where the English one has words, e.g. "2024 (trial)"). */
+  versionZh?: string
 }
 
 export const FRAMEWORKS: Framework[] = [
@@ -39,6 +41,7 @@ export const FRAMEWORKS: Framework[] = [
     body: 'Global Reporting Initiative',
     description: 'The full GRI Standards suite — Universal (GRI 2, 3), Economic (201–207), Environmental (301–308), and Social (401–419) disclosures. Phase 1 of the platform reports against GRI as a whole.',
     version: '2021 · topic standards 2016–2020',
+    versionZh: '2021 · 议题标准 2016–2020',
     status: 'active',
     color: 'var(--color-brand)',
     coverage: ['Universal', 'Economic', 'Environmental', 'Social'],
@@ -309,6 +312,7 @@ export const FRAMEWORKS: Framework[] = [
     body: 'European Commission',
     description: 'Turnover, CapEx and OpEx eligibility/alignment across the six environmental objectives, plus DNSH and minimum safeguards.',
     version: 'Reg 2020/852',
+    versionZh: '条例 (EU) 2020/852',
     status: 'active',
     color: '#0369A1',
     coverage: ['Turnover', 'CapEx', 'OpEx', 'DNSH', 'Safeguards'],
@@ -324,6 +328,7 @@ export const FRAMEWORKS: Framework[] = [
     body: 'Shanghai, Shenzhen and Beijing Stock Exchanges',
     description: 'Self-regulatory guidelines for listed companies on sustainability reporting (trial, 2024): double materiality, climate (governance, strategy, IRO management, metrics & targets incl. Scope 1/2/3), pollution and ecosystems, resource use, rural revitalisation, innovation and S&T ethics, suppliers and customers, employees, and sustainability governance.',
     version: '2024 (trial)',
+    versionZh: '2024（试行）',
     status: 'active',
     color: '#C8102E',
     coverage: ['Double materiality', 'Climate', 'Environment', 'Social', 'Governance'],
@@ -339,6 +344,7 @@ export const FRAMEWORKS: Framework[] = [
     body: 'Ministry of Finance of the PRC',
     description: 'Basic Standard (December 2024) and Climate Standard (trial): governance, strategy, impact/risk/opportunity management, and metrics & targets, with GHG emissions accounted consistently with GB/T 32150.',
     version: '2024 · Climate (trial)',
+    versionZh: '2024 · 气候（试行）',
     status: 'active',
     color: '#9F1239',
     coverage: ['Governance', 'Strategy', 'IRO mgmt', 'Metrics & targets', 'GHG'],
@@ -354,6 +360,7 @@ export const FRAMEWORKS: Framework[] = [
     body: 'Hong Kong Exchanges and Clearing',
     description: 'Mandatory disclosures (board statement, reporting principles, reporting boundary), climate-related disclosures aligned with IFRS S2 (incl. Scope 1, 2 and 3), environmental KPIs A1–A3 and social KPIs B1–B8.',
     version: 'Appendix C2',
+    versionZh: '附录 C2',
     status: 'active',
     color: '#0E7490',
     coverage: ['Board statement', 'Climate', 'Environmental (A1–A3)', 'Social (B1–B8)'],

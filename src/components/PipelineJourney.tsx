@@ -49,7 +49,9 @@ export default function PipelineJourney({
   const go = (s: StageStatus) => { if (onStageClick) onStageClick(s); else navigate(s.stage.route) }
 
   const myStageIdx = stages.findIndex(s => s.stage.owners.includes(myRole))
-  const activeIdx = Math.max(0, stages.findIndex(s => s.stage.key === activeKey))
+  // One current stage: the caller's activeKey (from lib/journey.nextAction),
+  // else the pipeline's own active stage — never both.
+  const currentKey = activeKey ?? stages.find(s => s.state === 'active')?.stage.key
   const completedIdx = stages.findIndex(s => s.state !== 'done')
   const lastDone = completedIdx === -1 ? stages.length - 1 : Math.max(0, completedIdx - 1)
 
@@ -60,7 +62,7 @@ export default function PipelineJourney({
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex items-center gap-2">
             <span className="w-[5px] h-[5px] rounded-full" style={{ background: BRAND }} />
-            <span className="text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">{t('components.journey.pipelineShort')}</span>
+            <span className="text-caption font-medium text-[var(--text-tertiary)]">{t('components.journey.pipelineShort')}</span>
           </div>
           <span className="h-3 w-px bg-[var(--border-default)]" />
           <h3 className="text-[13px] font-semibold text-[var(--text-primary)] tracking-[-0.005em] truncate">
@@ -95,7 +97,7 @@ export default function PipelineJourney({
           {stages.map((s, i) => {
             const Icon = STAGE_ICONS[s.stage.key]
             const isMe = s.stage.owners.includes(myRole)
-            const isActive = s.stage.key === activeKey || i === activeIdx
+            const isActive = s.stage.key === currentKey
             const isDone = s.state === 'done'
             const isLeft = i === 0
             const isRight = i === stages.length - 1
@@ -122,7 +124,7 @@ export default function PipelineJourney({
                   }}
                 >
                   {isDone ? (
-                    <Check className="w-[13px] h-[13px] text-white" strokeWidth={2.5} />
+                    <Check className="w-[13px] h-[13px] text-[var(--bg-primary)]" strokeWidth={2.5} />
                   ) : (
                     <Icon
                       className="w-[13px] h-[13px]"
@@ -181,7 +183,7 @@ export default function PipelineJourney({
 
 function LegendDot({ state, label }: { state: 'done' | 'active' | 'waiting'; label: string }) {
   const dot = state === 'done'
-    ? <span className="w-2.5 h-2.5 rounded-full flex items-center justify-center" style={{ background: BRAND }}><Check className="w-2 h-2 text-white" strokeWidth={3} /></span>
+    ? <span className="w-2.5 h-2.5 rounded-full flex items-center justify-center" style={{ background: BRAND }}><Check className="w-2 h-2 text-[var(--bg-primary)]" strokeWidth={3} /></span>
     : state === 'active'
       ? <span className="w-2.5 h-2.5 rounded-full" style={{ background: 'var(--bg-primary)', boxShadow: `0 0 0 1.5px ${BRAND}, 0 0 0 3px ${BRAND_SOFT}` }} />
       : <span className="w-2.5 h-2.5 rounded-full" style={{ background: 'var(--bg-primary)', boxShadow: '0 0 0 1.5px var(--border-strong)' }} />
@@ -246,7 +248,7 @@ export function NextAction({
               <Icon className="w-[18px] h-[18px]" strokeWidth={1.8} />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 text-micro uppercase tracking-[0.06em] font-semibold text-[var(--text-tertiary)]">
+              <div className="flex items-center gap-2 text-caption font-medium text-[var(--text-tertiary)]">
                 <span>{t('components.journey.doNext')}</span>
                 {stage && <span className="text-[var(--text-quaternary)]">·</span>}
                 {stage && <span>{stage.stage.label}</span>}
@@ -270,11 +272,7 @@ export function NextAction({
             <button
               type="button"
               onClick={onPrimary}
-              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[8px] text-white text-[12.5px] font-semibold transition-all active:translate-y-[0.5px]"
-              style={{
-                background: BRAND,
-                boxShadow: '0 1px 2px rgba(11,18,32,0.08), inset 0 1px 0 rgba(255,255,255,0.18)',
-              }}
+              className="inline-flex items-center gap-1.5 min-h-[40px] px-4 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] hover:bg-[var(--btn-primary-bg-hover)] text-small font-semibold transition-colors active:translate-y-[0.5px]"
             >
               {cta}
               <ArrowRight className="w-3.5 h-3.5" />

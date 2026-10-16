@@ -6,5 +6,6 @@
   "typeValue": "Type a value or =formula",
   "editor": "Formula or value editor",
   "help": "Formula help",
-  "examples": "Formula examples"
+  "examples": "Formula examples",
+  "saved": "Saved"
 }

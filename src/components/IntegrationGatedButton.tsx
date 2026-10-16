@@ -15,7 +15,7 @@
 import type { ReactNode } from 'react'
 import { Lock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useIntegrationStatus } from '../lib/integrations'
+import { useIntegrationStatus, integrationMissing } from '../lib/integrations'
 
 export type IntegrationKey = 'ai' | 'email' | 'sso' | 'realtime'
 
@@ -60,8 +60,9 @@ export function IntegrationGatedButton({
     )
   }
 
-  const ok = status[integration]
-  if (!ok) {
+  // Only gate when the server said "not configured". If /api/health itself
+  // failed (unknown), let the click through — the endpoint reports its own error.
+  if (integrationMissing(status, integration)) {
     return (
       <button
         type={type}

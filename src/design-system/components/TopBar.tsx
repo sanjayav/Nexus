@@ -7,13 +7,14 @@ import { FrameworkSelector } from '../../components/FrameworkBadge'
 import NotificationsBell from '../../components/NotificationsBell'
 import { useOpenPalette, useMobileNav } from '../../components/AppShell'
 import ThemeToggle from '../../components/ThemeToggle'
+import { setUiLanguage } from '../../components/settings/languagePreference'
 
 /** Values are i18n keys, rendered with t(). */
 const routeLabels: Record<string, { title: string; section?: string }> = {
   // Work
   '/':                   { title: 'shell.nav.items.myDay',              section: 'shell.nav.groups.work' },
   '/my-day':             { title: 'shell.nav.items.myDay',              section: 'shell.nav.groups.work' },
-  '/dashboard':          { title: 'shell.routes.overview',            section: 'shell.nav.groups.work' },
+  '/dashboard':          { title: 'shell.nav.items.myDay',              section: 'shell.nav.groups.work' },
   '/my-tasks':           { title: 'shell.nav.items.tasks',               section: 'shell.nav.groups.work' },
   '/inbox':              { title: 'shell.nav.items.inbox',               section: 'shell.nav.groups.work' },
   '/work/calendar':      { title: 'shell.routes.calendar',            section: 'shell.nav.groups.work' },
@@ -25,8 +26,15 @@ const routeLabels: Record<string, { title: string; section?: string }> = {
   '/reports/library':    { title: 'shell.nav.items.disclosuresLibrary', section: 'shell.nav.groups.reports' },
   '/reports/index':      { title: 'shell.nav.items.disclosuresLibrary', section: 'shell.nav.groups.reports' },
   '/reports/ai':         { title: 'shell.nav.items.aiReport',           section: 'shell.nav.groups.analytics' },
+  '/reports/ixbrl':      { title: 'shell.routes.ixbrlPreview',          section: 'shell.nav.groups.reports' },
+  '/reports/performance':{ title: 'shell.routes.performanceReport',     section: 'shell.nav.groups.reports' },
   // Data
-  '/data':               { title: 'shell.nav.items.values',              section: 'shell.nav.groups.data' },
+  '/data':               { title: 'shell.nav.items.dataCollection',      section: 'shell.nav.groups.data' },
+  '/data/green-ledger':  { title: 'shell.nav.items.greenLedger',         section: 'shell.nav.groups.data' },
+  '/data/entry':         { title: 'shell.nav.items.dataCollection',      section: 'shell.nav.groups.data' },
+  '/data/pcaf':          { title: 'shell.nav.items.pcafPortfolio',       section: 'shell.nav.groups.data' },
+  '/calculators/pcaf':   { title: 'shell.nav.items.pcafPortfolio',       section: 'shell.nav.groups.data' },
+  '/data/standard':      { title: 'shell.nav.items.dataStandard',        section: 'shell.nav.groups.data' },
   '/data/spreadsheet':   { title: 'shell.nav.items.spreadsheet',         section: 'shell.nav.groups.data' },
   '/data/evidence':      { title: 'shell.nav.items.evidence',            section: 'shell.nav.groups.data' },
   '/data/connectors':    { title: 'shell.nav.items.connectors',          section: 'shell.nav.groups.data' },
@@ -42,11 +50,14 @@ const routeLabels: Record<string, { title: string; section?: string }> = {
   '/workflow/approval':  { title: 'shell.routes.approvalQueue',      section: 'shell.nav.groups.work' },
   '/aggregator':         { title: 'shell.routes.groupRollup',        section: 'shell.nav.groups.reports' },
   // Admin tray
+  '/welcome':            { title: 'shell.routes.guidedSetup',         section: 'shell.nav.groups.admin' },
   '/onboarding':         { title: 'shell.routes.onboarding',          section: 'shell.nav.groups.admin' },
   '/admin/org':          { title: 'shell.routes.organisation',        section: 'shell.nav.groups.admin' },
-  '/admin/periods':      { title: 'shell.routes.reportingCycles',    section: 'shell.nav.groups.admin' },
-  '/admin/materiality':  { title: 'shell.routes.materialityAssessment', section: 'shell.nav.groups.admin' },
-  '/admin/assignments':  { title: 'shell.nav.items.values',              section: 'shell.nav.groups.admin' },
+  '/admin/periods':      { title: 'shell.nav.items.reportingCycles',    section: 'shell.nav.groups.admin' },
+  '/admin/materiality':  { title: 'shell.nav.items.materiality',         section: 'shell.nav.groups.admin' },
+  '/admin/org/legacy':   { title: 'shell.nav.items.orgStructure',        section: 'shell.nav.groups.admin' },
+  '/admin/audit/blockchain': { title: 'shell.nav.items.blockchain',      section: 'shell.nav.groups.admin' },
+  '/admin/assignments':  { title: 'shell.nav.items.assignments',         section: 'shell.nav.groups.data' },
   '/admin/users':        { title: 'shell.nav.items.usersRoles',       section: 'shell.nav.groups.admin' },
   '/admin/ef-library':   { title: 'shell.nav.items.emissionFactors',    section: 'shell.nav.groups.admin' },
   '/admin/gwp':          { title: 'shell.routes.gwpValues',          section: 'shell.nav.groups.admin' },
@@ -61,12 +72,21 @@ const routeLabels: Record<string, { title: string; section?: string }> = {
   '/admin/settings':     { title: 'shell.nav.items.settings',            section: 'shell.nav.groups.admin' },
 }
 
+/** Longest-prefix fallback so detail pages (e.g. /data/connectors/:id) keep their parent's name. */
+function routeFor(pathname: string): { title: string; section?: string } | undefined {
+  let best: string | null = null
+  for (const key of Object.keys(routeLabels)) {
+    if (key !== '/' && pathname.startsWith(key + '/') && (!best || key.length > best.length)) best = key
+  }
+  return best ? routeLabels[best] : undefined
+}
+
 export default function TopBar() {
   const { t } = useTranslation()
   const { user, logout } = useAuth()
   const location = useLocation()
   const firstName = user?.name?.split(' ')[0] || t('shell.topbar.there')
-  const route = routeLabels[location.pathname]
+  const route = routeLabels[location.pathname] ?? routeFor(location.pathname)
   const openPalette = useOpenPalette()
   const mobileNav = useMobileNav()
 
@@ -237,7 +257,7 @@ function NewMenu() {
         >
           <NewMenuItem icon={ClipboardList} label={t('shell.newMenu.value')} hint={t('shell.newMenu.valueHint')} onClick={() => go(`/disclosure-editor/${lastFramework}?view=spreadsheet`)} />
           <NewMenuItem icon={Paperclip} label={t('shell.newMenu.evidence')} hint={t('shell.newMenu.evidenceHint')} onClick={() => go('/data/evidence?upload=1')} />
-          <NewMenuItem icon={UserCog} label={t('shell.newMenu.assignment')} hint={t('shell.newMenu.assignmentHint')} onClick={() => go('/data?action=bulk-assign')} />
+          <NewMenuItem icon={UserCog} label={t('shell.newMenu.assignment')} hint={t('shell.newMenu.assignmentHint')} onClick={() => go('/admin/assignments?action=bulk-assign')} />
           <NewMenuItem icon={FileText} label={t('shell.newMenu.report')} hint={t('shell.newMenu.reportHint')} onClick={() => go('/reports?action=new-report')} />
           <NewMenuItem icon={Sparkles} label={t('shell.newMenu.aiNarrative')} hint={t('shell.newMenu.aiNarrativeHint')} onClick={() => go('/reports/ai')} />
           <div className="border-t border-[var(--border-subtle)] my-1" />
@@ -320,7 +340,7 @@ function LanguageSwitcher() {
               key={l.code}
               role="menuitem"
               type="button"
-              onClick={() => { void i18n.changeLanguage(l.code); setOpen(false) }}
+              onClick={() => { void setUiLanguage(l.code); setOpen(false) }}
               className={`block w-full text-left px-2 py-1.5 text-[12.5px] rounded hover:bg-[var(--bg-tertiary)] ${i18n.language === l.code ? 'font-semibold text-[var(--color-brand)]' : 'text-[var(--text-secondary)]'}`}
             >
               {l.label}

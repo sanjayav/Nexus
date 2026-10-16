@@ -71,11 +71,11 @@ export function LinkedDataPanel({
 
   return (
     <div className="surface-paper overflow-hidden">
-      <div className="p-6">
+      <div className="p-5">
         <div className="flex items-start justify-between mb-3 gap-3">
           <div className="flex items-center gap-2">
             <Link2 className="w-4 h-4 text-[var(--color-brand)]" />
-            <span className="kicker !mb-0">{t('components.linked.title')}</span>
+            <h3 className="text-small font-semibold text-[var(--text-primary)]">{t('components.linked.title')}</h3>
           </div>
           <span className="text-caption text-[var(--text-tertiary)] font-mono">{data.concept_key}</span>
         </div>
@@ -83,13 +83,13 @@ export function LinkedDataPanel({
         {(derivedFrom || isOverridden) && (
           <div className="flex items-center gap-2 mb-3 flex-wrap">
             {derivedFrom && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 h-7 rounded-full bg-[var(--accent-teal-subtle)] text-[var(--color-brand-strong)] text-caption font-semibold">
+              <span className="nx-pill" data-tone="brand">
                 <Link2 className="w-3 h-3" />
                 {t('components.linked.autoFilled')}
               </span>
             )}
             {isOverridden && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 h-7 rounded-full bg-amber-100 text-amber-800 text-caption font-semibold">
+              <span className="nx-pill" data-tone="warning">
                 <AlertTriangle className="w-3 h-3" />
                 {t('components.linked.overridden')}
               </span>
@@ -97,7 +97,7 @@ export function LinkedDataPanel({
           </div>
         )}
 
-        <p className="text-[12px] text-[var(--text-tertiary)] mb-3 leading-relaxed">
+        <p className="text-caption text-[var(--text-secondary)] mb-3">
           <Trans i18nKey="components.linked.appearsIn" values={{ count: peers.length + 1 }} components={{ b: <strong className="text-[var(--text-primary)]" /> }} />
         </p>
 
@@ -107,14 +107,14 @@ export function LinkedDataPanel({
               <button
                 type="button"
                 onClick={() => onPeerClick?.(p)}
-                className="w-full flex items-center justify-between gap-3 px-3 h-10 rounded-[8px] border border-[var(--border-subtle)] bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] transition-colors text-left"
+                className="w-full flex items-center justify-between gap-3 px-3 min-h-[40px] py-1.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] transition-colors text-left"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="inline-flex items-center justify-center px-2 h-6 rounded-[6px] bg-[var(--bg-tertiary)] text-micro font-bold uppercase tracking-[0.06em] text-[var(--text-secondary)]">
+                  <span className="inline-flex items-center justify-center px-2 h-6 rounded-[var(--radius-xs)] bg-[var(--bg-tertiary)] text-caption font-semibold text-[var(--text-secondary)] whitespace-nowrap flex-shrink-0">
                     {frameworkLabel(p.framework_id)}
                   </span>
-                  <span className="text-[12px] font-mono text-[var(--text-secondary)]">{p.gri_code}</span>
-                  <span className="text-[12px] text-[var(--text-primary)] truncate">{itemLabel(p, i18n.language)}</span>
+                  <span className="text-caption font-mono text-[var(--text-secondary)] flex-shrink-0">{p.gri_code}</span>
+                  <span className="text-small text-[var(--text-primary)] truncate">{itemLabel(p, i18n.language)}</span>
                 </div>
                 <ExternalLink className="w-3.5 h-3.5 text-[var(--text-tertiary)] flex-shrink-0" />
               </button>

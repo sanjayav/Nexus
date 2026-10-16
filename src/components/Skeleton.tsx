@@ -99,10 +99,24 @@ export function SkeletonTable({
   )
 }
 
-export function SkeletonLedger({ items = 4, className = '' }: { items?: number; className?: string }) {
+const LEDGER_COLS: Record<number, string> = {
+  1: 'md:grid-cols-1',
+  2: 'md:grid-cols-2',
+  3: 'md:grid-cols-3',
+  4: 'md:grid-cols-4',
+  5: 'md:grid-cols-5',
+  6: 'md:grid-cols-6',
+}
+
+/**
+ * Placeholder for a StatLedger strip. `cols` sets the desktop column count
+ * (defaults to `items`, capped at 6 — matching StatLedger); mobile is 2-up.
+ */
+export function SkeletonLedger({ items = 4, cols, className = '' }: { items?: number; cols?: number; className?: string }) {
+  const n = Math.min(Math.max(cols ?? items, 1), 6)
   return (
     <div className={`surface-paper overflow-hidden ${className}`} aria-hidden>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-[var(--border-subtle)]">
+      <div className={`grid grid-cols-2 ${LEDGER_COLS[n]} gap-px bg-[var(--border-subtle)]`}>
         {Array.from({ length: items }).map((_, i) => (
           <div key={i} className="bg-[var(--bg-primary)] px-5 py-5 space-y-3">
             <Skeleton className="h-2.5 w-20" />

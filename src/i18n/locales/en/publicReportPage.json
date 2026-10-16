@@ -3,8 +3,8 @@
   "unavailable": "Report no longer available.",
   "print": "Print",
   "assured": "Assured",
-  "reportTitle": "{{org}} sustainability report",
-  "meta": "Period: {{period}} ({{year}}) · Framework: {{framework}} · Published {{date}}",
+  "reportTitle": "Sustainability report · {{period}}",
+  "meta": "Version {{version}} · published {{date}}",
   "quantitative": "Quantitative disclosures",
   "narrative": "Narrative disclosures",
   "show": "Show",
@@ -18,7 +18,11 @@
   "errors": {
     "title": "Unable to load report",
     "invalidPassword": "Invalid password",
-    "loadFailed": "Failed to load report"
+    "loadFailed": "Failed to load report",
+    "body": "The report service didn't respond. Nothing is wrong with the link itself; try again in a moment.",
+    "goneTitle": "This link is no longer active",
+    "goneBody": "The publisher revoked this link or it expired. Ask them for a new one.",
+    "notFoundBody": "This link doesn't match a published report. Check that you copied the whole link."
   },
   "table": {
     "code": "Code",
@@ -28,7 +32,8 @@
   },
   "anchored": {
     "title": "Blockchain anchored",
-    "body": "This report's content hash is anchored to Bitcoin via OpenTimestamps."
+    "body": "This report's SHA-256 fingerprint is anchored to Bitcoin via OpenTimestamps. Anyone can confirm the file hasn't changed since it was published.",
+    "pill": "Hash-anchored"
   },
   "opinion": {
     "limited": "limited",
@@ -43,6 +48,17 @@
     "isaeClose": ", {{reference}})",
     "close": ")",
     "publishedBy": "Published by {{name}} · SHA-256 {{hash}}…",
-    "poweredBy": "Powered by Aeiforo"
+    "poweredBy": "Powered by Aeiforo",
+    "publishedByName": "Published by {{name}}"
+  },
+  "chip": "Published report",
+  "assuredBy": "Assured by {{firm}}",
+  "notAssured": "Not independently assured",
+  "verifyCta": "Verify this report",
+  "noSections": "No approved disclosures in this report",
+  "noSectionsBody": "The publisher hasn't included any approved figures or narratives in this version.",
+  "integrity": {
+    "title": "Integrity",
+    "notAnchored": "This report's SHA-256 fingerprint is stored on the platform. An external timestamp hasn't been recorded yet."
   }
 }

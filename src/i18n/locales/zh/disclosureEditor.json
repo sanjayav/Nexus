@@ -9,7 +9,11 @@
     "retry": "重试",
     "emptyTitle": "暂无披露项",
     "emptyBody": "{{code}} 的问卷为空，请运行种子数据脚本进行填充。",
-    "unknownUser": "未知"
+    "unknownUser": "未知",
+    "cleared": "已清空 {{code}}",
+    "approved": "{{code}} 已批准",
+    "rejected": "{{code}} 已退回修改",
+    "actionFailed": "操作未成功"
   },
   "progress": {
     "status": {
@@ -30,7 +34,12 @@
     "reading": "阅读",
     "othersAria_other": "此房间内还有 {{count}} 位编辑者",
     "user": "用户",
-    "moreInRoom_other": "此房间内另有 {{count}} 人"
+    "moreInRoom_other": "此房间内另有 {{count}} 人",
+    "noYear": "开放报告年度后才能发布",
+    "railAria": "已完成 {{done}} / {{total}} 个单元格",
+    "legendApproved": "已批准 {{count}}",
+    "legendReview": "审核中 {{count}}",
+    "legendDraft": "已起草 {{count}}"
   },
   "tree": {
     "search": "搜索披露项…",
@@ -48,7 +57,11 @@
     "alsoAppears": "同时出现在 {{list}}",
     "listSep": "、",
     "isHere": "{{name}} 正在此处",
-    "moreHere_other": "此处另有 {{count}} 人"
+    "moreHere_other": "此处另有 {{count}} 人",
+    "kbMove": "移动",
+    "kbEdit": "编辑",
+    "kbCancel": "取消",
+    "invalid": "请输入数字，例如 1234.5"
   },
   "rel": {
     "seconds_other": "{{count}} 秒前",
@@ -64,11 +77,11 @@
   "rail": {
     "aria": "单元格详情",
     "emptyGap": "切换到文档或选择一项披露，以使用差距分析上下文。",
-    "empty": "选择一项披露以查看数据事实详情、评论和审计历史。",
+    "empty": "选择一个单元格以填报数值、上传证据并查看历史。",
     "commentsEmpty": "填写数值后即可发起讨论。",
     "tabCell": "单元格",
     "tabComments": "评论",
-    "tabGap": "差距分析",
+    "tabGap": "AI 分析",
     "uploadFailed": "上传失败",
     "submitForReview": "提交审核",
     "approve": "批准",
@@ -84,13 +97,17 @@
     "attachEvidence": "附加证据",
     "aiPipeline": "AI 提取流程",
     "extract": "从证据中提取",
-    "audit": "审计",
+    "audit": "审计记录",
     "noAudit": "暂无审计事件。",
     "system": "系统",
     "dragDrop": "将文件拖放到此处，或",
     "uploading": "正在上传…",
     "chooseFile": "选择文件",
-    "recentFiles": "最近文件"
+    "recentFiles": "最近文件",
+    "tabEntry": "填报",
+    "assignedToName": "填报人：{{name}}",
+    "factDetails": "事实详情",
+    "auditFailed": "无法加载审计记录。"
   },
   "fact": {
     "addFailed": "添加脚注失败",
@@ -151,7 +168,9 @@
     "owner": "负责人：{{role}}",
     "open": "打开",
     "qualityIssues": "质量问题",
-    "nextSteps": "建议的后续步骤"
+    "nextSteps": "建议的后续步骤",
+    "copied": "摘要已复制",
+    "copyFailed": "无法复制到剪贴板"
   },
   "mobile": {
     "tabsAria": "披露编辑器分区",
@@ -159,5 +178,26 @@
     "document": "文档",
     "details": "详情",
     "backToDocument": "返回文档"
+  },
+  "summary": {
+    "approved": "已批准",
+    "inReview": "审核中",
+    "drafted": "已起草",
+    "notStarted": "未开始",
+    "owners": "负责人",
+    "progress": "已提交或批准 {{done}} / {{total}}",
+    "nextOpen": "前往下一个未填单元格",
+    "allFilled": "本小节所有单元格均已填报。",
+    "hint": "选择一个单元格以填报数值、上传证据并查看历史。",
+    "wholeFramework": "全部披露项"
+  },
+  "publish": {
+    "title": "发布 {{framework}} FY{{year}}？",
+    "body": "发布将生成报告并锚定其哈希值，且无法撤销——如需更正须发布新版本。",
+    "ready": "已提交或批准 {{done}} / {{total}} 个单元格",
+    "approved_other": "{{count}} 个已批准数值",
+    "inReview_other": "{{count}} 个数值仍在审核中",
+    "done": "报告已发布",
+    "failed": "发布失败"
   }
 }

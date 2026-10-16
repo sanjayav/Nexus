@@ -54,7 +54,8 @@
     "gri3033WaterRecycledAnd": "GRI 303-3 — water recycled and reused",
     "gri3035WaterConsumptionPer": "GRI 303-5 — water consumption per unit of production",
     "gri3064WasteDivertedFrom": "GRI 306-4 — waste diverted from disposal",
-    "gri2011HumanCapitalROI": "GRI 201-1 — Human Capital ROI"
+    "gri2011HumanCapitalROI": "GRI 201-1 — Human Capital ROI",
+    "chinaGridEFMEENBS": "China grid EF: MEE/NBS 2023 (published 2025-12-31) — https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html"
   },
   "registry": {
     "scope-1-fuel": {
@@ -123,6 +124,42 @@
             "ppa-solar": {
               "label": "Corporate PPA — solar",
               "note": "Lifecycle EF after PPA"
+            },
+            "cn-location": {
+              "label": "China — national average (location-based)",
+              "note": "MEE/NBS 2023 (published 2025-12-31) — 0.5306 kgCO2e/kWh · https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html"
+            },
+            "cn-market": {
+              "label": "China — market-based (residual)",
+              "note": "MEE/NBS 2023 (published 2025-12-31) — 0.6096 kgCO2e/kWh · https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html"
+            },
+            "cn-north": {
+              "label": "China — North grid",
+              "note": "MEE/NBS 2023 (published 2025-12-31) — 0.6361 kgCO2e/kWh · https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html"
+            },
+            "cn-northeast": {
+              "label": "China — Northeast grid",
+              "note": "MEE/NBS 2023 (published 2025-12-31) — 0.5122 kgCO2e/kWh · https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html"
+            },
+            "cn-east": {
+              "label": "China — East grid",
+              "note": "MEE/NBS 2023 (published 2025-12-31) — 0.5500 kgCO2e/kWh · https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html"
+            },
+            "cn-central": {
+              "label": "China — Central grid",
+              "note": "MEE/NBS 2023 (published 2025-12-31) — 0.5271 kgCO2e/kWh · https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html"
+            },
+            "cn-northwest": {
+              "label": "China — Northwest grid",
+              "note": "MEE/NBS 2023 (published 2025-12-31) — 0.5543 kgCO2e/kWh · https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html"
+            },
+            "cn-south": {
+              "label": "China — South grid",
+              "note": "MEE/NBS 2023 (published 2025-12-31) — 0.4042 kgCO2e/kWh · https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html"
+            },
+            "cn-southwest": {
+              "label": "China — Southwest grid",
+              "note": "MEE/NBS 2023 (published 2025-12-31) — 0.2472 kgCO2e/kWh · https://www.mee.gov.cn/xxgk2018/xxgk/xxgk01/202512/t20251231_1139517.html"
             }
           }
         },
@@ -294,5 +331,98 @@
         }
       }
     }
+  },
+  "hub": {
+    "ledgerLabel": "Calculator coverage",
+    "kpiCalculators": "Calculators",
+    "kpiLineItems": "Line items covered",
+    "kpiGap": "Coverage gaps",
+    "kpiGapHint": "Calculator mode without a formula",
+    "kpiGapNone": "Every calculator line item has a formula",
+    "noneTitle": "No calculators apply yet",
+    "noneBody": "None of your questionnaire line items match a registered calculator. Open the GRI tree to check entry modes.",
+    "noMatchBody": "Try a GRI code such as 305-2, or a word from the line item.",
+    "clearSearch": "Clear search",
+    "shown_one": "{{count}} calculator",
+    "shown_other": "{{count}} calculators",
+    "inputs": "Inputs",
+    "open": "Open calculator",
+    "gapTitle_one": "{{count}} line item has no formula yet",
+    "gapTitle_other": "{{count}} line items have no formula yet",
+    "gapBody": "Marked as Calculator mode in the questionnaire, but no typed formula is registered. Enter these values manually for now.",
+    "moreTitle": "More calculators",
+    "scope3Title": "Scope 3 calculators",
+    "scope3Body": "All 15 GHG Protocol categories",
+    "pcafTitle": "PCAF financed emissions",
+    "pcafBody": "Portfolio attribution and data quality"
+  },
+  "form": {
+    "required": "required",
+    "fixFields": "Check the highlighted fields.",
+    "requiredError": "Enter a value.",
+    "positive": "Enter a number greater than 0.",
+    "number": "Enter a number.",
+    "chooseOption": "Choose an option."
+  },
+  "factors": {
+    "sources": {
+      "meeNbs": "MEE / NBS",
+      "mee": "MEE",
+      "gbt": "GB/T 32150",
+      "iea": "IEA",
+      "defra": "DEFRA",
+      "ipcc": "IPCC",
+      "epa": "US EPA"
+    },
+    "regions": {
+      "CN": "China national grid",
+      "CN_NORTH": "North China grid",
+      "CN_NORTHEAST": "Northeast grid",
+      "CN_EAST": "East China grid",
+      "CN_CENTRAL": "Central China grid",
+      "CN_NORTHWEST": "Northwest grid",
+      "CN_SOUTH": "China Southern grid",
+      "CN_SOUTHWEST": "Southwest grid",
+      "GLOBAL": "Global default",
+      "GB": "United Kingdom",
+      "UK": "United Kingdom",
+      "US": "United States",
+      "EU": "European Union",
+      "IN": "India",
+      "JP": "Japan",
+      "AU": "Australia",
+      "CA": "Canada",
+      "DE": "Germany",
+      "FR": "France",
+      "HK": "Hong Kong SAR",
+      "APAC": "Asia Pacific"
+    },
+    "basis": {
+      "location": "Location-based",
+      "market": "Market-based residual",
+      "fossil": "Fossil-fuel power only"
+    },
+    "cnGridTitle": "China grid factors",
+    "cnGridSubtitle": "Preferred for your region · Scope 2 electricity",
+    "nationalAverage": "National grid average, location-based",
+    "regionalGrids": "Regional grids",
+    "nationalMarker": "National average",
+    "notPreferred": "Not preferred",
+    "cnGridFootnote": "Published by MEE and NBS; CO₂ only. Use a regional grid factor for sites whose grid region is known.",
+    "cnEmptyTitle": "No China grid factors yet",
+    "cnEmptyBody": "Seed the MEE factor pack in setup, or add the factors in the emission factor library.",
+    "loadErrorTitle": "Couldn't load emission factors",
+    "loadErrorBody": "Nothing is shown rather than a stale factor. Try again.",
+    "openLibrary": "Emission factors",
+    "gridTitle": "Preferred grid factors",
+    "gridSubtitle": "Scope 2 electricity, by region",
+    "emptyTitle": "No preferred grid factors",
+    "emptyBody": "Add grid electricity factors in the emission factor library.",
+    "inlineError": "Grid factor unavailable.",
+    "retry": "Retry",
+    "preferredForRegion": "Preferred for your region",
+    "preferred": "Preferred",
+    "preferredGridFactor": "Preferred grid factor",
+    "useFactor": "Use this factor"
   }
 }

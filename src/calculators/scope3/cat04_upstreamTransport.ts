@@ -1,9 +1,5 @@
-import {
-  Scope3Calculator,
-  EEIO_FACTORS,
-  ILLUSTRATIVE_NOTE,
-  toNum,
-} from './index'
+import type { Scope3Calculator } from './types'
+import { EEIO_FACTORS, ILLUSTRATIVE_NOTE, toNum } from './constants'
 
 // kgCO2e per tonne-km — illustrative GLEC-style values.
 const MODE_EF: Record<string, number> = {

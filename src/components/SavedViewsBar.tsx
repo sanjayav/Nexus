@@ -210,7 +210,7 @@ function SaveDialog({ onCancel, onSave }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label={t('components.savedViews.saveView')}>
+    <div className="fixed inset-0 z-50 bg-[var(--bg-overlay)] flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label={t('components.savedViews.saveView')}>
       <form onSubmit={submit} className="surface-paper p-5 w-full max-w-md space-y-4">
         <header className="flex items-center justify-between">
           <h3 className="font-display text-[16px] font-semibold text-[var(--text-primary)]">{t('savedViews.title')}</h3>

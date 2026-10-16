@@ -1,5 +1,8 @@
+import { useEffect, useRef } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { popVariants, transition } from '../../motion/tokens'
 
 interface KeyboardShortcutsProps {
   open: boolean
@@ -20,48 +23,60 @@ const SHORTCUTS: { keys: string[]; label: string }[] = [
 
 export default function KeyboardShortcuts({ open, onClose }: KeyboardShortcutsProps) {
   const { t } = useTranslation()
-  if (!open) return null
+  const closeRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (open) closeRef.current?.focus()
+  }, [open])
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="kbd-title"
-      onClick={onClose}
-    >
-      <div
-        className="card-premium max-w-md w-full p-5 sm:p-6"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="flex items-start justify-between mb-4">
-          <h2 id="kbd-title" className="h-section text-[var(--text-primary)]">{t('tasks.shortcuts.title')}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-7 h-7 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)]"
-            aria-label={t('common.close')}
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          key="kbd"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[var(--bg-overlay)] backdrop-blur-[2px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="kbd-title"
+          onClick={onClose}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, transition: transition.fast }}
+          exit={{ opacity: 0, transition: transition.fast }}
+        >
+          <motion.div
+            className="surface-raised max-w-md w-full p-5 sm:p-6"
+            onClick={e => e.stopPropagation()}
+            variants={popVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
           >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-        <ul className="space-y-2">
-          {SHORTCUTS.map(s => (
-            <li key={s.label} className="flex items-center justify-between gap-3 py-1">
-              <span className="text-[length:var(--text-sm)] text-[var(--text-secondary)]">{t(s.label)}</span>
-              <span className="flex items-center gap-1">
-                {s.keys.map(k => (
-                  <kbd
-                    key={k}
-                    className="font-mono text-caption font-semibold px-2 py-1 rounded border border-[var(--border-subtle)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] min-w-[24px] text-center"
-                  >
-                    {k}
-                  </kbd>
-                ))}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
+            <div className="flex items-start justify-between mb-4">
+              <h2 id="kbd-title" className="type-h3 text-[var(--text-primary)]">{t('tasks.shortcuts.title')}</h2>
+              <button
+                ref={closeRef}
+                type="button"
+                onClick={onClose}
+                className="w-9 h-9 -mr-1.5 -mt-1.5 rounded-[var(--radius-sm)] hover:bg-[var(--bg-hover)] flex items-center justify-center text-[var(--text-secondary)]"
+                aria-label={t('common.close')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <ul className="divide-y divide-[var(--border-subtle)]">
+              {SHORTCUTS.map(s => (
+                <li key={s.label} className="flex items-center justify-between gap-3 py-2">
+                  <span className="type-small text-[var(--text-secondary)]">{t(s.label)}</span>
+                  <span className="flex items-center gap-1">
+                    {s.keys.map(k => (
+                      <kbd key={k} className="kbd min-w-[28px] text-center">{k}</kbd>
+                    ))}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }

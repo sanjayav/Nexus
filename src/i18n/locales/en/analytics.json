@@ -15,7 +15,8 @@
       "strong": "Strong",
       "improving": "Improving",
       "needsWork": "Needs work",
-      "composite": "composite · 0–100"
+      "composite": "composite · 0–100",
+      "aria": "Data quality index {{score}} of 100 — {{label}}"
     },
     "components": {
       "completeness": {
@@ -38,7 +39,8 @@
         "label": "Variance pass",
         "hint": "{{variancePass}}/{{approvedNum}} within ±20% YoY"
       }
-    }
+    },
+    "weight": "Weight {{pct}}%"
   },
   "pathway": {
     "kicker": "Pathway",
@@ -54,7 +56,7 @@
       "disclosure": "Disclosure",
       "prior": "Prior",
       "current": "Current",
-      "delta": "Δ vs prior",
+      "delta": "Change vs prior",
       "assessment": "Assessment"
     },
     "fy": "FY{{year}}",
@@ -88,18 +90,23 @@
     },
     "perYear": "{{unit}}/yr",
     "behindWarning": "Currently {{gap}} above the linear pathway. Need to abate {{abatement}} {{unit}} per year to close the gap.",
-    "manageLink": "Manage target + scope coverage →"
+    "manageLink": "Manage targets",
+    "allScopes": "All scopes",
+    "noActuals": "Awaiting actuals",
+    "perYearSuffix": " per year"
   },
   "emissions": {
     "title": "Emissions by plant × scope",
     "empty": "No approved GRI 305 figures yet. Once plants submit and you approve Scope 1/2/3 data, this decomposition populates.",
     "scope1": "Scope 1",
     "scope2": "Scope 2",
-    "scope3": "Scope 3"
+    "scope3": "Scope 3",
+    "subtitle": "Approved GRI 305 figures, tCO₂e",
+    "footnote": "Stacked from approved Scope 1, 2 and 3 values for each plant and office."
   },
   "plant": {
     "title": "Plant scorecard",
-    "rollup": "Rollup →",
+    "rollup": "Group roll-up",
     "empty": "No plants yet. Add them via Onboarding.",
     "columns": {
       "plant": "Plant",
@@ -107,15 +114,74 @@
       "complete": "Complete",
       "reject": "Reject",
       "overdue": "Overdue",
-      "days": "Days"
+      "days": "Avg. cycle"
     },
-    "daysValue": "{{days}}d"
+    "daysValue": "{{days}}d",
+    "complete": "{{pct}}% approved"
   },
   "materiality": {
     "title": "Material topic coverage",
-    "manage": "Manage →",
+    "manage": "Manage topics",
     "empty": "No material topics declared yet. Run a GRI 3 materiality assessment.",
     "unassigned_one": "{{count}} GRI code not yet assigned",
-    "unassigned_other": "{{count}} GRI codes not yet assigned"
+    "unassigned_other": "{{count}} GRI codes not yet assigned",
+    "approvedOf": "{{approved}}/{{total}} approved"
+  },
+  "error": {
+    "title": "Analytics couldn't load",
+    "body": "We couldn't fetch your organisation's data. Nothing has been lost — try again."
+  },
+  "ledger": {
+    "aria": "Analytics summary",
+    "dqi": "Data quality index",
+    "approved": "Approved figures",
+    "ofTotal": "of {{total}} assignments",
+    "gap": "Gap to pathway",
+    "noTarget": "No target set",
+    "abovePathway": "Above pathway — behind",
+    "belowPathway": "Below pathway — on track",
+    "variance": "Variance flags",
+    "varianceHint_one": "> ±20% of {{count}} figure",
+    "varianceHint_other": "> ±20% of {{count}} figures",
+    "topics": "Material topics covered",
+    "topicsHint": "Fully assigned",
+    "noData": "Awaiting approved data"
+  },
+  "unlock": {
+    "title": "Unlock more analytics",
+    "body": "Each step lights up a panel on this page with your own data.",
+    "progress": "{{done}} of {{total}} unlocked",
+    "unlocked": "Unlocked",
+    "items": {
+      "target": {
+        "title": "Set a climate target",
+        "body": "Adds the target-gap pathway."
+      },
+      "emissions": {
+        "title": "Approve Scope 1–3 figures",
+        "body": "Adds emissions by plant and scope."
+      },
+      "variance": {
+        "title": "Approve numeric figures",
+        "body": "Adds the year-over-year investigator."
+      },
+      "materiality": {
+        "title": "Run a materiality assessment",
+        "body": "Adds material topic coverage."
+      }
+    }
+  },
+  "targetChart": {
+    "actual": "Actual",
+    "pathway": "Pathway",
+    "target": "Target {{year}}",
+    "above": "+{{value}} {{unit}} above pathway",
+    "below": "{{value}} {{unit}} below pathway",
+    "fy": "FY{{year}}"
+  },
+  "scopes": {
+    "s1": "Scope 1",
+    "s2": "Scope 2",
+    "s3": "Scope 3"
   }
 }

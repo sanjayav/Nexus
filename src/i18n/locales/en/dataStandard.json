@@ -1,19 +1,25 @@
 {
   "header": {
-    "eyebrow": "Data Governance",
-    "title": "ESG Data Standard",
-    "subtitle": "One company-wide definition, one calculation method, one cadence, one ownership chain per disclosure. This is how comparability is enforced across plants."
+    "eyebrow": "Data governance",
+    "title": "ESG data standard",
+    "subtitle": "One company-wide definition, calculation method, cadence and ownership chain per disclosure — how comparability is enforced across every plant."
   },
+  "framework": "Framework",
   "loadFailed": "Load failed",
+  "errorTitle": "The data standard didn't load",
+  "emptyTitle": "No data standard for {{code}} yet",
+  "emptyBody": "Definitions, methods and owners appear here once the framework's disclosures are assigned.",
   "stats": {
     "disclosures": "Disclosures",
     "definitions": "Definitions on file",
     "ofTotal": "{{n}} of {{total}}",
-    "calcMethods": "Calc methods",
-    "ownershipChains": "Ownership chains"
+    "calcMethods": "Calculation methods",
+    "ownershipChains": "Ownership chains",
+    "completeChains": "{{n}} of {{total}} fully assigned"
   },
-  "searchPlaceholder": "Search by code, line item, or definition…",
-  "allCadences": "All cadences",
+  "searchPlaceholder": "Search code, disclosure or definition…",
+  "cadenceAria": "Filter by cadence",
+  "allCadences": "All",
   "cadence": {
     "daily": "Daily",
     "monthly": "Monthly",
@@ -21,10 +27,10 @@
     "annual": "Annual"
   },
   "catalog": {
-    "kicker": "Catalog",
+    "kicker": "Catalogue",
     "title_one": "{{count}} disclosure · {{code}}",
     "title_other": "{{count}} disclosures · {{code}}",
-    "subtitle": "Click any row to open the full definition, calculation method, and ownership chain."
+    "subtitle": "Open a row for its definition, calculation method and ownership chain."
   },
   "otherSection": "Other",
   "sectionCount_one": "{{count}} disclosure",
@@ -32,23 +38,27 @@
   "row": {
     "definition": "Definition",
     "method": "Method",
+    "noDefinition": "No definition",
+    "noMethod": "No method",
     "canonicalDefinition": "Canonical definition",
-    "calcMethod": "Calculation method"
+    "calcMethod": "Calculation method",
+    "noDefinitionBody": "No canonical definition yet. Plants may interpret this disclosure differently until one is agreed.",
+    "noMethodBody": "No calculation method recorded yet."
   },
   "chain": {
     "title": "Ownership chain",
     "dataOwner": "Data owner",
     "reviewer": "Reviewer",
     "approver": "Approver",
-    "unassigned": "unassigned",
+    "unassigned": "Unassigned",
     "note": "Submissions route through each role in order. Every transition is hash-chained for audit."
   },
   "roles": {
-    "plant_manager": "Plant Manager",
-    "subsidiary_lead": "Subsidiary Lead",
-    "group_sustainability_officer": "Group SO",
-    "data_contributor": "Data Contributor",
-    "narrative_owner": "Narrative Owner",
-    "platform_admin": "Admin"
+    "plant_manager": "Plant manager",
+    "subsidiary_lead": "Subsidiary lead",
+    "group_sustainability_officer": "Group sustainability officer",
+    "data_contributor": "Data contributor",
+    "narrative_owner": "Narrative owner",
+    "platform_admin": "Administrator"
   }
 }

@@ -1,32 +1,64 @@
 {
   "eyebrow": "Group rollup",
-  "title": "Plant data · cumulative group totals",
-  "intro": "Every plant enters its own figure. Subsidiary rolls up plants (equity-weighted). Group rolls up subsidiaries. The final approved group value is what flows into the GRI report.",
-  "searchPlaceholder": "Find GRI line item…",
+  "title": "Group consolidation",
+  "intro": "Each plant reports its own figure. Subsidiaries consolidate their plants by equity share, and the group consolidates its subsidiaries. The approved group value is what flows into the report.",
+  "searchPlaceholder": "Find a disclosure…",
+  "pickerAria": "Disclosure to consolidate",
   "hasPlantData": "Has plant data",
   "unit": "Unit: {{unit}}",
   "groupTotal": "Group total",
+  "noValueYet": "No submitted values yet",
   "chips": {
     "approved": "Approved",
     "inReview": "In review",
     "outstanding": "Outstanding"
   },
-  "approvedOf": "{{approved}}/{{assigned}} approved",
+  "approvedOf": "{{approved}} of {{assigned}} approved",
   "readyForReport": "Ready for report",
-  "pickQuestion": "Pick a question to see its rollup",
-  "pickHint": "Use the list on the left to select a GRI line item.",
+  "pickQuestion": "Choose a disclosure to see its consolidation",
+  "pickHint": "Pick a disclosure from the list to see how each entity rolls up into the group total.",
   "fullyApproved": {
-    "title": "This line item is fully approved",
-    "body": "The rolled-up group value will populate directly into the next GRI report.",
-    "cta": "Go to report"
+    "title": "Every entity is approved for this disclosure",
+    "body": "The consolidated group value will populate the next report.",
+    "cta": "Go to reports"
   },
   "entityType": {
-    "group": "group",
-    "business_unit": "business unit",
-    "subsidiary": "subsidiary",
-    "plant": "plant",
-    "office": "office"
+    "group": "Group",
+    "business_unit": "Business unit",
+    "subsidiary": "Subsidiary",
+    "plant": "Plant",
+    "office": "Office"
   },
   "equity": "{{equity}}% equity",
-  "noData": "No data"
+  "noData": "No data",
+  "errorTitle": "The consolidation didn't load",
+  "empty": {
+    "noEntitiesTitle": "No organisation structure yet",
+    "noEntitiesBody": "Add the group, subsidiaries and plants first; consolidation follows the entity tree.",
+    "noEntitiesCta": "Set up organisation",
+    "noQuestionsTitle": "No {{code}} disclosures to consolidate",
+    "noQuestionsBody": "Enable the framework and assign its disclosures to see group totals here."
+  },
+  "scope": {
+    "s1": "Scope 1",
+    "s2": "Scope 2",
+    "s3": "Scope 3",
+    "title": "Consolidated emissions by scope",
+    "subtitle": "Group total · {{unit}} · equity-weighted",
+    "emptyTitle": "No scope figures submitted yet",
+    "emptyBody": "Totals appear once plants submit Scope 1, 2 or 3 values.",
+    "footnote": "Includes submitted, reviewed and approved values. Select a bar to open that disclosure."
+  },
+  "table": {
+    "aria": "Consolidation by entity",
+    "entity": "Entity",
+    "reported": "Reported",
+    "consolidated": "Consolidated",
+    "share": "Share of group",
+    "approval": "Approval",
+    "collapse": "Collapse {{name}}",
+    "expand": "Expand {{name}}",
+    "footnote": "Reported is the entity's own figure; consolidated adds its children and applies the equity share. Exact values — no rounding.",
+    "notAssigned": "Not assigned"
+  }
 }

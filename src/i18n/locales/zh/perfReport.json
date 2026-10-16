@@ -1,12 +1,5 @@
 {
-  "eyebrow": "报告",
   "title": "可持续发展绩效数据",
-  "subtitleTail": "。年份列为动态生成；导入新年度即可追加一列。",
-  "jargon": {
-    "gri": "全球报告倡议组织（GRI）——应用最广泛的可持续发展报告标准。GRI Standards 2021 涵盖经济、环境和社会议题，并设有具体披露项（例如 305-1 = 直接温室气体排放）。",
-    "ifrsS1S2": "IFRS 可持续披露准则——由国际可持续准则理事会（ISSB）发布。S1 涵盖可持续相关财务信息的一般披露要求；S2 专门针对气候相关风险与机遇。",
-    "sasb": "可持续发展会计准则委员会（SASB）——面向投资者决策有用信息的行业特定指标。现已与 ISSB 一同并入 IFRS 基金会。"
-  },
   "actions": {
     "downloadTemplate": "下载 Excel 模板",
     "addYear": "添加报告年度"
@@ -14,7 +7,9 @@
   "summary": {
     "added_one": "已添加 {{year}} 年度列 · 已填充 {{count}} 项指标",
     "added_other": "已添加 {{year}} 年度列 · 已填充 {{count}} 项指标",
-    "unmatched": "文件中有 {{count}} 行未匹配到任何指标。示例：{{examples}}"
+    "unmatched": "文件中有 {{count}} 行未匹配到任何指标。示例：{{examples}}",
+    "sep": "、",
+    "dismiss": "关闭"
   },
   "cover": {
     "intro": "报告期 1 月 1 日至 12 月 31 日的运营绩效，涵盖 Demo Co 持股 50% 以上的公司及 Polymers JV Ltd.。本报告依据",
@@ -26,40 +21,62 @@
       "ifrsS1": "可持续相关财务信息披露一般要求——由 ISSB 发布、以投资者为先的可持续发展报告基准。",
       "ifrsS2": "气候相关披露——就气候风险、机遇、情景分析及范围一/范围二/范围三排放的报告提出具体要求。",
       "sasb": "可持续发展会计准则委员会——面向投资者相关性设计的行业特定 KPI（例如化工、石油与天然气）。"
-    }
-  },
-  "accent": {
-    "financial_capital": "财务资本",
-    "manufacture_capital": "制造资本",
-    "human_capital": "人力资本",
-    "social_capital": "社会资本",
-    "natural_capital": "自然资本",
-    "jv": "合资企业"
+    },
+    "title": "可持续发展绩效数据",
+    "period": "{{from}}–{{to}} 财年 · 共 {{count}} 个报告年度"
   },
   "table": {
     "requiredData": "所需数据",
     "unit": "单位",
     "male": "男性",
     "female": "女性",
-    "na": "不适用"
+    "na": "不适用",
+    "gri": "GRI"
   },
   "modal": {
     "kicker": "追加",
     "title": "添加报告年度",
     "description": "上传包含该年度数值的 Excel。每一行按 <mono>id</mono>（或按 <mono>GRI</mono> + <mono>Required Data</mono>）匹配到现有指标，未匹配的行将被标记。",
     "year": "年度",
-    "drop": "拖放 FY{{year}} 的 Excel 文件",
+    "drop": "拖放 {{year}} 财年的 Excel 文件",
     "dropHint": "请使用已下载的模板——<mono>id</mono> 列为匹配键",
-    "generateSample": "或生成 {{year}} 年度示例数据（演示）",
+    "generateSample": "或生成 {{year}} 财年示例数据（演示）",
     "noSheets": "工作簿中没有工作表",
-    "parseFailed": "Excel 解析失败"
+    "parseFailed": "Excel 解析失败",
+    "parsing": "正在读取工作簿…",
+    "yearExists": "{{year}} 财年已有数据列，导入将覆盖其数值。"
   },
   "capitals": {
     "financial_capital": "财务资本",
     "manufacture_capital": "制造资本",
     "human_capital": "人力资本",
     "social_relationship_capital": "社会与关系资本",
-    "natural_capital": "自然资本"
+    "natural_capital": "自然资本",
+    "emissions": "排放",
+    "energy": "能源",
+    "water": "水资源",
+    "waste": "废弃物",
+    "diversity": "多元化",
+    "health_safety": "健康与安全",
+    "anti_corruption": "反腐败",
+    "governance": "治理",
+    "environment": "环境",
+    "environmental": "环境",
+    "social": "社会",
+    "universal": "通用",
+    "general": "一般",
+    "climate_change": "气候变化",
+    "climate": "气候",
+    "pollution": "污染",
+    "biodiversity": "生物多样性",
+    "employment": "雇佣",
+    "training": "培训",
+    "community": "社区",
+    "supply_chain": "供应链",
+    "economic": "经济",
+    "strategy": "战略",
+    "risk_management": "风险管理",
+    "metrics_and_targets": "指标与目标"
   },
   "subsections": {
     "direct_economic_value_generated": "直接产生的经济价值",
@@ -95,7 +112,27 @@
     "spills": "泄漏",
     "operational_eco_efficiency": "运营生态效率",
     "product_stewardship": "产品责任管理",
-    "hazardous_substances": "有害物质"
+    "hazardous_substances": "有害物质",
+    "emissions": "排放",
+    "diversity": "多元化",
+    "anti_corruption": "反腐败",
+    "governance": "治理",
+    "environment": "环境",
+    "environmental": "环境",
+    "social": "社会",
+    "universal": "通用",
+    "general": "一般",
+    "climate_change": "气候变化",
+    "climate": "气候",
+    "pollution": "污染",
+    "biodiversity": "生物多样性",
+    "employment": "雇佣",
+    "training": "培训",
+    "community": "社区",
+    "economic": "经济",
+    "strategy": "战略",
+    "risk_management": "风险管理",
+    "metrics_and_targets": "指标与目标"
   },
   "demo": {
     "subtitle": "可持续发展绩效数据",
@@ -314,5 +351,54 @@
       "tons_vocs": "吨 VOCs",
       "year": "年"
     }
-  }
+  },
+  "breadcrumb": {
+    "reports": "报告",
+    "here": "绩效数据"
+  },
+  "subtitle": "按已发布报告版式呈现的多年度绩效表。每个年度为一列；导入新年度即可追加一列。",
+  "contents": {
+    "title": "目录"
+  },
+  "kpi": {
+    "title": "{{year}} 财年核心指标",
+    "scope": "Demo Co 及其子公司；不含合营企业",
+    "scope12": "范围一 + 二排放",
+    "scope3": "范围三排放",
+    "energy": "能源消耗",
+    "water": "取水量",
+    "employees": "员工人数",
+    "vs": "较 {{year}} 财年",
+    "noData": "未报告数值",
+    "mlUnit": "兆升",
+    "personsUnit": "人"
+  },
+  "charts": {
+    "ghgTitle": "按范围划分的温室气体排放",
+    "ghgSubtitle": "单位：{{unit}}，按报告年度",
+    "ghgFootnote": "范围二为基于市场的排放。范围三涵盖 GRI 305-3 下报告的相关类别。",
+    "scope1": "范围一",
+    "scope2": "范围二",
+    "scope3": "范围三",
+    "mtUnit": "百万吨 CO2e",
+    "energyTitle": "能源消耗",
+    "energySubtitle": "单位：兆瓦时，直接不可再生能源与间接能源",
+    "energyFootnote": "GRI 302-1。直接能源指现场消耗的不可再生燃料。",
+    "direct": "直接",
+    "indirect": "间接",
+    "noData": "所选年度无报告数值"
+  },
+  "section": {
+    "jv": "合营企业",
+    "count_one": "{{count}} 个指标项",
+    "count_other": "{{count}} 个指标项"
+  },
+  "toast": {
+    "templateReady": "Excel 模板已下载",
+    "templateFailed": "无法生成模板"
+  },
+  "sheet": {
+    "close": "关闭"
+  },
+  "footnote": "不适用：该年度不适用或未报告。所有数字均按报告原值列示。"
 }

@@ -8,7 +8,7 @@
  *   - Edit mode: text input that accepts both raw values and `=formula`
  *     expressions. Enter / Tab commits; Esc cancels.
  *
- * Errors (#REF!, #VALUE!, #DIV/0!) render in rose with a tooltip carrying the
+ * Errors (#REF!, #VALUE!, #DIV/0!) render in the danger tone with a tooltip carrying the
  * full HyperFormula message.
  */
 import { useEffect, useRef, useState } from 'react'
@@ -97,7 +97,8 @@ export function CellReference({
           else if (e.key === 'Enter') { e.preventDefault(); commit() }
           else if (e.key === 'Tab') { commit() /* let browser advance */ }
         }}
-        className="w-full px-2 h-8 rounded-[6px] border border-[var(--color-brand)] bg-[var(--bg-primary)] text-[12px] tabular-nums font-mono focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/30"
+        aria-label={t('spreadsheet.editor')}
+        className="w-full px-2 h-9 rounded-[var(--radius-sm)] border border-[var(--color-brand)] bg-[var(--bg-primary)] text-small tabular-nums font-mono focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/30"
       />
     )
   }
@@ -126,10 +127,11 @@ export function CellReference({
           setEditing(true)
         }
       }}
-      className={`w-full text-left h-8 px-2 rounded-[6px] text-[12px] tabular-nums hover:bg-[var(--bg-secondary)] focus:bg-[var(--bg-secondary)] focus:outline-none inline-flex items-center justify-between gap-2 ${
+      className={`w-full text-left h-9 px-2 rounded-[var(--radius-sm)] text-small tabular-nums hover:bg-[var(--bg-secondary)] focus:bg-[var(--bg-secondary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)]/40 inline-flex items-center justify-between gap-2 ${
         isActive ? 'ring-1 ring-[var(--color-brand)]' : ''
-      } ${cellError ? 'text-rose-600' : 'text-[var(--text-primary)]'}`}
-      title={cellError ? cellError.message : hasFormula ? rawText : undefined}
+      } ${cellError || saveState?.state === 'error' ? 'text-[var(--status-danger)]' : 'text-[var(--text-primary)]'}`}
+      title={saveState?.state === 'error' ? saveState.message : cellError ? cellError.message : hasFormula ? rawText : undefined}
+      aria-invalid={saveState?.state === 'error' || !!cellError || undefined}
     >
       <span className={computed === null && !cellError ? 'text-[var(--text-tertiary)]' : ''}>{display}</span>
       <span className="inline-flex items-center gap-1">
@@ -137,9 +139,9 @@ export function CellReference({
           <FunctionSquare className="w-3 h-3 text-[var(--text-tertiary)]" aria-label={t('spreadsheet.formulaLower')} />
         )}
         {saveState?.state === 'saving' && <Loader2 className="w-3 h-3 animate-spin text-[var(--color-brand)]" />}
-        {saveState?.state === 'saved' && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
+        {saveState?.state === 'saved' && <CheckCircle2 className="w-3.5 h-3.5 text-[var(--status-success)]" aria-label={t('spreadsheet.saved')} />}
         {saveState?.state === 'error' && (
-          <span title={saveState.message}><AlertCircle className="w-3 h-3 text-rose-600" /></span>
+          <span title={saveState.message}><AlertCircle className="w-3.5 h-3.5 text-[var(--status-danger)]" aria-label={saveState.message} /></span>
         )}
       </span>
     </button>

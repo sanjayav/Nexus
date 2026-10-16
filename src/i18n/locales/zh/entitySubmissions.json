@@ -1,71 +1,86 @@
 {
+  "title": "实体填报",
+  "subtitle": "收集关联公司事业部、子公司及供应商提交的 Excel 或 CSV 文件，并跟踪每份填报。",
+  "uploadFile": "上传文件",
+  "tabsAria": "实体类型",
   "tabs": {
-    "intercompany": "内部公司",
+    "intercompany": "关联公司",
     "subsidiary": "子公司",
     "supplier": "供应商"
   },
-  "toastImported_other": "文件已上传并通过校验 — 成功导入 {{count}} 行数据",
-  "title": "实体提交",
-  "subtitle": "上传来自内部各事业部、子公司和供应商的 Excel 或 CSV 文件。",
-  "uploadFile": "上传文件",
+  "toastImported_one": "已导入 {{count}} 行数据",
+  "toastImported_other": "已导入 {{count}} 行数据",
+  "toastImportedSub": "{{file}} · {{entity}}",
+  "toastReverted": "已撤销 {{file}} 的导入",
   "templates": {
-    "title": "下载数据模板",
-    "subtitle": "内置校验规则的标准化 Excel/CSV 模板",
-    "emissions": "排放模板",
-    "energy": "能源数据模板",
-    "supplier": "供应商数据模板",
-    "waterWaste": "水资源与废弃物模板"
+    "title": "数据模板",
+    "subtitle": "标准列格式，一次通过校验。CSV 可在 Excel（含中文版）中直接打开。",
+    "emissions": "排放",
+    "energy": "能源",
+    "supplier": "供应商数据",
+    "waterWaste": "水与废弃物",
+    "downloaded": "已下载{{name}}模板"
   },
   "stats": {
-    "total": "提交总数",
+    "total": "填报总数",
     "complete": "已完成",
-    "pendingSubmitted": "待处理 / 已提交",
+    "pendingSubmitted": "待提交或已提交",
     "overdue": "已逾期"
   },
-  "recent": "最近上传的文件",
+  "recent": "近期上传文件",
+  "rows_one": "{{count}} 行",
   "rows_other": "{{count}} 行",
   "processed": "已处理",
+  "warnings_one": "{{count}} 条警告",
   "warnings_other": "{{count}} 条警告",
   "tableTitle": {
-    "intercompany": "内部公司提交",
-    "subsidiary": "子公司提交",
-    "supplier": "供应商提交"
+    "intercompany": "关联公司填报",
+    "subsidiary": "子公司填报",
+    "supplier": "供应商填报"
   },
+  "empty": "该实体类型暂无填报",
   "col": {
-    "entity": "实体名称",
+    "entity": "实体",
     "dataType": "数据类型",
     "period": "期间",
     "format": "格式",
     "value": "数值",
-    "submittedBy": "提交人",
-    "date": "日期"
+    "submittedBy": "填报人",
+    "date": "日期",
+    "status": "状态"
   },
   "format": {
     "raw": "原始",
     "measured": "实测",
-    "reported": "已报告",
+    "reported": "报告",
     "supplier-provided": "供应商提供"
   },
   "status": {
     "complete": "已完成",
     "submitted": "已提交",
-    "pending": "待处理",
+    "pending": "待提交",
     "overdue": "已逾期"
   },
   "modal": {
     "title": "上传数据文件",
     "formats": "支持格式：.xlsx、.xls、.csv",
-    "entity": "报告实体",
+    "entity": "填报实体",
     "selectEntity": "选择实体…",
+    "entityRequired": "请选择该文件所属的填报实体。",
+    "fileLabel": "文件",
     "drop": "将文件拖放到此处",
+    "dropHere": "松开即可上传",
     "browse": "或点击浏览",
+    "remove": "移除文件",
+    "badType": "不支持该文件类型",
     "validating": "正在校验文件结构…",
     "passed": "校验通过",
     "dataRows": "数据行",
     "valid": "有效",
     "warningsLabel": "警告",
+    "warningFound_one": "发现 {{count}} 条警告",
     "warningFound_other": "发现 {{count}} 条警告",
-    "warningDetail": "第 8 行：排放值 52,000 是历史平均值的 3 倍 — 已标记待审核",
+    "warningDetail": "第 8 行：排放值 52,000 为历史均值的 3 倍，已标记待审核。",
     "import": "导入数据"
   }
 }

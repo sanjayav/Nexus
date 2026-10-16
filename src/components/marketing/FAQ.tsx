@@ -1,6 +1,9 @@
-import { useState } from 'react'
-import { Plus, Minus } from 'lucide-react'
+import { useId, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { Reveal } from './motion'
+import { dur, ease } from '../../motion/tokens'
 
 export interface FAQItem {
   q: string
@@ -13,63 +16,72 @@ interface FAQProps {
 }
 
 /**
- * Accessible accordion. Uses native <button> semantics + aria-expanded for
- * screen readers. Single-open behaviour keeps the visual rhythm clean.
+ * Accessible accordion: native buttons with aria-expanded / aria-controls.
+ * Answers open with a height + fade; the plus turns into a cross.
+ * Two-column on desktop (heading left, questions right).
  */
 export default function FAQ({ items, heading }: FAQProps) {
   const { t } = useTranslation()
   const [openIdx, setOpenIdx] = useState<number | null>(0)
+  const baseId = useId()
 
   return (
-    <section className="py-20 sm:py-24">
-      <div className="max-w-[920px] mx-auto px-5 sm:px-8">
-        <h2
-          className="h-display text-center mb-12"
-          style={{
-            fontSize: 'clamp(1.75rem, 3.5vw, 2.25rem)',
-            color: 'var(--text-primary)',
-          }}
-        >
-          {heading ?? t('marketing.faq.heading')}
-        </h2>
+    <section className="py-20 sm:py-28">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-8 grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[0.8fr_1.2fr] gap-10 lg:gap-20">
+        <Reveal className="lg:sticky lg:top-28 self-start">
+          <h2 className="type-display" style={{ color: 'var(--text-primary)', textWrap: 'balance' }}>
+            {heading ?? t('marketing.faq.heading')}
+          </h2>
+        </Reveal>
 
-        <div className="divide-y" style={{ borderTop: '1px solid var(--border-default)', borderBottom: '1px solid var(--border-default)' }}>
+        <div style={{ borderTop: '1px solid var(--border-default)' }}>
           {items.map((item, idx) => {
             const open = openIdx === idx
+            const panelId = `${baseId}-p${idx}`
+            const btnId = `${baseId}-b${idx}`
             return (
-              <div
-                key={item.q}
-                style={{ borderBottom: idx === items.length - 1 ? 'none' : '1px solid var(--border-subtle)' }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setOpenIdx(open ? null : idx)}
-                  aria-expanded={open}
-                  className="w-full flex items-center justify-between gap-4 py-5 text-left transition-colors"
-                  style={{ color: 'var(--text-primary)' }}
-                >
-                  <span className="text-[16px] font-semibold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
-                    {item.q}
-                  </span>
-                  <span
-                    className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center"
-                    style={{
-                      background: open ? 'var(--accent-600)' : 'var(--bg-secondary)',
-                      color: open ? '#fff' : 'var(--text-secondary)',
-                    }}
-                    aria-hidden="true"
+              <div key={item.q} style={{ borderBottom: '1px solid var(--border-default)' }}>
+                <h3>
+                  <button
+                    id={btnId}
+                    type="button"
+                    onClick={() => setOpenIdx(open ? null : idx)}
+                    aria-expanded={open}
+                    aria-controls={panelId}
+                    className="w-full flex items-center justify-between gap-6 py-5 sm:py-6 text-left group"
+                    style={{ color: 'var(--text-primary)' }}
                   >
-                    {open ? <Minus className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                  </span>
-                </button>
-                {open && (
-                  <div
-                    className="pb-6 pr-12 text-[14.5px] leading-relaxed"
-                    style={{ color: 'var(--text-secondary)' }}
-                  >
-                    {item.a}
-                  </div>
-                )}
+                    <span className="type-h3 sm:text-[17px] min-w-0">{item.q}</span>
+                    <span
+                      className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-200 group-hover:bg-[var(--bg-tertiary)]"
+                      style={{
+                        background: open ? 'var(--color-brand-soft)' : 'var(--bg-secondary)',
+                        color: open ? 'var(--color-brand-strong)' : 'var(--text-secondary)',
+                      }}
+                      aria-hidden="true"
+                    >
+                      <Plus className="w-4 h-4 transition-transform duration-200" style={{ transform: open ? 'rotate(45deg)' : 'none' }} />
+                    </span>
+                  </button>
+                </h3>
+                <AnimatePresence initial={false}>
+                  {open && (
+                    <motion.div
+                      id={panelId}
+                      role="region"
+                      aria-labelledby={btnId}
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: dur.base, ease: ease.out }}
+                      className="overflow-hidden"
+                    >
+                      <p className="pb-6 pr-12 text-[15px] leading-[1.7] max-w-[680px]" style={{ color: 'var(--text-secondary)' }}>
+                        {item.a}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )
           })}

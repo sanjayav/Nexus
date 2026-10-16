@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bell, CheckCheck, Inbox } from 'lucide-react'
+import { ArrowRight, Bell, CheckCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import i18n from '../i18n'
 import { orgStore, type Notification } from '../lib/orgStore'
-import { SPRING } from './motion'
+import { spring, popVariants } from '../motion/tokens'
+import { Illustration, Skeleton } from './ui'
+import { KindIcon, relativeTime as shortTime } from './myday/notificationBits'
 
 /**
  * Notification center. Polls unread count every 30s, drops a panel on click
@@ -18,6 +20,7 @@ export default function NotificationsBell() {
   const [open, setOpen] = useState(false)
   const [notes, setNotes] = useState<Notification[]>([])
   const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState(false)
   const [focusIdx, setFocusIdx] = useState(-1)
   const navigate = useNavigate()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -36,13 +39,17 @@ export default function NotificationsBell() {
   const openPanel = async () => {
     setOpen(true)
     setLoading(true)
+    setLoadError(false)
     setFocusIdx(-1)
     try {
       // Uses the paginated /api/notifications endpoint so we can show the
       // latest 20 and link to the full inbox at /inbox.
       const res = await orgStore.inboxNotifications({ limit: 20, offset: 0 })
       setNotes(res.notifications)
-    } catch { /* silent */ }
+    } catch {
+      // Say it failed — an empty list here would read as "nothing new".
+      setLoadError(true)
+    }
     setLoading(false)
   }
 
@@ -124,14 +131,15 @@ export default function NotificationsBell() {
         aria-label={t('components.notifications.ariaUnread', { count: unread })}
         aria-haspopup="dialog"
         aria-expanded={open}
-        className="relative w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)] transition-all cursor-pointer"
+        className="relative w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)] transition-colors cursor-pointer"
         title={t('components.notifications.title')}
       >
         <Bell className="w-4 h-4" />
         {unread > 0 && (
           <motion.span
-            initial={{ scale: 0 }} animate={{ scale: 1 }} transition={SPRING}
-            className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-[var(--accent-red)] text-white text-micro font-bold rounded-full flex items-center justify-center ring-2 ring-[var(--bg-primary)] tabular-nums"
+            key={unread}
+            initial={{ scale: 0.6 }} animate={{ scale: 1 }} transition={spring.snappy}
+            className="absolute top-0 right-0 sm:-top-0.5 sm:-right-0.5 min-w-[18px] h-[18px] px-1 bg-[var(--status-danger)] text-white text-micro font-bold rounded-full flex items-center justify-center ring-2 ring-[var(--bg-primary)] tabular-nums"
           >
             {unread > 99 ? '99+' : unread}
           </motion.span>
@@ -145,65 +153,90 @@ export default function NotificationsBell() {
             role="dialog"
             aria-modal="false"
             aria-labelledby="notifications-heading"
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.15 }}
-            className="absolute right-0 top-full mt-2 w-[380px] rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-xl z-50 overflow-hidden"
+            variants={popVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            style={{ transformOrigin: 'top right' }}
+            className="fixed sm:absolute left-3 right-3 sm:left-auto sm:right-0 top-14 sm:top-full sm:mt-2 sm:w-[380px] rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] shadow-[var(--shadow-overlay,var(--shadow-raised))] z-50 overflow-hidden"
           >
             <div className="px-4 py-2.5 border-b border-[var(--border-subtle)] flex items-center justify-between">
               <div>
-                <h3 id="notifications-heading" className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('components.notifications.title')}</h3>
+                <h3 id="notifications-heading" className="type-small font-semibold text-[var(--text-primary)]">{t('components.notifications.title')}</h3>
                 <p className="text-caption text-[var(--text-tertiary)]">{t('components.notifications.unread', { count: unread })}</p>
               </div>
               {unread > 0 && (
-                <button onClick={markAll} className="text-caption font-semibold text-[var(--color-brand)] hover:underline inline-flex items-center gap-1">
+                <button type="button" onClick={markAll} className="h-8 px-2 -mr-2 rounded-[var(--radius-sm)] text-caption font-semibold text-[var(--color-brand-strong)] hover:bg-[var(--bg-hover)] inline-flex items-center gap-1">
                   <CheckCheck className="w-3 h-3" /> {t('components.notifications.markAllRead')}
                 </button>
               )}
             </div>
 
             {loading ? (
-              <div className="py-8 text-center text-[length:var(--text-xs)] text-[var(--text-tertiary)]">{t('common.loading')}</div>
+              <div className="divide-y divide-[var(--border-subtle)]" role="status" aria-busy="true">
+                <span className="sr-only">{t('common.loading')}</span>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-start gap-3 px-4 py-3">
+                    <Skeleton className="w-7 h-7 flex-shrink-0" rounded="full" />
+                    <div className="flex-1 space-y-2"><Skeleton className="h-3 w-20" /><Skeleton className="h-3.5 w-4/5" /></div>
+                  </div>
+                ))}
+              </div>
+            ) : loadError ? (
+              <div className="py-8 px-6 text-center" role="alert">
+                <Illustration name="error" size={88} className="mx-auto mb-2" />
+                <div className="type-small font-semibold text-[var(--text-primary)]">{t('ui.empty.error.title')}</div>
+                <button type="button" onClick={openPanel} className="mt-3 inline-flex items-center h-9 px-3.5 rounded-[var(--radius-md)] border border-[var(--border-default)] text-small font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)]">
+                  {t('ui.state.retry')}
+                </button>
+              </div>
             ) : notes.length === 0 ? (
-              <div className="py-10 text-center">
-                <Inbox className="w-8 h-8 mx-auto text-[var(--text-tertiary)] mb-1" />
-                <div className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)]">{t('components.notifications.emptyTitle')}</div>
+              <div className="py-8 px-6 text-center">
+                <Illustration name="inbox" size={88} className="mx-auto mb-2" />
+                <div className="type-small font-semibold text-[var(--text-primary)]">{t('components.notifications.emptyTitle')}</div>
                 <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('components.notifications.emptyBody')}</div>
               </div>
             ) : (
               <>
-                <ul className="max-h-[420px] overflow-y-auto divide-y divide-[var(--border-subtle)]">
+                <ul className="max-h-[min(420px,60vh)] overflow-y-auto divide-y divide-[var(--border-subtle)]">
                   {notes.map((n, idx) => (
-                    <li key={n.id}>
+                    <li key={n.id} className={`relative group ${!n.read_at ? 'bg-[var(--color-brand-soft)]/40' : ''}`}>
                       <button
                         ref={el => (rowRefs.current[idx] = el)}
+                        type="button"
                         onClick={() => pick(n)}
                         onFocus={() => setFocusIdx(idx)}
-                        className={`w-full text-left px-4 py-2.5 hover:bg-[var(--bg-secondary)] focus:bg-[var(--bg-secondary)] focus:outline-none transition-colors ${!n.read_at ? 'bg-[var(--color-brand-soft)]/30' : ''}`}
+                        className="w-full text-left flex items-start gap-3 pl-4 pr-4 py-3 hover:bg-[var(--bg-hover)] focus:bg-[var(--bg-hover)] focus:outline-none transition-colors"
                       >
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${!n.read_at ? 'bg-[var(--color-brand)]' : 'bg-transparent'}`} />
-                          <span className="text-micro font-bold uppercase tracking-[0.06em] text-[var(--color-brand)]">{notificationKindLabel(n.kind)}</span>
-                          <span className="ml-auto text-caption text-[var(--text-tertiary)]">{relativeTime(n.created_at)}</span>
-                          {!n.read_at && (
-                            <button
-                              onClick={(e) => markOne(n.id, e)}
-                              className="text-caption font-semibold text-[var(--color-brand)] hover:underline"
-                            >{t('components.notifications.markRead')}</button>
-                          )}
-                        </div>
-                        <div className="text-[length:var(--text-xs)] font-semibold text-[var(--text-primary)]">{n.subject}</div>
-                        {n.body && <div className="text-caption text-[var(--text-tertiary)] mt-0.5 line-clamp-2">{n.body}</div>}
+                        <span className="relative mt-0.5">
+                          <KindIcon kind={n.kind} size={28} />
+                          {!n.read_at && <span aria-hidden className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[var(--color-brand)] ring-2 ring-[var(--bg-primary)]" />}
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="flex items-baseline gap-2">
+                            <span className="text-caption font-medium text-[var(--text-tertiary)] truncate first-letter:uppercase">{notificationKindLabel(n.kind)}</span>
+                            <span className="ml-auto text-caption text-[var(--text-tertiary)] whitespace-nowrap tabular-nums">{shortTime(n.created_at)}</span>
+                          </span>
+                          <span className={`block text-small ${!n.read_at ? 'font-semibold text-[var(--text-primary)]' : 'font-medium text-[var(--text-secondary)]'}`}>{n.subject}</span>
+                          {n.body && <span className="block text-caption text-[var(--text-tertiary)] mt-0.5 line-clamp-2">{n.body}</span>}
+                        </span>
                       </button>
+                      {!n.read_at && (
+                        <button
+                          type="button"
+                          onClick={(e) => markOne(n.id, e)}
+                          className="absolute right-3 bottom-2 h-7 px-2 rounded-[var(--radius-sm)] text-caption font-semibold text-[var(--color-brand-strong)] bg-[var(--bg-primary)] border border-[var(--border-default)] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                        >{t('components.notifications.markRead')}</button>
+                      )}
                     </li>
                   ))}
                 </ul>
-                <div className="px-4 py-2 border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)]/30 text-center">
+                <div className="border-t border-[var(--border-subtle)]">
                   <button
+                    type="button"
                     onClick={() => { setOpen(false); navigate('/inbox') }}
-                    className="text-caption font-semibold text-[var(--color-brand)] hover:underline"
-                  >{t('components.notifications.viewAll')}</button>
+                    className="w-full h-11 inline-flex items-center justify-center gap-1 text-caption font-semibold text-[var(--color-brand-strong)] hover:bg-[var(--bg-hover)]"
+                  >{t('components.notifications.viewAll')} <ArrowRight className="w-3 h-3" aria-hidden /></button>
                 </div>
               </>
             )}
@@ -223,16 +256,4 @@ export function notificationKindLabel(kind: string): string {
 export function uiLocale(): string | undefined {
   const lng = i18n.language ?? 'en'
   return lng.startsWith('zh') ? 'zh-CN' : lng.startsWith('th') ? 'th-TH' : undefined
-}
-
-function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return i18n.t('components.time.justNow')
-  if (mins < 60) return i18n.t('components.time.minutesShort', { count: mins })
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return i18n.t('components.time.hoursShort', { count: hrs })
-  const days = Math.floor(hrs / 24)
-  if (days < 7) return i18n.t('components.time.daysShort', { count: days })
-  return new Date(iso).toLocaleDateString(uiLocale())
 }

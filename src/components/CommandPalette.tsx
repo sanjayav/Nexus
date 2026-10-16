@@ -7,7 +7,7 @@ import {
   Search, ArrowRight, LayoutDashboard, Inbox, CheckSquare, Shield, Network,
   FileText, BookMarked, BarChart3, AlertTriangle, Calculator as CalcIcon,
   BookOpen, Atom, Sparkles, Calendar, Scale, UserCog, Users, ShieldCheck,
-  Settings, LogOut, Moon, Plus, Clock, Library,
+  Settings, LogOut, Moon, Plus, Clock, Library, Leaf,
 } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { resolveRole, type PlatformRole } from '../lib/rbac'
@@ -42,13 +42,14 @@ const COMMANDS: Command[] = [
   { id: 'nav-scope3',     label: 'Scope 3 calculators', icon: CalcIcon,      group: 'Go to', run: c => c.navigate('/calculators/scope3') },
   { id: 'nav-ef',         label: 'EF library',        icon: Library,         group: 'Go to', roles: ['platform_admin','group_sustainability_officer'], run: c => c.navigate('/admin/ef-library') },
   { id: 'nav-gwp',        label: 'GWP values',        icon: Atom,            group: 'Go to', roles: ['platform_admin','group_sustainability_officer'], run: c => c.navigate('/admin/gwp') },
-  { id: 'nav-setup',      label: 'Setup guide',       icon: Sparkles,        group: 'Go to', roles: ['platform_admin'], run: c => c.navigate('/onboarding') },
-  { id: 'nav-welcome',    label: 'Welcome wizard',    icon: Sparkles,        group: 'Go to', roles: ['platform_admin'], run: c => c.navigate('/welcome') },
+  { id: 'nav-setup',      label: 'Setup guide',       icon: Sparkles,        group: 'Go to', roles: ['platform_admin'], run: c => c.navigate('/welcome'), keywords: 'checklist onboarding 设置 清单' },
+  { id: 'nav-welcome',    label: 'Guided setup',      icon: Sparkles,        group: 'Go to', roles: ['platform_admin'], run: c => c.navigate('/welcome'), keywords: 'welcome wizard sample data 欢迎 向导 示例数据' },
   { id: 'nav-periods',    label: 'Reporting cycles',  icon: Calendar,        group: 'Go to', roles: ['platform_admin','group_sustainability_officer'], run: c => c.navigate('/admin/periods') },
   { id: 'nav-mat',        label: 'Materiality',       icon: Scale,           group: 'Go to', roles: ['platform_admin','group_sustainability_officer','subsidiary_lead','narrative_owner'], run: c => c.navigate('/admin/materiality') },
   { id: 'nav-assign',     label: 'Assignments',       icon: UserCog,         group: 'Go to', roles: ['platform_admin','group_sustainability_officer','subsidiary_lead'], run: c => c.navigate('/admin/assignments') },
   { id: 'nav-users',      label: 'Users & roles',     icon: Users,           group: 'Go to', roles: ['platform_admin'], run: c => c.navigate('/admin/users') },
   { id: 'nav-audit',      label: 'Audit trail',       icon: ShieldCheck,     group: 'Go to', roles: ['platform_admin','group_sustainability_officer','auditor'], run: c => c.navigate('/admin/audit') },
+  { id: 'nav-green',      label: 'Green power & credits', icon: Leaf,        group: 'Go to', roles: ['platform_admin','group_sustainability_officer','subsidiary_lead','plant_manager'], run: c => c.navigate('/data/green-ledger'), keywords: 'renewable certificates gec i-rec ccer carbon credits 绿证 绿电 碳信用' },
   { id: 'nav-connectors', label: 'Connectors',        icon: Network,         group: 'Go to', roles: ['platform_admin','group_sustainability_officer'], run: c => c.navigate('/data/connectors') },
   { id: 'nav-inbox',      label: 'Inbox',             icon: Inbox,           group: 'Go to', run: c => c.navigate('/inbox') },
   { id: 'nav-scim',       label: 'SCIM tokens',       icon: Shield,          group: 'Go to', roles: ['platform_admin'], run: c => c.navigate('/admin/scim'), keywords: 'identity provisioning' },

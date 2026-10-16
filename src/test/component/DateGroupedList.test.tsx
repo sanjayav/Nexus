@@ -70,20 +70,34 @@ describe('<DateGroupedList />', () => {
       mkAssignment({ id: 'a-none',     due_date: null    }),
     ]
     renderWith(tasks)
-    expect(screen.getByText('Overdue')).toBeInTheDocument()
-    expect(screen.getByText('Due today')).toBeInTheDocument()
-    expect(screen.getByText('This week')).toBeInTheDocument()
-    expect(screen.getByText('This month')).toBeInTheDocument()
-    expect(screen.getByText('Later')).toBeInTheDocument()
-    expect(screen.getByText('No deadline')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Overdue' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Due today' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'This week' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'This month' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Later' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'No deadline' })).toBeInTheDocument()
   })
 
   it('hides empty groups', () => {
     const tasks = [mkAssignment({ id: 'a-1', due_date: iso(2) })]
     renderWith(tasks)
-    expect(screen.getByText('This week')).toBeInTheDocument()
-    expect(screen.queryByText('Overdue')).not.toBeInTheDocument()
-    expect(screen.queryByText('Later')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'This week' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Overdue' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Later' })).not.toBeInTheDocument()
+  })
+
+  it('puts submitted and approved work in their own groups, with Approved collapsed', () => {
+    const tasks = [
+      mkAssignment({ id: 'a-sub', due_date: iso(0), status: 'submitted' }),
+      mkAssignment({ id: 'a-ok', due_date: iso(1), status: 'approved', line_item: 'Approved item' }),
+      mkAssignment({ id: 'a-back', due_date: iso(5), status: 'rejected' }),
+    ]
+    renderWith(tasks)
+    expect(screen.queryByRole('heading', { name: 'Due today' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Submitted · awaiting review' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Sent back to you' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Approved' })).toBeInTheDocument()
+    expect(screen.queryByText('Approved item')).not.toBeInTheDocument()
   })
 
   it('renders empty when assignments list is empty', () => {

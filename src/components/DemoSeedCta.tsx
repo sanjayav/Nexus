@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { Database, ArrowRight, X } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { ArrowRight, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import DemoSeedModal from './DemoSeedModal'
+import Illustration from '../design-system/illustrations/Illustration'
+import { transition } from '../motion/tokens'
 
 const DISMISS_KEY = 'aeiforo_demo_cta_dismissed_v1'
 
@@ -14,12 +16,9 @@ interface Props {
 }
 
 /**
- * Single-purpose "Load demo setup" CTA for fresh, admin-owned workspaces.
- *
- * Replaces the previous auto-onboarding pattern (which forced the SetupGuide
- * widget on every empty workspace). Now the dashboard stays clean by default
- * and the admin opts in by clicking this card; that fires the DemoSeedModal,
- * seeds demo sample data, and the rest of the app fills in.
+ * "Start with sample data" — the sample-data branch of the one guided setup.
+ * Shown only on an empty, admin-owned workspace; opens DemoSeedModal.
+ * The /welcome hub renders the same offer inline, so pages rarely need this.
  */
 export default function DemoSeedCta({ show, onCompleted }: Props) {
   const { t } = useTranslation()
@@ -37,65 +36,35 @@ export default function DemoSeedCta({ show, onCompleted }: Props) {
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0, y: -6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="surface-paper p-5 relative overflow-hidden"
-      >
-        <div
-          aria-hidden
-          className="absolute -top-20 -right-20 w-[280px] h-[280px] rounded-full pointer-events-none opacity-50"
-          style={{ background: 'radial-gradient(circle, rgba(4, 120, 87,0.10), transparent 70%)' }}
-        />
-
-        <button
-          onClick={dismiss}
-          className="absolute top-3 right-3 w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer z-10"
-          title={t('components.demoCta.hide')}
-        >
-          <X className="w-3.5 h-3.5" />
+      <motion.section initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={transition.base} className="surface-paper relative overflow-hidden p-5">
+        <button type="button" onClick={dismiss} aria-label={t('onboarding.demo.hide')} title={t('onboarding.demo.hide')}
+          className="absolute top-2 right-2 w-10 h-10 rounded-[var(--radius-md)] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]">
+          <X className="w-4 h-4" aria-hidden />
         </button>
-
-        <div className="relative flex items-start gap-4">
-          <div
-            className="w-11 h-11 rounded-[12px] flex items-center justify-center text-white flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg, #047857, #2E7D32)' }}
-          >
-            <Database className="w-5 h-5" />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 pr-8">
+          <Illustration name="setup" size={88} className="flex-shrink-0 -my-2" />
+          <div className="flex-1 min-w-0">
+            <h2 className="type-h3 text-[var(--text-primary)]">{t('onboarding.demo.ctaTitle')}</h2>
+            <p className="text-small text-[var(--text-secondary)] mt-1 max-w-2xl">{t('onboarding.demo.ctaBody')}</p>
           </div>
-
-          <div className="flex-1 min-w-0 pr-8">
-            <div className="kicker mb-1">{t('components.demoCta.kicker')}</div>
-            <h2 className="font-display text-[18px] font-bold text-[var(--text-primary)] tracking-[-0.005em]">
-              {t('components.demoCta.title')}
-            </h2>
-            <p className="text-[12.5px] text-[var(--text-secondary)] mt-1 leading-relaxed max-w-2xl">
-              {t('components.demoCta.body')}
-            </p>
-          </div>
-
-          <button
-            onClick={() => setOpen(true)}
-            className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[10px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[13px] font-semibold hover:bg-[var(--btn-primary-bg-hover)] active:scale-[0.98] transition-all cursor-pointer flex-shrink-0"
-          >
-            <Database className="w-3.5 h-3.5" />
-            {t('components.demoCta.cta')}
-            <ArrowRight className="w-3.5 h-3.5" />
+          <button type="button" onClick={() => setOpen(true)}
+            className="inline-flex items-center gap-1.5 min-h-[40px] px-4 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-small font-semibold hover:bg-[var(--btn-primary-bg-hover)] transition-colors duration-micro flex-shrink-0 self-start sm:self-center">
+            {t('onboarding.demo.load')} <ArrowRight className="w-4 h-4" aria-hidden />
           </button>
         </div>
-      </motion.div>
+      </motion.section>
 
-      {open && (
-        <DemoSeedModal
-          onClose={() => setOpen(false)}
-          // After a successful seed the card naturally hides because `show`
-          // becomes false (workspace now has entities). We deliberately do
-          // NOT persist a dismissal here — otherwise resetting the workspace
-          // back to empty wouldn't bring the CTA back.
-          onCompleted={() => onCompleted()}
-        />
-      )}
+      <AnimatePresence>
+        {open && (
+          <DemoSeedModal
+            onClose={() => setOpen(false)}
+            // After a successful seed the card hides because `show` becomes
+            // false (the workspace now has entities). No dismissal is stored,
+            // so resetting the workspace brings the offer back.
+            onCompleted={() => onCompleted()}
+          />
+        )}
+      </AnimatePresence>
     </>
   )
 }

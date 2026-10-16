@@ -1,4 +1,5 @@
-import { Scope3Calculator, toNum } from './index'
+import type { Scope3Calculator } from './types'
+import { toNum } from './constants'
 
 // kgCO2e per tonne waste — illustrative EPA WARM-style values.
 const WASTE_EF: Record<string, Record<string, number>> = {

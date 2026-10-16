@@ -1,0 +1,35 @@
+{
+  "title": "监管日历",
+  "subtitle": "您所在市场的披露截止日期",
+  "fullCalendar": "完整日历",
+  "appliesToYou": "与您相关",
+  "otherDeadlines": "其他截止日期",
+  "showMore_other": "再显示 {{count}} 项",
+  "showLess": "收起",
+  "perMeeNotice": "按生态环境部年度通知",
+  "perNotice": "以年度通知为准",
+  "dueToday": "今天截止",
+  "dueIn_other": "{{count}} 天后截止",
+  "overdue_other": "已逾期 {{count}} 天",
+  "region": {
+    "CN": "中国内地",
+    "HK": "中国香港",
+    "EU": "欧盟",
+    "GLOBAL": "全球"
+  },
+  "kind": {
+    "mandatory": "强制",
+    "voluntary": "自愿"
+  },
+  "openFramework": "打开{{name}}",
+  "empty": {
+    "title": "您所在市场暂无截止日期",
+    "body": "在设置中配置市场与框架后，截止日期将显示在此处。"
+  },
+  "error": {
+    "title": "无法加载监管日历",
+    "body": "截止日期加载完成前不会显示，请勿据此判断没有待办事项。"
+  },
+  "regionFilter": "按地区筛选",
+  "allRegions": "全部地区"
+}

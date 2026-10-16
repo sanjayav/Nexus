@@ -1,53 +1,59 @@
 {
+  "title": "Entity submissions",
+  "subtitle": "Collect Excel or CSV files from intercompany divisions, subsidiaries and suppliers, and track every submission.",
+  "uploadFile": "Upload file",
+  "tabsAria": "Entity type",
   "tabs": {
     "intercompany": "Intercompany",
     "subsidiary": "Subsidiary",
     "supplier": "Supplier"
   },
-  "toastImported_one": "File uploaded and validated — {{count}} data row imported successfully",
-  "toastImported_other": "File uploaded and validated — {{count}} data rows imported successfully",
-  "title": "Entity Submissions",
-  "subtitle": "Upload Excel or CSV files from intercompany divisions, subsidiaries, and suppliers.",
-  "uploadFile": "Upload File",
+  "toastImported_one": "{{count}} data row imported",
+  "toastImported_other": "{{count}} data rows imported",
+  "toastImportedSub": "{{file}} · {{entity}}",
+  "toastReverted": "Import of {{file}} undone",
   "templates": {
-    "title": "Download Data Templates",
-    "subtitle": "Standardised Excel/CSV templates with built-in validation rules",
-    "emissions": "Emissions Template",
-    "energy": "Energy Data Template",
-    "supplier": "Supplier Data Template",
-    "waterWaste": "Water & Waste Template"
+    "title": "Data templates",
+    "subtitle": "Standard column layouts that pass validation first time. CSV opens cleanly in Excel, including Chinese Excel.",
+    "emissions": "Emissions",
+    "energy": "Energy",
+    "supplier": "Supplier data",
+    "waterWaste": "Water and waste",
+    "downloaded": "{{name}} template downloaded"
   },
   "stats": {
-    "total": "Total Submissions",
+    "total": "Submissions",
     "complete": "Complete",
-    "pendingSubmitted": "Pending / Submitted",
+    "pendingSubmitted": "Pending or submitted",
     "overdue": "Overdue"
   },
-  "recent": "Recent File Uploads",
+  "recent": "Recent file uploads",
   "rows_one": "{{count}} row",
   "rows_other": "{{count}} rows",
   "processed": "Processed",
   "warnings_one": "{{count}} warning",
   "warnings_other": "{{count}} warnings",
   "tableTitle": {
-    "intercompany": "Intercompany Submissions",
-    "subsidiary": "Subsidiary Submissions",
-    "supplier": "Supplier Submissions"
+    "intercompany": "Intercompany submissions",
+    "subsidiary": "Subsidiary submissions",
+    "supplier": "Supplier submissions"
   },
+  "empty": "No submissions for this entity type yet",
   "col": {
-    "entity": "Entity Name",
-    "dataType": "Data Type",
+    "entity": "Entity",
+    "dataType": "Data type",
     "period": "Period",
     "format": "Format",
     "value": "Value",
-    "submittedBy": "Submitted By",
-    "date": "Date"
+    "submittedBy": "Submitted by",
+    "date": "Date",
+    "status": "Status"
   },
   "format": {
-    "raw": "raw",
-    "measured": "measured",
-    "reported": "reported",
-    "supplier-provided": "supplier-provided"
+    "raw": "Raw",
+    "measured": "Measured",
+    "reported": "Reported",
+    "supplier-provided": "Supplier-provided"
   },
   "status": {
     "complete": "Complete",
@@ -56,20 +62,25 @@
     "overdue": "Overdue"
   },
   "modal": {
-    "title": "Upload Data File",
+    "title": "Upload data file",
     "formats": "Accepted formats: .xlsx, .xls, .csv",
-    "entity": "Reporting Entity",
-    "selectEntity": "Select entity...",
-    "drop": "Drag & drop your file here",
+    "entity": "Reporting entity",
+    "selectEntity": "Select an entity…",
+    "entityRequired": "Choose the entity this file reports for.",
+    "fileLabel": "File",
+    "drop": "Drop your file here",
+    "dropHere": "Release to upload",
     "browse": "or click to browse",
-    "validating": "Validating file structure...",
+    "remove": "Remove file",
+    "badType": "That file type isn't supported",
+    "validating": "Validating file structure…",
     "passed": "Validation passed",
-    "dataRows": "Data Rows",
+    "dataRows": "Data rows",
     "valid": "Valid",
     "warningsLabel": "Warnings",
     "warningFound_one": "{{count}} warning found",
     "warningFound_other": "{{count}} warnings found",
-    "warningDetail": "Row 8: Emissions value 52,000 is 3x above historical average — flagged for review",
-    "import": "Import Data"
+    "warningDetail": "Row 8: emissions value 52,000 is 3× the historical average — flagged for review.",
+    "import": "Import data"
   }
 }

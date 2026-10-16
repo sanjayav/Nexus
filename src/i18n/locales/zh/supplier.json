@@ -1,23 +1,24 @@
 {
-  "title": "原始数据与供应商数据导入",
-  "subtitle": "上传 Excel/CSV 文件，自动映射列，并在导入前预览和校验数据。",
+  "title": "原始数据与供应商数据上传",
+  "subtitle": "上传 Excel 或 CSV 文件，将列映射至温室气体数据模型，预览并校验后再入库。",
   "uploadFile": "上传文件",
+  "stepsAria": "上传步骤",
   "tabs": {
     "upload": "上传",
-    "preview": "数据预览",
+    "preview": "预览",
     "mapping": "列映射",
-    "pipeline": "处理流程",
+    "pipeline": "校验",
     "history": "历史记录"
   },
   "fields": {
     "skip": "— 跳过此列 —",
-    "facility_name": "设施 / 场址名称",
-    "source_id": "排放源 ID",
+    "facility_name": "设施／场址名称",
+    "source_id": "排放源编号",
     "source_type": "排放源类型",
-    "emission_scope": "排放范围（1/2/3）",
+    "emission_scope": "排放范围（一／二／三）",
     "activity_type": "活动类型",
     "fuel_type": "燃料类型",
-    "quantity": "数量 / 金额",
+    "quantity": "数量／用量",
     "unit": "单位",
     "emission_factor": "排放因子",
     "ef_unit": "排放因子单位",
@@ -27,10 +28,10 @@
     "n2o": "N₂O（吨）",
     "reporting_period": "报告期",
     "date": "日期",
-    "country": "国家/地区",
+    "country": "国家／地区",
     "region": "区域",
     "supplier_name": "供应商名称",
-    "notes": "备注 / 说明"
+    "notes": "备注／说明"
   },
   "empty": {
     "noFile": "尚未上传文件",
@@ -38,10 +39,35 @@
     "noMapData": "暂无可映射的数据",
     "noMapDataSub": "请先上传文件，再进行列映射。",
     "goToUpload": "前往上传",
-    "noPipeline": "处理流程中暂无数据",
-    "noPipelineSub": "上传文件并确认列映射后，即可运行校验流程。",
-    "noHistory": "暂无上传记录",
-    "noHistorySub": "您上传的文件将显示在此处。"
+    "noPipeline": "暂无待校验数据",
+    "noPipelineSub": "上传文件并确认列映射后即可运行校验。",
+    "noHistory": "本次会话暂无上传",
+    "noHistorySub": "上传的文件会显示在此处，可随时重新打开。"
+  },
+  "errors": {
+    "xls": {
+      "title": "无法读取旧版 .xls 文件",
+      "body": "请在 Excel 中另存为 .xlsx 或 .csv 后重新上传。"
+    },
+    "tooLarge": {
+      "title": "文件过大",
+      "body": "上限为 {{max}}。请按场址或期间拆分工作簿后分别上传。"
+    },
+    "empty": {
+      "title": "未找到数据行",
+      "body": "首行应为列标题，其后至少有一行数据。"
+    },
+    "unreadable": {
+      "title": "无法读取该文件",
+      "body": "文件可能已加密或损坏。请另存为 .xlsx 或 .csv 后重试。"
+    }
+  },
+  "toast": {
+    "parsed": "已解析 {{file}}，{{rows}} 行可供预览",
+    "autoMapped": "已自动映射 {{mapped}}／{{total}} 列",
+    "cleared_one": "已清除上传记录（{{count}} 个文件）",
+    "cleared_other": "已清除上传记录（{{count}} 个文件）",
+    "mapped": "映射已确认：{{mapped}} 列，已校验 {{rows}} 行"
   },
   "upload": {
     "kpiFiles": "已上传文件",
@@ -51,29 +77,29 @@
     "statusParsing": "解析中…",
     "statusReady": "就绪",
     "parsingFile": "正在解析文件…",
-    "dropHere": "将文件拖放到此处",
+    "dropHere": "松开即可上传",
     "dropPrompt": "将 Excel 或 CSV 文件拖放到此处",
     "or": "或",
-    "clickToBrowse": "点击浏览",
-    "limits": "文件大小上限：50 MB。数据仅在您的浏览器本地解析，不会发送至服务器。",
-    "channelsTitle": "全部输入渠道",
+    "clickToBrowse": "浏览本地文件",
+    "limits": "文件上限 50 MB。文件在浏览器本地解析，确认映射前不会保存。中文 Excel 导出的 GB18030／GBK 编码 CSV 可自动识别。",
+    "channelsTitle": "输入渠道",
     "active": "已启用",
     "comingSoon": "即将推出",
     "channels": {
       "manual": {
         "title": "手动录入",
-        "desc": "基于表单的录入，实时校验"
+        "desc": "表单录入，实时校验"
       },
       "csv": {
-        "title": "CSV / Excel 上传",
-        "desc": "已启用——批量上传并自动映射"
+        "title": "CSV／Excel 上传",
+        "desc": "批量上传，自动映射列"
       },
       "api": {
         "title": "API 连接器",
-        "desc": "ERP 及公用事业供应商实时数据"
+        "desc": "ERP 与公用事业供应商实时数据"
       },
       "ocr": {
-        "title": "文档解析 / OCR",
+        "title": "文档解析／OCR",
         "desc": "AI 自动提取发票与账单数据"
       }
     }
@@ -81,6 +107,7 @@
   "preview": {
     "sheets_one": "{{count}} 个工作表",
     "sheets_other": "{{count}} 个工作表",
+    "sheetsAria": "工作表",
     "rowsUnit": "行",
     "columnsUnit": "列",
     "mapColumns": "映射列",
@@ -88,6 +115,8 @@
     "searchPlaceholder": "搜索行…",
     "matches_one": "{{n}} 条匹配",
     "matches_other": "{{n}} 条匹配",
+    "prev": "上一页",
+    "next": "下一页",
     "colFallback": "第 {{n}} 列",
     "showing": "显示第 {{from}}–{{to}} 行，共 {{total}} 行",
     "columns_one": "{{count}} 列",
@@ -97,48 +126,57 @@
   },
   "mapping": {
     "title": "列映射",
-    "help": "将源数据列映射至温室气体数据模型，自动映射的列已高亮显示。",
-    "columnsMapped": "列已映射",
+    "help": "为每个源列选择温室气体数据模型中的字段。可识别的表头已自动映射。",
+    "columnsMapped": "已映射列",
     "sourceColumn": "源列",
-    "targetField": "目标字段",
+    "targetField": "映射至",
     "sample": "示例",
-    "unmappedNote": "未映射的列将作为原始数据保存，可稍后再映射。",
-    "confirm": "确认映射并运行流程"
+    "duplicate": "“{{column}}”也映射到此字段，每个字段只能对应一个源列。",
+    "noMeasure": "尚未映射数量或 CO₂e 列，数据行将缺少可计算的数值。",
+    "unmappedNote": "跳过的列将作为原始数据保留，可稍后再映射。",
+    "back": "返回预览",
+    "blocked": "请至少映射一列，并先解决重复字段",
+    "confirm": "确认映射并校验"
   },
   "pipeline": {
     "stages": {
       "schema": {
         "title": "结构校验",
-        "desc": "数据类型检查、必填字段、格式合规"
+        "desc": "数据类型、必填字段、格式"
       },
       "semantic": {
         "title": "语义校验",
-        "desc": "跨字段逻辑、单位一致性、阈值防护"
+        "desc": "跨字段逻辑、单位一致性、阈值"
       },
       "enrichment": {
         "title": "数据补充",
-        "desc": "自动填充排放因子、添加元数据、单位标准化"
+        "desc": "排放因子、元数据、单位标准化"
       },
       "routing": {
         "title": "计算器路由",
-        "desc": "路由至对应的 GHG Protocol 计算器模块"
+        "desc": "路由至对应的 GHG Protocol 计算器"
       },
       "repository": {
         "title": "数据仓库",
-        "desc": "不可篡改存储，审计轨迹锚定于区块链"
+        "desc": "不可篡改存储，审计轨迹已锚定"
       }
     },
-    "mappingRequired": "需要完成列映射",
-    "mappingRequiredSub": "请前往「列映射」标签页确认映射后再运行流程。",
-    "title": "五阶段校验流程",
-    "processing": "正在处理来自 {{file}} 的 {{rows}} 行数据",
-    "awaiting": "等待数据输入与列映射",
-    "complete": "流程已完成",
-    "flagged": "{{count}} 条已标记",
-    "throughput": "流程吞吐量",
-    "rowsPassed": "{{passed}} / {{total}} 行已通过",
+    "mappingRequired": "请先确认列映射",
+    "mappingRequiredSub": "校验基于已映射的列运行，确认映射后即可开始。",
+    "title": "五阶段校验",
+    "processing": "来自 {{file}} 的 {{rows}} 行",
+    "awaiting": "等待数据与已确认的映射",
+    "complete": "校验完成",
+    "flagged_one": "已标记 {{n}} 条",
+    "flagged_other": "已标记 {{n}} 条",
+    "throughput": "通过情况",
+    "rowsPassed": "{{passed}}／{{total}} 行通过",
+    "passed": "已通过",
+    "flaggedLabel": "已标记待审核",
     "exceptions": "校验异常",
-    "total": "共 {{count}} 条",
+    "total_one": "{{n}} 条异常",
+    "total_other": "{{n}} 条异常",
+    "noExceptions": "无异常，所有数据行均已通过",
     "schemaFailures": "结构校验失败（类型不匹配、缺少必填字段）",
     "schemaBadge": "结构",
     "semanticFailures": "语义校验失败（超出阈值、单位不一致）",
@@ -147,6 +185,7 @@
   "history": {
     "filesThisSession_one": "本次会话已上传 {{count}} 个文件",
     "filesThisSession_other": "本次会话已上传 {{count}} 个文件",
-    "clearAll": "全部清除"
+    "clearAll": "清除记录",
+    "current": "当前"
   }
 }

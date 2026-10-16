@@ -144,6 +144,27 @@
     "noRows": "No rows match the current filters.",
     "crossFramework": "Cross-framework",
     "footer_one": "{{framework}} · {{count}} row. Virtualization is disabled at this scale — re-enable when the grid exceeds ~500 visible rows.",
-    "footer_other": "{{framework}} · {{count}} rows. Virtualization is disabled at this scale — re-enable when the grid exceeds ~500 visible rows."
+    "footer_other": "{{framework}} · {{count}} rows. Virtualization is disabled at this scale — re-enable when the grid exceeds ~500 visible rows.",
+    "notANumber": "“{{text}}” isn't a number or a formula (start formulas with =)",
+    "bulkSkipped_one": "{{count}} selected row was already past this step",
+    "bulkSkipped_other": "{{count}} selected rows were already past this step",
+    "bulkNothing": "None of the selected rows could move to that status",
+    "bulkFailed_one": "{{count}} row couldn't be updated",
+    "bulkFailed_other": "{{count}} rows couldn't be updated",
+    "bulkSubmitted_one": "{{count}} value submitted for review",
+    "bulkSubmitted_other": "{{count}} values submitted for review",
+    "bulkApproved_one": "{{count}} value approved",
+    "bulkApproved_other": "{{count}} values approved",
+    "noAssignmentsTitle": "Nothing assigned to you yet",
+    "noAssignmentsBody": "Values you're assigned appear here as rows you can fill in like a spreadsheet.",
+    "openTasks": "Open My Tasks"
+  },
+  "page": {
+    "backToTasks": "My tasks",
+    "contextAria": "Disclosure context",
+    "entity": "Entity",
+    "due": "Due",
+    "yearErrorTitle": "Couldn't check the reporting year",
+    "yearNoneWithAssignment": "You can still fill in and save the value. Evidence and submission need an open reporting year."
   }
 }

@@ -20,7 +20,8 @@
     "twoDays": "~2 days",
     "fourMonths": "~4 months",
     "sixTemplates": "6 templates",
-    "inProgress": "In progress"
+    "inProgress": "In progress",
+    "anthropicMainland": "Anthropic + mainland provider"
   },
   "rows": {
     "pricingTransparency": {
@@ -64,7 +65,7 @@
     },
     "multiLlm": {
       "feature": "Multi-LLM routing",
-      "note": "Workiva claims multi-vendor LLM routing; Nexus uses Anthropic only by design."
+      "note": "Workiva claims multi-vendor LLM routing. Nexus uses Anthropic by default and, per organisation, an OpenAI-compatible mainland China provider."
     },
     "realtimeCollab": {
       "feature": "Real-time collaboration"
@@ -92,6 +93,14 @@
     },
     "selfServeTrial": {
       "feature": "Self-serve trial"
+    },
+    "chinaFrameworks": {
+      "feature": "China exchange, MOF and HKEX framework packs",
+      "note": "SSE / SZSE / BSE guidelines, MOF CSDS, HKEX ESG Code and CASS-ESG ship as framework packs. We have not assessed Workiva's coverage here."
+    },
+    "bilingualReports": {
+      "feature": "Simplified Chinese report output (PDF / Word)",
+      "note": "Not assessed for Workiva."
     }
   }
 }

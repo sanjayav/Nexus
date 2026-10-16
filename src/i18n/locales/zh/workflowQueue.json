@@ -1,39 +1,68 @@
 {
+  "eyebrow": "工作",
   "review": {
     "title": "审核队列",
     "subtitle": "子公司负责人在数据提交至集团负责人之前，逐项审核各工厂提交的数据。",
-    "reject": "退回工厂修改",
+    "reject": "退回修改",
     "pass": "提交批准"
   },
   "approval": {
     "title": "批准队列",
-    "subtitle": "可持续发展官批准已审核的数据。已批准的指标项将纳入集团汇总和 GRI 报告。",
+    "subtitle": "可持续发展官批准已审核的数据。已批准的指标项将纳入集团汇总和发布的报告。",
+    "return": "退回审核人",
     "reject": "驳回",
     "pass": "批准"
   },
   "errors": {
     "update": "无法更新：{{message}}",
-    "needComment": "请填写简短备注，说明退回修改的原因。"
+    "updateTitle": "该决定未能保存",
+    "refresh": "队列刷新失败",
+    "loadTitle": "队列未能加载",
+    "loadBody": "无法连接服务器，因此暂时无法确认待处理事项。未做任何更改。",
+    "needComment_review": "请填写备注，告知填报人需要修改的内容。",
+    "needComment_approval": "请填写备注，告知审核人需要复核的内容。",
+    "needCommentReject": "请填写备注，说明驳回原因。"
   },
-  "switchToApproval": "切换到批准队列",
-  "switchToReview": "切换到审核队列",
+  "switchToApproval": "批准队列",
+  "switchToReview": "审核队列",
+  "listAria": "队列中的事项",
+  "queueHeading": "待您处理",
+  "queueCount_other": "{{count}} 项",
+  "narrativeShort": "叙述性披露",
+  "flagged_other": "{{count}} 项预警",
   "stats": {
+    "aria": "队列概览",
     "waitingReview": "待审核",
     "waitingApproval": "待批准",
-    "alreadyReviewed": "已审核"
+    "alreadyReviewed": "已提交批准",
+    "stillInReview": "仍在审核中",
+    "flagged": "有预警",
+    "flaggedHint": "异常扫描结果"
   },
-  "queueCount": "队列 · {{count}}",
   "mode": {
     "Manual": "手动",
     "Calculator": "计算器",
     "Connector": "连接器"
   },
-  "pickRow": "请从左侧选择一行",
   "empty": {
-    "title": "队列为空",
-    "review": "没有等待负责人审核的工厂提交。",
-    "approval": "没有等待可持续发展官批准的事项。",
+    "title_review": "暂无待审核事项",
+    "title_approval": "暂无待批准事项",
+    "review": "没有等待负责人审核的工厂提交。填报人提交后会显示在这里。",
+    "approval": "没有等待可持续发展官批准的事项。审核人提交批准后会显示在这里。",
     "viewRollup": "查看集团汇总"
+  },
+  "cleared": {
+    "title": "队列已清空",
+    "body_review_other": "您已将 {{count}} 项数据提交批准。新的提交会显示在这里。",
+    "body_approval_other": "您已批准 {{count}} 项数据，现已纳入集团汇总和报告。"
+  },
+  "toast": {
+    "pass_review": "已提交批准 · {{item}}",
+    "pass_approval": "已批准 · {{item}}",
+    "return_review": "已退回 {{name}} 修改 · {{item}}",
+    "return_approval": "已退回审核 · {{item}}",
+    "reject": "已驳回并退回 {{name}} · {{item}}",
+    "undone": "已撤销决定 · {{item}}"
   },
   "detail": {
     "entity": "报告实体",
@@ -43,17 +72,32 @@
     "narrative_other": "已提交的叙述性披露（{{count}} 个字符）",
     "noNarrative": "未提交叙述性内容。",
     "value": "已提交数值",
-    "evidence_other": "已附证据（{{count}}）",
+    "vsPrior": "对比 FY{{year}} · {{value}}",
+    "evidence_other": "证据（{{count}}）",
+    "noEvidence": "未附证据。批准前请索取来源文件。",
+    "connector": "连接器",
+    "file": "文件",
     "note": "填报人备注",
-    "commentLabel": "备注（驳回时必填）",
-    "commentPlaceholderReview": "给负责人的备注（可选），退回修改时必填。",
-    "commentPlaceholderApproval": "可选，驳回时必填。"
+    "showTrend": "显示四年趋势",
+    "hideTrend": "收起四年趋势",
+    "commentPlaceholder_review": "备注：提交批准时可选，退回修改时必填",
+    "commentPlaceholder_approval": "备注：批准时可选，退回或驳回时必填"
+  },
+  "lineage": {
+    "title": "数据溯源",
+    "assigned": "由 {{by}} 指派",
+    "entered": "由 {{name}} 填报 · {{mode}}",
+    "unknownMode": "未记录填报方式",
+    "submitted": "已提交审核",
+    "reviewed": "已审核并提交批准",
+    "you_review": "您的审核",
+    "you_approval": "您的批准"
   },
   "variance": {
-    "large": "较 FY{{year}}（{{prior}}）同比变动 {{delta}}%，请在批准前核实。",
-    "normal": "较 FY{{year}} 同比变动 {{delta}}% — 处于预期范围内。",
-    "noPrior": "无上一年度数值记录，无法进行差异检查。",
+    "large": "较 FY{{year}}（{{prior}}）变动 {{delta}}，请在批准前核实。",
+    "normal": "较 FY{{year}} 变动 {{delta}}，处于预期范围内。",
+    "noPrior": "无上一年度数值记录，无法进行同比检查。",
     "noUnit": "该数值未标注单位，请在批准前与提交人确认。",
-    "title": "数据质量检查"
+    "title": "检查"
   }
 }
