@@ -1,0 +1,100 @@
+{
+  "readOnly": "仅工作区管理员可修改市场与合规设置。您可以查看当前生效的配置。",
+  "loadError": "无法加载市场设置",
+  "notSaved": "正在使用默认值",
+  "unsaved_one": "{{count}} 项更改未保存",
+  "unsaved_other": "{{count}} 项更改未保存",
+  "saveBlocked": "请先修正标红的字段再保存",
+  "toast": {
+    "saved_one": "市场设置已保存 · {{count}} 项更改",
+    "saved_other": "市场设置已保存 · {{count}} 项更改",
+    "audited": "已写入审计日志，并记录修改前后的值。",
+    "failed": "无法保存市场设置"
+  },
+  "market": {
+    "title": "市场",
+    "description": "界面语言由每位用户自行选择；市场则由整个工作区统一设定，决定框架、AI 服务商、数据托管与日历的默认值。",
+    "global": { "label": "全球", "body": "优先 GRI、ISSB、ESRS 与 CDP，使用全球 AI 服务商与托管。" },
+    "cn": { "label": "中国大陆", "body": "优先上交所 / 深交所 / 北交所指引，使用境内 AI 服务商与境内托管，并启用绿证 / CCER 台账。" },
+    "effects": {
+      "global": {
+        "language": "新用户在选择语言前默认使用英文",
+        "ai": "AI 撰写默认使用全球服务商（Anthropic），可另行指定",
+        "timezone": "未设置时区时，截止日期按 UTC 显示",
+        "calendar": "监管日历重点显示全球及欧盟截止日期"
+      },
+      "cn": {
+        "language": "新用户在选择语言前默认使用简体中文",
+        "ai": "AI 撰写默认使用境内 OpenAI 兼容服务商（通义千问 / DeepSeek），可另行指定",
+        "timezone": "未设置时区时，截止日期按 Asia/Shanghai 显示",
+        "calendar": "监管日历重点显示交易所及港交所截止日期"
+      }
+    }
+  },
+  "compliance": {
+    "title": "托管与合规",
+    "description": "审计师与监管机构关注的要点：数据存储位置、ICP 备案、等保（MLPS 2.0）级别，以及《个人信息保护法》下的数据出境依据。",
+    "mismatchTitle": "数据驻留区域不在中国大陆",
+    "mismatchBody": "中国大陆工作区通常将数据存储在境内。如数据出境，请确保下方的数据出境依据已完成备案。"
+  },
+  "locale": {
+    "title": "区域与报告日历",
+    "description": "用于截止日期、金额与监管日历。留空的字段采用市场默认值。"
+  },
+  "fields": {
+    "default": "默认（{{value}}）",
+    "residency": {
+      "label": "数据驻留区域",
+      "hint": "本工作区数据须存储的区域。修改此项不会迁移已有数据。",
+      "unset": "未设置（部署默认）",
+      "options": { "us": "美国", "eu": "欧盟", "apac": "亚太", "cn": "中国大陆" }
+    },
+    "icp": {
+      "label": "ICP 备案号",
+      "hint": "服务域名的 ICP 备案号或经营许可证编号，将显示在网站页脚。",
+      "invalid": "请使用官方格式，例如 京ICP备12345678号-1 或 沪ICP证123456号。"
+    },
+    "mlps": {
+      "label": "等保（MLPS 2.0）级别",
+      "hint": "系统已通过测评的网络安全等级保护级别。处理个人信息的 SaaS 通常为第三级。",
+      "unset": "未测评",
+      "levels": { "1": "第一级", "2": "第二级", "3": "第三级", "4": "第四级", "5": "第五级" }
+    },
+    "crossBorder": {
+      "label": "数据出境",
+      "hint": "个人信息出境的法律依据（《个人信息保护法》第三十八条及 2024 年网信办相关规定）。",
+      "unset": "未记录",
+      "options": {
+        "not_assessed": "尚未评估",
+        "no_transfer": "无数据出境：数据存储于境内",
+        "exempt": "符合 2024 年《促进和规范数据跨境流动规定》豁免情形",
+        "standard_contract": "已备案个人信息出境标准合同",
+        "certification": "已通过个人信息保护认证",
+        "security_assessment": "已通过网信办数据出境安全评估"
+      },
+      "pill": {
+        "unset": "未记录",
+        "not_assessed": "待评估",
+        "no_transfer": "境内存储",
+        "exempt": "豁免",
+        "standard_contract": "合同已备案",
+        "certification": "已认证",
+        "security_assessment": "已评估"
+      }
+    },
+    "timezone": { "label": "时区", "hint": "截止日期与监管日历按此时区计算天数。" },
+    "currency": { "label": "报告币种", "hint": "用于强度指标与财务分母。", "unset": "未设置" },
+    "fiscalYearEnd": { "label": "财年结束日", "hint": "决定报告期默认值与披露截止日期。", "month": "财年结束月份", "day": "财年结束日期" },
+    "venues": {
+      "label": "上市地",
+      "hint": "公司上市的交易所，决定重点显示哪些交易所指引与截止日期。",
+      "options": { "SSE": "上交所", "SZSE": "深交所", "BSE": "北交所", "HKEX": "港交所", "OTHER": "其他" }
+    }
+  },
+  "audit": {
+    "lastSaved": "上次保存：{{when}}",
+    "never": "尚未保存",
+    "note": "每次更改都会记入审计日志",
+    "view": "查看审计日志"
+  }
+}

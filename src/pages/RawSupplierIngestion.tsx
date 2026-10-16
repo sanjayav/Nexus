@@ -1,5 +1,8 @@
-import { useState, useRef, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useRef } from 'react'
 import ExcelJS from 'exceljs'
+import Papa from 'papaparse'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import {
   Keyboard,
   FileSpreadsheet,
@@ -14,16 +17,24 @@ import {
   CheckCircle2,
   AlertTriangle,
   ChevronRight,
-  Loader2,
-  Table2,
+  ChevronLeft,
   Columns,
   ArrowRight,
   Search,
-  ChevronLeft,
   Trash2,
   ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react'
-import { Card, Badge, Tabs } from '../design-system'
+import { Button } from '../design-system'
+import { EmptyState, StatLedger, StatusPill, notify } from '../components/ui'
+import ModuleHeader from '../components/analytics/data/ModuleHeader'
+import DropZone from '../components/analytics/data/DropZone'
+import StepNav from '../components/analytics/data/StepNav'
+import ProcessFlow from '../components/analytics/data/ProcessFlow'
+import SplitBar from '../components/analytics/data/SplitBar'
+import { decodeCsvBytes } from '../lib/csv'
+import { useFmt } from '../lib/fmt'
 
 /* ═══════════════════════════════════════════
    Types
@@ -48,6 +59,11 @@ interface ColumnMapping {
   source: string
   target: string
 }
+
+type Step = 'upload' | 'preview' | 'mapping' | 'pipeline' | 'history'
+
+const MAX_BYTES = 50 * 1024 * 1024
+const ACCEPT = '.xlsx,.csv,.tsv,.txt'
 
 /* ── Mapping target fields (GHG data model) ── */
 const TARGET_FIELDS = [
@@ -74,396 +90,405 @@ const TARGET_FIELDS = [
   { value: 'notes', label: 'Notes / Comments' },
 ]
 
-/* ── Auto-mapping heuristics ── */
+/** Display label for a target field. `value` stays the stable id; the English
+ *  label in TARGET_FIELDS is the fallback. */
+function fieldLabel(t: TFunction, value: string): string {
+  const english = TARGET_FIELDS.find((f) => f.value === value)?.label ?? value
+  return t(`supplier.fields.${value || 'skip'}`, { defaultValue: english })
+}
+
+/* ── Auto-mapping heuristics (EN + common Chinese headers) ── */
 function autoMapColumn(header: string): string {
   const h = header.toLowerCase().trim()
-  if (/facilit|site|plant|location name/.test(h)) return 'facility_name'
-  if (/source.?id/.test(h)) return 'source_id'
-  if (/source.?type|emission.?source/.test(h)) return 'source_type'
-  if (/scope/.test(h)) return 'emission_scope'
-  if (/activity.?type|activity/.test(h)) return 'activity_type'
-  if (/fuel.?type|fuel/.test(h)) return 'fuel_type'
-  if (/quantit|amount|volume|consumption/.test(h)) return 'quantity'
-  if (/^unit$|^units$|uom/.test(h)) return 'unit'
-  if (/emission.?factor|^ef$/.test(h)) return 'emission_factor'
-  if (/ef.?unit/.test(h)) return 'ef_unit'
-  if (/co2e|co₂e|total.?emission|tco2/.test(h)) return 'co2e_tonnes'
-  if (/^co2$|^co₂$|carbon.?dioxide/.test(h)) return 'co2'
-  if (/ch4|methane/.test(h)) return 'ch4'
-  if (/n2o|nitrous/.test(h)) return 'n2o'
-  if (/period|year|fy/.test(h)) return 'reporting_period'
-  if (/date|month|timestamp/.test(h)) return 'date'
-  if (/country/.test(h)) return 'country'
-  if (/region|state|province/.test(h)) return 'region'
-  if (/supplier|vendor/.test(h)) return 'supplier_name'
-  if (/note|comment|remark/.test(h)) return 'notes'
+  if (/facilit|site|plant|location name|工厂|厂区|设施|站点/.test(h)) return 'facility_name'
+  if (/source.?id|排放源编号/.test(h)) return 'source_id'
+  if (/source.?type|emission.?source|排放源/.test(h)) return 'source_type'
+  if (/scope|范围/.test(h)) return 'emission_scope'
+  if (/activity.?type|activity|活动/.test(h)) return 'activity_type'
+  if (/fuel.?type|fuel|燃料/.test(h)) return 'fuel_type'
+  if (/quantit|amount|volume|consumption|数量|用量|消耗量/.test(h)) return 'quantity'
+  if (/^unit$|^units$|uom|^单位$/.test(h)) return 'unit'
+  if (/emission.?factor|^ef$|排放因子/.test(h)) return 'emission_factor'
+  if (/ef.?unit|因子单位/.test(h)) return 'ef_unit'
+  if (/co2e|co₂e|total.?emission|tco2|二氧化碳当量|排放量/.test(h)) return 'co2e_tonnes'
+  if (/^co2$|^co₂$|carbon.?dioxide|二氧化碳/.test(h)) return 'co2'
+  if (/ch4|methane|甲烷/.test(h)) return 'ch4'
+  if (/n2o|nitrous|氧化亚氮/.test(h)) return 'n2o'
+  if (/period|year|fy|报告期|年度/.test(h)) return 'reporting_period'
+  if (/date|month|timestamp|日期|月份/.test(h)) return 'date'
+  if (/country|国家/.test(h)) return 'country'
+  if (/region|state|province|地区|省/.test(h)) return 'region'
+  if (/supplier|vendor|供应商/.test(h)) return 'supplier_name'
+  if (/note|comment|remark|备注/.test(h)) return 'notes'
   return ''
 }
 
-/* ── Pipeline stages (unchanged) ── */
+/* ── Pipeline stages ── */
 const PIPELINE_STAGES = [
-  { id: 'schema', title: 'Schema Validation', desc: 'Data type checks, required fields, format conformance', icon: ShieldCheck, accent: 'var(--accent-teal)' },
-  { id: 'semantic', title: 'Semantic Validation', desc: 'Cross-field logic, unit consistency, threshold guards', icon: Brain, accent: 'var(--accent-blue)' },
-  { id: 'enrichment', title: 'Data Enrichment', desc: 'Auto-fill emission factors, add metadata, normalise units', icon: Sparkles, accent: 'var(--accent-purple)' },
-  { id: 'routing', title: 'Calculator Routing', desc: 'Route to correct GHG Protocol calculator module', icon: Router, accent: 'var(--accent-amber)' },
-  { id: 'repository', title: 'Data Repository', desc: 'Immutable storage with blockchain-anchored audit trail', icon: Database, accent: 'var(--accent-green)' },
-]
+  { id: 'schema', icon: ShieldCheck },
+  { id: 'semantic', icon: Brain },
+  { id: 'enrichment', icon: Sparkles },
+  { id: 'routing', icon: Router },
+  { id: 'repository', icon: Database },
+] as const
 
+/* ── File parsing ── */
+class ParseError extends Error {
+  constructor(public code: 'xls' | 'tooLarge' | 'empty' | 'unreadable', detail?: string) {
+    super(detail ?? code)
+  }
+}
+
+function sheetFromGrid(name: string, grid: string[][]): ParsedSheet {
+  const headers = (grid[0] || []).map((h) => String(h).trim())
+  const rows = grid.slice(1).filter((r) => r.some((c) => c !== ''))
+  return { name, headers, rows, rowCount: rows.length, colCount: headers.length }
+}
+
+async function parseWorkbook(file: File): Promise<ParsedSheet[]> {
+  const ext = (file.name.split('.').pop() ?? '').toLowerCase()
+  if (file.size > MAX_BYTES) throw new ParseError('tooLarge')
+  if (ext === 'xls') throw new ParseError('xls')
+  const data = await file.arrayBuffer()
+
+  if (ext === 'csv' || ext === 'tsv' || ext === 'txt') {
+    // Encoding detection handles Chinese Excel's GB18030 "CSV (逗号分隔)".
+    const { text } = decodeCsvBytes(data)
+    const res = Papa.parse<string[]>(text, { skipEmptyLines: true, delimiter: ext === 'tsv' ? '\t' : '' })
+    const grid = (res.data as string[][]).map((r) => r.map((c) => String(c ?? '')))
+    return [sheetFromGrid(file.name.replace(/\.[^.]+$/, ''), grid)]
+  }
+
+  const workbook = new ExcelJS.Workbook()
+  try {
+    await workbook.xlsx.load(data)
+  } catch (e) {
+    throw new ParseError('unreadable', e instanceof Error ? e.message : String(e))
+  }
+  // Cell value coercion — everything as a string, empty cells as ''.
+  const toCell = (v: unknown): string => {
+    if (v == null) return ''
+    if (v instanceof Date) return v.toISOString()
+    if (typeof v === 'object') {
+      const obj = v as { result?: unknown; text?: unknown; richText?: { text?: unknown }[]; hyperlink?: unknown }
+      if (obj.result != null) return String(obj.result)
+      if (obj.text != null) return String(obj.text)
+      if (Array.isArray(obj.richText)) return obj.richText.map((rt) => String(rt?.text ?? '')).join('')
+      if (obj.hyperlink != null) return String(obj.hyperlink)
+    }
+    return String(v)
+  }
+  return workbook.worksheets.map((ws) => {
+    const colCount = ws.actualColumnCount || ws.columnCount || 0
+    const grid: string[][] = []
+    ws.eachRow({ includeEmpty: false }, (row) => {
+      const arr: string[] = new Array(colCount).fill('')
+      for (let i = 1; i <= colCount; i++) arr[i - 1] = toCell(row.getCell(i).value)
+      grid.push(arr)
+    })
+    return sheetFromGrid(ws.name, grid)
+  })
+}
+
+function fileSize(bytes: number, f: ReturnType<typeof useFmt>): string {
+  return bytes > 1024 * 1024 ? `${f.number(bytes / (1024 * 1024), { precision: 1 })} MB` : `${f.number(bytes / 1024, { precision: 1 })} KB`
+}
 
 /* ═══════════════════════════════════════════
-   Main Component
+   Main component
    ═══════════════════════════════════════════ */
 export default function RawSupplierIngestion() {
-  const [activeTab, setActiveTab] = useState('upload')
+  const { t } = useTranslation()
+  const f = useFmt()
+  const [step, setStep] = useState<Step>('upload')
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [activeFile, setActiveFile] = useState<UploadedFile | null>(null)
   const [activeSheetIdx, setActiveSheetIdx] = useState(0)
   const [mappings, setMappings] = useState<ColumnMapping[]>([])
   const [mappingDone, setMappingDone] = useState(false)
   const [parsing, setParsing] = useState(false)
-  const [dragOver, setDragOver] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const pickerRef = useRef<HTMLInputElement>(null)
 
-  /* ── Parse file ── */
-  const parseFile = useCallback(async (file: File) => {
-    setParsing(true)
-    try {
-      const data = await file.arrayBuffer()
-      const workbook = new ExcelJS.Workbook()
-      await workbook.xlsx.load(data)
-
-      // Cell value coercion — mirror the previous XLSX behaviour where
-      // `sheet_to_json` returned everything as a string with `defval: ''`.
-      const toCell = (v: unknown): string => {
-        if (v == null) return ''
-        if (v instanceof Date) return v.toISOString()
-        if (typeof v === 'object') {
-          // exceljs returns rich objects for formulas / hyperlinks / rich text
-          const obj = v as { result?: unknown; text?: unknown; richText?: { text?: unknown }[]; hyperlink?: unknown }
-          if (obj.result != null) return String(obj.result)
-          if (obj.text != null) return String(obj.text)
-          if (Array.isArray(obj.richText)) return obj.richText.map((rt) => String(rt?.text ?? '')).join('')
-          if (obj.hyperlink != null) return String(obj.hyperlink)
-        }
-        return String(v)
-      }
-
-      const sheets: ParsedSheet[] = workbook.worksheets.map((ws) => {
-        const name = ws.name
-        // Build a 2-D array, sized by the actual column extent.
-        const colCount = ws.actualColumnCount || ws.columnCount || 0
-        const grid: string[][] = []
-        ws.eachRow({ includeEmpty: false }, (row) => {
-          const arr: string[] = new Array(colCount).fill('')
-          for (let i = 1; i <= colCount; i++) {
-            arr[i - 1] = toCell(row.getCell(i).value)
-          }
-          grid.push(arr)
-        })
-        const headers = (grid[0] || []).map((h) => String(h))
-        const rows = grid.slice(1).filter((r) => r.some((c) => c !== ''))
-        return { name, headers, rows, rowCount: rows.length, colCount: headers.length }
-      })
-
-      const uploaded: UploadedFile = {
-        name: file.name,
-        size: file.size,
-        type: file.type || (file.name.endsWith('.csv') ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
-        sheets,
-        uploadedAt: new Date(),
-      }
-
-      setUploadedFiles((prev) => [uploaded, ...prev])
-      setActiveFile(uploaded)
-      setActiveSheetIdx(0)
-      setMappingDone(false)
-
-      // Auto-map columns
-      if (sheets.length > 0) {
-        const initialMappings = sheets[0].headers.map((h) => ({
-          source: h,
-          target: autoMapColumn(h),
-        }))
-        setMappings(initialMappings)
-      }
-
-      setActiveTab('preview')
-    } catch (err) {
-      console.error('Parse error:', err)
-    } finally {
-      setParsing(false)
-    }
+  const loadSheet = useCallback((file: UploadedFile, idx: number) => {
+    setActiveFile(file)
+    setActiveSheetIdx(idx)
+    setMappingDone(false)
+    const sheet = file.sheets[idx]
+    setMappings(sheet ? sheet.headers.map((h) => ({ source: h, target: autoMapColumn(h) })) : [])
   }, [])
 
-  /* ── Drag & drop handlers ── */
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      setDragOver(false)
-      const file = e.dataTransfer.files[0]
-      if (file) parseFile(file)
+  /* ── Parse file ── */
+  const parseFile = useCallback(
+    async (file: File) => {
+      setParsing(true)
+      try {
+        const sheets = await parseWorkbook(file)
+        const rows = sheets.reduce((a, s) => a + s.rowCount, 0)
+        if (sheets.length === 0 || rows === 0) throw new ParseError('empty')
+        const uploaded: UploadedFile = {
+          name: file.name,
+          size: file.size,
+          type: file.type || (file.name.endsWith('.csv') ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+          sheets,
+          uploadedAt: new Date(),
+        }
+        setUploadedFiles((prev) => [uploaded, ...prev])
+        const firstWithRows = Math.max(0, sheets.findIndex((s) => s.rowCount > 0))
+        loadSheet(uploaded, firstWithRows)
+        const mapped = sheets[firstWithRows].headers.filter((h) => autoMapColumn(h)).length
+        notify.success(t('supplier.toast.parsed', { file: file.name, rows: f.number(rows) }), {
+          description: t('supplier.toast.autoMapped', { mapped, total: sheets[firstWithRows].colCount }),
+        })
+        setStep('preview')
+      } catch (err) {
+        const code = err instanceof ParseError ? err.code : 'unreadable'
+        notify.error(t(`supplier.errors.${code}.title`), {
+          description: t(`supplier.errors.${code}.body`, { max: '50 MB' }),
+        })
+      } finally {
+        setParsing(false)
+      }
     },
-    [parseFile]
+    [f, loadSheet, t],
   )
 
-  const handleFileSelect = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0]
-      if (file) parseFile(file)
-      if (e.target) e.target.value = ''
-    },
-    [parseFile]
-  )
-
-  /* ── Sheet switch ── */
-  const switchSheet = useCallback(
-    (idx: number) => {
-      if (!activeFile) return
-      setActiveSheetIdx(idx)
-      setMappingDone(false)
-      const sheet = activeFile.sheets[idx]
-      setMappings(sheet.headers.map((h) => ({ source: h, target: autoMapColumn(h) })))
-    },
-    [activeFile]
-  )
-
-  /* ── Mapping change ── */
   const updateMapping = useCallback((colIdx: number, target: string) => {
+    setMappingDone(false)
     setMappings((prev) => prev.map((m, i) => (i === colIdx ? { ...m, target } : m)))
   }, [])
 
+  const clearHistory = () => {
+    const snapshot = { uploadedFiles, activeFile, activeSheetIdx, mappings, mappingDone, step }
+    setUploadedFiles([])
+    setActiveFile(null)
+    setActiveSheetIdx(0)
+    setMappings([])
+    setMappingDone(false)
+    setStep('upload')
+    notify.success(t('supplier.toast.cleared', { count: snapshot.uploadedFiles.length }), {
+      undo: () => {
+        setUploadedFiles(snapshot.uploadedFiles)
+        setActiveFile(snapshot.activeFile)
+        setActiveSheetIdx(snapshot.activeSheetIdx)
+        setMappings(snapshot.mappings)
+        setMappingDone(snapshot.mappingDone)
+        setStep('history')
+      },
+    })
+  }
+
   const activeSheet = activeFile?.sheets[activeSheetIdx] ?? null
   const mappedCount = mappings.filter((m) => m.target !== '').length
-  const totalUploaded = uploadedFiles.reduce((acc, f) => acc + f.sheets.reduce((a, s) => a + s.rowCount, 0), 0)
+  const totalUploaded = uploadedFiles.reduce((acc, file) => acc + file.sheets.reduce((a, s) => a + s.rowCount, 0), 0)
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* ── Header ── */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">
-            Raw & Supplier Data Ingestion
-          </h1>
-          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-tertiary)]">
-            Upload Excel/CSV files, auto-map columns, preview and validate data before ingestion.
-          </p>
-        </div>
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--bg-inverse)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--bg-inverse-soft)] active:scale-[0.98] transition-all cursor-pointer shadow-sm"
-        >
-          <Upload className="w-4 h-4" />
-          Upload File
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".xlsx,.xls,.csv,.tsv"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
-      </div>
-
-      <Tabs
-        tabs={[
-          { id: 'upload', label: 'Upload' },
-          { id: 'preview', label: 'Data Preview', count: activeSheet?.rowCount },
-          { id: 'mapping', label: 'Column Mapping', count: mappedCount || undefined },
-          { id: 'pipeline', label: 'Pipeline' },
-          { id: 'history', label: 'History', count: uploadedFiles.length || undefined },
-        ]}
-        activeTab={activeTab}
-        onChange={setActiveTab}
+    <div className="space-y-6">
+      <ModuleHeader
+        title={t('supplier.title')}
+        description={t('supplier.subtitle')}
+        actions={
+          <>
+            <Button variant="primary" icon={<Upload className="w-4 h-4" />} loading={parsing} onClick={() => pickerRef.current?.click()}>
+              {t('supplier.uploadFile')}
+            </Button>
+            <input
+              ref={pickerRef}
+              type="file"
+              accept={ACCEPT}
+              className="sr-only"
+              tabIndex={-1}
+              aria-label={t('supplier.uploadFile')}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) parseFile(file)
+                e.target.value = ''
+              }}
+            />
+          </>
+        }
       />
 
-      {activeTab === 'upload' && (
-        <UploadTab
-          dragOver={dragOver}
-          parsing={parsing}
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={handleDrop}
-          onClickUpload={() => fileInputRef.current?.click()}
-          uploadedFiles={uploadedFiles}
-          totalRows={totalUploaded}
-        />
+      <StepNav
+        aria-label={t('supplier.stepsAria')}
+        active={step}
+        onSelect={(id) => setStep(id as Step)}
+        steps={[
+          { id: 'upload', label: t('supplier.tabs.upload'), done: !!activeSheet },
+          { id: 'preview', label: t('supplier.tabs.preview'), done: !!activeSheet && step !== 'preview' && step !== 'upload', locked: !activeSheet, count: activeSheet ? f.number(activeSheet.rowCount) : undefined },
+          { id: 'mapping', label: t('supplier.tabs.mapping'), done: mappingDone, locked: !activeSheet, count: activeSheet ? `${mappedCount}/${mappings.length}` : undefined },
+          { id: 'pipeline', label: t('supplier.tabs.pipeline'), done: mappingDone && step !== 'pipeline', locked: !mappingDone },
+        ]}
+        trailing={[{ id: 'history', label: t('supplier.tabs.history'), count: uploadedFiles.length || undefined }]}
+      />
+
+      {step === 'upload' && (
+        <UploadTab parsing={parsing} onFile={parseFile} uploadedFiles={uploadedFiles} totalRows={totalUploaded} />
       )}
 
-      {activeTab === 'preview' && activeSheet && (
-        <DataPreview
-          file={activeFile!}
-          sheet={activeSheet}
-          sheetIdx={activeSheetIdx}
-          mappings={mappings}
-          onSwitchSheet={switchSheet}
-          onGoToMapping={() => setActiveTab('mapping')}
-        />
-      )}
+      {step === 'preview' &&
+        (activeSheet && activeFile ? (
+          <DataPreview
+            file={activeFile}
+            sheet={activeSheet}
+            sheetIdx={activeSheetIdx}
+            mappings={mappings}
+            onSwitchSheet={(i) => loadSheet(activeFile, i)}
+            onGoToMapping={() => setStep('mapping')}
+          />
+        ) : (
+          <EmptyState
+            art="upload"
+            title={t('supplier.empty.noFile')}
+            body={t('supplier.empty.noFileSub')}
+            cta={{ label: t('supplier.empty.goToUpload'), onClick: () => setStep('upload') }}
+          />
+        ))}
 
-      {activeTab === 'preview' && !activeSheet && (
-        <EmptyState
-          message="No file uploaded yet"
-          sub="Upload an Excel or CSV file to preview its contents."
-          onAction={() => setActiveTab('upload')}
-          actionLabel="Go to Upload"
-        />
-      )}
+      {step === 'mapping' &&
+        (activeSheet ? (
+          <ColumnMappingTab
+            sheet={activeSheet}
+            mappings={mappings}
+            onUpdate={updateMapping}
+            onBack={() => setStep('preview')}
+            onConfirm={() => {
+              setMappingDone(true)
+              setStep('pipeline')
+              notify.success(t('supplier.toast.mapped', { mapped: mappedCount, rows: f.number(activeSheet.rowCount) }))
+            }}
+          />
+        ) : (
+          <EmptyState
+            art="upload"
+            title={t('supplier.empty.noMapData')}
+            body={t('supplier.empty.noMapDataSub')}
+            cta={{ label: t('supplier.empty.goToUpload'), onClick: () => setStep('upload') }}
+          />
+        ))}
 
-      {activeTab === 'mapping' && activeSheet && (
-        <ColumnMappingTab
-          sheet={activeSheet}
-          mappings={mappings}
-          onUpdate={updateMapping}
-          onConfirm={() => { setMappingDone(true); setActiveTab('pipeline') }}
-        />
-      )}
-
-      {activeTab === 'mapping' && !activeSheet && (
-        <EmptyState
-          message="No data to map"
-          sub="Upload a file first, then map columns."
-          onAction={() => setActiveTab('upload')}
-          actionLabel="Go to Upload"
-        />
-      )}
-
-      {activeTab === 'pipeline' && (
+      {step === 'pipeline' && (
         <PipelineTab
           hasData={!!activeSheet}
           mappingDone={mappingDone}
           rowCount={activeSheet?.rowCount ?? 0}
           fileName={activeFile?.name ?? ''}
+          onGoToMapping={() => setStep(activeSheet ? 'mapping' : 'upload')}
         />
       )}
 
-      {activeTab === 'history' && (
+      {step === 'history' && (
         <HistoryTab
           files={uploadedFiles}
-          onSelect={(f) => { setActiveFile(f); setActiveSheetIdx(0); switchSheet(0); setActiveTab('preview') }}
-          onClear={() => { setUploadedFiles([]); setActiveFile(null); setActiveSheetIdx(0); setMappings([]) }}
+          activeName={activeFile?.name}
+          onSelect={(file) => {
+            loadSheet(file, 0)
+            setStep('preview')
+          }}
+          onClear={clearHistory}
+          onUpload={() => setStep('upload')}
         />
       )}
     </div>
   )
 }
 
-
 /* ═══════════════════════════════════════════
-   Upload Tab
+   1 · Upload
    ═══════════════════════════════════════════ */
+const CHANNELS = [
+  { id: 'csv', icon: FileSpreadsheet, active: true },
+  { id: 'manual', icon: Keyboard, active: false },
+  { id: 'api', icon: Plug, active: false },
+  { id: 'ocr', icon: ScanText, active: false },
+] as const
+
 function UploadTab({
-  dragOver, parsing, onDragOver, onDragLeave, onDrop, onClickUpload, uploadedFiles, totalRows,
+  parsing,
+  onFile,
+  uploadedFiles,
+  totalRows,
 }: {
-  dragOver: boolean
   parsing: boolean
-  onDragOver: (e: React.DragEvent) => void
-  onDragLeave: () => void
-  onDrop: (e: React.DragEvent) => void
-  onClickUpload: () => void
+  onFile: (file: File) => void
   uploadedFiles: UploadedFile[]
   totalRows: number
 }) {
+  const { t } = useTranslation()
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* KPI row */}
-      <div className="grid grid-cols-4 gap-4">
-        {[
-          { label: 'Files Uploaded', value: uploadedFiles.length.toString(), accent: 'var(--accent-teal)' },
-          { label: 'Total Rows', value: totalRows.toLocaleString(), accent: 'var(--accent-blue)' },
-          { label: 'Sheets Parsed', value: uploadedFiles.reduce((a, f) => a + f.sheets.length, 0).toString(), accent: 'var(--accent-purple)' },
-          { label: 'Status', value: parsing ? 'Parsing…' : 'Ready', accent: 'var(--accent-green)' },
-        ].map((kpi) => (
-          <Card key={kpi.label} hover className="group relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-[3px] rounded-t-xl opacity-60 group-hover:opacity-100 transition-opacity"
-              style={{ background: `linear-gradient(90deg, ${kpi.accent}, transparent)` }} />
-            <p className="text-[10px] font-semibold text-[var(--text-tertiary)] uppercase tracking-[0.06em]">{kpi.label}</p>
-            <p className="font-display text-[var(--text-3xl)] font-bold text-[var(--text-primary)] mt-1 tabular-nums">{kpi.value}</p>
-          </Card>
-        ))}
-      </div>
+    <div className="space-y-6">
+      <StatLedger
+        items={[
+          { id: 'files', label: t('supplier.upload.kpiFiles'), value: uploadedFiles.length, tone: 'brand' },
+          { id: 'rows', label: t('supplier.upload.kpiRows'), value: totalRows, tone: 'neutral' },
+          { id: 'sheets', label: t('supplier.upload.kpiSheets'), value: uploadedFiles.reduce((a, file) => a + file.sheets.length, 0), tone: 'neutral' },
+          {
+            id: 'status',
+            label: t('supplier.upload.kpiStatus'),
+            value: parsing ? t('supplier.upload.statusParsing') : t('supplier.upload.statusReady'),
+            tone: parsing ? 'info' : 'success',
+          },
+        ]}
+      />
 
-      {/* Drop zone */}
-      <div
-        onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
-        onDrop={onDrop}
-        onClick={onClickUpload}
-        className={`
-          relative flex flex-col items-center justify-center p-14 rounded-2xl border-2 border-dashed cursor-pointer
-          transition-all duration-300
-          ${dragOver
-            ? 'border-[var(--accent-teal)] bg-[var(--accent-teal-subtle)] scale-[1.01] shadow-[var(--shadow-glow-teal)]'
-            : 'border-[var(--border-default)] bg-[var(--bg-primary)] hover:border-[var(--accent-teal)] hover:bg-[var(--accent-teal-subtle)]'
-          }
-          group
-        `}
-      >
-        {parsing ? (
-          <Loader2 className="w-10 h-10 text-[var(--accent-teal)] animate-spin mb-4" />
-        ) : (
-          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-all ${
-            dragOver
-              ? 'bg-[var(--accent-teal-light)] border-[var(--accent-teal)] scale-110'
-              : 'bg-[var(--bg-secondary)] border-[var(--border-subtle)] group-hover:bg-[var(--accent-teal-light)] group-hover:border-[var(--accent-teal)]'
-          } border`}>
-            <Upload className={`w-7 h-7 transition-colors ${dragOver ? 'text-[var(--accent-teal)]' : 'text-[var(--text-tertiary)] group-hover:text-[var(--accent-teal)]'}`} />
-          </div>
-        )}
+      <DropZone
+        accept={ACCEPT}
+        onFile={onFile}
+        busy={parsing}
+        title={t('supplier.upload.dropPrompt')}
+        dragTitle={t('supplier.upload.dropHere')}
+        busyTitle={t('supplier.upload.parsingFile')}
+        formats={['.xlsx', '.csv', '.tsv']}
+        hint={t('supplier.upload.limits')}
+      />
 
-        <h3 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)]">
-          {parsing ? 'Parsing file…' : dragOver ? 'Drop file here' : 'Drop Excel or CSV file here'}
-        </h3>
-        <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1">
-          or <span className="text-[var(--accent-teal)] font-semibold underline underline-offset-2">click to browse</span>
-        </p>
-        <div className="flex items-center gap-3 mt-5">
-          <Badge variant="blue">.xlsx</Badge>
-          <Badge variant="blue">.xls</Badge>
-          <Badge variant="teal">.csv</Badge>
-          <Badge variant="gray">.tsv</Badge>
-        </div>
-        <p className="text-[10px] text-[var(--text-tertiary)] mt-3">
-          Max file size: 50 MB. Data is parsed locally in your browser — nothing is sent to a server.
-        </p>
-      </div>
-
-      {/* Input channel cards */}
-      <div>
-        <h2 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)] mb-3">All Input Channels</h2>
-        <div className="grid grid-cols-4 gap-4">
-          {[
-            { icon: Keyboard, title: 'Manual Entry', desc: 'Form-based input with real-time validation', color: 'teal' as const, accent: 'var(--accent-teal)', active: false },
-            { icon: FileSpreadsheet, title: 'CSV / Excel Upload', desc: 'Active — bulk upload with auto-mapping', color: 'blue' as const, accent: 'var(--accent-blue)', active: true },
-            { icon: Plug, title: 'API Connectors', desc: 'ERP & utility provider live feeds', color: 'purple' as const, accent: 'var(--accent-purple)', active: false },
-            { icon: ScanText, title: 'Document Parse / OCR', desc: 'AI extraction from invoices & bills', color: 'amber' as const, accent: 'var(--accent-amber)', active: false },
-          ].map((ch) => {
+      <section className="surface-paper overflow-hidden" aria-labelledby="supplier-channels">
+        <header className="px-5 py-4 border-b border-[var(--border-subtle)]">
+          <h2 id="supplier-channels" className="type-h3 text-[var(--text-primary)]">
+            {t('supplier.upload.channelsTitle')}
+          </h2>
+        </header>
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-[var(--border-subtle)]">
+          {CHANNELS.map((ch) => {
             const Icon = ch.icon
             return (
-              <Card key={ch.title} hover className={`group ${ch.active ? 'border-[var(--accent-blue)] shadow-[var(--shadow-glow-teal)]' : 'opacity-60'}`}>
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: `${ch.accent}10`, border: `1px solid ${ch.accent}25` }}>
-                    <Icon className="w-5 h-5" style={{ color: ch.accent }} />
+              <li key={ch.id} className="bg-[var(--bg-primary)] flex items-start gap-3 px-5 py-4">
+                <span
+                  className={`w-9 h-9 rounded-[var(--radius-md)] flex items-center justify-center flex-shrink-0 ${
+                    ch.active ? 'bg-[var(--color-brand-soft)] text-[var(--color-brand)]' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-small font-semibold ${ch.active ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+                      {t(`supplier.upload.channels.${ch.id}.title`)}
+                    </span>
+                    <StatusPill tone={ch.active ? 'success' : 'neutral'} dot={ch.active} size="sm">
+                      {ch.active ? t('supplier.upload.active') : t('supplier.upload.comingSoon')}
+                    </StatusPill>
                   </div>
-                  {ch.active ? <Badge variant="blue" dot>Active</Badge> : <Badge variant="gray">Coming soon</Badge>}
+                  <p className="text-caption text-[var(--text-tertiary)] mt-0.5">{t(`supplier.upload.channels.${ch.id}.desc`)}</p>
                 </div>
-                <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{ch.title}</h3>
-                <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-1">{ch.desc}</p>
-              </Card>
+              </li>
             )
           })}
-        </div>
-      </div>
+        </ul>
+      </section>
     </div>
   )
 }
 
-
 /* ═══════════════════════════════════════════
-   Data Preview Tab
+   2 · Preview
    ═══════════════════════════════════════════ */
 function DataPreview({
-  file, sheet, sheetIdx, mappings, onSwitchSheet, onGoToMapping,
+  file,
+  sheet,
+  sheetIdx,
+  mappings,
+  onSwitchSheet,
+  onGoToMapping,
 }: {
   file: UploadedFile
   sheet: ParsedSheet
@@ -472,6 +497,8 @@ function DataPreview({
   onSwitchSheet: (idx: number) => void
   onGoToMapping: () => void
 }) {
+  const { t } = useTranslation()
+  const f = useFmt()
   const [searchTerm, setSearchTerm] = useState('')
   const [page, setPage] = useState(0)
   const [sortCol, setSortCol] = useState<number | null>(null)
@@ -498,12 +525,11 @@ function DataPreview({
   }, [sheet.rows, searchTerm, sortCol, sortDir])
 
   const pageRows = filteredRows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
-  const totalPages = Math.ceil(filteredRows.length / PAGE_SIZE)
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE))
 
   const handleSort = (colIdx: number) => {
-    if (sortCol === colIdx) {
-      setSortDir(sortDir === 'asc' ? 'desc' : 'asc')
-    } else {
+    if (sortCol === colIdx) setSortDir(sortDir === 'asc' ? 'desc' : 'asc')
+    else {
       setSortCol(colIdx)
       setSortDir('asc')
     }
@@ -511,126 +537,106 @@ function DataPreview({
   }
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      {/* File info bar */}
-      <Card padding="sm" className="flex items-center gap-4 flex-wrap">
-        <div className="flex items-center gap-2">
-          <FileSpreadsheet className="w-5 h-5 text-[var(--accent-blue)]" />
-          <div>
-            <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{file.name}</p>
-            <p className="text-[10px] text-[var(--text-tertiary)]">{(file.size / 1024).toFixed(1)} KB &middot; {file.sheets.length} sheet{file.sheets.length > 1 ? 's' : ''}</p>
-          </div>
-        </div>
-        <div className="h-6 w-px bg-[var(--border-default)]" />
-
-        {/* Sheet selector */}
-        {file.sheets.length > 1 && (
-          <div className="flex items-center gap-1">
-            {file.sheets.map((s, i) => (
-              <button
-                key={s.name}
-                onClick={() => { onSwitchSheet(i); setPage(0); setSearchTerm('') }}
-                className={`px-3 py-1 rounded-md text-[var(--text-xs)] font-medium transition-all cursor-pointer ${
-                  i === sheetIdx
-                    ? 'bg-[var(--accent-blue-light)] text-[var(--accent-blue)] shadow-sm'
-                    : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
-                }`}
-              >
-                {s.name}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="ml-auto flex items-center gap-3">
-          <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-            <strong className="text-[var(--text-primary)]">{sheet.rowCount.toLocaleString()}</strong> rows &middot; <strong className="text-[var(--text-primary)]">{sheet.colCount}</strong> columns
+    <div className="space-y-4">
+      <section className="surface-paper px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <span className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--color-brand-soft)] text-[var(--color-brand)] flex items-center justify-center flex-shrink-0">
+            <FileSpreadsheet className="w-4 h-4" aria-hidden />
           </span>
-          <button
-            onClick={onGoToMapping}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--bg-inverse)] text-white text-[var(--text-xs)] font-semibold hover:bg-[var(--bg-inverse-soft)] active:scale-[0.98] transition-all cursor-pointer"
-          >
-            <Columns className="w-3.5 h-3.5" />
-            Map Columns
-          </button>
+          <div className="min-w-0">
+            <p className="text-small font-semibold text-[var(--text-primary)] truncate">{file.name}</p>
+            <p className="text-caption text-[var(--text-tertiary)]">
+              {fileSize(file.size, f)} · {t('supplier.preview.sheets', { count: file.sheets.length })} ·{' '}
+              {t('supplier.preview.rows', { count: sheet.rowCount, n: f.number(sheet.rowCount) })} · {t('supplier.preview.columns', { count: sheet.colCount })}
+            </p>
+          </div>
         </div>
-      </Card>
+        <Button variant="primary" icon={<Columns className="w-4 h-4" />} onClick={onGoToMapping}>
+          {t('supplier.preview.mapColumns')}
+        </Button>
+      </section>
 
-      {/* Mapped columns preview */}
-      {mappings.some((m) => m.target) && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Mapped:</span>
-          {mappings.filter((m) => m.target).map((m) => (
-            <Badge key={m.source} variant="teal">
-              {m.source} → {TARGET_FIELDS.find((f) => f.value === m.target)?.label ?? m.target}
-            </Badge>
+      {file.sheets.length > 1 && (
+        <div className="flex items-center gap-1 overflow-x-auto [scrollbar-width:none]" role="tablist" aria-label={t('supplier.preview.sheetsAria')}>
+          {file.sheets.map((s, i) => (
+            <button
+              key={s.name + i}
+              role="tab"
+              aria-selected={i === sheetIdx}
+              onClick={() => {
+                onSwitchSheet(i)
+                setPage(0)
+                setSearchTerm('')
+              }}
+              className={`h-9 px-3 rounded-[var(--radius-sm)] text-small font-medium whitespace-nowrap transition-colors duration-micro ${
+                i === sheetIdx ? 'bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+              }`}
+            >
+              {s.name}
+              <span className="ml-1.5 text-caption tabular-nums text-[var(--text-tertiary)]">{f.number(s.rowCount)}</span>
+            </button>
           ))}
         </div>
       )}
 
-      {/* Search + pagination controls */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="relative flex-1 sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" aria-hidden />
           <input
-            type="text"
-            placeholder="Search rows…"
+            type="search"
+            aria-label={t('supplier.preview.searchPlaceholder')}
+            placeholder={t('supplier.preview.searchPlaceholder')}
             value={searchTerm}
-            onChange={(e) => { setSearchTerm(e.target.value); setPage(0) }}
-            className="w-full h-9 pl-10 pr-4 rounded-lg border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)] focus:ring-offset-1 transition-all"
+            onChange={(e) => {
+              setSearchTerm(e.target.value)
+              setPage(0)
+            }}
+            className="w-full h-10 pl-9 pr-3 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-small text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand-soft)] transition-colors"
           />
         </div>
         {searchTerm && (
-          <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-            {filteredRows.length.toLocaleString()} matches
+          <span className="text-caption text-[var(--text-tertiary)]">
+            {t('supplier.preview.matches', { count: filteredRows.length, n: f.number(filteredRows.length) })}
           </span>
         )}
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={() => setPage(Math.max(0, page - 1))}
-            disabled={page === 0}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-[var(--border-default)] text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] disabled:opacity-30 transition-all cursor-pointer disabled:cursor-default"
-          >
+        <div className="sm:ml-auto flex items-center gap-2">
+          <PagerButton label={t('supplier.preview.prev')} disabled={page === 0} onClick={() => setPage(Math.max(0, page - 1))}>
             <ChevronLeft className="w-4 h-4" />
-          </button>
-          <span className="text-[var(--text-xs)] text-[var(--text-secondary)] tabular-nums">
-            {page + 1} / {totalPages || 1}
+          </PagerButton>
+          <span className="text-caption text-[var(--text-secondary)] tabular-nums whitespace-nowrap">
+            {f.number(page + 1)} / {f.number(totalPages)}
           </span>
-          <button
-            onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
-            disabled={page >= totalPages - 1}
-            className="w-8 h-8 flex items-center justify-center rounded-lg border border-[var(--border-default)] text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] disabled:opacity-30 transition-all cursor-pointer disabled:cursor-default"
-          >
+          <PagerButton label={t('supplier.preview.next')} disabled={page >= totalPages - 1} onClick={() => setPage(Math.min(totalPages - 1, page + 1))}>
             <ChevronRight className="w-4 h-4" />
-          </button>
+          </PagerButton>
         </div>
       </div>
 
-      {/* Data table */}
-      <Card padding="none" className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
+      <section className="surface-paper overflow-hidden">
+        <div className="overflow-x-auto max-h-[560px]">
+          <table className="w-full text-left border-collapse">
+            <thead className="sticky top-0 z-[1]">
               <tr className="bg-[var(--bg-secondary)] border-b border-[var(--border-default)]">
-                <th className="px-3 py-2.5 text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider w-12 text-center">#</th>
+                <th scope="col" className="px-3 py-2.5 text-caption font-medium text-[var(--text-tertiary)] w-12 text-right">
+                  #
+                </th>
                 {sheet.headers.map((h, i) => {
                   const mapped = mappings[i]?.target
+                  const SortIcon = sortCol !== i ? ArrowUpDown : sortDir === 'asc' ? ArrowUp : ArrowDown
                   return (
-                    <th key={i} className="px-3 py-2.5 min-w-[120px]">
-                      <button
-                        onClick={() => handleSort(i)}
-                        className="flex items-center gap-1.5 cursor-pointer group"
-                      >
-                        <span className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-wider truncate max-w-[150px]">
-                          {h || `Col ${i + 1}`}
+                    <th key={i} scope="col" className="px-3 py-2.5 min-w-[128px] align-top" aria-sort={sortCol === i ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
+                      <button onClick={() => handleSort(i)} className="group flex items-center gap-1.5 text-left">
+                        <span className="text-caption font-semibold text-[var(--text-secondary)] truncate max-w-[160px]">
+                          {h || t('supplier.preview.colFallback', { n: i + 1 })}
                         </span>
-                        <ArrowUpDown className={`w-3 h-3 flex-shrink-0 transition-colors ${
-                          sortCol === i ? 'text-[var(--accent-teal)]' : 'text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100'
-                        }`} />
+                        <SortIcon
+                          className={`w-3 h-3 flex-shrink-0 transition-opacity ${sortCol === i ? 'text-[var(--color-brand)]' : 'text-[var(--text-tertiary)] opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100'}`}
+                          aria-hidden
+                        />
                       </button>
                       {mapped && (
-                        <span className="block text-[9px] text-[var(--accent-teal)] font-medium mt-0.5">
-                          → {TARGET_FIELDS.find((f) => f.value === mapped)?.label}
+                        <span className="mt-0.5 flex items-center gap-1 text-caption font-medium text-[var(--color-brand)] whitespace-nowrap">
+                          <ArrowRight className="w-3 h-3" aria-hidden /> {fieldLabel(t, mapped)}
                         </span>
                       )}
                     </th>
@@ -640,12 +646,10 @@ function DataPreview({
             </thead>
             <tbody>
               {pageRows.map((row, ri) => (
-                <tr key={ri} className="border-b border-[var(--border-subtle)] hover:bg-[var(--bg-hover)] transition-colors">
-                  <td className="px-3 py-2 text-[10px] text-[var(--text-tertiary)] text-center tabular-nums">
-                    {page * PAGE_SIZE + ri + 1}
-                  </td>
+                <tr key={ri} className="border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--bg-hover)] transition-colors duration-micro">
+                  <td className="px-3 py-2 text-caption text-[var(--text-tertiary)] text-right tabular-nums">{f.number(page * PAGE_SIZE + ri + 1)}</td>
                   {sheet.headers.map((_, ci) => (
-                    <td key={ci} className="px-3 py-2 text-[var(--text-sm)] text-[var(--text-primary)] truncate max-w-[200px]">
+                    <td key={ci} className="px-3 py-2 text-small text-[var(--text-primary)] truncate max-w-[220px] tabular-nums">
                       {row[ci] ?? ''}
                     </td>
                   ))}
@@ -653,364 +657,361 @@ function DataPreview({
               ))}
             </tbody>
           </table>
+          {pageRows.length === 0 && (
+            <EmptyState variant="filtered" density="compact" onClearFilters={() => setSearchTerm('')} />
+          )}
         </div>
-
-        {/* Table footer */}
-        <div className="px-4 py-3 bg-[var(--bg-secondary)] border-t border-[var(--border-default)] flex items-center justify-between">
-          <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-            Showing {(page * PAGE_SIZE + 1).toLocaleString()}–{Math.min((page + 1) * PAGE_SIZE, filteredRows.length).toLocaleString()} of {filteredRows.length.toLocaleString()} rows
-          </span>
-          <div className="flex items-center gap-2">
-            <Badge variant="teal">{sheet.colCount} columns</Badge>
-            <Badge variant="blue">{sheet.rowCount.toLocaleString()} rows</Badge>
-          </div>
-        </div>
-      </Card>
+        <footer className="px-4 py-3 bg-[var(--bg-secondary)] border-t border-[var(--border-subtle)] text-caption text-[var(--text-tertiary)] tabular-nums">
+          {t('supplier.preview.showing', {
+            from: f.number(filteredRows.length ? page * PAGE_SIZE + 1 : 0),
+            to: f.number(Math.min((page + 1) * PAGE_SIZE, filteredRows.length)),
+            total: f.number(filteredRows.length),
+          })}
+        </footer>
+      </section>
     </div>
   )
 }
 
+function PagerButton({ label, disabled, onClick, children }: { label: string; disabled: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className="w-10 h-10 sm:w-9 sm:h-9 flex items-center justify-center rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-micro"
+    >
+      {children}
+    </button>
+  )
+}
 
 /* ═══════════════════════════════════════════
-   Column Mapping Tab
+   3 · Column mapping
    ═══════════════════════════════════════════ */
 function ColumnMappingTab({
-  sheet, mappings, onUpdate, onConfirm,
+  sheet,
+  mappings,
+  onUpdate,
+  onConfirm,
+  onBack,
 }: {
   sheet: ParsedSheet
   mappings: ColumnMapping[]
   onUpdate: (idx: number, target: string) => void
   onConfirm: () => void
+  onBack: () => void
 }) {
+  const { t } = useTranslation()
+  const f = useFmt()
   const mapped = mappings.filter((m) => m.target).length
   const total = mappings.length
 
+  // Two source columns feeding the same field is almost always a mistake.
+  const dupes = useMemo(() => {
+    const seen = new Map<string, number[]>()
+    mappings.forEach((m, i) => {
+      if (!m.target) return
+      seen.set(m.target, [...(seen.get(m.target) ?? []), i])
+    })
+    const out = new Map<number, number>()
+    for (const idxs of seen.values()) if (idxs.length > 1) idxs.forEach((i) => out.set(i, idxs.find((j) => j !== i)!))
+    return out
+  }, [mappings])
+  const hasMeasure = mappings.some((m) => m.target === 'quantity' || m.target === 'co2e_tonnes')
+  const blocked = mapped === 0 || dupes.size > 0
+
   return (
-    <div className="space-y-4 animate-fade-in">
-      {/* Header */}
-      <Card padding="sm" className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Columns className="w-5 h-5 text-[var(--accent-teal)]" />
-          <div>
-            <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">Column Mapping</p>
-            <p className="text-[10px] text-[var(--text-tertiary)]">Map your source columns to the GHG data model. Auto-mapped columns are highlighted.</p>
-          </div>
+    <div className="space-y-4">
+      <section className="surface-paper px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="min-w-0 flex-1">
+          <h2 className="type-h3 text-[var(--text-primary)]">{t('supplier.mapping.title')}</h2>
+          <p className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('supplier.mapping.help')}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right">
-            <p className="text-[var(--text-xs)] font-bold text-[var(--text-primary)] tabular-nums">{mapped} / {total}</p>
-            <p className="text-[10px] text-[var(--text-tertiary)]">columns mapped</p>
+        <div className="sm:w-56">
+          <div className="flex items-baseline justify-between mb-1.5">
+            <span className="text-caption text-[var(--text-tertiary)]">{t('supplier.mapping.columnsMapped')}</span>
+            <span className="text-small font-semibold tabular-nums text-[var(--text-primary)]">
+              {f.number(mapped)} / {f.number(total)}
+            </span>
           </div>
-          <div className="w-20 h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{ width: `${(mapped / total) * 100}%`, background: 'linear-gradient(90deg, var(--accent-teal), var(--accent-green))' }}
-            />
-          </div>
+          <SplitBar segments={[{ id: 'mapped', value: mapped, color: 'var(--color-brand)' }]} total={total} aria-label={t('supplier.mapping.columnsMapped')} />
         </div>
-      </Card>
+      </section>
 
-      {/* Mapping rows */}
-      <Card padding="none" className="overflow-hidden">
-        <div className="grid grid-cols-[auto_1fr_auto_1fr_auto] gap-0 items-center px-4 py-2.5 bg-[var(--bg-secondary)] border-b border-[var(--border-default)]">
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider w-8">#</span>
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Source Column</span>
-          <span className="w-10" />
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider">Target Field</span>
-          <span className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-wider w-24 text-center">Sample</span>
+      <section className="surface-paper overflow-hidden">
+        <div className="hidden md:grid grid-cols-[32px_minmax(0,1fr)_24px_minmax(0,1fr)_minmax(0,140px)] gap-3 items-center px-5 py-2.5 bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)] text-caption font-medium text-[var(--text-tertiary)]">
+          <span>#</span>
+          <span>{t('supplier.mapping.sourceColumn')}</span>
+          <span />
+          <span>{t('supplier.mapping.targetField')}</span>
+          <span>{t('supplier.mapping.sample')}</span>
         </div>
-
-        {mappings.map((m, i) => {
-          const sampleVals = sheet.rows.slice(0, 3).map((r) => r[i] ?? '').filter(Boolean)
-          return (
-            <div
-              key={i}
-              className={`grid grid-cols-[auto_1fr_auto_1fr_auto] gap-0 items-center px-4 py-3 border-b border-[var(--border-subtle)] hover:bg-[var(--bg-hover)] transition-colors ${
-                m.target ? '' : 'opacity-60'
-              }`}
-            >
-              <span className="text-[10px] text-[var(--text-tertiary)] w-8 tabular-nums">{i + 1}</span>
-
-              {/* Source */}
-              <div className="flex items-center gap-2">
-                <span className="text-[var(--text-sm)] font-medium text-[var(--text-primary)] truncate max-w-[200px]">{m.source}</span>
-              </div>
-
-              {/* Arrow */}
-              <div className="w-10 flex items-center justify-center">
-                <ArrowRight className={`w-4 h-4 ${m.target ? 'text-[var(--accent-teal)]' : 'text-[var(--border-default)]'}`} />
-              </div>
-
-              {/* Target select */}
-              <select
-                value={m.target}
-                onChange={(e) => onUpdate(i, e.target.value)}
-                className={`
-                  w-full h-9 px-3 pr-8 text-[var(--text-sm)]
-                  bg-[var(--bg-primary)] border rounded-lg appearance-none cursor-pointer
-                  transition-all focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)] focus:ring-offset-1
-                  ${m.target
-                    ? 'border-[var(--accent-teal)] text-[var(--text-primary)] bg-[var(--accent-teal-subtle)]'
-                    : 'border-[var(--border-default)] text-[var(--text-tertiary)]'
-                  }
-                `}
-              >
-                {TARGET_FIELDS.map((f) => (
-                  <option key={f.value} value={f.value}>{f.label}</option>
-                ))}
-              </select>
-
-              {/* Sample values */}
-              <div className="w-24 flex items-center justify-center">
-                <span className="text-[10px] text-[var(--text-tertiary)] truncate font-mono" title={sampleVals.join(', ')}>
+        <ul className="divide-y divide-[var(--border-subtle)]">
+          {mappings.map((m, i) => {
+            const sampleVals = sheet.rows.slice(0, 3).map((r) => r[i] ?? '').filter(Boolean)
+            const dupeOf = dupes.get(i)
+            const id = `map-${i}`
+            return (
+              <li key={i} className="grid grid-cols-[minmax(0,1fr)] md:grid-cols-[32px_minmax(0,1fr)_24px_minmax(0,1fr)_minmax(0,140px)] gap-x-3 gap-y-2 items-center px-5 py-3">
+                <span className="hidden md:block text-caption text-[var(--text-tertiary)] tabular-nums">{i + 1}</span>
+                <label htmlFor={id} className={`text-small font-medium truncate ${m.target ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'}`}>
+                  {m.source || t('supplier.preview.colFallback', { n: i + 1 })}
+                </label>
+                <ArrowRight className={`hidden md:block w-4 h-4 ${m.target ? 'text-[var(--color-brand)]' : 'text-[var(--text-quaternary)]'}`} aria-hidden />
+                <div className="min-w-0">
+                  <select
+                    id={id}
+                    value={m.target}
+                    onChange={(e) => onUpdate(i, e.target.value)}
+                    aria-invalid={dupeOf != null}
+                    aria-describedby={dupeOf != null ? `${id}-err` : undefined}
+                    className={`w-full h-10 px-3 rounded-[var(--radius-md)] border text-small cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-soft)] transition-colors duration-micro ${
+                      dupeOf != null
+                        ? 'border-[var(--status-danger)] bg-[var(--status-danger-soft)] text-[var(--text-primary)]'
+                        : m.target
+                          ? 'border-[var(--status-success-line)] bg-[var(--color-brand-soft)] text-[var(--text-primary)] focus:border-[var(--color-brand)]'
+                          : 'border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-tertiary)] focus:border-[var(--color-brand)]'
+                    }`}
+                  >
+                    {TARGET_FIELDS.map((fld) => (
+                      <option key={fld.value} value={fld.value}>
+                        {fieldLabel(t, fld.value)}
+                      </option>
+                    ))}
+                  </select>
+                  {dupeOf != null && (
+                    <p id={`${id}-err`} className="text-caption text-[var(--status-danger)] mt-1">
+                      {t('supplier.mapping.duplicate', { column: mappings[dupeOf]?.source || t('supplier.preview.colFallback', { n: dupeOf + 1 }) })}
+                    </p>
+                  )}
+                </div>
+                <span className="text-caption text-[var(--text-tertiary)] truncate font-mono" title={sampleVals.join(', ')}>
+                  <span className="md:hidden">{t('supplier.mapping.sample')}: </span>
                   {sampleVals[0] || '—'}
                 </span>
-              </div>
-            </div>
-          )
-        })}
-      </Card>
+              </li>
+            )
+          })}
+        </ul>
+      </section>
 
-      {/* Confirm */}
-      <div className="flex items-center justify-between">
-        <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-          Unmapped columns will be stored as raw data and can be mapped later.
+      {!hasMeasure && mapped > 0 && (
+        <p className="flex items-start gap-2 text-small text-[var(--status-warning)]" role="status">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden />
+          {t('supplier.mapping.noMeasure')}
         </p>
-        <button
-          onClick={onConfirm}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[var(--bg-inverse)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--bg-inverse-soft)] active:scale-[0.98] transition-all cursor-pointer shadow-sm"
-        >
-          <CheckCircle2 className="w-4 h-4" />
-          Confirm Mapping & Run Pipeline
-        </button>
+      )}
+
+      <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+        <p className="text-caption text-[var(--text-tertiary)]">{t('supplier.mapping.unmappedNote')}</p>
+        <div className="flex items-center gap-2 [&>*]:flex-1 sm:[&>*]:flex-initial">
+          <Button variant="secondary" icon={<ChevronLeft className="w-4 h-4" />} onClick={onBack}>
+            {t('supplier.mapping.back')}
+          </Button>
+          <Button variant="primary" icon={<CheckCircle2 className="w-4 h-4" />} disabled={blocked} onClick={onConfirm} title={blocked ? t('supplier.mapping.blocked') : undefined}>
+            {t('supplier.mapping.confirm')}
+          </Button>
+        </div>
       </div>
     </div>
   )
 }
 
-
 /* ═══════════════════════════════════════════
-   Pipeline Tab
+   4 · Validation pipeline
    ═══════════════════════════════════════════ */
-function PipelineTab({ hasData, mappingDone, rowCount, fileName }: { hasData: boolean; mappingDone: boolean; rowCount: number; fileName: string }) {
-  // Simulated pipeline progress
+function PipelineTab({
+  hasData,
+  mappingDone,
+  rowCount,
+  fileName,
+  onGoToMapping,
+}: {
+  hasData: boolean
+  mappingDone: boolean
+  rowCount: number
+  fileName: string
+  onGoToMapping: () => void
+}) {
+  const { t } = useTranslation()
+  const f = useFmt()
+  // Simulated validation run: small failure rates in the two validation stages.
   const stages = PIPELINE_STAGES.map((stage, i) => {
-    if (!hasData || !mappingDone) return { ...stage, status: 'waiting' as const, passed: 0, failed: 0, rate: 0 }
-    // Simulate: all stages pass with slight failures in first two
+    if (!hasData || !mappingDone) return { ...stage, passed: 0, failed: 0, rate: 0 }
     const failed = i === 0 ? Math.floor(rowCount * 0.002) : i === 1 ? Math.floor(rowCount * 0.008) : 0
     const passed = rowCount - failed
-    return { ...stage, status: 'complete' as const, passed, failed, rate: rowCount > 0 ? parseFloat(((passed / rowCount) * 100).toFixed(1)) : 0 }
+    return { ...stage, passed, failed, rate: rowCount > 0 ? (passed / rowCount) * 100 : 0 }
   })
 
+  if (!hasData || !mappingDone) {
+    return (
+      <EmptyState
+        art="upload"
+        title={hasData ? t('supplier.pipeline.mappingRequired') : t('supplier.empty.noPipeline')}
+        body={hasData ? t('supplier.pipeline.mappingRequiredSub') : t('supplier.empty.noPipelineSub')}
+        cta={{ label: hasData ? t('supplier.tabs.mapping') : t('supplier.empty.goToUpload'), onClick: onGoToMapping }}
+      />
+    )
+  }
+
+  const flagged = stages[0].failed + stages[1].failed
+  const passed = rowCount - flagged
+
   return (
-    <div className="space-y-6 animate-fade-in">
-      {!hasData && (
-        <EmptyState
-          message="No data in pipeline"
-          sub="Upload a file and confirm column mapping to run the validation pipeline."
-        />
-      )}
-
-      {hasData && !mappingDone && (
-        <Card className="flex items-center gap-4 border-[var(--accent-amber)] bg-[var(--accent-amber-light)]">
-          <AlertTriangle className="w-5 h-5 text-[var(--accent-amber)] flex-shrink-0" />
-          <div>
-            <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">Column mapping required</p>
-            <p className="text-[var(--text-xs)] text-[var(--text-secondary)]">
-              Go to the Column Mapping tab and confirm your mappings before running the pipeline.
+    <div className="space-y-6">
+      <section className="surface-paper p-5 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
+          <div className="min-w-0">
+            <h2 className="type-h3 text-[var(--text-primary)]">{t('supplier.pipeline.title')}</h2>
+            <p className="text-caption text-[var(--text-tertiary)] mt-0.5 break-words">
+              {t('supplier.pipeline.processing', { rows: f.number(rowCount), file: fileName })}
             </p>
           </div>
-        </Card>
-      )}
-
-      {/* Pipeline visualization */}
-      <Card padding="lg">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)]">5-Stage Validation Pipeline</h3>
-            <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-0.5">
-              {mappingDone ? `Processing ${rowCount.toLocaleString()} rows from ${fileName}` : 'Awaiting data input and column mapping'}
-            </p>
-          </div>
-          {mappingDone && (
-            <Badge variant="green" dot>Pipeline Complete</Badge>
-          )}
+          <StatusPill tone="success" icon={<CheckCircle2 />}>
+            {t('supplier.pipeline.complete')}
+          </StatusPill>
         </div>
-
-        <div className="flex items-stretch gap-0">
-          {stages.map((stage, i) => {
-            const Icon = stage.icon
-            const isComplete = stage.status === 'complete'
-            return (
-              <div key={stage.id} className="flex items-center flex-1">
-                <div className="flex-1 text-center group">
-                  <div
-                    className={`w-14 h-14 rounded-2xl mx-auto flex items-center justify-center transition-all group-hover:scale-105 ${
-                      isComplete ? '' : 'opacity-40'
-                    }`}
-                    style={{
-                      backgroundColor: `${stage.accent}10`,
-                      border: `1.5px solid ${stage.accent}${isComplete ? '60' : '20'}`,
-                    }}
-                  >
-                    {isComplete ? (
-                      <CheckCircle2 className="w-6 h-6" style={{ color: stage.accent }} />
-                    ) : (
-                      <Icon className="w-6 h-6" style={{ color: stage.accent }} />
-                    )}
-                  </div>
-                  <h4 className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)] mt-3">{stage.title}</h4>
-                  <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5 leading-relaxed max-w-[140px] mx-auto">{stage.desc}</p>
-                  {isComplete && (
-                    <div className="mt-2 space-y-0.5">
-                      <span className="text-[var(--text-xs)] font-bold tabular-nums" style={{ color: stage.accent }}>{stage.rate}%</span>
-                      {stage.failed > 0 && (
-                        <p className="text-[10px] text-[var(--accent-red)]">{stage.failed} flagged</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-                {i < stages.length - 1 && (
-                  <div className="flex items-center px-1 flex-shrink-0 self-start mt-7">
-                    <div className="w-6 flex items-center">
-                      <div className={`flex-1 h-[2px] ${isComplete ? 'bg-[var(--accent-teal)]' : 'bg-[var(--border-default)]'}`} />
-                      <ChevronRight className={`w-4 h-4 -ml-1 ${isComplete ? 'text-[var(--accent-teal)]' : 'text-[var(--text-tertiary)]'}`} />
-                    </div>
-                  </div>
+        <ProcessFlow
+          aria-label={t('supplier.pipeline.title')}
+          steps={stages.map((s) => ({
+            id: s.id,
+            icon: s.icon,
+            state: 'done' as const,
+            title: t(`supplier.pipeline.stages.${s.id}.title`),
+            desc: t(`supplier.pipeline.stages.${s.id}.desc`),
+            meta: (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-small font-semibold tabular-nums text-[var(--text-primary)]">{f.percent(s.rate, { precision: 1 })}</span>
+                {s.failed > 0 && (
+                  <StatusPill tone="warning" size="sm">
+                    {t('supplier.pipeline.flagged', { count: s.failed, n: f.number(s.failed) })}
+                  </StatusPill>
                 )}
               </div>
-            )
-          })}
+            ),
+          }))}
+        />
+        <div className="mt-6 pt-5 border-t border-[var(--border-subtle)]">
+          <div className="flex items-baseline justify-between gap-3 mb-2">
+            <span className="text-small font-medium text-[var(--text-secondary)]">{t('supplier.pipeline.throughput')}</span>
+            <span className="text-small font-semibold tabular-nums text-[var(--text-primary)]">
+              {t('supplier.pipeline.rowsPassed', { passed: f.number(passed), total: f.number(rowCount) })}
+            </span>
+          </div>
+          <SplitBar
+            height={10}
+            legend
+            aria-label={t('supplier.pipeline.throughput')}
+            segments={[
+              { id: 'passed', value: passed, color: 'var(--color-brand)', label: t('supplier.pipeline.passed'), display: f.number(passed) },
+              { id: 'flagged', value: flagged, color: 'var(--status-warning)', label: t('supplier.pipeline.flaggedLabel'), display: f.number(flagged) },
+            ]}
+          />
         </div>
+      </section>
 
-        {/* Throughput bar */}
-        {mappingDone && (
-          <div className="mt-6 pt-4 border-t border-[var(--border-subtle)]">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[var(--text-xs)] font-medium text-[var(--text-secondary)]">Pipeline Throughput</span>
-              <span className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)] tabular-nums">
-                {stages[stages.length - 1].passed.toLocaleString()} / {rowCount.toLocaleString()} rows passed
-              </span>
-            </div>
-            <div className="w-full h-2 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{
-                  width: `${stages[stages.length - 1].rate}%`,
-                  background: 'linear-gradient(90deg, var(--accent-teal), var(--accent-green))',
-                }}
-              />
-            </div>
-          </div>
+      <section className="surface-paper overflow-hidden" aria-labelledby="supplier-exceptions">
+        <header className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between gap-3">
+          <h2 id="supplier-exceptions" className="type-h3 text-[var(--text-primary)]">
+            {t('supplier.pipeline.exceptions')}
+          </h2>
+          <StatusPill tone={flagged > 0 ? 'warning' : 'success'} dot size="sm">
+            {t('supplier.pipeline.total', { count: flagged, n: f.number(flagged) })}
+          </StatusPill>
+        </header>
+        {flagged === 0 ? (
+          <EmptyState variant="cleared" density="compact" title={t('supplier.pipeline.noExceptions')} />
+        ) : (
+          <ul className="divide-y divide-[var(--border-subtle)]">
+            {[
+              { id: 'schema', n: stages[0].failed, tone: 'warning' as const },
+              { id: 'semantic', n: stages[1].failed, tone: 'danger' as const },
+            ]
+              .filter((r) => r.n > 0)
+              .map((r) => (
+                <li key={r.id} className="flex items-center gap-3 px-5 py-3.5">
+                  <AlertTriangle className={`w-4 h-4 flex-shrink-0 ${r.tone === 'danger' ? 'text-[var(--status-danger)]' : 'text-[var(--status-warning)]'}`} aria-hidden />
+                  <span className="flex-1 min-w-0 text-small text-[var(--text-primary)]">{t(`supplier.pipeline.${r.id}Failures`)}</span>
+                  <StatusPill tone="neutral" size="sm">
+                    {t(`supplier.pipeline.${r.id}Badge`)}
+                  </StatusPill>
+                  <span className="text-small font-semibold tabular-nums text-[var(--text-primary)] w-12 text-right">{f.number(r.n)}</span>
+                </li>
+              ))}
+          </ul>
         )}
-      </Card>
-
-      {/* Validation exceptions */}
-      {mappingDone && (
-        <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">Validation Exceptions</h3>
-            <Badge variant="amber" dot>{stages[0].failed + stages[1].failed} total</Badge>
-          </div>
-          <div className="space-y-2">
-            {stages[0].failed > 0 && (
-              <div className="flex items-center gap-4 p-3 rounded-lg border border-[var(--border-subtle)]">
-                <AlertTriangle className="w-4 h-4 text-[var(--accent-amber)] flex-shrink-0" />
-                <span className="text-[var(--text-sm)] font-medium text-[var(--text-primary)] flex-1">Schema validation failures (type mismatches, missing required fields)</span>
-                <Badge variant="gray">Schema</Badge>
-                <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] tabular-nums">{stages[0].failed}</span>
-              </div>
-            )}
-            {stages[1].failed > 0 && (
-              <div className="flex items-center gap-4 p-3 rounded-lg border border-[var(--border-subtle)]">
-                <AlertTriangle className="w-4 h-4 text-[var(--accent-red)] flex-shrink-0" />
-                <span className="text-[var(--text-sm)] font-medium text-[var(--text-primary)] flex-1">Semantic validation failures (threshold exceeded, unit inconsistencies)</span>
-                <Badge variant="gray">Semantic</Badge>
-                <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] tabular-nums">{stages[1].failed}</span>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
+      </section>
     </div>
   )
 }
 
-
 /* ═══════════════════════════════════════════
-   History Tab
+   History
    ═══════════════════════════════════════════ */
 function HistoryTab({
-  files, onSelect, onClear,
+  files,
+  activeName,
+  onSelect,
+  onClear,
+  onUpload,
 }: {
   files: UploadedFile[]
+  activeName?: string
   onSelect: (f: UploadedFile) => void
   onClear: () => void
+  onUpload: () => void
 }) {
+  const { t } = useTranslation()
+  const f = useFmt()
   if (files.length === 0) {
-    return <EmptyState message="No upload history" sub="Files you upload will appear here." />
+    return (
+      <EmptyState
+        art="upload"
+        title={t('supplier.empty.noHistory')}
+        body={t('supplier.empty.noHistorySub')}
+        cta={{ label: t('supplier.empty.goToUpload'), onClick: onUpload }}
+      />
+    )
   }
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <span className="text-[var(--text-sm)] text-[var(--text-secondary)]">{files.length} file{files.length !== 1 ? 's' : ''} uploaded this session</span>
-        <button
-          onClick={onClear}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[var(--text-sm)] font-medium text-[var(--accent-red)] hover:bg-[var(--accent-red-light)] transition-all cursor-pointer"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-          Clear All
-        </button>
-      </div>
-
-      <Card padding="none">
-        {files.map((file, i) => (
-          <button
-            key={`${file.name}-${i}`}
-            onClick={() => onSelect(file)}
-            className={`w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-[var(--bg-hover)] transition-colors cursor-pointer ${
-              i < files.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''
-            }`}
-          >
-            <FileSpreadsheet className="w-5 h-5 text-[var(--accent-blue)] flex-shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{file.name}</p>
-              <p className="text-[10px] text-[var(--text-tertiary)]">
-                {(file.size / 1024).toFixed(1)} KB &middot; {file.sheets.length} sheet{file.sheets.length > 1 ? 's' : ''} &middot; {file.sheets.reduce((a, s) => a + s.rowCount, 0).toLocaleString()} rows
-              </p>
-            </div>
-            <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] tabular-nums">
-              {file.uploadedAt.toLocaleTimeString()}
-            </span>
-            <ChevronRight className="w-4 h-4 text-[var(--text-tertiary)]" />
-          </button>
-        ))}
-      </Card>
-    </div>
-  )
-}
-
-
-/* ═══════════════════════════════════════════
-   Empty State
-   ═══════════════════════════════════════════ */
-function EmptyState({ message, sub, onAction, actionLabel }: { message: string; sub: string; onAction?: () => void; actionLabel?: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-16 animate-fade-in">
-      <div className="w-16 h-16 rounded-2xl bg-[var(--bg-tertiary)] flex items-center justify-center mb-4">
-        <Table2 className="w-7 h-7 text-[var(--text-tertiary)]" />
-      </div>
-      <h3 className="text-[var(--text-base)] font-semibold text-[var(--text-primary)]">{message}</h3>
-      <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1">{sub}</p>
-      {onAction && actionLabel && (
-        <button
-          onClick={onAction}
-          className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--bg-inverse)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--bg-inverse-soft)] active:scale-[0.98] transition-all cursor-pointer"
-        >
-          {actionLabel}
-        </button>
-      )}
-    </div>
+    <section className="surface-paper overflow-hidden">
+      <header className="px-5 py-3 border-b border-[var(--border-subtle)] flex items-center justify-between gap-3">
+        <span className="text-small text-[var(--text-secondary)]">{t('supplier.history.filesThisSession', { count: files.length })}</span>
+        <Button variant="danger" size="sm" icon={<Trash2 className="w-3.5 h-3.5" />} onClick={onClear}>
+          {t('supplier.history.clearAll')}
+        </Button>
+      </header>
+      <ul className="divide-y divide-[var(--border-subtle)]">
+        {files.map((file, i) => {
+          const rows = file.sheets.reduce((a, s) => a + s.rowCount, 0)
+          return (
+            <li key={`${file.name}-${i}`}>
+              <button
+                onClick={() => onSelect(file)}
+                className="w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-[var(--bg-hover)] transition-colors duration-micro focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--color-brand)]"
+              >
+                <FileSpreadsheet className="w-5 h-5 text-[var(--color-brand)] flex-shrink-0" aria-hidden />
+                <div className="flex-1 min-w-0">
+                  <p className="text-small font-semibold text-[var(--text-primary)] truncate">{file.name}</p>
+                  <p className="text-caption text-[var(--text-tertiary)]">
+                    {fileSize(file.size, f)} · {t('supplier.preview.sheets', { count: file.sheets.length })} · {t('supplier.preview.rows', { count: rows, n: f.number(rows) })}
+                  </p>
+                </div>
+                {activeName === file.name && i === 0 && (
+                  <StatusPill tone="brand" size="sm">
+                    {t('supplier.history.current')}
+                  </StatusPill>
+                )}
+                <span className="hidden sm:inline text-caption text-[var(--text-tertiary)] tabular-nums whitespace-nowrap">{f.relative(file.uploadedAt)}</span>
+                <ChevronRight className="w-4 h-4 text-[var(--text-quaternary)]" aria-hidden />
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
   )
 }

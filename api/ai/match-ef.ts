@@ -4,6 +4,7 @@ import { cors, requirePermission } from '../_auth.js'
 import { checkRateLimit } from '../_rateLimit.js'
 import { matchEmissionFactor, type EfCandidate } from '../_claude.js'
 import { getDb } from '../_db.js'
+import { aiGate, aiLabel } from '../_llm.js'
 
 const schema = z.object({
   vendorName: z.string().min(1).max(200),
@@ -31,12 +32,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return res.status(503).json({ error: 'ANTHROPIC_API_KEY not configured' })
-  }
-
   const t = await requirePermission(req, res, 'calculators.edit')
   if (!t) return
+
+  const gate = await aiGate(getDb(), req, t)
+  if (!gate.ok) return res.status(gate.status).json(gate.body)
 
   const allowed = await checkRateLimit(req, res, {
     key: `ai-ef:${t.org}`,
@@ -99,10 +99,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     spendCurrency: body.spendCurrency,
     category: body.category,
     candidates,
-  })
+  }, { provider: gate.provider, locale: gate.locale })
 
   if (!match.ok || !match.result) {
-    return res.status(502).json({ error: match.error ?? 'Claude call failed' })
+    return res.status(502).json({ error: match.error ?? 'AI call failed' })
   }
 
   // Validate the model only used ef_ids from the candidate set — guards
@@ -138,7 +138,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
          ${topId}, ${match.result.top_match.confidence},
          ${JSON.stringify(validAlternates)}::jsonb,
          ${match.result.top_match.reasoning},
-         ${'claude-sonnet-4-6'}, ${match.tokensIn ?? null}, ${match.tokensOut ?? null}, ${match.cached ?? null})
+         ${match.model ?? gate.provider.model}, ${match.tokensIn ?? null}, ${match.tokensOut ?? null}, ${match.cached ?? null})
       RETURNING id
     `) as Array<{ id: string }>
     matchId = inserted[0]?.id ?? null
@@ -161,5 +161,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       tokensOut: match.tokensOut,
       cached: match.cached,
     },
+    ...aiLabel(gate.locale, match),
   })
 }

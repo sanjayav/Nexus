@@ -23,7 +23,7 @@ export default function MeshBackground({
         {/* Animated blobs */}
         <motion.div
           className="absolute rounded-full"
-          style={{ top: '-20%', left: '-10%', width: '70%', height: '70%', background: 'radial-gradient(circle, rgba(27,107,123,0.55), transparent 60%)', filter: 'blur(80px)', opacity: intensity }}
+          style={{ top: '-20%', left: '-10%', width: '70%', height: '70%', background: 'radial-gradient(circle, rgba(4, 120, 87,0.55), transparent 60%)', filter: 'blur(80px)', opacity: intensity }}
           animate={{ x: [0, 40, 0], y: [0, 20, 0] }}
           transition={{ duration: 22, repeat: Infinity, ease: 'easeInOut' }}
         />

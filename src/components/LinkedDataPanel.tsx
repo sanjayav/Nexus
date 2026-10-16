@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link2, AlertTriangle, ExternalLink } from 'lucide-react'
 import { getFramework } from '../lib/frameworks'
 import { conceptMappings } from '../lib/api'
+import { Trans, useTranslation } from 'react-i18next'
+import { itemLabel } from '../lib/itemLabel'
 
 function frameworkLabel(id: string): string {
   return getFramework(id)?.code ?? id.toUpperCase()
@@ -34,6 +36,7 @@ export interface PeerMapping {
   unit_conversion: number
   gri_code: string | null
   line_item: string | null
+  line_item_zh?: string | null
   unit: string | null
   section: string | null
 }
@@ -49,6 +52,7 @@ export function LinkedDataPanel({
   isOverridden,
   onPeerClick,
 }: LinkedDataPanelProps) {
+  const { t, i18n } = useTranslation()
   const [data, setData] = useState<ApiResp | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -67,35 +71,34 @@ export function LinkedDataPanel({
 
   return (
     <div className="surface-paper overflow-hidden">
-      <div className="p-6">
+      <div className="p-5">
         <div className="flex items-start justify-between mb-3 gap-3">
           <div className="flex items-center gap-2">
             <Link2 className="w-4 h-4 text-[var(--color-brand)]" />
-            <span className="kicker !mb-0">Linked data</span>
+            <h3 className="text-small font-semibold text-[var(--text-primary)]">{t('components.linked.title')}</h3>
           </div>
-          <span className="text-[11px] text-[var(--text-tertiary)] font-mono">{data.concept_key}</span>
+          <span className="text-caption text-[var(--text-tertiary)] font-mono">{data.concept_key}</span>
         </div>
 
         {(derivedFrom || isOverridden) && (
           <div className="flex items-center gap-2 mb-3 flex-wrap">
             {derivedFrom && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 h-7 rounded-full bg-[var(--accent-teal-subtle)] text-[var(--color-brand-strong)] text-[11px] font-semibold">
+              <span className="nx-pill" data-tone="brand">
                 <Link2 className="w-3 h-3" />
-                Auto-filled from another framework
+                {t('components.linked.autoFilled')}
               </span>
             )}
             {isOverridden && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 h-7 rounded-full bg-amber-100 text-amber-800 text-[11px] font-semibold">
+              <span className="nx-pill" data-tone="warning">
                 <AlertTriangle className="w-3 h-3" />
-                Locally overridden
+                {t('components.linked.overridden')}
               </span>
             )}
           </div>
         )}
 
-        <p className="text-[12px] text-[var(--text-tertiary)] mb-3 leading-relaxed">
-          This value appears in <strong className="text-[var(--text-primary)]">{peers.length + 1}</strong> frameworks.
-          Approving here propagates to every linked disclosure automatically (skipping any that are locally overridden).
+        <p className="text-caption text-[var(--text-secondary)] mb-3">
+          <Trans i18nKey="components.linked.appearsIn" values={{ count: peers.length + 1 }} components={{ b: <strong className="text-[var(--text-primary)]" /> }} />
         </p>
 
         <ul className="space-y-1.5">
@@ -104,14 +107,14 @@ export function LinkedDataPanel({
               <button
                 type="button"
                 onClick={() => onPeerClick?.(p)}
-                className="w-full flex items-center justify-between gap-3 px-3 h-10 rounded-[8px] border border-[var(--border-subtle)] bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] transition-colors text-left"
+                className="w-full flex items-center justify-between gap-3 px-3 min-h-[40px] py-1.5 rounded-[var(--radius-md)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] hover:bg-[var(--bg-secondary)] transition-colors text-left"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="inline-flex items-center justify-center px-2 h-6 rounded-[6px] bg-[var(--bg-tertiary)] text-[10px] font-bold uppercase tracking-wide text-[var(--text-secondary)]">
+                  <span className="inline-flex items-center justify-center px-2 h-6 rounded-[var(--radius-xs)] bg-[var(--bg-tertiary)] text-caption font-semibold text-[var(--text-secondary)] whitespace-nowrap flex-shrink-0">
                     {frameworkLabel(p.framework_id)}
                   </span>
-                  <span className="text-[12px] font-mono text-[var(--text-secondary)]">{p.gri_code}</span>
-                  <span className="text-[12px] text-[var(--text-primary)] truncate">{p.line_item}</span>
+                  <span className="text-caption font-mono text-[var(--text-secondary)] flex-shrink-0">{p.gri_code}</span>
+                  <span className="text-small text-[var(--text-primary)] truncate">{itemLabel(p, i18n.language)}</span>
                 </div>
                 <ExternalLink className="w-3.5 h-3.5 text-[var(--text-tertiary)] flex-shrink-0" />
               </button>

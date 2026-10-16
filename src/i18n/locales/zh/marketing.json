@@ -1,0 +1,86 @@
+{
+  "nav": {
+    "features": "产品功能",
+    "pricing": "价格",
+    "howItWorks": "工作原理",
+    "compare": "产品对比",
+    "about": "关于我们",
+    "contact": "联系我们",
+    "signIn": "登录",
+    "getStarted": "立即开始",
+    "openMenu": "打开菜单",
+    "homeAria": "Nexus — 首页",
+    "navAria": "网站导航",
+    "skip": "跳到正文",
+    "closeMenu": "关闭菜单"
+  },
+  "footer": {
+    "tagline": "可持续发展智能平台——覆盖所有框架，只需一套数据，随时满足审计要求。",
+    "product": "产品",
+    "company": "公司",
+    "legal": "法律",
+    "terms": "服务条款",
+    "privacy": "隐私政策",
+    "dpa": "数据处理协议（DPA）",
+    "subprocessors": "子处理方",
+    "copyright": "© 2026 Aeiforo Ltd · 保留所有权利",
+    "languages": "提供英文与简体中文版本。"
+  },
+  "cta": {
+    "startFree": "免费开始",
+    "startFreeTrial": "开始免费试用",
+    "contactSales": "联系销售",
+    "seeHowItWorks": "了解工作原理",
+    "watchDemo": "观看演示"
+  },
+  "plans": {
+    "starter": "入门版",
+    "team": "团队版",
+    "enterprise": "企业版",
+    "custom": "定制",
+    "perMonth": "/月"
+  },
+  "comparison": {
+    "feature": "功能",
+    "ariaYes": "支持",
+    "ariaNo": "不支持",
+    "ariaPartial": "部分支持",
+    "supported": "支持",
+    "notSupported": "不支持",
+    "partial": "部分支持"
+  },
+  "faq": {
+    "heading": "常见问题"
+  },
+  "pricingTable": {
+    "mostPopular": "最受欢迎",
+    "disclaimer": "所示价格仅为 v1 发布阶段的参考价，最终价格将在开通上线时确认。"
+  },
+  "timeline": {
+    "signUp": {
+      "when": "第 1 小时",
+      "title": "注册",
+      "body": "自助开通，无需销售电话，一键进入工作区。"
+    },
+    "firstFacility": {
+      "when": "第 4 小时",
+      "title": "添加首个设施",
+      "body": "添加实体，选择框架（已预置 24 个），邀请团队成员。"
+    },
+    "valuesEntered": {
+      "when": "第 24 小时",
+      "title": "完成数据录入",
+      "body": "上传证据，由 AI 提取数值，审批确认数据。"
+    },
+    "draftDisclosure": {
+      "when": "第 48 小时",
+      "title": "生成披露草稿",
+      "body": "CSRD 就绪的草稿、完整审计轨迹、区块链锚定，随时可以发布。"
+    },
+    "closing": "全程无需销售电话，无需实施顾问，价格完全公开。",
+    "closingStrong": "团队版仅需 £500/月。"
+  },
+  "language": {
+    "label": "语言"
+  }
+}

@@ -1,0 +1,185 @@
+{
+  "breadcrumb": {
+    "data": "Data",
+    "current": "Emission factors"
+  },
+  "title": "Emission factors",
+  "description": {
+    "prefix": "Live factors from DEFRA 2024, EPA 2024,",
+    "suffix": "IPCC 2006 / AR5 and IEA 2024 — versioned and region-tagged. The preferred row for each factor is ranked for your market.",
+    "prefixCn": "MEE / NBS China grid factors, GB/T fuel defaults, DEFRA 2024, EPA 2024,"
+  },
+  "actions": {
+    "export": "Export",
+    "import": "Import",
+    "addFactor": "Add factor",
+    "importSoon": "Bulk import is coming soon. Add factors one at a time for now."
+  },
+  "kpi": {
+    "total": "Total factors",
+    "deprecated": "Deprecated",
+    "sources": "Data sources",
+    "label": "Library summary",
+    "preferred": "Preferred factors",
+    "preferredRegion": "Preferred for your region",
+    "preferredHint": "One per activity and region",
+    "cnOfficial": "Official China factors",
+    "cnOfficialHint": "MEE, MEE/NBS and GB/T"
+  },
+  "tabs": {
+    "all": "All factors"
+  },
+  "scope": {
+    "1": "Scope 1",
+    "2": "Scope 2",
+    "3": "Scope 3"
+  },
+  "status": {
+    "active": "Active",
+    "deprecated": "Deprecated",
+    "preferred": "Preferred"
+  },
+  "search": {
+    "placeholder": "Search name, category, source, region or unit…",
+    "clear": "Clear search"
+  },
+  "filters": {
+    "allSources": "All sources",
+    "allCategories": "All categories",
+    "allRegions": "All regions",
+    "showDeprecated": "Show deprecated",
+    "preferredOnly": "Preferred only",
+    "resultCount_one": "{{count}} factor",
+    "resultCount_other": "{{count}} factors"
+  },
+  "loadError": {
+    "unknown": "Unknown error",
+    "title": "Couldn't load emission factors",
+    "body": "No factors are shown rather than an incomplete list. Try again; if this persists, ask an admin to run setup to seed the table."
+  },
+  "empty": {
+    "title": "No factors match",
+    "body": "Try a different search, or clear the filters.",
+    "preferredBody": "No preferred factors match. Turn off “Preferred only” to see every version."
+  },
+  "references": {
+    "ipcc": {
+      "name": "IPCC 2006 Guidelines",
+      "desc": "Default factors for stationary and mobile combustion. Tier 1 methodology."
+    },
+    "defra": {
+      "name": "DEFRA 2024",
+      "desc": "UK Government conversion factors for GHG reporting. Updated annually."
+    },
+    "iea": {
+      "name": "IEA 2024",
+      "desc": "International Energy Agency country grid factors. Used where no official national source exists."
+    },
+    "title": "Publishers",
+    "subtitle": "Where the library's factors come from.",
+    "subtitleCn": "For mainland sites, official China sources are preferred over IEA.",
+    "mee": {
+      "name": "MEE / NBS (China)",
+      "desc": "Ministry of Ecology and Environment and National Bureau of Statistics grid factors: national average, market-based residual, fossil-only and seven regional grids. CO₂ only."
+    },
+    "gbt": {
+      "name": "GB/T 32150-2015",
+      "desc": "China's industrial GHG accounting standard — default fuel parameters (NCV × carbon content × oxidation)."
+    }
+  },
+  "confirmDelete": "Historical activity data that references this factor is kept; it will no longer appear in the library.",
+  "toast": {
+    "removed": "Emission factor removed",
+    "added": "Emission factor added",
+    "deleteFailed": "Couldn't delete the factor",
+    "saveFailed": "Couldn't save the factor",
+    "copied": "Copied {{value}}",
+    "copyFailed": "Couldn't copy to the clipboard",
+    "exported_one": "Exported {{count}} factor",
+    "exported_other": "Exported {{count}} factors"
+  },
+  "modal": {
+    "title": "Add emission factor",
+    "factorName": "Factor name",
+    "factorNamePlaceholder": "e.g. Natural gas (industrial)",
+    "category": "Category",
+    "categoryPlaceholder": "e.g. stationary_combustion",
+    "scope": "Scope",
+    "value": "Value",
+    "unit": "Unit",
+    "unitPlaceholder": "e.g. kgCO2e/kWh",
+    "source": "Source",
+    "version": "Version",
+    "region": "Region",
+    "validFrom": "Valid from",
+    "submit": "Add factor",
+    "description": "The new factor joins its activity group; the preferred row is re-ranked for your market.",
+    "regionHint": "CN, CN-EAST, GB, GLOBAL…"
+  },
+  "row": {
+    "copy": "Copy value",
+    "delete": "Delete (soft — historical data preserved)",
+    "value": "Value",
+    "source": "Source",
+    "region": "Region",
+    "validFrom": "Valid",
+    "status": "Status",
+    "deleteShort": "Delete",
+    "gases": "Per gas",
+    "gasesNone": "CO₂e only",
+    "notes": "Notes"
+  },
+  "vendor": {
+    "title": "Find by vendor (AI)",
+    "hint": "Type a supplier name and the AI picks the closest factor from your library.",
+    "placeholder": "e.g. United Airlines, Office Depot, AWS",
+    "unavailable": "AI unavailable",
+    "suggest": "Suggest EF",
+    "topMatch": "Top match",
+    "alt": "Alt {{n}}",
+    "vendorLabel": "Supplier name",
+    "regionLabel": "Region",
+    "orgDisabled": "AI features are turned off for your organisation. An admin can turn them on in Settings.",
+    "notConfigured": "AI factor matching isn't connected in this workspace. An admin can connect an AI provider in Settings → Integrations.",
+    "china": "China"
+  },
+  "emptyLibrary": {
+    "title": "The library is empty",
+    "body": "Run setup to seed the standard factor packs, or add your first factor."
+  },
+  "listLabel": "Emission factor list",
+  "scopeTabs": "Scope",
+  "cols": {
+    "factor": "Factor",
+    "scope": "Scope",
+    "region": "Region",
+    "value": "Value",
+    "source": "Source",
+    "actions": "Actions"
+  },
+  "deleteTitle": "Delete {{name}}?",
+  "categories": {
+    "stationary_combustion": "Stationary combustion",
+    "mobile_combustion": "Mobile combustion",
+    "process_emissions": "Process emissions",
+    "fugitive": "Fugitive emissions",
+    "electricity": "Electricity",
+    "purchased_electricity": "Purchased electricity",
+    "purchased_heat": "Purchased heat",
+    "grid": "Grid",
+    "grid_market_based": "Grid, market-based",
+    "grid_fossil": "Grid, fossil-only",
+    "gaseous_fuel": "Gaseous fuel",
+    "liquid_fuel": "Liquid fuel",
+    "solid_fuel": "Solid fuel"
+  },
+  "activities": {
+    "grid_electricity": "Grid electricity",
+    "natural_gas": "Natural gas",
+    "diesel": "Diesel",
+    "diesel_oil": "Diesel oil",
+    "gasoline": "Gasoline",
+    "fuel_oil": "Fuel oil",
+    "lpg": "LPG"
+  }
+}

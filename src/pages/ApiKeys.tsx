@@ -1,11 +1,17 @@
-import { useCallback, useEffect, useState } from 'react'
-import { KeyRound, Copy, Check, Trash2, AlertTriangle, Plus, X } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Plus, Trash2, Loader2 } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
-import { SkeletonTable } from '../components/Skeleton'
-import EmptyState from '../components/EmptyState'
-import { Card, Button, Badge } from '../design-system'
+import { Button } from '../design-system'
+import { ConfirmSheet, StateBoundary, StatusPill, SkeletonTable, notify, useConfirm } from '../components/ui'
+import SecretReveal from '../components/admin/SecretReveal'
+import { ROW_ACTION } from '../components/admin/rowAction'
 import { apiKeys, type ApiKey, type ApiKeyCreated } from '../lib/api'
+import { useFmt } from '../lib/fmt'
+import { listItemMotion } from '../motion/tokens'
 
+// Scope identifiers are API values — shown verbatim (monospace), never translated.
 const DEFAULT_SCOPES = [
   'data.view',
   'data.upload',
@@ -16,84 +22,102 @@ const DEFAULT_SCOPES = [
   'workflow.view',
 ]
 
+const errMsg = (e: unknown) => (e instanceof Error ? e.message : typeof e === 'string' ? e : '')
+
 export default function ApiKeys() {
+  const { t, i18n } = useTranslation()
+  const f = useFmt()
+  const confirm = useConfirm()
   const [keys, setKeys] = useState<ApiKey[]>([])
   const [standardScopes, setStandardScopes] = useState<string[]>(DEFAULT_SCOPES)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
-  const [creating, setCreating] = useState(false)
   const [revoking, setRevoking] = useState<string | null>(null)
   const [created, setCreated] = useState<ApiKeyCreated | null>(null)
-  const [copied, setCopied] = useState(false)
 
-  // Modal form state
+  // Create-sheet form state
   const [name, setName] = useState('')
+  const [nameInvalid, setNameInvalid] = useState(false)
   const [selectedScopes, setSelectedScopes] = useState<Set<string>>(new Set(['data.view']))
   const [expiresInDays, setExpiresInDays] = useState<string>('')
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+  /** `silent` refreshes keep the table on screen and report failures as a toast. */
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) {
+      setLoading(true)
+      setLoadError(null)
+    }
     try {
       const data = await apiKeys.list()
       setKeys(data.keys)
       if (data.standardScopes?.length) setStandardScopes(data.standardScopes)
+      setLoadError(null)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load API keys')
+      const msg = errMsg(e) || i18n.t('apiKeys.errors.load')
+      if (opts?.silent) notify.error(i18n.t('apiKeys.errors.refresh'), { description: msg })
+      else setLoadError(msg)
     } finally {
-      setLoading(false)
+      if (!opts?.silent) setLoading(false)
     }
+    // i18n.t (not t) so a language switch doesn't refetch the list.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => { void load() }, [load])
 
   const resetModal = () => {
     setName('')
-    setSelectedScopes(new Set(['data.view']))
+    setNameInvalid(false)
+    // Default to read-only data access; fall back to the first scope the server offers.
+    setSelectedScopes(new Set([standardScopes.includes('data.view') ? 'data.view' : standardScopes[0] ?? 'data.view']))
     setExpiresInDays('')
   }
 
+  const openCreate = () => {
+    resetModal()
+    setShowModal(true)
+  }
+
+  // Throwing keeps the sheet open and shows the message inside it.
   const handleCreate = async () => {
-    if (!name.trim()) { setError('Name is required'); return }
-    if (selectedScopes.size === 0) { setError('Pick at least one scope'); return }
-    setCreating(true)
-    setError(null)
+    if (!name.trim()) {
+      setNameInvalid(true)
+      throw new Error(t('apiKeys.errors.nameRequired'))
+    }
+    if (selectedScopes.size === 0) throw new Error(t('apiKeys.errors.pickScope'))
+    const days = expiresInDays ? Number(expiresInDays) : undefined
+    let result: ApiKeyCreated
     try {
-      const days = expiresInDays ? Number(expiresInDays) : undefined
-      const result = await apiKeys.create({
+      result = await apiKeys.create({
         name: name.trim(),
         scopes: Array.from(selectedScopes),
         expiresInDays: days && Number.isFinite(days) ? days : undefined,
       })
-      setCreated(result)
-      setShowModal(false)
-      resetModal()
-      await load()
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create API key')
-    } finally {
-      setCreating(false)
+      throw new Error(errMsg(e) || t('apiKeys.errors.create'))
     }
+    setCreated(result)
+    notify.success(t('apiKeys.toast.created', { name: result.key.name }))
+    void load({ silent: true })
   }
 
-  const handleCopy = async () => {
-    if (!created) return
+  const handleRevoke = async (k: ApiKey) => {
+    const ok = await confirm({
+      title: t('apiKeys.revokeSheet.title', { name: k.name }),
+      description: t('apiKeys.confirmRevoke'),
+      confirmLabel: t('apiKeys.revokeSheet.confirm'),
+      tone: 'destructive',
+    })
+    if (!ok) return
+    setRevoking(k.id)
     try {
-      await navigator.clipboard.writeText(created.token)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    } catch { /* clipboard blocked */ }
-  }
-
-  const handleRevoke = async (id: string) => {
-    if (!window.confirm('Revoke this key? Any client using it will lose access immediately.')) return
-    setRevoking(id)
-    try {
-      await apiKeys.revoke(id)
-      await load()
+      await apiKeys.revoke(k.id)
+      setKeys(prev => prev.map(x => (x.id === k.id ? { ...x, isActive: false } : x)))
+      notify.success(t('apiKeys.toast.revoked', { name: k.name }))
+      void load({ silent: true })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to revoke key')
+      notify.error(t('apiKeys.errors.revoke'), { description: errMsg(e) || undefined })
     } finally {
       setRevoking(null)
     }
@@ -108,201 +132,256 @@ export default function ApiKeys() {
     })
   }
 
+  const now = Date.now()
+  const isExpired = (k: ApiKey) => !!k.expiresAt && new Date(k.expiresAt).getTime() < now
+  const activeCount = keys.filter(k => k.isActive && !isExpired(k)).length
+
   return (
-    <div className="page-container">
+    <div className="page-container space-y-6">
       <PageHeader
-        breadcrumbs={[
-          { label: 'Admin' },
-          { label: 'API keys' },
-        ]}
-        eyebrow="Admin · Integrations"
-        title="API keys"
-        subtitle="Issue programmatic tokens for CI pipelines, BI tools, and ERP push connectors. Scopes follow the same permission model as user roles."
+        title={t('apiKeys.title')}
+        subtitle={t('apiKeys.subtitle')}
         actions={
-          <Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => setShowModal(true)}>
-            Generate key
+          <Button variant="primary" size="lg" icon={<Plus className="w-4 h-4" />} onClick={openCreate}>
+            {t('apiKeys.generateKey')}
           </Button>
         }
       />
 
-      {error && (
-        <Card variant="outlined" className="mb-4 border-[var(--accent-red-light)]">
-          <div className="flex items-start gap-3 text-[13px] text-[var(--accent-red)]">
-            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <div>{error}</div>
-          </div>
-        </Card>
-      )}
-
       {/* One-time token reveal */}
-      {created && (
-        <Card variant="outlined" className="mb-5 border-[var(--accent-amber)]">
-          <div className="flex items-start gap-3 mb-3">
-            <AlertTriangle className="w-5 h-5 text-[var(--accent-amber)] flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <div className="font-semibold text-[var(--text-primary)] text-[14px]">{created.key.name}</div>
-              <div className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">
-                {created.warning}
-              </div>
-            </div>
-            <button onClick={() => setCreated(null)} className="text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
-              Dismiss
-            </button>
-          </div>
-          <div className="flex gap-2">
-            <code className="flex-1 px-3 py-2 rounded-md bg-[var(--bg-secondary)] border border-[var(--border-default)] text-[12px] font-mono text-[var(--text-primary)] break-all">
-              {created.token}
-            </code>
-            <Button
-              variant="secondary"
-              size="md"
-              onClick={handleCopy}
-              icon={copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-            >
-              {copied ? 'Copied' : 'Copy'}
-            </Button>
-          </div>
-          <div className="mt-3 text-[12px] text-[var(--text-tertiary)]">
-            Scopes: {created.key.scopes.join(', ') || '—'}
-          </div>
-        </Card>
-      )}
-
-      {/* Active keys table */}
-      <Card variant="paper">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[14px] font-semibold text-[var(--text-primary)] flex items-center gap-2">
-            <KeyRound className="w-4 h-4" /> Active keys
-          </h3>
-          <Badge variant="gray">{keys.length}</Badge>
-        </div>
-        {loading ? (
-          <SkeletonTable rows={4} cols={6} />
-        ) : keys.length === 0 ? (
-          <EmptyState
-            icon={KeyRound}
-            title="No API keys yet"
-            body="Generate a token above to start pushing data programmatically. Scope each key to the minimum permissions it needs."
-            density="compact"
+      <AnimatePresence initial={false}>
+        {created && (
+          <SecretReveal
+            key={created.key.id}
+            title={t('apiKeys.reveal.title', { name: created.key.name })}
+            warning={t('apiKeys.reveal.warning')}
+            token={created.token}
+            tokenLabel={t('apiKeys.reveal.tokenLabel')}
+            copyLabel={t('apiKeys.reveal.copy')}
+            copiedLabel={t('apiKeys.reveal.copied')}
+            copyFailedLabel={t('apiKeys.reveal.copyFailed')}
+            doneLabel={t('apiKeys.reveal.dismiss')}
+            onDone={() => setCreated(null)}
+            meta={
+              <span className="inline-flex flex-wrap items-center gap-1.5">
+                <span>{t('apiKeys.reveal.scopesLabel')}</span>
+                {created.key.scopes.length
+                  ? created.key.scopes.map(s => <ScopeTag key={s}>{s}</ScopeTag>)
+                  : <span>—</span>}
+              </span>
+            }
           />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-[13px]">
+        )}
+      </AnimatePresence>
+
+      {/* Keys table */}
+      <section className="surface-paper overflow-hidden" aria-labelledby="api-keys-heading">
+        <header className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-[var(--border-subtle)]">
+          <h2 id="api-keys-heading" className="text-h3 text-[var(--text-primary)]">{t('apiKeys.table.heading')}</h2>
+          {!loading && !loadError && keys.length > 0 && (
+            <span className="text-caption text-[var(--text-tertiary)] tabular-nums whitespace-nowrap">
+              {t('apiKeys.table.count', { active: f.number(activeCount), total: f.number(keys.length) })}
+            </span>
+          )}
+        </header>
+        <StateBoundary
+          loading={loading}
+          error={loadError}
+          onRetry={() => void load()}
+          empty={keys.length === 0}
+          compact
+          skeleton={<div className="p-4"><SkeletonTable rows={3} cols={6} /></div>}
+          errorState={{ title: t('apiKeys.errors.loadTitle'), body: t('apiKeys.errors.loadBody') }}
+          emptyState={{
+            art: 'connect',
+            title: t('apiKeys.table.emptyTitle'),
+            body: t('apiKeys.table.emptyBody'),
+            cta: { label: t('apiKeys.generateKey'), onClick: openCreate, icon: <Plus className="w-3.5 h-3.5" /> },
+          }}
+        >
+          <div className="overflow-auto max-h-[min(70vh,640px)]">
+            <table className="data-table min-w-[820px]">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] border-b border-[var(--border-default)]">
-                  <th className="py-2 pr-3">Name</th>
-                  <th className="py-2 pr-3">Prefix</th>
-                  <th className="py-2 pr-3">Scopes</th>
-                  <th className="py-2 pr-3">Expires</th>
-                  <th className="py-2 pr-3">Last used</th>
-                  <th className="py-2 pr-3">Status</th>
-                  <th className="py-2 pr-3 text-right">Actions</th>
+                <tr>
+                  <th className="sticky top-0 z-[1] !pl-5">{t('apiKeys.table.name')}</th>
+                  <th className="sticky top-0 z-[1]">{t('apiKeys.table.prefix')}</th>
+                  <th className="sticky top-0 z-[1]">{t('apiKeys.table.scopes')}</th>
+                  <th className="sticky top-0 z-[1]">{t('apiKeys.table.expires')}</th>
+                  <th className="sticky top-0 z-[1]">{t('apiKeys.table.lastUsed')}</th>
+                  <th className="sticky top-0 z-[1]">{t('apiKeys.table.status')}</th>
+                  <th className="sticky top-0 z-[1] !pr-5 text-right"><span className="sr-only">{t('apiKeys.table.actions')}</span></th>
                 </tr>
               </thead>
               <tbody>
-                {keys.map(k => (
-                  <tr key={k.id} className="border-b border-[var(--border-subtle)]">
-                    <td className="py-2.5 pr-3 text-[var(--text-primary)] font-medium">{k.name}</td>
-                    <td className="py-2.5 pr-3 font-mono text-[12px] text-[var(--text-primary)]">{k.prefix}…</td>
-                    <td className="py-2.5 pr-3 text-[var(--text-secondary)]">
-                      <div className="flex flex-wrap gap-1">
-                        {k.scopes.slice(0, 3).map(s => <Badge key={s} variant="gray">{s}</Badge>)}
-                        {k.scopes.length > 3 && (
-                          <span className="text-[11px] text-[var(--text-tertiary)]">+{k.scopes.length - 3}</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-2.5 pr-3 text-[var(--text-secondary)]">
-                      {k.expiresAt ? new Date(k.expiresAt).toLocaleDateString() : 'never'}
-                    </td>
-                    <td className="py-2.5 pr-3 text-[var(--text-secondary)]">
-                      {k.lastUsedAt ? new Date(k.lastUsedAt).toLocaleString() : 'never'}
-                    </td>
-                    <td className="py-2.5 pr-3">
-                      {k.isActive
-                        ? <Badge variant="green">active</Badge>
-                        : <Badge variant="gray">revoked</Badge>}
-                    </td>
-                    <td className="py-2.5 pr-3 text-right">
-                      {k.isActive && (
-                        <Button
-                          size="xs"
-                          variant="danger"
-                          icon={<Trash2 className="w-3.5 h-3.5" />}
-                          loading={revoking === k.id}
-                          onClick={() => handleRevoke(k.id)}
-                        >
-                          Revoke
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                <AnimatePresence initial={false}>
+                  {keys.map(k => {
+                    const expired = isExpired(k)
+                    const busy = revoking === k.id
+                    return (
+                      <motion.tr key={k.id} layout {...listItemMotion} className="group">
+                        <td className="!pl-5 text-[var(--text-primary)] font-medium whitespace-nowrap">{k.name}</td>
+                        <td className="font-mono text-caption text-[var(--text-primary)] whitespace-nowrap">{k.prefix}…</td>
+                        <td>
+                          <div className="flex flex-wrap gap-1">
+                            {k.scopes.slice(0, 3).map(s => <ScopeTag key={s}>{s}</ScopeTag>)}
+                            {k.scopes.length > 3 && (
+                              <span className="text-caption text-[var(--text-tertiary)] self-center" title={k.scopes.slice(3).join(', ')}>
+                                +{k.scopes.length - 3}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap tabular-nums">
+                          {k.expiresAt ? f.date(k.expiresAt) : <span className="text-[var(--text-tertiary)]">{t('apiKeys.table.noExpiry')}</span>}
+                        </td>
+                        <td className="whitespace-nowrap">
+                          {k.lastUsedAt
+                            ? <span title={f.dateTime(k.lastUsedAt)}>{f.relative(k.lastUsedAt)}</span>
+                            : <span className="text-[var(--text-tertiary)]">{t('apiKeys.table.never')}</span>}
+                        </td>
+                        <td>
+                          {!k.isActive
+                            ? <StatusPill tone="neutral">{t('apiKeys.table.revoked')}</StatusPill>
+                            : expired
+                              ? <StatusPill tone="warning" dot>{t('apiKeys.table.expired')}</StatusPill>
+                              : <StatusPill tone="success" dot>{t('apiKeys.table.active')}</StatusPill>}
+                        </td>
+                        <td className="!pr-5 text-right">
+                          {k.isActive && (
+                            <button
+                              type="button"
+                              onClick={() => void handleRevoke(k)}
+                              disabled={busy}
+                              aria-label={t('apiKeys.table.revokeNamed', { name: k.name })}
+                              className={`${busy ? 'opacity-100' : ROW_ACTION} inline-flex items-center gap-1.5 h-10 sm:h-8 px-2.5 rounded-[var(--radius-md)] text-small font-medium text-[var(--status-danger)] hover:bg-[var(--status-danger-soft)] disabled:cursor-wait whitespace-nowrap`}
+                            >
+                              {busy
+                                ? <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
+                                : <Trash2 className="w-3.5 h-3.5" aria-hidden />}
+                              {t('apiKeys.table.revoke')}
+                            </button>
+                          )}
+                        </td>
+                      </motion.tr>
+                    )
+                  })}
+                </AnimatePresence>
               </tbody>
             </table>
           </div>
-        )}
-      </Card>
+        </StateBoundary>
+      </section>
 
-      {/* Create modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-lg shadow-xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-default)]">
-              <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">Generate API key</h2>
-              <button
-                onClick={() => { setShowModal(false); resetModal() }}
-                className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+      {/* Create sheet */}
+      <ConfirmSheet
+        open={showModal}
+        onOpenChange={setShowModal}
+        title={t('apiKeys.modal.title')}
+        description={t('apiKeys.modal.intro')}
+        confirmLabel={t('apiKeys.modal.generate')}
+        cancelLabel={t('apiKeys.modal.cancel')}
+        onConfirm={handleCreate}
+        size="lg"
+      >
+        <CreateForm
+          name={name}
+          nameInvalid={nameInvalid}
+          onName={v => { setName(v); if (v.trim()) setNameInvalid(false) }}
+          scopes={standardScopes}
+          selected={selectedScopes}
+          onToggleScope={toggleScope}
+          expiresInDays={expiresInDays}
+          onExpires={setExpiresInDays}
+        />
+      </ConfirmSheet>
+    </div>
+  )
+}
+
+function ScopeTag({ children }: { children: ReactNode }) {
+  return (
+    <span className="inline-flex items-center h-5 px-1.5 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)] border border-[var(--border-subtle)] font-mono text-caption text-[var(--text-secondary)] whitespace-nowrap">
+      {children}
+    </span>
+  )
+}
+
+function CreateForm({
+  name, nameInvalid, onName, scopes, selected, onToggleScope, expiresInDays, onExpires,
+}: {
+  name: string
+  nameInvalid: boolean
+  onName: (v: string) => void
+  scopes: string[]
+  selected: Set<string>
+  onToggleScope: (s: string) => void
+  expiresInDays: string
+  onExpires: (v: string) => void
+}) {
+  const { t } = useTranslation()
+  const nameRef = useRef<HTMLInputElement>(null)
+  // The sheet focuses its primary button on open; move focus to the first field just after.
+  useEffect(() => {
+    let inner = 0
+    const outer = requestAnimationFrame(() => { inner = requestAnimationFrame(() => nameRef.current?.focus()) })
+    return () => { cancelAnimationFrame(outer); cancelAnimationFrame(inner) }
+  }, [])
+  const field =
+    'w-full h-10 px-3 rounded-[var(--radius-md)] border bg-[var(--bg-primary)] text-body text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] outline-none focus:border-[var(--border-focus)] focus:shadow-[var(--shadow-focus)] transition-colors'
+  return (
+    <div className="space-y-5">
+      <label className="block">
+        <span className="block text-small font-medium text-[var(--text-primary)] mb-1.5">{t('apiKeys.modal.name')}</span>
+        <input
+          ref={nameRef}
+          type="text"
+          value={name}
+          onChange={e => onName(e.target.value)}
+          placeholder={t('apiKeys.modal.namePlaceholder')}
+          aria-invalid={nameInvalid || undefined}
+          className={`${field} ${nameInvalid ? 'border-[var(--status-danger)]' : 'border-[var(--border-default)]'}`}
+        />
+      </label>
+      <fieldset>
+        <legend className="block text-small font-medium text-[var(--text-primary)] mb-1">{t('apiKeys.modal.scopes')}</legend>
+        <p className="text-caption text-[var(--text-tertiary)] mb-2.5">{t('apiKeys.modal.scopesHint')}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+          {scopes.map(scope => {
+            const on = selected.has(scope)
+            return (
+              <label
+                key={scope}
+                className={`flex items-center gap-2.5 h-10 px-3 rounded-[var(--radius-md)] border cursor-pointer transition-colors duration-micro ease-out ${
+                  on
+                    ? 'border-[var(--color-brand)] bg-[var(--color-brand-soft)]'
+                    : 'border-[var(--border-default)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)]'
+                }`}
               >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="px-5 py-4 space-y-4">
-              <div>
-                <label className="block text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">Name</label>
                 <input
-                  type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="e.g. CI pipeline push"
-                  className="w-full h-9 px-3 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13px] text-[var(--text-primary)]"
+                  type="checkbox"
+                  checked={on}
+                  onChange={() => onToggleScope(scope)}
+                  className="w-4 h-4 accent-[var(--color-brand)]"
                 />
-              </div>
-              <div>
-                <label className="block text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-2">Scopes</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {standardScopes.map(scope => (
-                    <label key={scope} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedScopes.has(scope)}
-                        onChange={() => toggleScope(scope)}
-                      />
-                      <span className="font-mono text-[12px] text-[var(--text-primary)]">{scope}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="block text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">Expires in (days)</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="3650"
-                  value={expiresInDays}
-                  onChange={e => setExpiresInDays(e.target.value)}
-                  placeholder="leave blank = never"
-                  className="w-full h-9 px-3 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13px] text-[var(--text-primary)]"
-                />
-              </div>
-            </div>
-            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[var(--border-default)]">
-              <Button variant="secondary" onClick={() => { setShowModal(false); resetModal() }}>Cancel</Button>
-              <Button variant="primary" loading={creating} onClick={handleCreate}>Generate</Button>
-            </div>
-          </div>
+                <span className="font-mono text-small text-[var(--text-primary)]">{scope}</span>
+              </label>
+            )
+          })}
         </div>
-      )}
+      </fieldset>
+      <label className="block">
+        <span className="block text-small font-medium text-[var(--text-primary)] mb-1.5">{t('apiKeys.modal.expiresIn')}</span>
+        <input
+          type="number"
+          inputMode="numeric"
+          min="1"
+          max="3650"
+          value={expiresInDays}
+          onChange={e => onExpires(e.target.value)}
+          placeholder={t('apiKeys.modal.expiresPlaceholder')}
+          className={`${field} border-[var(--border-default)] sm:max-w-[240px] tabular-nums`}
+        />
+      </label>
     </div>
   )
 }

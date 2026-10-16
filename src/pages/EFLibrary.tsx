@@ -1,751 +1,675 @@
-import { useState, useMemo, useEffect } from 'react'
-import {
-  Search,
-  Plus,
-  Edit3,
-  Download,
-  Upload,
-  X,
-  BookOpen,
-  Leaf,
-  Flame,
-  Zap,
-  Truck,
-  Factory,
-  Droplets,
-  Wind,
-  ChevronDown,
-  ExternalLink,
-  Copy,
-  Check,
-  Info,
-  Sparkles,
-  Shield,
-  ArrowUpRight,
-  Loader2,
-  Trash2,
-} from 'lucide-react'
-import { Badge, Tabs, Button, Input } from '../design-system'
+import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { Search, Plus, Download, Upload, X, ChevronDown, Copy, Check, Sparkles, Loader2, Trash2, Lock } from 'lucide-react'
+import { Tabs, Button } from '../design-system'
 import JargonTooltip from '../components/JargonTooltip'
 import PageHeader from '../components/PageHeader'
-import { SkeletonTable } from '../components/Skeleton'
-import { Stagger, StaggerItem } from '../components/MotionPrimitives'
 import { ai, type AiEfMatchResponse } from '../lib/api'
-import { orgStore } from '../lib/orgStore'
+import { orgStore, type PreferredEmissionFactor } from '../lib/orgStore'
+import { useFmt } from '../lib/fmt'
+import { useIntegrationStatus, integrationMissing } from '../lib/integrations'
+import { StatLedger, StateBoundary, EmptyState, SkeletonTable, ConfirmSheet, notify, useConfirm } from '../components/ui'
+import { chartColors } from '../components/ui/ChartFrame'
+import { dur, ease } from '../motion/tokens'
+import useOrgMarket from '../components/analytics/useOrgMarket'
+import {
+  RegionFactorPanel, FactorSourceBadge, PreferredMarker, CalcField, CalcInput, CalcSelect, Callout,
+  invalidateEmissionFactors, isCnRegion, regionLabel, sourceKey,
+} from '../components/analytics/factors'
 
 /* ═══════════════════════════════════════════
-   Types — DB-backed shape from /api/emission-factors
+   Types — DB-backed shape from /api/emission-factors (with `preferred`)
    ═══════════════════════════════════════════ */
-interface EmissionFactorRow {
-  id: string
-  scope: 1 | 2 | 3
-  category: string
-  subcategory: string | null
-  fuel_or_activity: string
-  region: string
-  unit: string
-  co2e_per_unit: number | string
-  co2_per_unit: number | string | null
-  ch4_per_unit: number | string | null
-  n2o_per_unit: number | string | null
-  source: string
-  source_version: string | null
-  valid_from: string
-  valid_to: string | null
-  notes: string | null
-  created_at: string
-}
+type Row = PreferredEmissionFactor & { deprecated: boolean }
 
-interface ViewFactor {
-  id: string
-  name: string
-  category: string
-  subcategory: string
-  scope: 'Scope 1' | 'Scope 2' | 'Scope 3'
-  value: number
-  unit: string
-  source: string
-  sourceYear: number
-  region: string
-  lastUpdated: string
-  status: 'active' | 'deprecated'
-  notes?: string
-}
-
-function toView(row: EmissionFactorRow): ViewFactor {
+function toRow(r: PreferredEmissionFactor): Row {
   // Deprecated = valid_to in the past
-  const valid_to = row.valid_to ? new Date(row.valid_to) : null
-  const deprecated = valid_to ? valid_to.getTime() < Date.now() : false
-  const scopeLabel = (`Scope ${row.scope}`) as ViewFactor['scope']
-  return {
-    id: row.id,
-    name: row.fuel_or_activity,
-    category: humanize(row.category),
-    subcategory: row.subcategory ? humanize(row.subcategory) : '—',
-    scope: scopeLabel,
-    value: Number(row.co2e_per_unit),
-    unit: row.unit,
-    source: row.source + (row.source_version ? ` (${row.source_version})` : ''),
-    sourceYear: row.valid_from ? new Date(row.valid_from).getFullYear() : new Date().getFullYear(),
-    region: row.region,
-    lastUpdated: row.valid_from?.slice(0, 10) ?? '',
-    status: deprecated ? 'deprecated' : 'active',
-    notes: row.notes ?? undefined,
-  }
+  const validTo = r.valid_to ? new Date(r.valid_to) : null
+  return { ...r, deprecated: validTo ? validTo.getTime() < Date.now() : false }
 }
 
 function humanize(s: string): string {
   return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
-const SCOPE_COLORS: Record<string, string> = {
-  'Scope 1': '#0F7B6F',
-  'Scope 2': '#2563EB',
-  'Scope 3': '#7C3AED',
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')
+
+function categoryLabel(t: TFunction, c: string | null | undefined): string {
+  if (!c) return '—'
+  return t(`efLibrary.categories.${slug(c)}`, { defaultValue: humanize(c) })
 }
 
-const CATEGORY_ICONS: Record<string, typeof Flame> = {
-  'Stationary Combustion': Flame,
-  'Mobile Combustion': Truck,
-  'Process Emissions': Factory,
-  'Fugitive': Wind,
-  'Purchased Electricity': Zap,
-  'Purchased Heat': Droplets,
-  'Cat4 Upstream Transport': Truck,
-  'Cat6 Business Travel': Truck,
-  'Cat7 Employee Commute': Truck,
-  'Cat10 Eol Treatment': Droplets,
-  'Purchased Goods': Leaf,
+function activityLabel(t: TFunction, name: string): string {
+  return t(`efLibrary.activities.${slug(name)}`, { defaultValue: name })
 }
 
-const STATUS_BADGE: Record<string, 'green' | 'amber' | 'gray'> = {
-  active: 'green',
-  deprecated: 'gray',
-}
-
-function stagger(i: number) {
-  const s = Math.min(i + 1, 10)
-  return `stagger-${s}`
-}
+const SCOPE_DOT: Record<number, string> = { 1: chartColors.s1, 2: chartColors.s2, 3: chartColors.s3 }
 
 /* ═══════════════════════════════════════════
    Component
    ═══════════════════════════════════════════ */
 export default function EFLibrary() {
-  const [rows, setRows] = useState<ViewFactor[]>([])
+  const { t } = useTranslation()
+  const f = useFmt()
+  const market = useOrgMarket()
+  const confirm = useConfirm()
+  const [rows, setRows] = useState<Row[]>([])
+  const [loaded, setLoaded] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [reloadNonce, setReloadNonce] = useState(0)
 
   const [tab, setTab] = useState('all')
   const [search, setSearch] = useState('')
   const [sourceFilter, setSourceFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [regionFilter, setRegionFilter] = useState('all')
+  const [preferredOnly, setPreferredOnly] = useState(true)
   const [showDeprecated, setShowDeprecated] = useState(false)
-  const [expandedFactor, setExpandedFactor] = useState<string | null>(null)
-  const [showAddModal, setShowAddModal] = useState(false)
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const [showAdd, setShowAdd] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  const [searchFocused, setSearchFocused] = useState(false)
-  const [toast, setToast] = useState<{ kind: 'ok' | 'err'; msg: string } | null>(null)
-  const [reloadNonce, setReloadNonce] = useState(0)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-
-  const showToast = (kind: 'ok' | 'err', msg: string) => {
-    setToast({ kind, msg })
-    setTimeout(() => setToast(null), 3500)
-  }
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       setLoading(true); setLoadError(null)
       try {
-        const r = await fetch('/api/emission-factors', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('aeiforo_token') ?? ''}` },
-        })
-        if (!r.ok) throw new Error(`Failed to load: ${r.status}`)
-        const data: EmissionFactorRow[] = await r.json()
-        if (!cancelled) setRows(data.map(toView))
+        const data = await orgStore.listEmissionFactors()
+        if (!cancelled) { setRows((Array.isArray(data) ? data : []).map(toRow)); setLoaded(true) }
       } catch (err: unknown) {
-        if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Unknown error')
+        if (!cancelled) setLoadError(err instanceof Error ? err.message : t('efLibrary.loadError.unknown'))
       } finally {
         if (!cancelled) setLoading(false)
       }
     })()
     return () => { cancelled = true }
-  }, [reloadNonce])
+  }, [reloadNonce, t])
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Delete emission factor "${name}"? Historical activity data referencing it is preserved; the factor will no longer appear in the library.`)) return
-    setDeletingId(id)
+  const reload = useCallback(() => { invalidateEmissionFactors(); setReloadNonce(n => n + 1) }, [])
+
+  const handleDelete = async (row: Row) => {
+    const ok = await confirm({
+      title: t('efLibrary.deleteTitle', { name: activityLabel(t, row.fuel_or_activity) }),
+      description: t('efLibrary.confirmDelete', { name: row.fuel_or_activity }),
+      confirmLabel: t('efLibrary.row.deleteShort'),
+      tone: 'destructive',
+    })
+    if (!ok) return
+    setDeletingId(row.id)
     try {
-      await orgStore.deleteEmissionFactor(id)
-      showToast('ok', 'Emission factor removed')
-      setReloadNonce(n => n + 1)
+      await orgStore.deleteEmissionFactor(row.id)
+      notify.success(t('efLibrary.toast.removed'))
+      reload()
     } catch (e) {
-      showToast('err', e instanceof Error ? e.message : 'Could not delete')
+      notify.error(t('efLibrary.toast.deleteFailed'), { description: e instanceof Error ? e.message : undefined })
     } finally {
       setDeletingId(null)
     }
   }
 
-  const SOURCES = useMemo(() => [...new Set(rows.map(f => f.source))].sort(), [rows])
-  const CATEGORIES = useMemo(() => [...new Set(rows.map(f => f.category))].sort(), [rows])
-  const REGIONS = useMemo(() => [...new Set(rows.map(f => f.region))].sort(), [rows])
+  const SOURCES = useMemo(() => [...new Set(rows.map(r => r.source))].sort(), [rows])
+  const CATEGORIES = useMemo(() => [...new Set(rows.map(r => r.category))].sort(), [rows])
+  const REGIONS = useMemo(() => [...new Set(rows.map(r => r.region))].sort(), [rows])
 
-  const TABS_CONFIG = useMemo(() => [
-    { id: 'all', label: 'All Factors', count: rows.length },
-    { id: 'scope1', label: 'Scope 1', count: rows.filter(f => f.scope === 'Scope 1').length },
-    { id: 'scope2', label: 'Scope 2', count: rows.filter(f => f.scope === 'Scope 2').length },
-    { id: 'scope3', label: 'Scope 3', count: rows.filter(f => f.scope === 'Scope 3').length },
-  ], [rows])
+  const tabsConfig = useMemo(() => [
+    { id: 'all', label: t('efLibrary.tabs.all'), count: rows.length },
+    { id: 'scope1', label: t('efLibrary.scope.1'), count: rows.filter(r => r.scope === 1).length },
+    { id: 'scope2', label: t('efLibrary.scope.2'), count: rows.filter(r => r.scope === 2).length },
+    { id: 'scope3', label: t('efLibrary.scope.3'), count: rows.filter(r => r.scope === 3).length },
+  ], [rows, t])
 
   const filtered = useMemo(() => {
-    return rows.filter(f => {
-      if (tab === 'scope1' && f.scope !== 'Scope 1') return false
-      if (tab === 'scope2' && f.scope !== 'Scope 2') return false
-      if (tab === 'scope3' && f.scope !== 'Scope 3') return false
-      if (!showDeprecated && f.status === 'deprecated') return false
-      if (sourceFilter !== 'all' && f.source !== sourceFilter) return false
-      if (categoryFilter !== 'all' && f.category !== categoryFilter) return false
-      if (regionFilter !== 'all' && f.region !== regionFilter) return false
-      if (search) {
-        const q = search.toLowerCase()
-        return f.name.toLowerCase().includes(q) || f.category.toLowerCase().includes(q) || f.source.toLowerCase().includes(q) || f.unit.toLowerCase().includes(q)
+    const q = search.trim().toLowerCase()
+    return rows.filter(r => {
+      if (tab !== 'all' && `scope${r.scope}` !== tab) return false
+      if (preferredOnly && !r.preferred) return false
+      if (!showDeprecated && r.deprecated) return false
+      if (sourceFilter !== 'all' && r.source !== sourceFilter) return false
+      if (categoryFilter !== 'all' && r.category !== categoryFilter) return false
+      if (regionFilter !== 'all' && r.region !== regionFilter) return false
+      if (q) {
+        const hay = `${r.fuel_or_activity} ${activityLabel(t, r.fuel_or_activity)} ${r.category} ${categoryLabel(t, r.category)} ${r.source} ${r.unit} ${r.region} ${regionLabel(t, r.region)}`.toLowerCase()
+        return hay.includes(q)
       }
       return true
     })
-  }, [rows, tab, search, sourceFilter, categoryFilter, regionFilter, showDeprecated])
+  }, [rows, tab, search, sourceFilter, categoryFilter, regionFilter, showDeprecated, preferredOnly, t])
 
-  const activeCount = rows.filter(f => f.status === 'active').length
-  const deprecatedCount = rows.filter(f => f.status === 'deprecated').length
+  const filtersActive = Boolean(search || sourceFilter !== 'all' || categoryFilter !== 'all' || regionFilter !== 'all' || tab !== 'all')
+  const clearFilters = () => {
+    setSearch(''); setSourceFilter('all'); setCategoryFilter('all'); setRegionFilter('all'); setTab('all'); setPreferredOnly(false); setShowDeprecated(true)
+  }
 
-  const handleCopy = (id: string, value: number, unit: string) => {
-    navigator.clipboard.writeText(`${value} ${unit}`)
-    setCopiedId(id)
-    setTimeout(() => setCopiedId(null), 1500)
+  const preferredCount = rows.filter(r => r.preferred).length
+  const deprecatedCount = rows.filter(r => r.deprecated).length
+  const cnOfficial = rows.filter(r => isCnRegion(r.region) && ['mee', 'meeNbs', 'gbt'].includes(sourceKey(r.source))).length
+
+  const handleCopy = async (row: Row) => {
+    const text = `${row.co2e_per_unit} ${row.unit}`
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedId(row.id)
+      setTimeout(() => setCopiedId(null), 1500)
+      notify.success(t('efLibrary.toast.copied', { value: f.exact(row.co2e_per_unit, row.unit) }))
+    } catch {
+      notify.error(t('efLibrary.toast.copyFailed'))
+    }
+  }
+
+  const exportCsv = () => {
+    const cols = ['scope', 'category', 'subcategory', 'fuel_or_activity', 'region', 'unit', 'co2e_per_unit', 'co2_per_unit', 'ch4_per_unit', 'n2o_per_unit', 'source', 'source_version', 'valid_from', 'valid_to', 'preferred'] as const
+    const esc = (v: unknown) => {
+      const s = v == null ? '' : String(v)
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+    }
+    const csv = [cols.join(','), ...filtered.map(r => cols.map(c => esc(r[c])).join(','))].join('\n')
+    const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `emission-factors-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    notify.success(t('efLibrary.toast.exported', { count: filtered.length }))
   }
 
   return (
-    <div className="page-container space-y-6 animate-fade-in">
-      {toast && (
-        <div
-          role="status"
-          className="fixed top-6 right-6 z-50 px-4 py-2.5 rounded-[10px] border text-[13px] font-medium shadow-lg animate-fade-in"
-          style={{
-            background: toast.kind === 'ok' ? 'var(--accent-green-light)' : 'var(--accent-red-light)',
-            color: toast.kind === 'ok' ? 'var(--status-ok)' : 'var(--status-reject)',
-            borderColor: toast.kind === 'ok' ? 'rgba(46,125,50,0.3)' : 'rgba(220,38,38,0.3)',
-          }}
-        >
-          {toast.msg}
-        </div>
-      )}
+    <div className="page-container">
       <PageHeader
         breadcrumbs={[
-          { label: 'Data', to: '/data' },
-          { label: 'Emission factors' },
+          { label: t('efLibrary.breadcrumb.data'), to: '/data' },
+          { label: t('efLibrary.breadcrumb.current') },
         ]}
-        title="Emission factors"
+        title={t('efLibrary.title')}
         description={
           <>
-            Live factors from DEFRA 2024, EPA 2024, <JargonTooltip term="IPCC AR5" iconOnly /> IPCC 2006 / AR5, IEA 2024 — versioned, region-tagged.
+            {market.isCn ? t('efLibrary.description.prefixCn') : t('efLibrary.description.prefix')} <JargonTooltip term="IPCC AR5" iconOnly /> {t('efLibrary.description.suffix')}
           </>
         }
         actions={
           <>
-            <Button variant="secondary" size="sm" icon={<Download className="w-3.5 h-3.5" />}>Export</Button>
-            <Button variant="secondary" size="sm" icon={<Upload className="w-3.5 h-3.5" />}>Import</Button>
-            <Button size="sm" icon={<Plus className="w-3.5 h-3.5" />} onClick={() => setShowAddModal(true)}>Add Factor</Button>
+            <Button variant="secondary" size="lg" icon={<Download className="w-4 h-4" />} onClick={exportCsv} disabled={!loaded || filtered.length === 0}>
+              {t('efLibrary.actions.export')}
+            </Button>
+            <Button variant="secondary" size="lg" icon={<Upload className="w-4 h-4" />} disabled title={t('efLibrary.actions.importSoon')}>
+              {t('efLibrary.actions.import')}
+            </Button>
+            <Button size="lg" icon={<Plus className="w-4 h-4" />} onClick={() => setShowAdd(true)}>{t('efLibrary.actions.addFactor')}</Button>
           </>
         }
       />
 
-      {/* ── KPI Strip ── */}
-      <div className="grid grid-cols-4 gap-4">
-        {[
-          { label: 'Total Factors', value: rows.length, icon: BookOpen, accent: '#0F7B6F' },
-          { label: 'Active', value: activeCount, icon: Shield, accent: '#16A34A' },
-          { label: 'Deprecated', value: deprecatedCount, icon: Info, accent: '#D97706' },
-          { label: 'Data Sources', value: SOURCES.length, icon: ExternalLink, accent: '#2563EB' },
-        ].map((kpi, idx) => {
-          const Icon = kpi.icon
-          return (
-            <div
-              key={kpi.label}
-              className={`animate-slide-up ${stagger(idx)} group relative overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] p-4 transition-all duration-300 ease-[var(--ease-out-expo)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-[2px] hover:border-[var(--border-strong)] cursor-default`}
-            >
-              <div className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: `linear-gradient(90deg, ${kpi.accent}, transparent)` }} />
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-semibold">{kpi.label}</p>
-                  <p className="text-[var(--text-2xl)] font-bold text-[var(--text-primary)] mt-1 tabular-nums">{kpi.value}</p>
-                </div>
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg" style={{
-                  backgroundColor: `color-mix(in srgb, ${kpi.accent} 10%, transparent)`,
-                }}>
-                  <Icon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" style={{ color: kpi.accent }} />
-                </div>
+      <StateBoundary
+        loading={loading}
+        hasData={loaded}
+        error={loadError}
+        onRetry={reload}
+        errorState={{ title: t('efLibrary.loadError.title'), body: t('efLibrary.loadError.body') }}
+        skeleton={<SkeletonTable rows={8} cols={6} framed />}
+        empty={loaded && rows.length === 0}
+        emptyState={{
+          art: 'noData',
+          title: t('efLibrary.emptyLibrary.title'),
+          body: t('efLibrary.emptyLibrary.body'),
+          cta: { label: t('efLibrary.actions.addFactor'), onClick: () => setShowAdd(true) },
+        }}
+      >
+        <div className="space-y-6">
+          <StatLedger
+            aria-label={t('efLibrary.kpi.label')}
+            items={[
+              { id: 'total', label: t('efLibrary.kpi.total'), value: rows.length, tone: 'neutral' },
+              {
+                id: 'preferred',
+                label: market.isCn ? t('efLibrary.kpi.preferredRegion') : t('efLibrary.kpi.preferred'),
+                value: preferredCount,
+                tone: 'success',
+                hint: t('efLibrary.kpi.preferredHint'),
+                onClick: () => { setPreferredOnly(true); setShowDeprecated(false) },
+              },
+              market.isCn
+                ? { id: 'cn', label: t('efLibrary.kpi.cnOfficial'), value: cnOfficial, tone: 'brand', hint: t('efLibrary.kpi.cnOfficialHint') }
+                : { id: 'sources', label: t('efLibrary.kpi.sources'), value: SOURCES.length, tone: 'info' },
+              {
+                id: 'deprecated',
+                label: t('efLibrary.kpi.deprecated'),
+                value: deprecatedCount,
+                tone: deprecatedCount > 0 ? 'warning' : 'neutral',
+                onClick: deprecatedCount > 0 ? () => { setShowDeprecated(true); setPreferredOnly(false) } : undefined,
+              },
+            ]}
+          />
+
+          {market.isCn && <RegionFactorPanel rows={rows} layout="wide" />}
+
+          <section className="surface-paper overflow-hidden" aria-label={t('efLibrary.listLabel')}>
+            <div className="px-4 sm:px-5 pt-4 pb-3 space-y-3 border-b border-[var(--border-subtle)]">
+              <div className="overflow-x-auto -mx-1 px-1">
+                <Tabs tabs={tabsConfig} activeTab={tab} onChange={setTab} aria-label={t('efLibrary.scopeTabs')} className="w-max" />
               </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* ── Tabs ── */}
-      <div className="animate-slide-up stagger-5">
-        <Tabs tabs={TABS_CONFIG} activeTab={tab} onChange={setTab} />
-      </div>
-
-      {/* ── Vendor → AI search ── */}
-      <VendorAiSearch />
-
-
-      {/* ── Search & Filter Bar ── */}
-      <div className={`animate-slide-up stagger-6 rounded-xl border bg-[var(--bg-primary)] p-4 transition-all duration-500 ease-[var(--ease-out-expo)] ${
-        searchFocused ? 'border-[var(--accent-teal)] shadow-[0_0_0_3px_rgba(15,123,111,0.08)]' : 'border-[var(--border-default)]'
-      }`}>
-        <div className="space-y-3">
-          <div className="relative">
-            <Search className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors duration-300 ${searchFocused ? 'text-[var(--accent-teal)]' : 'text-[var(--text-tertiary)]'}`} />
-            <input
-              type="text"
-              placeholder="Search factors by name, category, source, or unit..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-              className="w-full h-10 pl-11 pr-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-sm)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-teal)] focus:bg-[var(--bg-primary)] transition-all duration-300"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-[var(--bg-tertiary)] hover:bg-[var(--border-default)] transition-colors cursor-pointer animate-scale-in"
-              >
-                <X className="w-3 h-3 text-[var(--text-tertiary)]" />
-              </button>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <FilterSelect label="Source" value={sourceFilter} onChange={setSourceFilter} options={SOURCES} />
-            <FilterSelect label="Category" value={categoryFilter} onChange={setCategoryFilter} options={CATEGORIES} />
-            <FilterSelect label="Region" value={regionFilter} onChange={setRegionFilter} options={REGIONS} />
-            <label className="flex items-center gap-2 text-[var(--text-xs)] text-[var(--text-tertiary)] cursor-pointer whitespace-nowrap ml-auto select-none group/check">
-              <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all duration-200 ${showDeprecated ? 'bg-[var(--accent-teal)] border-[var(--accent-teal)]' : 'border-[var(--border-strong)] group-hover/check:border-[var(--accent-teal)]'}`}>
-                {showDeprecated && <Check className="w-2.5 h-2.5 text-white animate-check" />}
-              </div>
-              <input type="checkbox" checked={showDeprecated} onChange={e => setShowDeprecated(e.target.checked)} className="sr-only" />
-              Show deprecated
-            </label>
-            <div className="h-5 w-px bg-[var(--border-default)]" />
-            <span className="text-[var(--text-xs)] text-[var(--text-tertiary)] tabular-nums">
-              <span className="font-bold text-[var(--text-primary)]">{filtered.length}</span> results
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Loading / error / empty / list ── */}
-      {loading ? (
-        <SkeletonTable rows={8} cols={6} />
-      ) : loadError ? (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-[var(--text-sm)] text-red-300">
-          Couldn't load emission factors: {loadError}. Try running <code>/api/setup</code> first to seed the table.
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="animate-scale-in rounded-2xl border border-dashed border-[var(--border-default)] bg-[var(--bg-secondary)] py-16 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-[var(--bg-tertiary)] flex items-center justify-center mx-auto mb-4 animate-float">
-            <Search className="w-7 h-7 text-[var(--text-tertiary)]" />
-          </div>
-          <p className="text-[var(--text-base)] font-semibold text-[var(--text-secondary)]">No emission factors found</p>
-          <p className="text-[var(--text-xs)] text-[var(--text-tertiary)] mt-1.5 max-w-sm mx-auto">Try adjusting your search or filter criteria.</p>
-        </div>
-      ) : (
-        <Stagger>
-          <div className="space-y-2">
-            {filtered.map((ef, idx) => (
-              <StaggerItem key={ef.id}>
-                <FactorRow
-                  ef={ef}
-                  index={idx}
-                  isExpanded={expandedFactor === ef.id}
-                  onToggle={() => setExpandedFactor(expandedFactor === ef.id ? null : ef.id)}
-                  copiedId={copiedId}
-                  onCopy={handleCopy}
-                  onDelete={handleDelete}
-                  deleting={deletingId === ef.id}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" aria-hidden />
+                <input
+                  type="search"
+                  placeholder={t('efLibrary.search.placeholder')}
+                  aria-label={t('efLibrary.search.placeholder')}
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="w-full h-10 pl-9 pr-9 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-body text-[var(--text-primary)] placeholder:text-[var(--text-quaternary)] outline-none hover:border-[var(--border-strong)] focus:border-[var(--border-focus)] focus:shadow-[0_0_0_3px_var(--color-brand-soft)] transition-[border-color,box-shadow] duration-micro [&::-webkit-search-cancel-button]:hidden"
                 />
-              </StaggerItem>
-            ))}
-          </div>
-        </Stagger>
-      )}
-
-      {/* ── Source Reference Cards ── */}
-      <div className="grid grid-cols-3 gap-4 animate-slide-up stagger-8">
-        {[
-          { name: 'IPCC 2006 Guidelines', desc: 'Default factors for stationary & mobile combustion. Tier 1 methodology.', icon: BookOpen, color: '#0F7B6F' },
-          { name: 'DEFRA 2024', desc: 'UK Government conversion factors for GHG reporting. Updated annually.', icon: Shield, color: '#2563EB' },
-          { name: 'IEA 2024', desc: 'International Energy Agency country grid emission factors.', icon: Sparkles, color: '#7C3AED' },
-        ].map(ref => {
-          const Icon = ref.icon
-          return (
-            <div key={ref.name} className="group rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] p-5 transition-all duration-300 ease-[var(--ease-out-expo)] hover:shadow-[var(--shadow-card-hover)] hover:-translate-y-[1px] hover:border-[var(--border-strong)] cursor-default relative overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-[2px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: `linear-gradient(90deg, ${ref.color}, transparent)` }} />
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110" style={{ backgroundColor: `color-mix(in srgb, ${ref.color} 10%, transparent)` }}>
-                  <Icon className="w-4 h-4" style={{ color: ref.color }} />
-                </div>
-                <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{ref.name}</h3>
-                <ArrowUpRight className="w-3.5 h-3.5 text-[var(--text-tertiary)] ml-auto opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all duration-300" />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch('')}
+                    aria-label={t('efLibrary.search.clear')}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 inline-flex items-center justify-center rounded-[var(--radius-sm)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
-              <p className="text-[var(--text-xs)] text-[var(--text-secondary)] leading-relaxed">{ref.desc}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 lg:flex lg:items-center gap-2">
+                <FilterSelect label={t('efLibrary.filters.allSources')} value={sourceFilter} onChange={setSourceFilter} options={SOURCES.map(s => ({ value: s, label: s }))} />
+                <FilterSelect label={t('efLibrary.filters.allCategories')} value={categoryFilter} onChange={setCategoryFilter} options={CATEGORIES.map(c => ({ value: c, label: categoryLabel(t, c) }))} />
+                <FilterSelect label={t('efLibrary.filters.allRegions')} value={regionFilter} onChange={setRegionFilter} options={REGIONS.map(r => ({ value: r, label: regionLabel(t, r) }))} />
+                <div className="flex items-center gap-4 lg:ml-auto flex-wrap sm:col-span-3">
+                  <Toggle checked={preferredOnly} onChange={setPreferredOnly} label={t('efLibrary.filters.preferredOnly')} />
+                  <Toggle checked={showDeprecated} onChange={setShowDeprecated} label={t('efLibrary.filters.showDeprecated')} />
+                  <span className="text-caption text-[var(--text-tertiary)] tabular-nums whitespace-nowrap ml-auto lg:ml-0" role="status">
+                    {t('efLibrary.filters.resultCount', { count: filtered.length })}
+                  </span>
+                </div>
+              </div>
             </div>
-          )
-        })}
-      </div>
 
-      {/* ── Add Factor Modal — POSTs to /api/emission-factors ── */}
-      {showAddModal && (
-        <AddFactorModal
-          onClose={() => setShowAddModal(false)}
-          onCreated={() => {
-            setShowAddModal(false)
-            showToast('ok', 'Emission factor added')
-            setReloadNonce(n => n + 1)
-          }}
-          onError={(msg) => showToast('err', msg)}
-        />
-      )}
+            {filtered.length === 0 ? (
+              <EmptyState
+                variant="filtered"
+                density="compact"
+                title={t('efLibrary.empty.title')}
+                body={preferredOnly && !filtersActive ? t('efLibrary.empty.preferredBody') : t('efLibrary.empty.body')}
+                onClearFilters={clearFilters}
+              />
+            ) : (
+              <>
+                <div className="hidden lg:grid grid-cols-[minmax(0,2.1fr)_96px_minmax(0,1.1fr)_minmax(0,1.2fr)_minmax(0,1.5fr)_92px] gap-4 px-5 py-2.5 bg-[var(--bg-subtle)] border-b border-[var(--border-subtle)] text-caption font-medium text-[var(--text-tertiary)]">
+                  <span>{t('efLibrary.cols.factor')}</span>
+                  <span>{t('efLibrary.cols.scope')}</span>
+                  <span>{t('efLibrary.cols.region')}</span>
+                  <span className="text-right">{t('efLibrary.cols.value')}</span>
+                  <span>{t('efLibrary.cols.source')}</span>
+                  <span className="sr-only">{t('efLibrary.cols.actions')}</span>
+                </div>
+                <ul className="divide-y divide-[var(--border-subtle)]">
+                  {filtered.map(row => (
+                    <FactorRow
+                      key={row.id}
+                      row={row}
+                      isCn={market.isCn}
+                      expanded={expanded === row.id}
+                      onToggle={() => setExpanded(expanded === row.id ? null : row.id)}
+                      copied={copiedId === row.id}
+                      onCopy={() => void handleCopy(row)}
+                      onDelete={() => void handleDelete(row)}
+                      deleting={deletingId === row.id}
+                    />
+                  ))}
+                </ul>
+              </>
+            )}
+          </section>
+
+          <VendorAiSearch />
+
+          <SourcesLedger isCn={market.isCn} />
+        </div>
+      </StateBoundary>
+
+      <AddFactorSheet
+        open={showAdd}
+        onOpenChange={setShowAdd}
+        defaultRegion={market.isCn ? 'CN' : 'GLOBAL'}
+        defaultSource={market.isCn ? 'MEE' : 'DEFRA'}
+        onCreated={() => { notify.success(t('efLibrary.toast.added')); reload() }}
+      />
     </div>
   )
 }
 
 /* ═══════════════════════════════════════════
-   Add Factor Modal — controlled form, POSTs to /api/emission-factors
+   Factor row (table on desktop, stacked on mobile)
    ═══════════════════════════════════════════ */
-function AddFactorModal({
-  onClose, onCreated, onError,
+function FactorRow({
+  row, isCn, expanded, onToggle, copied, onCopy, onDelete, deleting,
 }: {
-  onClose: () => void
-  onCreated: () => void
-  onError: (msg: string) => void
+  row: Row
+  isCn: boolean
+  expanded: boolean
+  onToggle: () => void
+  copied: boolean
+  onCopy: () => void
+  onDelete: () => void
+  deleting: boolean
 }) {
+  const { t } = useTranslation()
+  const f = useFmt()
+  const reduce = useReducedMotion()
+  const regional = isCn ? isCnRegion(row.region) : true
+  const detailId = `ef-${row.id}-detail`
+  return (
+    <li className={`group ${row.deprecated ? 'opacity-70' : ''}`}>
+      <div className="relative grid grid-cols-[minmax(0,1fr)_auto] lg:grid-cols-[minmax(0,2.1fr)_96px_minmax(0,1.1fr)_minmax(0,1.2fr)_minmax(0,1.5fr)_92px] gap-x-4 gap-y-1.5 px-4 sm:px-5 py-3.5 hover:bg-[var(--bg-hover)] transition-colors duration-micro">
+        {/* Factor */}
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={expanded}
+          aria-controls={detailId}
+          className="col-start-1 row-start-1 lg:col-start-auto lg:row-start-auto min-w-0 text-left flex items-start gap-2 after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset focus-visible:after:ring-[var(--border-focus)]"
+        >
+          <ChevronDown className={`w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--text-tertiary)] transition-transform duration-fast ${expanded ? 'rotate-180' : ''}`} aria-hidden />
+          <span className="min-w-0">
+            <span className="block text-small font-semibold text-[var(--text-primary)] lg:truncate">{activityLabel(t, row.fuel_or_activity)}</span>
+            <span className="block text-caption text-[var(--text-tertiary)] truncate">
+              {categoryLabel(t, row.category)}{row.subcategory ? ` · ${categoryLabel(t, row.subcategory)}` : ''}
+            </span>
+          </span>
+        </button>
+
+        {/* Scope (desktop) */}
+        <span className="hidden lg:flex items-center gap-1.5 text-caption text-[var(--text-secondary)] whitespace-nowrap">
+          <span className="w-2 h-2 rounded-full" style={{ background: SCOPE_DOT[row.scope] }} aria-hidden />
+          {t(`efLibrary.scope.${row.scope}`)}
+        </span>
+
+        {/* Region (desktop) */}
+        <span className="hidden lg:block min-w-0">
+          <span className="block text-small text-[var(--text-primary)] truncate">{regionLabel(t, row.region)}</span>
+          <span className="block text-caption text-[var(--text-tertiary)] font-mono">{row.region}</span>
+        </span>
+
+        {/* Value */}
+        <span className="col-start-2 row-start-1 lg:col-start-auto lg:row-start-auto text-right self-start">
+          <span className="block text-small font-semibold tabular-nums text-[var(--text-primary)] whitespace-nowrap">{f.number(row.co2e_per_unit, { maxFraction: 6 })}</span>
+          <span className="block text-caption text-[var(--text-tertiary)] whitespace-nowrap">{f.unit(row.unit)}</span>
+        </span>
+
+        {/* Source + status */}
+        <span className="flex items-center gap-1.5 flex-wrap min-w-0 col-start-1 row-start-2 lg:col-start-auto lg:row-start-auto pl-6 lg:pl-0">
+          <span className="lg:hidden inline-flex items-center gap-1.5 text-caption text-[var(--text-secondary)] whitespace-nowrap">
+            <span className="w-2 h-2 rounded-full" style={{ background: SCOPE_DOT[row.scope] }} aria-hidden />
+            {t(`efLibrary.scope.${row.scope}`)} · {regionLabel(t, row.region)}
+          </span>
+          <FactorSourceBadge source={row.source} version={row.source_version} validFrom={row.valid_from} />
+          {row.preferred && !row.deprecated && <PreferredMarker regional={regional} />}
+          {row.deprecated && <span className="nx-pill" data-tone="neutral" data-size="sm">{t('efLibrary.status.deprecated')}</span>}
+        </span>
+
+        {/* Actions */}
+        <span className="relative z-[1] col-start-2 row-start-2 self-end lg:self-auto lg:col-start-auto lg:row-start-auto flex items-center justify-end -mr-2 lg:mr-0 gap-0.5 lg:opacity-0 lg:group-hover:opacity-100 lg:focus-within:opacity-100 transition-opacity duration-micro">
+          <button
+            type="button"
+            onClick={onCopy}
+            className="w-9 h-9 inline-flex items-center justify-center rounded-[var(--radius-md)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+            aria-label={t('efLibrary.row.copy')}
+            title={t('efLibrary.row.copy')}
+          >
+            {copied ? <Check className="w-4 h-4 text-[var(--status-success)]" /> : <Copy className="w-4 h-4" />}
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={deleting}
+            className="w-9 h-9 inline-flex items-center justify-center rounded-[var(--radius-md)] text-[var(--text-tertiary)] hover:text-[var(--status-danger)] hover:bg-[var(--status-danger-soft)] disabled:opacity-50 disabled:cursor-wait"
+            aria-label={t('efLibrary.row.delete')}
+            title={t('efLibrary.row.delete')}
+          >
+            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+          </button>
+        </span>
+      </div>
+
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            id={detailId}
+            initial={reduce ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            animate={reduce ? { opacity: 1 } : { height: 'auto', opacity: 1 }}
+            exit={reduce ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            transition={{ duration: dur.base, ease: ease.out }}
+            className="overflow-hidden"
+          >
+            <div className="px-4 sm:px-5 pb-4 pl-10 sm:pl-11">
+              <dl className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3 rounded-[var(--radius-md)] bg-[var(--bg-subtle)] px-4 py-3.5">
+                <Detail label={t('efLibrary.row.value')} value={f.exact(row.co2e_per_unit, row.unit)} strong />
+                <Detail label={t('efLibrary.row.gases')} value={[
+                  row.co2_per_unit != null ? `CO₂ ${f.number(row.co2_per_unit, { maxFraction: 6 })}` : null,
+                  row.ch4_per_unit != null ? `CH₄ ${f.number(row.ch4_per_unit, { maxFraction: 6 })}` : null,
+                  row.n2o_per_unit != null ? `N₂O ${f.number(row.n2o_per_unit, { maxFraction: 6 })}` : null,
+                ].filter(Boolean).join(' · ') || t('efLibrary.row.gasesNone')} />
+                <Detail label={t('efLibrary.row.validFrom')} value={`${f.date(row.valid_from)}${row.valid_to ? ` – ${f.date(row.valid_to)}` : ''}`} />
+                <Detail label={t('efLibrary.row.status')} value={row.deprecated ? t('efLibrary.status.deprecated') : row.preferred ? t('efLibrary.status.preferred') : t('efLibrary.status.active')} />
+                <div className="col-span-2 md:col-span-4">
+                  <Detail label={t('efLibrary.row.source')} value={[row.source, row.source_version].filter(Boolean).join(' · ')} />
+                </div>
+                {row.notes && (
+                  <div className="col-span-2 md:col-span-4">
+                    <Detail label={t('efLibrary.row.notes')} value={row.notes} />
+                  </div>
+                )}
+              </dl>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </li>
+  )
+}
+
+function Detail({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-caption text-[var(--text-tertiary)]">{label}</dt>
+      <dd className={`mt-0.5 text-small break-words ${strong ? 'font-semibold tabular-nums text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>{value}</dd>
+    </div>
+  )
+}
+
+function FilterSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: Array<{ value: string; label: string }> }) {
+  return (
+    <div className="lg:w-[190px] min-w-0">
+      <CalcSelect value={value} onChange={e => onChange(e.target.value)} aria-label={label}>
+        <option value="all">{label}</option>
+        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </CalcSelect>
+    </div>
+  )
+}
+
+function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <label className="inline-flex items-center gap-2 min-h-[40px] cursor-pointer select-none text-small text-[var(--text-secondary)] whitespace-nowrap">
+      <input type="checkbox" role="switch" checked={checked} onChange={e => onChange(e.target.checked)} className="peer sr-only" />
+      <span
+        aria-hidden
+        className={`relative w-8 h-[18px] rounded-full transition-colors duration-micro peer-focus-visible:ring-2 peer-focus-visible:ring-[var(--border-focus)] ${checked ? 'bg-[var(--btn-primary-bg)]' : 'bg-[var(--border-strong)]'}`}
+      >
+        <span className={`absolute top-[2px] left-[2px] w-[14px] h-[14px] rounded-full bg-[var(--bg-primary)] shadow-[var(--shadow-card)] transition-transform duration-micro ${checked ? 'translate-x-[14px]' : ''}`} />
+      </span>
+      {label}
+    </label>
+  )
+}
+
+/* ═══════════════════════════════════════════
+   Publishers — what each source is and when it is preferred
+   ═══════════════════════════════════════════ */
+function SourcesLedger({ isCn }: { isCn: boolean }) {
+  const { t } = useTranslation()
+  const ids = isCn ? ['mee', 'gbt', 'iea', 'ipcc', 'defra'] : ['ipcc', 'defra', 'iea', 'mee']
+  return (
+    <section className="surface-paper overflow-hidden" aria-labelledby="ef-sources">
+      <div className="px-5 pt-4 pb-2">
+        <h2 id="ef-sources" className="type-h3 text-[var(--text-primary)]">{t('efLibrary.references.title')}</h2>
+        <p className="text-caption text-[var(--text-tertiary)] mt-0.5">{isCn ? t('efLibrary.references.subtitleCn') : t('efLibrary.references.subtitle')}</p>
+      </div>
+      <dl className="divide-y divide-[var(--border-subtle)]">
+        {ids.map(id => (
+          <div key={id} className="grid sm:grid-cols-[220px_minmax(0,1fr)] gap-x-6 gap-y-1 px-5 py-3">
+            <dt className="text-small font-semibold text-[var(--text-primary)]">{t(`efLibrary.references.${id}.name`)}</dt>
+            <dd className="text-small text-[var(--text-secondary)]">{t(`efLibrary.references.${id}.desc`)}</dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  )
+}
+
+/* ═══════════════════════════════════════════
+   Add factor — ConfirmSheet with inline validation, POSTs to /api/emission-factors
+   ═══════════════════════════════════════════ */
+function AddFactorSheet({
+  open, onOpenChange, onCreated, defaultRegion, defaultSource,
+}: {
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  onCreated: () => void
+  defaultRegion: string
+  defaultSource: string
+}) {
+  const { t } = useTranslation()
   const today = new Date().toISOString().slice(0, 10)
-  const [form, setForm] = useState({
+  const blank = useCallback(() => ({
     fuel_or_activity: '',
     category: '',
     scope: 1 as 1 | 2 | 3,
     co2e_per_unit: '',
     unit: '',
-    source: 'DEFRA',
-    source_version: '2024',
-    region: 'GLOBAL',
+    source: defaultSource,
+    source_version: String(new Date().getFullYear() - 1),
+    region: defaultRegion,
     valid_from: today,
-  })
-  const [saving, setSaving] = useState(false)
+  }), [defaultRegion, defaultSource, today])
+  const [form, setForm] = useState(blank)
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const valid =
-    form.fuel_or_activity.trim().length > 0 &&
-    form.category.trim().length > 0 &&
-    form.unit.trim().length > 0 &&
-    form.source.trim().length > 0 &&
-    Number(form.co2e_per_unit) > 0 &&
-    !!form.valid_from
+  useEffect(() => { if (open) { setForm(blank()); setErrors({}) } }, [open, blank])
+
+  const set = <K extends keyof ReturnType<typeof blank>>(k: K, v: ReturnType<typeof blank>[K]) => {
+    setForm(prev => ({ ...prev, [k]: v }))
+    if (errors[k as string]) setErrors(e => { const n = { ...e }; delete n[k as string]; return n })
+  }
 
   const submit = async () => {
-    if (!valid || saving) return
-    setSaving(true)
-    try {
-      await orgStore.createEmissionFactor({
-        scope: form.scope,
-        category: form.category.trim().toLowerCase().replace(/\s+/g, '_'),
-        fuel_or_activity: form.fuel_or_activity.trim(),
-        unit: form.unit.trim(),
-        co2e_per_unit: Number(form.co2e_per_unit),
-        source: form.source.trim(),
-        source_version: form.source_version.trim() || null,
-        region: form.region.trim() || 'GLOBAL',
-        valid_from: form.valid_from,
-      })
-      onCreated()
-    } catch (e) {
-      onError(e instanceof Error ? e.message : 'Could not save')
-    } finally {
-      setSaving(false)
-    }
+    const errs: Record<string, string> = {}
+    const req = t('calculators.form.requiredError')
+    if (!form.fuel_or_activity.trim()) errs.fuel_or_activity = req
+    if (!form.category.trim()) errs.category = req
+    if (!form.unit.trim()) errs.unit = req
+    if (!form.source.trim()) errs.source = req
+    if (!form.valid_from) errs.valid_from = req
+    const v = Number(form.co2e_per_unit)
+    if (form.co2e_per_unit.trim() === '') errs.co2e_per_unit = req
+    else if (!Number.isFinite(v) || v <= 0) errs.co2e_per_unit = t('calculators.form.positive')
+    setErrors(errs)
+    if (Object.keys(errs).length) throw new Error(t('calculators.form.fixFields'))
+    await orgStore.createEmissionFactor({
+      scope: form.scope,
+      category: form.category.trim().toLowerCase().replace(/\s+/g, '_'),
+      fuel_or_activity: form.fuel_or_activity.trim(),
+      unit: form.unit.trim(),
+      co2e_per_unit: v,
+      source: form.source.trim(),
+      source_version: form.source_version.trim() || null,
+      region: form.region.trim() || 'GLOBAL',
+      valid_from: form.valid_from,
+    })
+    onCreated()
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center animate-backdrop" style={{ backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div className="animate-modal bg-[var(--bg-primary)] rounded-2xl border border-[var(--border-default)] shadow-xl w-full max-w-lg mx-4 relative overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="absolute top-0 left-0 right-0 h-[3px]" style={{ background: 'linear-gradient(90deg, var(--accent-teal), var(--accent-blue), var(--accent-purple))' }} />
-        <div className="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'color-mix(in srgb, var(--accent-teal) 10%, transparent)' }}>
-              <Plus className="w-4 h-4 text-[var(--accent-teal)]" />
-            </div>
-            <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">Add Emission Factor</h2>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--bg-tertiary)] transition-all duration-200 cursor-pointer hover:rotate-90">
-            <X className="w-4 h-4 text-[var(--text-tertiary)]" />
-          </button>
-        </div>
-        <div className="p-5 space-y-4">
-          <Input
-            label="Factor Name"
-            placeholder="e.g. Natural gas (industrial)"
-            value={form.fuel_or_activity}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, fuel_or_activity: e.target.value })}
-          />
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Category"
-              placeholder="e.g. stationary_combustion"
-              value={form.category}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, category: e.target.value })}
-            />
-            <div>
-              <label className="block text-[var(--text-sm)] font-medium text-[var(--text-primary)] mb-1.5">Scope</label>
-              <select
-                value={form.scope}
-                onChange={e => setForm({ ...form, scope: Number(e.target.value) as 1 | 2 | 3 })}
-                className="w-full h-10 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 text-[var(--text-base)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)] cursor-pointer"
-              >
-                <option value={1}>Scope 1</option>
-                <option value={2}>Scope 2</option>
-                <option value={3}>Scope 3</option>
-              </select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="Value (kg CO2e / unit)"
-              type="number"
-              placeholder="0.00"
-              value={form.co2e_per_unit}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, co2e_per_unit: e.target.value })}
-            />
-            <Input
-              label="Unit"
-              placeholder="e.g. kgCO2e/kWh"
-              value={form.unit}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, unit: e.target.value })}
-            />
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <Input
-              label="Source"
-              placeholder="DEFRA"
-              value={form.source}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, source: e.target.value })}
-            />
-            <Input
-              label="Version"
-              placeholder="2024"
-              value={form.source_version}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, source_version: e.target.value })}
-            />
-            <Input
-              label="Region"
-              placeholder="GLOBAL"
-              value={form.region}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, region: e.target.value })}
-            />
-          </div>
-          <Input
-            label="Valid from"
-            type="date"
-            value={form.valid_from}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, valid_from: e.target.value })}
-          />
-        </div>
-        <div className="flex items-center justify-end gap-2 p-5 border-t border-[var(--border-subtle)]">
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
-          <Button onClick={submit} disabled={!valid || saving}>
-            {saving ? 'Saving…' : 'Add Factor'}
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/* ═══════════════════════════════════════════
-   Factor Row
-   ═══════════════════════════════════════════ */
-function FactorRow({
-  ef, index, isExpanded, onToggle, copiedId, onCopy, onDelete, deleting,
-}: {
-  ef: ViewFactor; index: number; isExpanded: boolean
-  onToggle: () => void; copiedId: string | null
-  onCopy: (id: string, value: number, unit: string) => void
-  onDelete: (id: string, name: string) => void
-  deleting: boolean
-}) {
-  const CatIcon = CATEGORY_ICONS[ef.category] || BookOpen
-  const scopeColor = SCOPE_COLORS[ef.scope]
-  const delay = Math.min(index * 30, 300)
-
-  return (
-    <div
-      className={`animate-slide-up group/row rounded-xl border overflow-hidden transition-all duration-300 ease-[var(--ease-out-expo)] ${
-        isExpanded
-          ? 'border-[var(--border-strong)] shadow-[var(--shadow-card-hover)]'
-          : 'border-[var(--border-default)] hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-card)]'
-      } ${ef.status === 'deprecated' ? 'opacity-60' : ''}`}
-      style={{ animationDelay: `${delay}ms` }}
+    <ConfirmSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      size="lg"
+      title={t('efLibrary.modal.title')}
+      description={t('efLibrary.modal.description')}
+      confirmLabel={t('efLibrary.modal.submit')}
+      onConfirm={submit}
     >
-      <div className="flex">
-        <div className="w-[3px] flex-shrink-0 transition-all duration-300" style={{
-          backgroundColor: isExpanded ? scopeColor : `color-mix(in srgb, ${scopeColor} 30%, transparent)`,
-        }} />
-
-        <div className="flex-1">
-          <button
-            onClick={onToggle}
-            className="w-full text-left px-5 py-3.5 flex items-center gap-4 cursor-pointer transition-colors duration-200 hover:bg-[var(--bg-hover)] bg-[var(--bg-primary)]"
-          >
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-300 group-hover/row:shadow-md" style={{
-              backgroundColor: `color-mix(in srgb, ${scopeColor} 8%, transparent)`,
-              border: `1px solid color-mix(in srgb, ${scopeColor} 15%, transparent)`,
-            }}>
-              <CatIcon className="w-4 h-4 transition-transform duration-300 group-hover/row:scale-110" style={{ color: scopeColor }} />
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <p className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] truncate group-hover/row:text-[var(--accent-teal)] transition-colors duration-200">{ef.name}</p>
-              <p className="text-[10px] text-[var(--text-tertiary)] mt-0.5 flex items-center gap-1.5">
-                <span>{ef.category}</span>
-                <span className="w-1 h-1 rounded-full bg-[var(--border-default)]" />
-                <span>{ef.subcategory}</span>
-              </p>
-            </div>
-
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg flex-shrink-0 transition-all duration-200" style={{
-              backgroundColor: `color-mix(in srgb, ${scopeColor} 8%, transparent)`,
-            }}>
-              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: scopeColor }} />
-              <span className="text-[11px] font-semibold" style={{ color: scopeColor }}>{ef.scope}</span>
-            </div>
-
-            <div className="text-right w-32 flex-shrink-0">
-              <p className="text-[var(--text-base)] font-bold text-[var(--text-primary)] font-mono tabular-nums">{ef.value}</p>
-              <p className="text-[10px] text-[var(--text-tertiary)] font-mono mt-0.5">{ef.unit}</p>
-            </div>
-
-            <div className="w-28 flex-shrink-0 text-right hidden xl:block">
-              <p className="text-[var(--text-xs)] text-[var(--text-secondary)] font-medium">{ef.source}</p>
-              <p className="text-[10px] text-[var(--text-tertiary)]">{ef.region}</p>
-            </div>
-
-            <div className="w-20 flex-shrink-0 flex justify-center">
-              <Badge variant={STATUS_BADGE[ef.status]} dot>{ef.status}</Badge>
-            </div>
-
-            <div className="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover/row:opacity-100 transition-opacity duration-200">
-              <button
-                onClick={e => { e.stopPropagation(); onCopy(ef.id, ef.value, ef.unit) }}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--bg-tertiary)] transition-all duration-200 text-[var(--text-tertiary)] hover:text-[var(--accent-teal)] cursor-pointer"
-                title="Copy value"
-              >
-                {copiedId === ef.id ? <Check className="w-4 h-4 text-[var(--accent-teal)] animate-check" /> : <Copy className="w-4 h-4" />}
-              </button>
-              <button
-                onClick={e => e.stopPropagation()}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--bg-tertiary)] transition-all duration-200 text-[var(--text-tertiary)] hover:text-[var(--accent-blue)] cursor-pointer"
-                title="Edit"
-              >
-                <Edit3 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={e => { e.stopPropagation(); onDelete(ef.id, ef.name) }}
-                disabled={deleting}
-                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/10 transition-all duration-200 text-[var(--text-tertiary)] hover:text-red-500 cursor-pointer disabled:opacity-50 disabled:cursor-wait"
-                title="Delete (soft — historical data preserved)"
-              >
-                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-              </button>
-            </div>
-
-            <div className={`w-6 flex items-center justify-center text-[var(--text-tertiary)] transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
-              <ChevronDown className="w-4 h-4" />
-            </div>
-          </button>
-
-          {isExpanded && (
-            <div className="animate-expand border-t border-[var(--border-subtle)]">
-              <div className="px-5 py-5 bg-[var(--bg-secondary)]">
-                <div className="grid grid-cols-5 gap-6">
-                  <DetailCell label="Value" value={`${ef.value} ${ef.unit}`} highlight accent={scopeColor} />
-                  <DetailCell label="Source" value={`${ef.source}`} />
-                  <DetailCell label="Region" value={ef.region} />
-                  <DetailCell label="Valid From" value={ef.lastUpdated} />
-                  <DetailCell label="Status" value={ef.status} />
-                </div>
-
-                {ef.notes && (
-                  <div className="mt-4 flex items-start gap-2.5 rounded-xl p-3.5 border animate-fade-in" style={{
-                    backgroundColor: 'color-mix(in srgb, var(--accent-amber) 5%, transparent)',
-                    borderColor: 'color-mix(in srgb, var(--accent-amber) 15%, transparent)',
-                  }}>
-                    <Info className="w-4 h-4 text-[var(--accent-amber)] mt-0.5 flex-shrink-0" />
-                    <p className="text-[var(--text-xs)] text-[var(--text-secondary)] leading-relaxed">{ef.notes}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+      <div className="space-y-4">
+        <CalcField label={t('efLibrary.modal.factorName')} required error={errors.fuel_or_activity}>
+          {p => <CalcInput {...p} value={form.fuel_or_activity} onChange={e => set('fuel_or_activity', e.target.value)} placeholder={t('efLibrary.modal.factorNamePlaceholder')} />}
+        </CalcField>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <CalcField label={t('efLibrary.modal.category')} required error={errors.category}>
+            {p => <CalcInput {...p} value={form.category} onChange={e => set('category', e.target.value)} placeholder={t('efLibrary.modal.categoryPlaceholder')} />}
+          </CalcField>
+          <CalcField label={t('efLibrary.modal.scope')}>
+            {p => (
+              <CalcSelect {...p} value={form.scope} onChange={e => set('scope', Number(e.target.value) as 1 | 2 | 3)}>
+                <option value={1}>{t('efLibrary.scope.1')}</option>
+                <option value={2}>{t('efLibrary.scope.2')}</option>
+                <option value={3}>{t('efLibrary.scope.3')}</option>
+              </CalcSelect>
+            )}
+          </CalcField>
         </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <CalcField label={t('efLibrary.modal.value')} required error={errors.co2e_per_unit} unit={form.unit.trim() || undefined}>
+            {p => <CalcInput {...p} type="number" min={0} step="any" value={form.co2e_per_unit} onChange={e => set('co2e_per_unit', e.target.value)} placeholder="0.5306" />}
+          </CalcField>
+          <CalcField label={t('efLibrary.modal.unit')} required error={errors.unit}>
+            {({ unit: _u, ...p }) => <CalcInput {...p} value={form.unit} onChange={e => set('unit', e.target.value)} placeholder={t('efLibrary.modal.unitPlaceholder')} />}
+          </CalcField>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <CalcField label={t('efLibrary.modal.source')} required error={errors.source} className="col-span-2 sm:col-span-1">
+            {p => <CalcInput {...p} value={form.source} onChange={e => set('source', e.target.value)} placeholder="MEE" />}
+          </CalcField>
+          <CalcField label={t('efLibrary.modal.version')}>
+            {p => <CalcInput {...p} value={form.source_version} onChange={e => set('source_version', e.target.value)} placeholder="2023" />}
+          </CalcField>
+          <CalcField label={t('efLibrary.modal.region')} hint={t('efLibrary.modal.regionHint')}>
+            {p => <CalcInput {...p} value={form.region} onChange={e => set('region', e.target.value)} placeholder="CN-EAST" />}
+          </CalcField>
+        </div>
+        <CalcField label={t('efLibrary.modal.validFrom')} required error={errors.valid_from} className="sm:w-1/2">
+          {p => <CalcInput {...p} type="date" value={form.valid_from} onChange={e => set('valid_from', e.target.value)} />}
+        </CalcField>
       </div>
-    </div>
-  )
-}
-
-/* ═══════════════════════════════════════════
-   Helpers
-   ═══════════════════════════════════════════ */
-function DetailCell({ label, value, highlight, accent }: { label: string; value: string; highlight?: boolean; accent?: string }) {
-  return (
-    <div>
-      <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-semibold mb-1">{label}</p>
-      <p className={`text-[var(--text-xs)] ${highlight ? 'font-bold font-mono tabular-nums' : 'font-medium'}`} style={highlight && accent ? { color: accent } : { color: 'var(--text-primary)' }}>
-        {value}
-      </p>
-    </div>
-  )
-}
-
-function FilterSelect({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
-  return (
-    <select
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      className="h-8 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] px-2.5 text-[var(--text-xs)] text-[var(--text-secondary)] focus:outline-none focus:border-[var(--accent-teal)] focus:ring-2 focus:ring-[var(--accent-teal)]/10 cursor-pointer transition-all duration-200 hover:border-[var(--border-strong)]"
-    >
-      <option value="all">All {label}s</option>
-      {options.map(o => <option key={o} value={o}>{o}</option>)}
-    </select>
+    </ConfirmSheet>
   )
 }
 
 /* ═══════════════════════════════════════════
    Vendor → AI search panel
-   Lets the user type any vendor name + region; backend calls Claude with the
-   candidate set from emission_factors. Useful for browsing — the result
-   surfaces a "best EF" with reasoning, and we render the alternates inline.
+   Type any vendor name + region; the backend asks the configured AI provider
+   with the candidate set from emission_factors. The result surfaces a
+   "best EF" with reasoning, and the alternates inline.
    ═══════════════════════════════════════════ */
 function VendorAiSearch() {
+  const { t } = useTranslation()
+  const f = useFmt()
+  const market = useOrgMarket()
+  const integrations = useIntegrationStatus()
   const [vendor, setVendor] = useState('')
-  const [region, setRegion] = useState('GLOBAL')
+  const [region, setRegion] = useState(market.isCn ? 'CN' : 'GLOBAL')
   const [loading, setLoading] = useState(false)
   const [match, setMatch] = useState<AiEfMatchResponse['match'] | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [unconfigured, setUnconfigured] = useState(false)
+  const [unconfiguredFromCall, setUnconfiguredFromCall] = useState(false)
+  const orgDisabled = !market.loading && !market.aiEnabled
+  const unavailable = orgDisabled || unconfiguredFromCall || integrationMissing(integrations, 'ai')
+
+  useEffect(() => { if (market.isCn) setRegion(r => (r === 'GLOBAL' ? 'CN' : r)) }, [market.isCn])
 
   const run = async () => {
-    if (!vendor.trim()) return
-    setLoading(true); setError(null); setMatch(null); setUnconfigured(false)
+    if (!vendor.trim() || unavailable) return
+    setLoading(true); setError(null); setMatch(null); setUnconfiguredFromCall(false)
     try {
       const res = await ai.matchEf({
         vendorName: vendor.trim(),
@@ -755,7 +679,7 @@ function VendorAiSearch() {
       setMatch(res.match)
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
-      if (/ANTHROPIC_API_KEY/i.test(msg) || /503/.test(msg)) setUnconfigured(true)
+      if (/API_KEY/i.test(msg) || /503/.test(msg)) setUnconfiguredFromCall(true)
       setError(msg)
     } finally {
       setLoading(false)
@@ -763,75 +687,67 @@ function VendorAiSearch() {
   }
 
   return (
-    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)] p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Sparkles className="w-4 h-4 text-[var(--accent-purple)]" />
-        <span className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)]">Find by vendor (AI)</span>
-        <span className="text-[10px] text-[var(--text-tertiary)] ml-2">Type a supplier name — Claude picks the best factor.</span>
+    <section className="surface-paper p-5" aria-labelledby="ef-vendor">
+      <div className="flex items-center gap-2">
+        <Sparkles className="w-4 h-4 text-[var(--color-brand-strong)]" aria-hidden />
+        <h2 id="ef-vendor" className="type-h3 text-[var(--text-primary)]">{t('efLibrary.vendor.title')}</h2>
       </div>
-      <div className="flex items-end gap-2">
-        <div className="flex-1">
-          <input
-            type="text"
-            value={vendor}
-            onChange={e => setVendor(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') run() }}
-            placeholder="e.g. United Airlines, Office Depot, AWS"
-            className="w-full h-10 px-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-sm)] focus:outline-none focus:border-[var(--accent-purple)]"
-          />
-        </div>
-        <select
-          value={region}
-          onChange={e => setRegion(e.target.value)}
-          className="h-10 px-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-xs)]"
+      <p className="text-caption text-[var(--text-tertiary)] mt-0.5">{t('efLibrary.vendor.hint')}</p>
+      <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_160px_auto]">
+        <CalcInput
+          type="text"
+          value={vendor}
+          onChange={e => setVendor(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') void run() }}
+          placeholder={t('efLibrary.vendor.placeholder')}
+          aria-label={t('efLibrary.vendor.vendorLabel')}
+        />
+        <CalcSelect value={region} onChange={e => setRegion(e.target.value)} aria-label={t('efLibrary.vendor.regionLabel')}>
+          {['GLOBAL', 'CN', 'UK', 'US', 'EU', 'IN', 'JP', 'AU', 'CA', 'DE', 'FR'].map(r => <option key={r} value={r}>{r === 'CN' ? t('efLibrary.vendor.china') : regionLabel(t, r)}</option>)}
+        </CalcSelect>
+        <Button
+          size="lg"
+          onClick={run}
+          loading={loading}
+          disabled={!vendor.trim() || unavailable}
+          icon={unavailable ? <Lock className="w-4 h-4" /> : <Sparkles className="w-4 h-4" />}
         >
-          {['GLOBAL','UK','US','EU','IN','CN','JP','AU','CA','DE','FR'].map(r => <option key={r} value={r}>{r}</option>)}
-        </select>
-        <Button onClick={run} size="sm" disabled={loading || !vendor.trim() || unconfigured} icon={loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}>
-          {unconfigured ? 'AI unavailable' : 'Suggest EF'}
+          {unavailable ? t('efLibrary.vendor.unavailable') : t('efLibrary.vendor.suggest')}
         </Button>
       </div>
 
-      {unconfigured && (
-        <div className="mt-3 text-[var(--text-xs)] text-[var(--text-tertiary)]">
-          Sign in to AI to get suggestions. Set <code className="font-mono">ANTHROPIC_API_KEY</code> on the server to enable.
+      {unavailable && (
+        <div className="mt-3">
+          <Callout tone="info">{orgDisabled ? t('efLibrary.vendor.orgDisabled') : t('efLibrary.vendor.notConfigured')}</Callout>
         </div>
       )}
-      {error && !unconfigured && (
-        <div className="mt-3 p-2 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-[var(--text-xs)]">{error}</div>
-      )}
+      {error && !unavailable && <div className="mt-3"><Callout tone="danger">{error}</Callout></div>}
 
       {match && (
-        <div className="mt-4 space-y-2">
-          <VendorMatchRow ef={match.ef} confidence={match.confidence} reasoning={match.reasoning} badge="Top match" />
-          {match.alternates.map((a, i) => (
-            <VendorMatchRow key={a.ef.id} ef={a.ef} confidence={a.confidence} reasoning={a.reasoning} badge={`Alt ${i + 1}`} />
+        <ul className="mt-4 space-y-2">
+          {[{ ef: match.ef, confidence: match.confidence, reasoning: match.reasoning, badge: t('efLibrary.vendor.topMatch') },
+            ...match.alternates.map((a, i) => ({ ef: a.ef, confidence: a.confidence, reasoning: a.reasoning, badge: t('efLibrary.vendor.alt', { n: i + 1 }) }))].map(m => (
+            <li key={m.ef.id} className="rounded-[var(--radius-md)] border border-[var(--border-default)] p-3.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-caption text-[var(--text-tertiary)]">{m.badge}</div>
+                  <div className="text-small font-semibold text-[var(--text-primary)] truncate">{m.ef.fuel_or_activity}</div>
+                </div>
+                <span className="nx-pill" data-tone={m.confidence >= 0.8 ? 'success' : m.confidence >= 0.5 ? 'warning' : 'danger'} data-size="sm">
+                  {f.percent(m.confidence, { ratio: true })}
+                </span>
+              </div>
+              <div className="mt-1.5 flex items-center gap-2 flex-wrap text-caption text-[var(--text-secondary)]">
+                <span className="tabular-nums font-medium text-[var(--text-primary)]">{f.exact(m.ef.co2e_per_unit, m.ef.unit)}</span>
+                <FactorSourceBadge source={m.ef.source} version={m.ef.source_version} />
+                {m.ef.region && <span>{regionLabel(t, m.ef.region)}</span>}
+                {m.ef.category && <span>{categoryLabel(t, m.ef.category)}</span>}
+              </div>
+              <p className="mt-1.5 text-caption text-[var(--text-secondary)]">{m.reasoning}</p>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
-    </div>
-  )
-}
-
-function VendorMatchRow({
-  ef, confidence, reasoning, badge,
-}: { ef: AiEfMatchResponse['match']['ef']; confidence: number; reasoning: string; badge: string }) {
-  const pct = Math.round(confidence * 100)
-  const tone = pct >= 80 ? 'bg-emerald-500/15 text-emerald-300' : pct >= 50 ? 'bg-amber-500/15 text-amber-300' : 'bg-red-500/15 text-red-300'
-  return (
-    <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">{badge}</span>
-          <span className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{ef.fuel_or_activity}</span>
-        </div>
-        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${tone}`}>{pct}%</span>
-      </div>
-      <div className="mt-1 text-[10px] text-[var(--text-tertiary)] tabular-nums">
-        {Number(ef.co2e_per_unit)} {ef.unit} · {ef.source}{ef.region ? ` · ${ef.region}` : ''}
-        {ef.category ? ` · ${ef.category}` : ''}
-      </div>
-      <div className="mt-1.5 text-[11px] text-[var(--text-secondary)]">{reasoning}</div>
-    </div>
+    </section>
   )
 }

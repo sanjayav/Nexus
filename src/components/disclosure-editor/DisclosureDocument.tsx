@@ -1,25 +1,32 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import type { ReactNode } from 'react'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
+import { itemLabel } from '../../lib/itemLabel'
 import { Check, Loader2, AlertCircle, Link2 } from 'lucide-react'
 import type { NexusQuestionnaireItem, ConceptPeer } from '../../lib/api'
 import type { QuestionAssignment } from '../../lib/orgStore'
-import { formatValue } from '../../reports/spdTemplate'
 import { useAuth } from '../../auth/AuthContext'
 import { hasPermission } from '../../lib/rbac'
 import { getFramework } from '../../lib/frameworks'
-import { riseIn } from '../motion'
+import { useFmt } from '../../lib/fmt'
+import { localizeUnit } from '../../calculators/labels'
 import { useIsInsideRoom, useOthers, useUpdateMyPresence } from '../../lib/liveblocks'
+import { StatusPill } from '../ui'
+import { iconSwapVariants, crossfadeVariants } from '../../motion/tokens'
+import { parseNumeric } from '../entry/persist'
+import { sectionLabel, subsectionLabel, relativeTime } from '../entry/labels'
 
 /**
  * Middle-pane "document" renderer for the disclosure editor.
  *
- * Renders the questionnaire as a typeset document: each subsection becomes a
- * h2/h3 group, each line item gets a plain-English label, the value renders
- * inline as a click-to-edit cell, and a tiny metadata strip sits underneath.
+ * The questionnaire reads as a typeset document: each subsection is a group
+ * whose header sticks while you scroll it, each line item shows its label,
+ * code and unit, and the value is an inline cell.
  *
- * Edits flow through `onSave(item, value)`; the caller owns autosave + status
- * transitions. Tab/Enter walk the next editable cell.
+ * Keyboard: ↑/↓ (or j/k) move between cells, Enter or any digit starts
+ * editing, Enter/Tab commit and move on, Esc cancels. Edits flow through
+ * `onSave(item, value)` — the caller runs the shared entry pipeline.
  */
 export interface DisclosureDocumentCellState {
   /** Assignment, if one exists for this questionnaire item. */
@@ -38,14 +45,14 @@ export interface DisclosureDocumentProps {
   /** Currently focussed cell id (controls right-rail content). */
   activeCellId: string | null
   onActiveCellChange: (questionnaireItemId: string) => void
-  /** Autosave hook — fires on blur with the new numeric value (or null to clear). */
+  /** Autosave hook — fires on commit with the new numeric value (or null to clear). */
   onSave: (item: NexusQuestionnaireItem, newValue: number | null) => Promise<void> | void
   readingMode: boolean
   /** Whether the current user is allowed to edit values. */
   canEdit: boolean
   /** Fired when each subsection group mounts — caller uses it to wire scroll-to. */
   registerSectionAnchor: (subsectionId: string, el: HTMLElement | null) => void
-  /** Optional per-cell linked-data peers — used for the inline "🔗 N" badge. */
+  /** Optional per-cell linked-data peers — used for the inline link badge. */
   linkedPeersByItem?: Record<string, ConceptPeer[]>
 }
 
@@ -60,80 +67,66 @@ function groupItems(items: NexusQuestionnaireItem[]): GroupedSection[] {
   const map = new Map<string, GroupedSection>()
   for (const it of items) {
     const id = `${it.section}::${it.subsection}`
-    if (!map.has(id)) {
-      map.set(id, { subsectionId: id, section: it.section, subsection: it.subsection, items: [] })
-    }
+    if (!map.has(id)) map.set(id, { subsectionId: id, section: it.section, subsection: it.subsection, items: [] })
     map.get(id)!.items.push(it)
   }
   return Array.from(map.values())
 }
 
-export default function DisclosureDocument({
-  subsectionId,
-  items,
-  cellState,
-  activeCellId,
-  onActiveCellChange,
-  onSave,
-  readingMode,
-  canEdit,
-  registerSectionAnchor,
-  linkedPeersByItem,
-}: DisclosureDocumentProps) {
-  const grouped = useMemo(() => groupItems(items), [items])
-  const orderedCellIds = useMemo(() => items.map(it => it.id), [items])
+const focusCell = (id: string) => requestAnimationFrame(() => {
+  const el = document.querySelector<HTMLElement>(`[data-cell-input="${CSS.escape(id)}"]`)
+  el?.focus()
+  el?.scrollIntoView({ block: 'nearest' })
+})
 
-  // Broadcast active cell to room peers (no-op when outside a RoomProvider).
-  // Per-cell badges in <DisclosureLine> read this back via useOthers().
+export default function DisclosureDocument({
+  subsectionId, items, cellState, activeCellId, onActiveCellChange, onSave, readingMode, canEdit,
+  registerSectionAnchor, linkedPeersByItem,
+}: DisclosureDocumentProps) {
+  const { t } = useTranslation()
+  const grouped = useMemo(() => groupItems(items), [items])
+  const orderedCellIds = useMemo(() => grouped.flatMap(g => g.items.map(it => it.id)), [grouped])
+
   usePublishActiveCell(activeCellId)
 
-  // Editable-cell flow: tab/enter moves to the next item.
-  const advanceToCell = useCallback((fromId: string, direction: 1 | -1) => {
+  const moveFrom = useCallback((fromId: string, direction: 1 | -1) => {
     const idx = orderedCellIds.indexOf(fromId)
     if (idx < 0) return
     const nextIdx = idx + direction
     if (nextIdx < 0 || nextIdx >= orderedCellIds.length) return
     const nextId = orderedCellIds[nextIdx]
     onActiveCellChange(nextId)
-    // Focus the cell input after React commits.
-    requestAnimationFrame(() => {
-      const el = document.querySelector<HTMLElement>(`[data-cell-input="${nextId}"]`)
-      el?.focus()
-    })
+    focusCell(nextId)
   }, [orderedCellIds, onActiveCellChange])
 
   useEffect(() => {
     if (!subsectionId) return
-    const el = document.querySelector<HTMLElement>(`[data-subsection="${subsectionId}"]`)
+    const el = document.querySelector<HTMLElement>(`[data-subsection="${CSS.escape(subsectionId)}"]`)
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [subsectionId])
 
   return (
-    <main className="flex-1 min-w-0 overflow-y-auto disclosure-document" data-reading-mode={readingMode}>
-      <div className={`mx-auto ${readingMode ? 'max-w-page-prose py-16 px-8' : 'max-w-[800px] py-10 px-6 md:px-12'}`}>
+    <main className="flex-1 min-w-0 overflow-y-auto disclosure-document bg-[var(--bg-primary)]" data-reading-mode={readingMode}>
+      <div className={`mx-auto ${readingMode ? 'max-w-page-prose py-16 px-6 sm:px-8' : 'max-w-[820px] pb-16 pt-2 px-4 sm:px-8 md:px-12'}`}>
         {grouped.length === 0 && (
-          <div className="text-center py-20 text-[var(--text-sm)] text-[var(--text-tertiary)]">
-            No disclosures in this framework yet.
-          </div>
+          <div className="text-center py-20 text-small text-[var(--text-tertiary)]">{t('disclosureEditor.document.empty')}</div>
         )}
-        {grouped.map((group, gi) => (
-          <motion.section
+        {grouped.map(group => (
+          <section
             key={group.subsectionId}
             data-subsection={group.subsectionId}
             ref={el => registerSectionAnchor(group.subsectionId, el)}
-            {...riseIn(Math.min(gi, 5))}
-            className="mb-12"
+            className="mb-10 scroll-mt-2"
+            aria-labelledby={`h-${group.subsectionId}`}
           >
-            <header className="mb-6 pb-2 border-b border-[var(--border-subtle)]">
-              <div className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[var(--color-brand)] mb-1">
-                {group.section}
-              </div>
-              <h2 className={`font-display font-semibold text-[var(--text-primary)] ${readingMode ? 'text-[28px] leading-snug' : 'text-[var(--text-xl)]'}`}>
-                {group.subsection}
+            <header className={`sticky top-0 z-[5] -mx-4 sm:-mx-8 px-4 sm:px-8 pt-5 pb-3 mb-4 border-b border-[var(--border-subtle)] ${readingMode ? 'bg-[var(--bg-primary)]' : 'bg-[var(--bg-primary)]/95 backdrop-blur supports-[backdrop-filter]:bg-[var(--bg-primary)]/85'}`}>
+              <div className="text-caption font-semibold text-[var(--color-brand-strong)] mb-0.5">{sectionLabel(t, group.section)}</div>
+              <h2 id={`h-${group.subsectionId}`} className={readingMode ? 'type-h1 text-[var(--text-primary)]' : 'type-h2 text-[var(--text-primary)]'}>
+                {subsectionLabel(t, group.subsection)}
               </h2>
             </header>
 
-            <div className="space-y-6">
+            <div className="space-y-2">
               {group.items.map(item => (
                 <DisclosureLine
                   key={item.id}
@@ -144,13 +137,13 @@ export default function DisclosureDocument({
                   canEdit={canEdit}
                   onFocus={() => onActiveCellChange(item.id)}
                   onSave={async (val) => { await onSave(item, val) }}
-                  onAdvance={dir => advanceToCell(item.id, dir)}
+                  onMove={dir => moveFrom(item.id, dir)}
                   linkedPeers={linkedPeersByItem?.[item.id] ?? []}
                   remoteEditors={readingMode ? null : <CellRemoteEditors cellId={item.id} />}
                 />
               ))}
             </div>
-          </motion.section>
+          </section>
         ))}
       </div>
     </main>
@@ -165,18 +158,21 @@ interface DisclosureLineProps {
   canEdit: boolean
   onFocus: () => void
   onSave: (newValue: number | null) => Promise<void>
-  onAdvance: (dir: 1 | -1) => void
+  onMove: (dir: 1 | -1) => void
   linkedPeers: ConceptPeer[]
-  /** Remote-editor presence badges. Always passed; renders to null when no
-   *  one else has the cell active (so the layout doesn't shift). */
+  /** Remote-editor presence badges (null when nobody else is here). */
   remoteEditors?: ReactNode
 }
 
-function DisclosureLine({ item, state, isActive, readingMode, canEdit, onFocus, onSave, onAdvance, linkedPeers, remoteEditors }: DisclosureLineProps) {
+function DisclosureLine({ item, state, isActive, readingMode, canEdit, onFocus, onSave, onMove, linkedPeers, remoteEditors }: DisclosureLineProps) {
   const { user, permissions } = useAuth()
+  const { t, i18n } = useTranslation()
+  const f = useFmt()
+  const label = itemLabel(item, i18n.language)
   const assignment = state?.assignment ?? null
   const value = assignment?.value ?? null
   const status = assignment?.status ?? 'not_started'
+  const unit = item.unit ? localizeUnit(t, item.unit) : null
   const isAssignee = assignment?.assigneeEmail
     ? assignment.assigneeEmail.toLowerCase() === (user?.email ?? '').toLowerCase()
     : false
@@ -188,159 +184,168 @@ function DisclosureLine({ item, state, isActive, readingMode, canEdit, onFocus, 
 
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<string>(value != null ? String(value) : '')
+  const [invalid, setInvalid] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const errId = `cell-err-${item.id}`
 
-  // Subtle border tint when another editor has this cell focused. Falls back
-  // to null outside a RoomProvider (solo mode) or in reading mode, so the
-  // layout never shifts and read-only views stay quiet.
   const remoteBorderColor = useRemoteCellBorderColor(item.id, readingMode)
-  // Soft 1.5px ring at 40-alpha — reads as ambient presence, not validation.
-  // Skipped while the local cell is the active one (the brand-coloured focus
-  // ring takes precedence).
-  const remoteRingStyle = (!readingMode && !isActive && remoteBorderColor)
-    ? { boxShadow: `0 0 0 1.5px ${remoteBorderColor}40` }
-    : undefined
+  const remoteRingStyle = (!readingMode && !isActive && remoteBorderColor) ? { boxShadow: `0 0 0 1.5px ${remoteBorderColor}66` } : undefined
 
-  useEffect(() => { setDraft(value != null ? String(value) : '') }, [value])
+  useEffect(() => { if (!editing) setDraft(value != null ? String(value) : '') }, [value, editing])
 
-  const commit = useCallback(async () => {
+  const startEditing = (seed?: string) => {
+    if (!allowEdit) return
+    onFocus()
+    setEditing(true)
+    setInvalid(false)
+    if (seed !== undefined) setDraft(seed)
+    requestAnimationFrame(() => {
+      const el = inputRef.current
+      if (!el) return
+      el.focus()
+      if (seed === undefined) el.select()
+    })
+  }
+
+  /** Returns false (and stays in edit mode) when the text isn't a number. */
+  const commit = useCallback(async (): Promise<boolean> => {
+    const parsed = parseNumeric(draft)
+    if (!parsed.ok) { setInvalid(true); return false }
     setEditing(false)
-    const next = draft.trim() === '' ? null : Number(draft)
-    if (next != null && Number.isNaN(next)) return
-    if (next === value) return
-    await onSave(next)
+    setInvalid(false)
+    if (parsed.value === value) return true
+    await onSave(parsed.value)
+    return true
   }, [draft, value, onSave])
 
-  const cellClasses = isActive
-    ? 'border-[var(--color-brand)] ring-2 ring-[var(--color-brand)]/20'
-    : 'border-[var(--border-default)] hover:border-[var(--color-brand)]/40'
+  const cancel = () => {
+    setEditing(false); setInvalid(false); setDraft(value != null ? String(value) : '')
+    requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-cell-input="${CSS.escape(item.id)}"]`)?.focus())
+  }
+
+  const display = value != null ? f.number(value, { maxFraction: 6 }) : '—'
 
   return (
     <div
-      className={`group relative rounded-[var(--radius-md)] -mx-3 px-3 py-2 transition-shadow ${isActive ? 'bg-[var(--color-brand-soft)]/30' : ''}`}
+      className={`group relative rounded-[var(--radius-lg)] -mx-3 px-3 py-3 transition-colors ${isActive && !readingMode ? 'bg-[var(--color-brand-soft)]/50' : readingMode ? '' : 'hover:bg-[var(--bg-secondary)]/60'}`}
       style={remoteRingStyle}
       onClick={onFocus}
     >
-      {/* Remote editors currently focussed on this cell — overlays at the
-          top-right corner so they don't shift the surrounding layout. */}
-      {!readingMode && remoteEditors && (
-        <div className="absolute top-2 right-3 z-10">{remoteEditors}</div>
-      )}
+      {!readingMode && remoteEditors && <div className="absolute top-2 right-3 z-10">{remoteEditors}</div>}
 
-      <div className="mb-1.5">
-        <div className={`font-medium text-[var(--text-primary)] ${readingMode ? 'text-[17px] leading-relaxed' : 'text-[var(--text-base)]'}`}>
-          {item.line_item}
-        </div>
-        <div className="text-[10px] font-mono text-[var(--text-tertiary)] mt-0.5">
-          {item.gri_code}
-          {item.scope_split ? ` · ${item.scope_split}` : ''}
-          {item.unit ? ` · ${item.unit}` : ''}
+      <div className="mb-2 pr-8">
+        <div className={`text-[var(--text-primary)] ${readingMode ? 'text-[17px] leading-relaxed' : 'text-body font-medium'}`}>{label}</div>
+        <div className="text-caption text-[var(--text-tertiary)] mt-0.5 tabular-nums">
+          <span className="font-mono">{item.gri_code}</span>
+          {item.scope_split ? ` · ${t(`disclosureEditor.scope.${item.scope_split}`, { defaultValue: item.scope_split })}` : ''}
+          {unit ? ` · ${unit}` : ''}
         </div>
       </div>
 
-      <div className="flex items-center gap-3 flex-wrap">
-        {readingMode || !allowEdit || !editing ? (
-          readingMode ? (
-            // Reading mode — typeset inline as flowing prose, not as a button.
-            <span
-              className="inline-flex items-baseline gap-2"
-              aria-label={`Value for ${item.line_item}`}
-            >
-              <span className="tabular-nums font-semibold text-[var(--text-primary)] text-[18px]">
-                {value != null ? formatValue(value) : '—'}
-              </span>
-              {item.unit && (
-                <span className="text-[14px] text-[var(--text-tertiary)]">{item.unit}</span>
-              )}
-              <LinkedBadge peers={linkedPeers} />
-            </span>
-          ) : (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                onFocus()
-                if (allowEdit) {
-                  setEditing(true)
-                  requestAnimationFrame(() => inputRef.current?.focus())
-                }
-              }}
-              data-cell-input={item.id}
-              className={`inline-flex items-baseline gap-2 px-3 py-2 rounded-[var(--radius-md)] border text-left transition-all min-w-[180px] ${cellClasses} ${
-                !allowEdit ? 'cursor-default' : 'cursor-text'
-              } bg-[var(--bg-primary)]`}
-              aria-label={`Value for ${item.line_item}`}
-            >
-              <span className="tabular-nums font-semibold text-[var(--text-primary)] text-[var(--text-lg)]">
-                {value != null ? formatValue(value) : '—'}
-              </span>
-              {item.unit && (
-                <span className="text-[var(--text-xs)] text-[var(--text-tertiary)]">{item.unit}</span>
-              )}
-              <LinkedBadge peers={linkedPeers} />
-            </button>
-          )
+      <div className="flex items-center gap-x-3 gap-y-1.5 flex-wrap">
+        {readingMode ? (
+          <span className="inline-flex items-baseline gap-2" aria-label={t('disclosureEditor.document.valueFor', { item: label })}>
+            <span className="type-figure text-[18px] text-[var(--text-primary)]">{display}</span>
+            {unit && <span className="text-small text-[var(--text-tertiary)]">{unit}</span>}
+            <LinkedBadge peers={linkedPeers} />
+          </span>
+        ) : editing ? (
+          <div className="flex flex-col">
+            <div className={`flex items-stretch rounded-[var(--radius-md)] border bg-[var(--bg-primary)] ring-2 ${invalid ? 'border-[var(--status-danger)] ring-[var(--status-danger)]/20' : 'border-[var(--color-brand)] ring-[var(--color-brand)]/20'}`}>
+              <input
+                ref={inputRef}
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                value={draft}
+                onChange={e => { setDraft(e.target.value); setInvalid(false) }}
+                data-cell-input={item.id}
+                aria-label={t('disclosureEditor.document.valueFor', { item: label })}
+                aria-invalid={invalid || undefined}
+                aria-describedby={invalid ? errId : undefined}
+                onBlur={() => { void commit() }}
+                onKeyDown={async (e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); if (await commit()) onMove(1) }
+                  else if (e.key === 'Escape') { e.preventDefault(); cancel() }
+                  else if (e.key === 'Tab') { e.preventDefault(); if (await commit()) onMove(e.shiftKey ? -1 : 1) }
+                }}
+                className="w-[200px] h-11 px-3 bg-transparent outline-none type-figure text-[18px] text-[var(--text-primary)]"
+              />
+              {unit && <span className="px-3 flex items-center border-l border-[var(--border-subtle)] text-caption text-[var(--text-tertiary)] whitespace-nowrap">{unit}</span>}
+            </div>
+            {invalid && (
+              <span id={errId} role="alert" className="mt-1 text-caption text-[var(--status-danger)]">{t('disclosureEditor.document.invalid')}</span>
+            )}
+          </div>
         ) : (
-          <input
-            ref={inputRef}
-            type="text"
-            inputMode="decimal"
-            value={draft}
-            onChange={e => setDraft(e.target.value)}
-            data-cell-input={item.id}
-            onBlur={() => { void commit() }}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onFocus(); startEditing() }}
+            onFocus={onFocus}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') { e.preventDefault(); void commit(); onAdvance(1) }
-              else if (e.key === 'Escape') { e.preventDefault(); setEditing(false); setDraft(value != null ? String(value) : '') }
-              else if (e.key === 'Tab') { e.preventDefault(); void commit(); onAdvance(e.shiftKey ? -1 : 1) }
+              if (e.key === 'ArrowDown' || e.key === 'j') { e.preventDefault(); onMove(1) }
+              else if (e.key === 'ArrowUp' || e.key === 'k') { e.preventDefault(); onMove(-1) }
+              else if (e.key === 'Enter' || e.key === 'F2') { e.preventDefault(); startEditing() }
+              else if (/^[0-9.\-]$/.test(e.key) && allowEdit && !e.metaKey && !e.ctrlKey) { e.preventDefault(); startEditing(e.key) }
             }}
-            className="px-3 py-2 rounded-[var(--radius-md)] border border-[var(--color-brand)] bg-[var(--bg-primary)] text-[var(--text-lg)] font-semibold tabular-nums text-[var(--text-primary)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none w-[180px]"
-          />
+            data-cell-input={item.id}
+            aria-label={t('disclosureEditor.document.valueFor', { item: label })}
+            aria-describedby={`cell-meta-${item.id}`}
+            className={`inline-flex items-baseline gap-2 min-w-[200px] h-11 px-3 rounded-[var(--radius-md)] border text-left transition-[border-color,box-shadow] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)]/30 bg-[var(--bg-primary)] ${
+              isActive ? 'border-[var(--color-brand)] shadow-[0_0_0_1px_var(--color-brand)]' : 'border-[var(--border-default)] hover:border-[var(--border-strong)]'
+            } ${allowEdit ? 'cursor-text' : 'cursor-default'}`}
+          >
+            <span className={`self-center type-figure text-[18px] ${value != null ? 'text-[var(--text-primary)]' : 'text-[var(--text-quaternary)]'}`}>{display}</span>
+            {unit && <span className="self-center text-caption text-[var(--text-tertiary)]">{unit}</span>}
+            <span className="self-center ml-auto"><LinkedBadge peers={linkedPeers} /></span>
+          </button>
         )}
 
-        <StatusChip status={status} readingMode={readingMode} />
+        {!readingMode && <StatusPill status={status} size="sm" />}
+        {readingMode && <span className="no-print-status"><StatusPill status={status} size="sm" /></span>}
 
-        {assignment?.last_updated && (
-          <span className="text-[10px] text-[var(--text-tertiary)]">
-            Updated {relativeTime(assignment.last_updated)}
-          </span>
-        )}
-        {assignment?.assigneeName && (
-          <span className="text-[10px] text-[var(--text-tertiary)]">· {assignment.assigneeName}</span>
-        )}
+        <span id={`cell-meta-${item.id}`} className="text-caption text-[var(--text-tertiary)] inline-flex items-center gap-1.5 min-w-0">
+          {assignment?.assigneeName && <span className="truncate max-w-[160px]">{assignment.assigneeName}</span>}
+          {assignment?.last_updated && <span className="whitespace-nowrap">· {t('disclosureEditor.document.updated', { time: relativeTime(t, assignment.last_updated) })}</span>}
+        </span>
 
-        {state?.saveState === 'saving' && (
-          <span className="inline-flex items-center gap-1 text-[10px] text-[var(--text-tertiary)]"><Loader2 className="w-3 h-3 animate-spin" /> Saving…</span>
-        )}
-        {state?.saveState === 'saved' && (
-          <span className="inline-flex items-center gap-1 text-[10px] text-[var(--status-ok)]"><Check className="w-3 h-3" /> Saved</span>
-        )}
-        {state?.saveState === 'error' && (
-          <span className="inline-flex items-center gap-1 text-[10px] text-[var(--status-reject)]" title={state.errorMessage ?? undefined}>
-            <AlertCircle className="w-3 h-3" /> Save failed
-          </span>
-        )}
+        <span className="inline-flex items-center min-h-[20px]" aria-live="polite">
+          <AnimatePresence mode="wait" initial={false}>
+            {state?.saveState === 'saving' && (
+              <motion.span key="saving" variants={crossfadeVariants} initial="initial" animate="enter" exit="exit" className="inline-flex items-center gap-1 text-caption text-[var(--text-tertiary)]">
+                <Loader2 className="w-3 h-3 animate-spin" aria-hidden /> {t('disclosureEditor.document.saving')}
+              </motion.span>
+            )}
+            {state?.saveState === 'saved' && (
+              <motion.span key="saved" variants={crossfadeVariants} initial="initial" animate="enter" exit="exit" className="inline-flex items-center gap-1 text-caption text-[var(--status-success)]">
+                <motion.span variants={iconSwapVariants} initial="initial" animate="enter" className="inline-flex"><Check className="w-3.5 h-3.5" aria-hidden /></motion.span>
+                {t('disclosureEditor.document.saved')}
+              </motion.span>
+            )}
+            {state?.saveState === 'error' && (
+              <motion.span key="error" variants={crossfadeVariants} initial="initial" animate="enter" exit="exit" className="inline-flex items-center gap-1 text-caption text-[var(--status-danger)]" title={state.errorMessage ?? undefined}>
+                <AlertCircle className="w-3 h-3" aria-hidden /> {state.errorMessage || t('disclosureEditor.page.saveFailed')}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </span>
       </div>
     </div>
   )
 }
 
-/**
- * Inline "🔗 N" badge that surfaces how many other frameworks a value
- * propagates to via the concept-mapping graph. Tooltip on hover lists
- * the peers (framework code · disclosure code).
- */
+/** Inline link badge: how many other frameworks this value propagates to. */
 function LinkedBadge({ peers }: { peers: ConceptPeer[] }) {
+  const { t } = useTranslation()
   if (!peers.length) return null
-  // Group by framework so "GRI 305-1 · GRI 305-2" collapses for the badge title.
-  const tooltip = `Also appears in ${peers.map(p => `${frameworkLabel(p.framework_id)} ${p.gri_code ?? ''}`.trim()).join(', ')}`
+  const tooltip = t('disclosureEditor.document.alsoAppears', { list: peers.map(p => `${frameworkLabel(p.framework_id)} ${p.gri_code ?? ''}`.trim()).join(t('disclosureEditor.document.listSep')) })
   return (
     <span
-      className="ml-1 inline-flex items-center gap-0.5 px-1.5 h-4 rounded-full bg-[var(--color-brand-soft)] text-[var(--color-brand)] text-[10px] font-semibold tabular-nums cursor-help"
+      className="inline-flex items-center gap-0.5 px-1.5 h-5 rounded-full bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)] text-caption font-semibold tabular-nums cursor-help"
       title={tooltip}
       aria-label={tooltip}
     >
-      <Link2 className="w-2.5 h-2.5" />
+      <Link2 className="w-3 h-3" aria-hidden />
       {peers.length}
     </span>
   )
@@ -350,55 +355,7 @@ function frameworkLabel(id: string): string {
   return getFramework(id)?.code ?? id.toUpperCase()
 }
 
-function StatusChip({ status, readingMode = false }: { status: QuestionAssignment['status']; readingMode?: boolean }) {
-  const map: Record<QuestionAssignment['status'], { label: string; cls: string }> = {
-    not_started: { label: 'Not started', cls: 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]' },
-    in_progress: { label: 'Draft', cls: 'bg-[var(--accent-amber-light)] text-[var(--status-draft)]' },
-    submitted: { label: 'Submitted', cls: 'bg-[var(--accent-blue-light)] text-[var(--status-pending)]' },
-    reviewed: { label: 'Reviewed', cls: 'bg-[var(--accent-blue-light)] text-[var(--status-pending)]' },
-    approved: { label: 'Approved', cls: 'bg-[var(--accent-green-light)] text-[var(--status-ok)]' },
-    rejected: { label: 'Rejected', cls: 'bg-[var(--accent-red-light)] text-[var(--status-reject)]' },
-  }
-  const m = map[status]
-  // Reading mode — quieter, grayer, smaller.
-  if (readingMode) {
-    return (
-      <span className="inline-flex items-center px-1.5 h-4 rounded-[var(--radius-xs)] text-[9px] font-normal text-[var(--text-tertiary)] bg-transparent border border-[var(--border-subtle)] no-print-status">
-        {m.label}
-      </span>
-    )
-  }
-  return (
-    <span className={`inline-flex items-center px-1.5 h-4 rounded-[var(--radius-xs)] text-[9px] font-semibold uppercase tracking-wider ${m.cls}`}>
-      {m.label}
-    </span>
-  )
-}
-
-function relativeTime(iso: string): string {
-  try {
-    const then = new Date(iso).getTime()
-    const diffSec = Math.max(1, Math.round((Date.now() - then) / 1000))
-    if (diffSec < 60) return `${diffSec}s ago`
-    const m = Math.round(diffSec / 60)
-    if (m < 60) return `${m}m ago`
-    const h = Math.round(m / 60)
-    if (h < 24) return `${h}h ago`
-    const d = Math.round(h / 24)
-    return `${d}d ago`
-  } catch { return iso }
-}
-
-/**
- * Push the local user's currently-focused cell to room presence so peers can
- * render the "X is here" badge. No-op outside a `<RoomProvider>` — the hook
- * binding lives in `lib/liveblocks.ts` and silently swallows updates when
- * collab is disabled, so callers don't need to gate on `useIsInsideRoom`.
- *
- * `useUpdateMyPresence` is stable, but `selectionAt` only refreshes on actual
- * cell changes — Liveblocks already throttles presence at 100ms, so we don't
- * need to debounce here.
- */
+/** Push the local user's focused cell to room presence (no-op outside a room). */
 function usePublishActiveCell(activeCellId: string | null) {
   const inside = useIsInsideRoom()
   const update = useUpdateMyPresence()
@@ -408,17 +365,7 @@ function usePublishActiveCell(activeCellId: string | null) {
   }, [inside, activeCellId, update])
 }
 
-/**
- * Hook: returns the stable per-user tint of the *first* remote editor
- * currently focused on `cellId`, or null when nobody else is here, when
- * collab is disabled, or in reading mode.
- *
- * Both `useIsInsideRoom()` and `useOthers()` are called unconditionally so
- * React's rules-of-hooks lint stays happy. The editor always wraps its tree
- * in a `<RoomProvider>` (with a `<CollabBoundary>` upstream catching hard
- * failures), so `useOthers()` is safe to call here — `useIsInsideRoom()`
- * just lets us short-circuit cheaply when the room hasn't connected yet.
- */
+/** Tint of the first remote editor focused on `cellId`, or null. */
 function useRemoteCellBorderColor(cellId: string, readingMode: boolean): string | null {
   const inside = useIsInsideRoom()
   const others = useOthers()
@@ -428,14 +375,7 @@ function useRemoteCellBorderColor(cellId: string, readingMode: boolean): string 
   return owner.info?.color ?? owner.presence?.color ?? null
 }
 
-/**
- * Stacked-avatar overlay for everyone else currently focused on a given cell.
- * Self-guarded so it can be safely rendered outside a RoomProvider — falls
- * back to `null`, which keeps the cell's overall layout stable.
- *
- * Caps at 3 avatars; with the free tier's 25-connection ceiling per room
- * this is plenty, and going wider would crowd the cell border.
- */
+/** Stacked avatars for everyone else focused on a cell (max 3). */
 function CellRemoteEditors({ cellId }: { cellId: string }) {
   const inside = useIsInsideRoom()
   if (!inside) return null
@@ -444,6 +384,7 @@ function CellRemoteEditors({ cellId }: { cellId: string }) {
 
 function CellRemoteEditorsInner({ cellId }: { cellId: string }) {
   const others = useOthers()
+  const { t } = useTranslation()
   const here = others.filter(o => o.presence?.activeCellId === cellId)
   if (here.length === 0) return null
   const visible = here.slice(0, 3)
@@ -451,24 +392,20 @@ function CellRemoteEditorsInner({ cellId }: { cellId: string }) {
   return (
     <div className="flex -space-x-1.5 items-center">
       {visible.map(({ connectionId, info, presence }) => {
-        const name = info?.name ?? 'User'
-        const color = presence?.color || info?.color || '#10B981'
+        const name = info?.name ?? t('disclosureEditor.progress.user')
         return (
           <div
             key={connectionId}
-            className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white border-2 border-[var(--bg-primary)] shadow-sm"
-            style={{ background: color }}
-            title={`${name} is here${info?.email ? ` (${info.email})` : ''}`}
+            className="w-6 h-6 rounded-full flex items-center justify-center text-caption font-semibold text-white border-2 border-[var(--bg-primary)]"
+            style={{ background: presence?.color || info?.color || 'var(--color-brand)' }}
+            title={t('disclosureEditor.document.isHere', { name }) + (info?.email ? ` (${info.email})` : '')}
           >
             {name.slice(0, 1).toUpperCase()}
           </div>
         )
       })}
       {overflow > 0 && (
-        <div
-          className="w-5 h-5 rounded-full bg-[var(--bg-tertiary)] text-[9px] font-semibold text-[var(--text-secondary)] flex items-center justify-center border-2 border-[var(--bg-primary)] tabular-nums"
-          title={`${overflow} more here`}
-        >
+        <div className="w-6 h-6 rounded-full bg-[var(--bg-tertiary)] text-caption font-semibold text-[var(--text-secondary)] flex items-center justify-center border-2 border-[var(--bg-primary)] tabular-nums" title={t('disclosureEditor.document.moreHere', { count: overflow })}>
           +{overflow}
         </div>
       )}

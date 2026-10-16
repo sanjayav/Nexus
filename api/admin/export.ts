@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import archiver from 'archiver'
 import { getDb } from '../_db.js'
 import { cors, requirePermission } from '../_auth.js'
+import { contentDisposition } from '../_http.js'
 
 // GET /api/admin/export
 // Streams a zip with every org-scoped row a tenant admin is entitled to
@@ -29,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const filename = `export_${org.slug || org.id}_${generatedAt.replace(/[:.]/g, '-')}.zip`
 
   res.setHeader('Content-Type', 'application/zip')
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+  res.setHeader('Content-Disposition', contentDisposition(filename))
   res.setHeader('Cache-Control', 'no-store')
 
   const zip = archiver('zip', { zlib: { level: 6 } })
@@ -94,11 +95,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     append('question_assignments.json', assignments)
 
     // ── data_values ─────────────────────────────────────────
+    // data_value has no evidence_ids / source_type / updated_at columns and
+    // legacy rows have org_id NULL, so ownership uses the shared predicate
+    // (api/_tenancy.ts). The pre-fix query referenced those missing columns,
+    // errored, and the .catch() exported []. Kept field names for consumers:
+    //   evidence_ids ← evidence rows of the value, source_type ← entry_mode,
+    //   updated_at   ← latest lifecycle timestamp.
     const dataValues = await sql`
-      SELECT id, questionnaire_item_id, value, unit, evidence_ids, source_type,
-             created_at, updated_at
-      FROM data_value WHERE org_id = ${token.org} LIMIT ${ROW_CAP}
-    `.catch(() => [])
+      SELECT dv.id, dv.questionnaire_item_id, dv.reporting_year_id, ry.year AS reporting_year,
+             dv.facility_id, dv.scope_key, dv.value, dv.unit,
+             dv.entry_mode, dv.entry_mode AS source_type, dv.status, dv.comment,
+             dv.formula, dv.computed_value, dv.derived_from, dv.is_overridden, dv.value_hash,
+             COALESCE((SELECT json_agg(e.id ORDER BY e.uploaded_at) FROM evidence e WHERE e.data_value_id = dv.id), '[]'::json) AS evidence_ids,
+             dv.entered_by, dv.entered_at, dv.submitted_at, dv.reviewed_by, dv.reviewed_at,
+             dv.approved_by, dv.approved_at, dv.created_at,
+             GREATEST(dv.created_at, dv.entered_at, dv.submitted_at, dv.reviewed_at, dv.approved_at) AS updated_at
+      FROM data_value dv
+      LEFT JOIN users eu ON eu.id = dv.entered_by
+      LEFT JOIN reporting_year ry ON ry.id = dv.reporting_year_id
+      WHERE COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${token.org}
+      ORDER BY dv.created_at
+      LIMIT ${ROW_CAP}
+    `.catch((e: unknown) => { console.error('[export] data_values:', e instanceof Error ? e.message : e); return [] })
     append('data_values.json', dataValues)
 
     // ── workflow_tasks ──────────────────────────────────────
@@ -148,15 +166,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // ── disclosures (data_value × questionnaire_item join) ──
     const disclosures = await sql`
-      SELECT dv.id AS data_value_id, dv.value, dv.unit, dv.source_type,
+      SELECT dv.id AS data_value_id, dv.value, dv.unit, dv.entry_mode AS source_type, dv.status,
+             ry.year AS reporting_year,
              qi.id AS questionnaire_item_id, qi.framework_id, qi.gri_code,
-             qi.line_item, qi.section, qi.subsection, qi.reporting_scope,
-             dv.created_at, dv.updated_at
+             qi.line_item, to_jsonb(qi) ->> 'line_item_zh' AS line_item_zh,
+             qi.section, qi.subsection, qi.reporting_scope,
+             dv.created_at,
+             GREATEST(dv.created_at, dv.entered_at, dv.submitted_at, dv.reviewed_at, dv.approved_at) AS updated_at
       FROM data_value dv
       JOIN questionnaire_item qi ON qi.id = dv.questionnaire_item_id
-      WHERE dv.org_id = ${token.org}
+      LEFT JOIN users eu ON eu.id = dv.entered_by
+      LEFT JOIN reporting_year ry ON ry.id = dv.reporting_year_id
+      WHERE COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${token.org}
+      ORDER BY qi.framework_id, qi.gri_code
       LIMIT ${ROW_CAP}
-    `.catch(() => [])
+    `.catch((e: unknown) => { console.error('[export] disclosures:', e instanceof Error ? e.message : e); return [] })
     append('disclosures.json', disclosures)
 
     await zip.finalize()

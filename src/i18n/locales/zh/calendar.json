@@ -1,0 +1,10 @@
+{
+  "crumbWork": "工作",
+  "title": "日历",
+  "openMyTasks": "打开我的任务",
+  "description": "监管截止日期与您的任务截止日期一览。",
+  "tasksTitle": "您的任务截止日期",
+  "tasksBody": "选择日期，即可在“我的任务”中查看当天的任务。",
+  "noTasksTitle": "暂无设有截止日期的任务",
+  "noTasksBody": "指派给您的披露项将按截止日期显示在此日历中。"
+}

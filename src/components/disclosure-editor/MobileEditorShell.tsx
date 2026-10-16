@@ -1,4 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
+import { motion } from 'framer-motion'
+import { spring } from '../../motion/tokens'
+import { useTranslation } from 'react-i18next'
 import { ChevronLeft, FolderTree, FileText, Info } from 'lucide-react'
 import DisclosureTree, { type DisclosureTreeProps } from './DisclosureTree'
 import DisclosureDocument, { type DisclosureDocumentProps } from './DisclosureDocument'
@@ -37,6 +40,8 @@ interface MobileEditorShellProps {
 }
 
 export default function MobileEditorShell({ treeProps, documentProps, railProps, showDetails }: MobileEditorShellProps) {
+  const { t } = useTranslation()
+  const group = useId()
   const [tab, setTab] = useState<MobileTab>('document')
 
   // When the active cell changes (and details are available) auto-switch to
@@ -69,27 +74,30 @@ export default function MobileEditorShell({ treeProps, documentProps, railProps,
       {/* Tab strip */}
       <div
         role="tablist"
-        aria-label="Disclosure editor sections"
+        aria-label={t('disclosureEditor.mobile.tabsAria')}
         className="flex items-stretch border-b border-[var(--border-subtle)] bg-[var(--bg-primary)] sticky top-0 z-20"
       >
         <TabButton
           active={tab === 'sections'}
           onClick={() => setTab('sections')}
           icon={<FolderTree className="w-4 h-4" />}
-          label="Sections"
+          group={group}
+          label={t('disclosureEditor.mobile.sections')}
         />
         <TabButton
           active={tab === 'document'}
           onClick={() => setTab('document')}
           icon={<FileText className="w-4 h-4" />}
-          label="Document"
+          group={group}
+          label={t('disclosureEditor.mobile.document')}
         />
         {showDetails && (
           <TabButton
             active={tab === 'details'}
             onClick={() => setTab('details')}
             icon={<Info className="w-4 h-4" />}
-            label="Details"
+            group={group}
+            label={t('disclosureEditor.mobile.details')}
             disabled={!activeCellId}
           />
         )}
@@ -113,10 +121,10 @@ export default function MobileEditorShell({ treeProps, documentProps, railProps,
               <button
                 type="button"
                 onClick={() => setTab('document')}
-                className="inline-flex items-center gap-1 h-11 px-3 -ml-1 rounded-[8px] text-[13px] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
-                aria-label="Back to document"
+                className="inline-flex items-center gap-1 h-11 px-3 -ml-1 rounded-[var(--radius-md)] text-small font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                aria-label={t('disclosureEditor.mobile.backToDocument')}
               >
-                <ChevronLeft className="w-4 h-4" /> Back
+                <ChevronLeft className="w-4 h-4" /> {t('common.back')}
               </button>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto">
@@ -130,8 +138,9 @@ export default function MobileEditorShell({ treeProps, documentProps, railProps,
 }
 
 function TabButton({
-  active, onClick, icon, label, disabled = false,
+  active, onClick, icon, label, disabled = false, group,
 }: {
+  group: string
   active: boolean
   onClick: () => void
   icon: React.ReactNode
@@ -145,14 +154,15 @@ function TabButton({
       aria-selected={active}
       disabled={disabled}
       onClick={onClick}
-      className={`flex-1 min-h-[44px] inline-flex items-center justify-center gap-1.5 text-[12.5px] font-semibold border-b-2 transition-colors disabled:opacity-40 disabled:cursor-not-allowed
+      className={`relative flex-1 min-h-[44px] inline-flex items-center justify-center gap-1.5 text-small font-semibold whitespace-nowrap transition-colors disabled:opacity-40 disabled:cursor-not-allowed
         ${active
-          ? 'border-[var(--color-brand)] text-[var(--color-brand-strong)] bg-[var(--color-brand-soft)]/40'
-          : 'border-transparent text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
+          ? 'text-[var(--text-primary)]'
+          : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
         }`}
     >
       {icon}
       <span>{label}</span>
+      {active && <motion.span layoutId={`${group}-tab`} transition={spring.snappy} className="absolute left-4 right-4 bottom-0 h-0.5 rounded-full bg-[var(--color-brand)]" aria-hidden />}
     </button>
   )
 }

@@ -1,11 +1,5 @@
-import {
-  Scope3Calculator,
-  EEIO_FACTORS,
-  EEIO_SECTOR_OPTIONS,
-  REGION_OPTIONS,
-  ILLUSTRATIVE_NOTE,
-  toNum,
-} from './index'
+import type { Scope3Calculator } from './types'
+import { EEIO_FACTORS, EEIO_SECTOR_OPTIONS, REGION_OPTIONS, ILLUSTRATIVE_NOTE, toNum } from './constants'
 
 export const cat01: Scope3Calculator = {
   id: 'scope3_cat01',

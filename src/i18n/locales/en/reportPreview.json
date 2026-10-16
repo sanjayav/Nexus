@@ -1,0 +1,91 @@
+{
+  "failedToLoad": "Failed to load",
+  "unableToLoad": "The preview didn't load",
+  "retry": "Retry",
+  "backToPublish": "Back to Publish Centre",
+  "auditorView": "Auditor View",
+  "printPdf": "Print / Save PDF",
+  "cover": {
+    "eyebrow": "Sustainability Performance Data",
+    "companyLine1": "Demo Co",
+    "companyLine2": "Public Company Limited",
+    "reportingPeriod": "Reporting period: 1 January – 31 December {{year}}",
+    "badge": "FY{{year}} · Regenerated from Nexus · GRI Standards 2021",
+    "note": "Published in accordance with GRI Standards 2021, IFRS S1, IFRS S2, and SASB. Prior-year values (FY2022–FY2025) inherited from the published Sustainability Performance Data report. All current-year values are regenerated from approved entries in the Nexus platform."
+  },
+  "guidelines": {
+    "title": "Reporting Guidelines",
+    "orgLabel": "Organisation (GRI 2-1):",
+    "orgBody": "Demo Co PLC. Head Office: 1 Demo Plaza, Industrial District, City Center.",
+    "scopeLabel": "Scope (GRI 2-2):",
+    "scopeBody": "Operational performance of Demo Co Group entities for the reporting year, including companies in which Demo Co holds ≥ 50% of total shares, plus Polymers JV Ltd. (Demo Co holds 41.44%, largest shareholder). Sustainability data covers > 75% of total revenue.",
+    "periodLabel": "Reporting period (GRI 2-3):",
+    "periodBody": "1 January – 31 December {{year}}. Annual cycle.",
+    "restatementsLabel": "Restatements (GRI 2-4):",
+    "restatementsBody": "Where the current report revises prior-year figures, the restatement is annotated against the affected line item.",
+    "assuranceLabel": "External assurance (GRI 2-5):",
+    "assuranceBody": "Limited assurance by LRQA Group Limited (ISAE 3000 revised), ref. BGK00001264. Assurance statement is appended at the end of this report."
+  },
+  "headings": {
+    "group": "Sustainability Performance Data — Demo Co",
+    "jv": "Joint Ventures — Parallel Scope"
+  },
+  "assurance": {
+    "title": "LRQA Independent Assurance Statement",
+    "subtitle": "ISAE 3000 (revised) · Ref BGK00001264",
+    "p1": "LRQA Group Limited provides limited assurance on GC’s Sustainability Performance Data in accordance with ISAE 3000 (revised) and at the materiality of the professional judgement of the verifier, using LRQA’s verification procedure based on the principles of inclusivity, materiality, responsiveness, impact, and reliability of performance data.",
+    "p2": "Assurance covers GC’s operations in Thailand and specific GRI disclosures: GRI 302-1, 302-3, 303-3/4/5, 305-7, 306-3/4/5, 308-2, 403-9/10, 405-2, 414-2, GRI 11.8.3, and OGSS OG13.",
+    "placeholder": "Placeholder",
+    "placeholderBody": "— full LRQA assurance statement is inserted here at final publish. Detailed terms of engagement, observations, and conclusion match the standing assurance template (see Demo Co FY2025 SPD pp. 60–61)."
+  },
+  "table": {
+    "lineItem": "Line item",
+    "unit": "Unit",
+    "target": "target {{value}}",
+    "footnotes": "Footnotes:"
+  },
+  "capitals": {
+    "Financial_Capital": "Financial Capital",
+    "Manufacture_Capital": "Manufacture Capital",
+    "Human_Capital": "Human Capital",
+    "Social_Relationship_Capital": "Social & Relationship Capital",
+    "Natural_Capital": "Natural Capital"
+  },
+  "subsections": {
+    "Direct_Economic_Value_Generated": "Direct Economic Value Generated",
+    "Economic_Value_Distributed": "Economic Value Distributed",
+    "Procurement_Practices": "Procurement Practices",
+    "Return_on_Environmental_Investment": "Return on Environmental Investment",
+    "Workforce": "Workforce",
+    "Workforce_by_Area": "Workforce by Area",
+    "New_Employees": "New Employees",
+    "Turnover": "Turnover",
+    "Training_and_Development": "Training and Development",
+    "Gender_Diversity": "Gender Diversity",
+    "Equal_Remuneration": "Equal Remuneration",
+    "Health_Safety": "Health & Safety",
+    "Process_Safety": "Process Safety",
+    "Board_Structure": "Board Structure",
+    "Board_Effectiveness": "Board Effectiveness",
+    "Executive_Compensation": "Executive Compensation",
+    "CEO_Pay_Ratio": "CEO Pay Ratio",
+    "Anti_Bribery_and_Corruption": "Anti-Bribery and Corruption",
+    "Code_of_Conduct_Breaches": "Code of Conduct Breaches",
+    "Anticompetitive_Practices": "Anticompetitive Practices",
+    "Non_Compliance": "Non-Compliance",
+    "Supply_Chain": "Supply Chain",
+    "Philanthropic_Activities": "Philanthropic Activities",
+    "Local_Community": "Local Community",
+    "Materials": "Materials",
+    "Energy": "Energy",
+    "Greenhouse_Gas_Emissions_GHGs_": "Greenhouse Gas Emissions (GHGs)",
+    "Air_Emissions": "Air Emissions",
+    "Water": "Water",
+    "Waste": "Waste",
+    "Spills": "Spills",
+    "Operational_Eco_Efficiency": "Operational Eco-Efficiency",
+    "Product_Stewardship": "Product Stewardship",
+    "Hazardous_Substances": "Hazardous Substances"
+  },
+  "unableToLoadBody": "We couldn't reach the server, so the report preview can't be built right now."
+}

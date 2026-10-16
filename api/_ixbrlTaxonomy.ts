@@ -26,7 +26,7 @@ export interface XbrlConcept {
   framework: string                            // matches FRAMEWORKS[].id e.g. 'csrd-e1'
   label: string
   type: 'monetary' | 'numeric' | 'string' | 'boolean' | 'date' | 'enum' | 'percent'
-  unitRef?: 'tCO2e' | 'kWh' | 'MWh' | 'EUR' | 'USD' | 'GBP' | 'pure' | 'percent' | 'm3' | 'kg' | 't' | 'count' | 'hours' | 'fte'
+  unitRef?: 'tCO2e' | 'kWh' | 'MWh' | 'EUR' | 'USD' | 'GBP' | 'CNY' | 'HKD' | 'tce' | 'pure' | 'percent' | 'm3' | 'kg' | 't' | 'count' | 'hours' | 'fte'
   decimals?: number
   periodType: 'instant' | 'duration'
   abstract?: boolean
@@ -572,6 +572,9 @@ export const NAMESPACES: Record<string, string> = {
   'us-gaap': 'http://fasb.org/us-gaap/2024',
   gri: 'http://xbrl.globalreporting.org/gri',
   'eu-tax': 'http://xbrl.eu/taxonomy/2024',
+  // Measures with no UTR / ISO 4217 entry (e.g. tce, tonne of standard coal
+  // equivalent — 吨标准煤, the unit China reports energy in).
+  nexus: 'http://xbrl.aeiforo.com/2026/units',
 }
 
 export const SCHEMA_REFS: Record<string, string> = {
@@ -580,4 +583,85 @@ export const SCHEMA_REFS: Record<string, string> = {
   'us-gaap': 'http://xbrl.fasb.org/us-gaap/2024/elts/us-gaap-2024.xsd',
   gri: 'http://xbrl.globalreporting.org/gri/gri-all-2024.xsd',
   'eu-tax': 'http://xbrl.eu/taxonomy/2024/eu-tax-all.xsd',
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Simplified Chinese standard labels (xml:lang="zh-CN")
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * zh-CN labels for the concepts Chinese preparers most often tag (GHG,
+ * energy, water, waste, workforce). Concepts without an entry keep their
+ * English label, marked xml:lang="en" in the document.
+ */
+export const CONCEPT_LABELS_ZH: Record<string, string> = {
+  'esrs:TransitionPlanForClimateChangeMitigation': '减缓气候变化的转型计划',
+  'esrs:PoliciesRelatedToClimateChangeMitigationAndAdaptation': '与减缓和适应气候变化相关的政策',
+  'esrs:ActionsAndResourcesInRelationToClimateChangePolicies': '与气候变化政策相关的行动和资源',
+  'esrs:TargetsRelatedToClimateChangeMitigationAndAdaptation': '与减缓和适应气候变化相关的目标',
+  'esrs:TotalEnergyConsumption': '能源消耗总量',
+  'esrs:EnergyConsumptionFromFossilSources': '化石能源消耗量',
+  'esrs:EnergyConsumptionFromNuclearSources': '核能消耗量',
+  'esrs:EnergyConsumptionFromRenewableSources': '可再生能源消耗量',
+  'esrs:NonRenewableEnergyProduction': '不可再生能源生产量',
+  'esrs:RenewableEnergyProduction': '可再生能源生产量',
+  'esrs:EnergyIntensityPerNetRevenue': '单位营业收入能耗强度',
+  'esrs:GrossScope1GreenhouseGasEmissions': '范围一温室气体排放总量',
+  'esrs:GrossLocationBasedScope2GreenhouseGasEmissions': '范围二温室气体排放总量（基于位置）',
+  'esrs:GrossMarketBasedScope2GreenhouseGasEmissions': '范围二温室气体排放总量（基于市场）',
+  'esrs:GrossScope3GreenhouseGasEmissions': '范围三温室气体排放总量',
+  'esrs:TotalGHGEmissionsLocationBased': '温室气体排放总量（基于位置）',
+  'esrs:TotalGHGEmissionsMarketBased': '温室气体排放总量（基于市场）',
+  'esrs:GHGEmissionsIntensityLocationBased': '温室气体排放强度（基于位置）',
+  'esrs:GHGEmissionsIntensityMarketBased': '温室气体排放强度（基于市场）',
+  'esrs:GHGRemovalsAndStorageInOwnOperations': '自身运营中的温室气体清除和封存量',
+  'esrs:BaseYearForGHGEmissions': '温室气体排放基准年',
+  'esrs:GHGEmissionsReductionTarget2030': '2030年温室气体减排目标',
+  'esrs:GHGEmissionsReductionTarget2050': '2050年温室气体减排目标',
+  'esrs:InternalCarbonPriceApplied': '内部碳价格',
+  'esrs:TotalWaterWithdrawal': '取水总量',
+  'esrs:TotalWaterDischarge': '排水总量',
+  'esrs:TotalWaterConsumption': '耗水总量',
+  'esrs:WaterRecycledAndReused': '循环及回用水量',
+  'esrs:WaterIntensityPerNetRevenue': '单位营业收入耗水强度',
+  'esrs:TotalWasteGenerated': '废弃物产生总量',
+  'esrs:WasteDivertedFromDisposal': '转移处置的废弃物量',
+  'esrs:WasteDirectedToDisposal': '进入处置的废弃物量',
+  'esrs:HazardousWasteGenerated': '危险废物产生量',
+  'esrs:TotalNumberOfEmployees': '员工总数',
+  'esrs:TotalNumberOfEmployeesFTE': '员工总数（全职当量）',
+  'esrs:EmployeeTurnoverRate': '员工流失率',
+  'esrs:GenderPayGap': '性别薪酬差距',
+  'esrs:RecordableWorkRelatedInjuries': '可记录工伤事故数',
+  'esrs:WorkRelatedFatalities': '因工死亡人数',
+  'ifrs-full:GrossScope1GHGEmissionsIFRS': '范围一温室气体排放总量',
+  'ifrs-full:GrossScope2GHGEmissionsIFRS': '范围二温室气体排放总量',
+  'ifrs-full:GrossScope3GHGEmissionsIFRS': '范围三温室气体排放总量',
+  'us-gaap:Scope1Emissions': '范围一排放',
+  'us-gaap:Scope2Emissions': '范围二排放',
+  'gri:DirectGHGEmissionsScope1': '直接（范围一）温室气体排放',
+  'gri:EnergyIndirectGHGEmissionsScope2': '能源间接（范围二）温室气体排放',
+  'gri:OtherIndirectGHGEmissionsScope3': '其他间接（范围三）温室气体排放',
+  'gri:GHGEmissionsIntensity': '温室气体排放强度',
+  'gri:ReductionOfGHGEmissions': '温室气体减排量',
+  'gri:OzoneDepletingSubstancesEmissions': '臭氧消耗物质排放',
+  'gri:NOxSOxAndOtherAirEmissions': '氮氧化物、硫氧化物和其他重大气体排放',
+  'gri:WaterWithdrawal': '取水',
+  'gri:WaterDischarge': '排水',
+  'gri:WaterConsumption': '耗水',
+  'gri:NewEmployeeHiresGRI': '新进员工雇佣',
+  'gri:WorkRelatedInjuriesGRI': '工伤',
+  'gri:AverageHoursOfTraining': '人均培训小时数',
+  'eu-tax:TurnoverAlignment': '营业额与分类法一致的比例',
+  'eu-tax:CapExAlignment': '资本支出与分类法一致的比例',
+  'eu-tax:OpExAlignment': '运营支出与分类法一致的比例',
+}
+
+/** Label for a concept in the requested language, with the language it is actually in. */
+export function conceptLabel(concept: Pick<XbrlConcept, 'id' | 'label'>, locale: string): { text: string; lang: 'en' | 'zh-CN' } {
+  if (locale === 'zh' || locale === 'zh-CN') {
+    const zh = CONCEPT_LABELS_ZH[concept.id]
+    if (zh) return { text: zh, lang: 'zh-CN' }
+  }
+  return { text: concept.label, lang: 'en' }
 }

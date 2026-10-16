@@ -1,0 +1,100 @@
+{
+  "readOnly": "Only workspace admins can change market and compliance settings. You can see what's in effect.",
+  "loadError": "Couldn't load market settings",
+  "notSaved": "Defaults in use",
+  "unsaved_one": "{{count}} unsaved change",
+  "unsaved_other": "{{count}} unsaved changes",
+  "saveBlocked": "Fix the highlighted field before saving",
+  "toast": {
+    "saved_one": "Market settings saved · {{count}} change",
+    "saved_other": "Market settings saved · {{count}} changes",
+    "audited": "Recorded in the audit log with before and after values.",
+    "failed": "Couldn't save market settings"
+  },
+  "market": {
+    "title": "Market",
+    "description": "Language is chosen by each person. The market is chosen once for the workspace: it sets the defaults for frameworks, AI provider, hosting and calendars.",
+    "global": { "label": "Global", "body": "GRI, ISSB, ESRS and CDP first. Global AI provider and hosting." },
+    "cn": { "label": "Mainland China", "body": "SSE / SZSE / BSE exchange guidelines first, mainland AI provider, onshore hosting and 绿证 / CCER ledgers." },
+    "effects": {
+      "global": {
+        "language": "New people default to English until they pick a language",
+        "ai": "AI drafting uses the global provider (Anthropic) unless you choose another",
+        "timezone": "Deadlines are shown in UTC unless you set a timezone",
+        "calendar": "The regulatory calendar highlights global and EU deadlines"
+      },
+      "cn": {
+        "language": "New people default to Simplified Chinese until they pick a language",
+        "ai": "AI drafting uses the mainland OpenAI-compatible provider (Qwen / DeepSeek) unless you choose another",
+        "timezone": "Deadlines are shown in Asia/Shanghai unless you set a timezone",
+        "calendar": "The regulatory calendar highlights exchange and HKEX deadlines"
+      }
+    }
+  },
+  "compliance": {
+    "title": "Hosting & compliance",
+    "description": "What auditors and regulators will ask for: where the data lives, your ICP filing, the 等保 (MLPS 2.0) level and the cross-border transfer basis under PIPL.",
+    "mismatchTitle": "Data residency is outside mainland China",
+    "mismatchBody": "Mainland workspaces usually keep data onshore. If data leaves the mainland, make sure the cross-border transfer basis below is filed."
+  },
+  "locale": {
+    "title": "Locale & reporting calendar",
+    "description": "Used for deadlines, amounts and the regulatory calendar. Empty fields use the market default."
+  },
+  "fields": {
+    "default": "Default ({{value}})",
+    "residency": {
+      "label": "Data residency region",
+      "hint": "Where this workspace's data must be stored. Changing it does not move existing data.",
+      "unset": "Not set (deployment default)",
+      "options": { "us": "United States", "eu": "European Union", "apac": "Asia-Pacific", "cn": "Mainland China" }
+    },
+    "icp": {
+      "label": "ICP filing number",
+      "hint": "ICP 备案号 or 经营许可证 number for the service domain, shown in the site footer.",
+      "invalid": "Use the official format, for example 京ICP备12345678号-1 or 沪ICP证123456号."
+    },
+    "mlps": {
+      "label": "等保 (MLPS 2.0) level",
+      "hint": "The classified-protection level the system has been assessed at. SaaS that holds personal data is usually Level 3.",
+      "unset": "Not assessed",
+      "levels": { "1": "Level 1", "2": "Level 2", "3": "Level 3", "4": "Level 4", "5": "Level 5" }
+    },
+    "crossBorder": {
+      "label": "Cross-border data transfer",
+      "hint": "The legal basis for any personal information leaving the mainland (PIPL art. 38 and the 2024 CAC provisions).",
+      "unset": "Not recorded",
+      "options": {
+        "not_assessed": "Not assessed yet",
+        "no_transfer": "No transfer: data stays onshore",
+        "exempt": "Exempt under the 2024 CAC provisions",
+        "standard_contract": "PIPL standard contract filed",
+        "certification": "Personal information protection certification",
+        "security_assessment": "CAC security assessment passed"
+      },
+      "pill": {
+        "unset": "Not recorded",
+        "not_assessed": "Needs assessment",
+        "no_transfer": "Onshore",
+        "exempt": "Exempt",
+        "standard_contract": "Contract filed",
+        "certification": "Certified",
+        "security_assessment": "Assessed"
+      }
+    },
+    "timezone": { "label": "Timezone", "hint": "Deadlines and the regulatory calendar count days in this zone." },
+    "currency": { "label": "Reporting currency", "hint": "Used for intensity metrics and financial denominators.", "unset": "Not set" },
+    "fiscalYearEnd": { "label": "Fiscal year end", "hint": "Sets reporting-period defaults and filing deadlines.", "month": "Fiscal year end month", "day": "Fiscal year end day" },
+    "venues": {
+      "label": "Listing venues",
+      "hint": "Exchanges where the company is listed. Drives which exchange guidelines and deadlines are highlighted.",
+      "options": { "SSE": "Shanghai (SSE)", "SZSE": "Shenzhen (SZSE)", "BSE": "Beijing (BSE)", "HKEX": "Hong Kong (HKEX)", "OTHER": "Other" }
+    }
+  },
+  "audit": {
+    "lastSaved": "Last saved {{when}}",
+    "never": "Never saved",
+    "note": "Every change is recorded in the audit log",
+    "view": "View audit log"
+  }
+}

@@ -8,6 +8,11 @@ import {
 } from '../_workflow.js'
 import { notify } from '../_notify.js'
 import { propagateApprovedValue } from '../_propagate.js'
+import { contentDisposition } from '../_http.js'
+import { loadOwnedDataValue, isOwnedReportingYear, stampDataValueOrg } from '../_tenancy.js'
+
+// Re-exported for callers that used to reach it through this module.
+export { loadOwnedDataValue }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   cors(res, req)
@@ -30,10 +35,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // When more frameworks come online, the client passes &framework_id=<id>.
       const frameworkId = String(req.query.framework_id || 'gri')
       try {
+        // line_item_zh is read via to_jsonb(row) so the query keeps working on a
+        // database where /api/setup has not yet added the column (it yields NULL).
         const items = await sql`
           SELECT id, section, subsection, gri_code, line_item, unit, scope_split,
                  default_workflow_role, entry_mode_default, target_fy2026,
-                 footnote_refs, reporting_scope, framework_id
+                 footnote_refs, reporting_scope, framework_id,
+                 to_jsonb(questionnaire_item) ->> 'line_item_zh' AS line_item_zh
           FROM questionnaire_item
           WHERE framework_id = ${frameworkId}
           ORDER BY reporting_scope, section, subsection, gri_code, line_item
@@ -83,10 +91,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const rows = seesAll
           ? await sql`
-              SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section
+              SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section,
+                     to_jsonb(qi) ->> 'line_item_zh' AS line_item_zh
               FROM data_value dv
               JOIN questionnaire_item qi ON qi.id = dv.questionnaire_item_id
+              LEFT JOIN users eu ON eu.id = dv.entered_by
+              LEFT JOIN reporting_year ry ON ry.id = dv.reporting_year_id
               WHERE dv.status = 'submitted'
+                AND COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${token.org}
               ORDER BY dv.submitted_at ASC
             `
           : await sql`
@@ -95,7 +107,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 UNION ALL
                 SELECT e.id FROM org_entities e JOIN subtree s ON e.parent_id = s.id
               )
-              SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section
+              SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section,
+                     to_jsonb(qi) ->> 'line_item_zh' AS line_item_zh
               FROM data_value dv
               JOIN questionnaire_item qi ON qi.id = dv.questionnaire_item_id
               WHERE dv.status = 'submitted'
@@ -115,12 +128,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { data_value_id } = req.query as Record<string, string | undefined>
       if (!data_value_id) return res.status(400).json({ error: 'data_value_id required' })
       try {
+        // Tenant-scoped: evidence of another org's data value yields [].
         const rows = await sql`
           SELECT e.id, e.filename, e.file_type, e.file_size, e.file_hash,
                  e.uploaded_at, u.name AS uploaded_by_name
           FROM evidence e
+          JOIN data_value dv ON dv.id = e.data_value_id
+          LEFT JOIN users eu ON eu.id = dv.entered_by
+          LEFT JOIN reporting_year ry ON ry.id = dv.reporting_year_id
           LEFT JOIN users u ON u.id = e.uploaded_by
           WHERE e.data_value_id = ${data_value_id}
+            AND COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${token.org}
           ORDER BY e.uploaded_at DESC
         `
         return res.status(200).json(rows)
@@ -133,14 +151,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { evidence_id } = req.query as Record<string, string | undefined>
       if (!evidence_id) return res.status(400).json({ error: 'evidence_id required' })
       try {
+        // Tenant-scoped: a foreign evidence id is indistinguishable from a
+        // missing one (404), so ids from other orgs can't be probed.
         const rows = await sql`
-          SELECT filename, file_type, file_bytes
-          FROM evidence WHERE id = ${evidence_id}
+          SELECT e.filename, e.file_type, e.file_bytes
+          FROM evidence e
+          JOIN data_value dv ON dv.id = e.data_value_id
+          LEFT JOIN users eu ON eu.id = dv.entered_by
+          LEFT JOIN reporting_year ry ON ry.id = dv.reporting_year_id
+          WHERE e.id = ${evidence_id}
+            AND COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${token.org}
         ` as Array<{ filename: string; file_type: string | null; file_bytes: Buffer | Uint8Array | null }>
         if (rows.length === 0 || !rows[0].file_bytes) return res.status(404).json({ error: 'Not found' })
         const buf = Buffer.isBuffer(rows[0].file_bytes) ? rows[0].file_bytes : Buffer.from(rows[0].file_bytes)
         res.setHeader('Content-Type', rows[0].file_type || 'application/octet-stream')
-        res.setHeader('Content-Disposition', `attachment; filename="${rows[0].filename.replace(/"/g, '')}"`)
+        res.setHeader('Content-Disposition', contentDisposition(rows[0].filename))
         return res.status(200).send(buf)
       } catch (err: unknown) {
         return res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' })
@@ -163,10 +188,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const rows = seesAll
           ? await sql`
-              SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section
+              SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section,
+                     to_jsonb(qi) ->> 'line_item_zh' AS line_item_zh
               FROM data_value dv
               JOIN questionnaire_item qi ON qi.id = dv.questionnaire_item_id
+              LEFT JOIN users eu ON eu.id = dv.entered_by
+              LEFT JOIN reporting_year ry ON ry.id = dv.reporting_year_id
               WHERE dv.status = 'reviewed'
+                AND COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${token.org}
               ORDER BY dv.reviewed_at ASC
             `
           : await sql`
@@ -175,7 +204,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 UNION ALL
                 SELECT e.id FROM org_entities e JOIN subtree s ON e.parent_id = s.id
               )
-              SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section
+              SELECT dv.*, qi.line_item, qi.gri_code, qi.unit, qi.section,
+                     to_jsonb(qi) ->> 'line_item_zh' AS line_item_zh
               FROM data_value dv
               JOIN questionnaire_item qi ON qi.id = dv.questionnaire_item_id
               WHERE dv.status = 'reviewed'
@@ -244,6 +274,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const formulaText: string | null = typeof formula === 'string' && formula.startsWith('=') ? formula : null
 
       try {
+        // The reporting year must be one of the caller org's own years —
+        // a foreign (or the old hard-coded demo) year is a 404.
+        if (!(await isOwnedReportingYear(sql, token.org, reporting_year_id))) {
+          return res.status(404).json({ error: 'Reporting year not found' })
+        }
         const created = await sql`
           INSERT INTO data_value
             (questionnaire_item_id, reporting_year_id, facility_id, scope_key,
@@ -256,6 +291,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
              ${formulaText}, ${formulaText !== null ? value : null}, ${formulaText !== null ? new Date().toISOString() : null})
           RETURNING *
         `
+        await stampDataValueOrg(sql, created[0].id, token.org)
         const platformRole = await getPlatformRole(sql, token.sub)
         const workflowRoles = await getWorkflowRolesForItem(sql, token.sub, question_id)
         const workflowRole: WorkflowRole | null = workflowRoles[0] ?? null
@@ -268,7 +304,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           comment,
         })
         await sql`UPDATE data_value SET value_hash = ${newHash} WHERE id = ${created[0].id}`
-        return res.status(201).json({ ...created[0], value_hash: newHash })
+        return res.status(201).json({ ...created[0], org_id: token.org, value_hash: newHash })
       } catch (err: unknown) {
         return res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' })
       }
@@ -279,8 +315,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { data_value_id } = req.body ?? {}
       if (!data_value_id) return res.status(400).json({ error: 'data_value_id required' })
       try {
-        const rows = await sql`SELECT questionnaire_item_id, status FROM data_value WHERE id = ${data_value_id}` as Array<{ questionnaire_item_id: string; status: string }>
-        if (rows.length === 0) return res.status(404).json({ error: 'Not found' })
+        const owned = await loadOwnedDataValue(sql, token.org, data_value_id)
+        if (!owned) return res.status(404).json({ error: 'Not found' })
+        const rows = [owned]
         if (rows[0].status !== 'draft') return res.status(409).json({ error: `Cannot submit from status '${rows[0].status}'` })
         const allowed = await canEnter(sql, token.sub, rows[0].questionnaire_item_id)
         if (!allowed) return res.status(403).json({ error: 'Not permitted' })
@@ -312,8 +349,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!data_value_id || !decision) return res.status(400).json({ error: 'data_value_id and decision required' })
       if (decision !== 'pass' && decision !== 'reject') return res.status(400).json({ error: "decision must be 'pass' or 'reject'" })
       try {
-        const rows = await sql`SELECT questionnaire_item_id, status FROM data_value WHERE id = ${data_value_id}` as Array<{ questionnaire_item_id: string; status: string }>
-        if (rows.length === 0) return res.status(404).json({ error: 'Not found' })
+        const owned = await loadOwnedDataValue(sql, token.org, data_value_id)
+        if (!owned) return res.status(404).json({ error: 'Not found' })
+        const rows = [owned]
         if (rows[0].status !== 'submitted') return res.status(409).json({ error: `Cannot review from status '${rows[0].status}'` })
         const allowed = await canReview(sql, token.sub, rows[0].questionnaire_item_id)
         if (!allowed) return res.status(403).json({ error: 'Not permitted to review' })
@@ -357,8 +395,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!data_value_id || !decision) return res.status(400).json({ error: 'data_value_id and decision required' })
       if (decision !== 'approve' && decision !== 'reject') return res.status(400).json({ error: "decision must be 'approve' or 'reject'" })
       try {
-        const rows = await sql`SELECT questionnaire_item_id, status FROM data_value WHERE id = ${data_value_id}` as Array<{ questionnaire_item_id: string; status: string }>
-        if (rows.length === 0) return res.status(404).json({ error: 'Not found' })
+        const owned = await loadOwnedDataValue(sql, token.org, data_value_id)
+        if (!owned) return res.status(404).json({ error: 'Not found' })
+        const rows = [owned]
         if (rows[0].status !== 'reviewed') return res.status(409).json({ error: `Cannot approve from status '${rows[0].status}'` })
         const allowed = await canApprove(sql, token.sub, rows[0].questionnaire_item_id)
         if (!allowed) return res.status(403).json({ error: 'Not permitted to approve' })
@@ -395,7 +434,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         let propagation: { inserted: number; updated: number; skipped: number; conceptKey: string | null } | null = null
         if (decision === 'approve') {
           try {
-            propagation = await propagateApprovedValue(sql, data_value_id)
+            propagation = await propagateApprovedValue(sql, data_value_id, token.org)
           } catch (propErr) {
             // Approval already committed — surface but don't fail the request.
             console.error('[propagation] failed for', data_value_id, propErr)
@@ -416,12 +455,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!allowed) return res.status(403).json({ error: 'Not permitted to publish' })
 
       try {
-        // Verify 100% Approved per SRD §15.3
+        // The reporting year must belong to the caller's org.
+        if (!(await isOwnedReportingYear(sql, token.org, reporting_year_id))) {
+          return res.status(404).json({ error: 'Reporting year not found' })
+        }
+
+        // Verify 100% Approved per SRD §15.3 — counting only the caller
+        // org's values: a legacy shared year can hold other tenants' rows.
         const unapproved = await sql`
           SELECT COUNT(*)::int AS cnt
-          FROM data_value
-          WHERE reporting_year_id = ${reporting_year_id}
-            AND status NOT IN ('approved','published')
+          FROM data_value dv
+          LEFT JOIN users eu ON eu.id = dv.entered_by
+          LEFT JOIN reporting_year ry ON ry.id = dv.reporting_year_id
+          WHERE dv.reporting_year_id = ${reporting_year_id}
+            AND dv.status NOT IN ('approved','published')
+            AND COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${token.org}
         ` as Array<{ cnt: number }>
         if (unapproved[0].cnt > 0) {
           return res.status(409).json({ error: `Cannot publish — ${unapproved[0].cnt} data values are not yet approved` })
@@ -435,7 +483,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           SET status = 'published', published_at = now(), publish_hash = ${publishHash}
           WHERE id = ${reporting_year_id}
         `
-        await sql`UPDATE data_value SET status = 'published' WHERE reporting_year_id = ${reporting_year_id} AND status = 'approved'`
+        // Publish only the caller org's approved values in this year.
+        await sql`
+          UPDATE data_value SET status = 'published'
+          WHERE id IN (
+            SELECT dv.id
+            FROM data_value dv
+            LEFT JOIN users eu ON eu.id = dv.entered_by
+            LEFT JOIN reporting_year ry ON ry.id = dv.reporting_year_id
+            WHERE dv.reporting_year_id = ${reporting_year_id}
+              AND dv.status = 'approved'
+              AND COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${token.org}
+          )
+        `
         return res.status(200).json({ ok: true, publish_hash: publishHash })
       } catch (err: unknown) {
         return res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' })
@@ -448,7 +508,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!question_id || !connector || !reporting_year_id) {
         return res.status(400).json({ error: 'question_id, connector, and reporting_year_id required' })
       }
+      // Same entry right as a manual value — a pull creates a draft value too.
+      const allowed = await canEnter(sql, token.sub, question_id)
+      if (!allowed) return res.status(403).json({ error: 'Not permitted to enter this value' })
       try {
+        if (!(await isOwnedReportingYear(sql, token.org, reporting_year_id))) {
+          return res.status(404).json({ error: 'Reporting year not found' })
+        }
         // Simulated pull — pick most recent historical_value as the "measured" value
         const hist = await sql`
           SELECT year, value FROM historical_value
@@ -466,6 +532,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
              ${simulated}, 'Connector', 'draft', ${token.sub}, now())
           RETURNING *
         `
+        await stampDataValueOrg(sql, created[0].id, token.org)
 
         const crypto = await import('crypto')
         const receiptHash = '0x' + crypto.randomBytes(32).toString('hex')
@@ -487,7 +554,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           actorWorkflowRole: 'AUTO',
         })
         await sql`UPDATE data_value SET value_hash = ${newHash} WHERE id = ${created[0].id}`
-        return res.status(201).json({ ...created[0], value_hash: newHash, receipt_hash: receiptHash })
+        return res.status(201).json({ ...created[0], org_id: token.org, value_hash: newHash, receipt_hash: receiptHash })
       } catch (err: unknown) {
         return res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' })
       }
@@ -510,8 +577,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
       try {
         // Verify the data_value exists and is still editable (draft).
-        const owner = await sql`SELECT questionnaire_item_id, status, entered_by FROM data_value WHERE id = ${data_value_id}` as Array<{ questionnaire_item_id: string; status: string; entered_by: string }>
-        if (owner.length === 0) return res.status(404).json({ error: 'data_value not found' })
+        const ownedDv = await loadOwnedDataValue(sql, token.org, data_value_id)
+        if (!ownedDv) return res.status(404).json({ error: 'data_value not found' })
+        const owner = [ownedDv]
         if (!['draft', 'submitted', 'reviewed'].includes(owner[0].status)) {
           return res.status(409).json({ error: `Cannot attach evidence to value in status '${owner[0].status}'` })
         }
@@ -556,14 +624,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       try {
         const existing = await sql`
           SELECT e.id, e.data_value_id, dv.status, dv.questionnaire_item_id
-          FROM evidence e JOIN data_value dv ON dv.id = e.data_value_id
+          FROM evidence e
+          JOIN data_value dv ON dv.id = e.data_value_id
+          LEFT JOIN users eu ON eu.id = dv.entered_by
+          LEFT JOIN reporting_year ry ON ry.id = dv.reporting_year_id
           WHERE e.id = ${evidence_id}
+            AND COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${token.org}
         ` as Array<{ id: string; data_value_id: string; status: string; questionnaire_item_id: string }>
         if (existing.length === 0) return res.status(404).json({ error: 'Evidence not found' })
         if (existing[0].status !== 'draft') return res.status(409).json({ error: 'Cannot remove evidence after submit' })
         const allowed = await canEnter(sql, token.sub, existing[0].questionnaire_item_id)
         if (!allowed) return res.status(403).json({ error: 'Not permitted' })
-        await sql`DELETE FROM evidence WHERE id = ${evidence_id}`
+        await sql`DELETE FROM evidence WHERE id = ${existing[0].id}`
         return res.status(200).json({ ok: true })
       } catch (err: unknown) {
         return res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' })
@@ -597,6 +669,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   return res.status(405).json({ error: 'Method not allowed' })
 }
+
+// ─── Tenancy ──────────────────────────────────────────────────────────────
+// Every by-id read or write of data_value / evidence in this handler is
+// scoped by the shared ownership predicate in api/_tenancy.ts, and a foreign
+// id is answered exactly like a missing one (404). Values may only be written
+// into one of the caller org's own reporting years.
 
 // ─── Notification helpers for workflow transitions ────────────────────────
 // We look up the people to notify just-in-time so role assignments stay

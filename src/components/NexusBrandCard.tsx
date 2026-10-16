@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import NexusBrand from './NexusBrand'
 
 interface NexusBrandCardProps {
@@ -7,7 +8,8 @@ interface NexusBrandCardProps {
 }
 
 export default function NexusBrandCard({ industry, collapsed = false, variant = 'dark' }: NexusBrandCardProps) {
-  const industryLabel = (industry || 'SUSTAINABILITY').toUpperCase()
+  const { t } = useTranslation()
+  const industryLabel = (industry || t('components.brand.sustainability')).toUpperCase()
 
   if (collapsed) {
     return (
@@ -34,7 +36,7 @@ export default function NexusBrandCard({ industry, collapsed = false, variant = 
         <span
           className="text-[8.5px] font-semibold tracking-[0.14em] uppercase mt-1.5 truncate"
           style={{ color: variant === 'light' ? 'rgba(15,23,42,0.65)' : 'rgba(255,255,255,0.55)' }}
-          title={`${industryLabel} · ESG REPORTING`}
+          title={`${industryLabel} · ${t('components.brand.esgReporting')}`}
         >
           {industryLabel} · ESG
         </span>

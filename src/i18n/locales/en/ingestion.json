@@ -1,0 +1,74 @@
+{
+  "eyebrow": "Data",
+  "title": "Data collection",
+  "subtitle": "Upload, validate and classify activity and emissions data from every source before it reaches review.",
+  "back": "Data collection",
+  "breadcrumbAria": "Breadcrumb",
+  "flowTitle": "How data moves through Nexus",
+  "modulesTitle": "Collection modules",
+  "modulesHint": "Each module opens at its own address",
+  "status": {
+    "live": "Live",
+    "ready": "Ready",
+    "beta": "Beta"
+  },
+  "pipeline": {
+    "ingest": {
+      "label": "Ingest",
+      "desc": "Files, connectors and manual entry"
+    },
+    "validate": {
+      "label": "Validate",
+      "desc": "Schema and completeness checks"
+    },
+    "classify": {
+      "label": "Classify",
+      "desc": "Scope tagging and factor matching"
+    },
+    "route": {
+      "label": "Route",
+      "desc": "Direct or hybrid calculation path"
+    },
+    "store": {
+      "label": "Store",
+      "desc": "One audited emissions repository"
+    }
+  },
+  "modules": {
+    "org-setup": {
+      "title": "Organisation setup",
+      "subtitle": "Tenant, boundaries and frameworks",
+      "desc": "Configure the organisational boundary, reporting frameworks (GRI, CSRD, ISSB, CN-SSE), business groups, facilities and emission-source registration."
+    },
+    "raw-supplier": {
+      "title": "Raw data upload",
+      "subtitle": "Excel / CSV ingestion and column mapping",
+      "desc": "Upload raw GHG activity data in any layout. Column detection maps your spreadsheet to the standard emissions data model before validation."
+    },
+    "measured": {
+      "title": "Measured data",
+      "subtitle": "CEMS, meters, labs and verified data",
+      "desc": "Continuous emission monitoring, utility meter readings, lab results and third-party verified totals, classified by data quality."
+    },
+    "entities": {
+      "title": "Entity submissions",
+      "subtitle": "Intercompany, subsidiary and supplier data",
+      "desc": "Collect figures from divisions, subsidiaries and suppliers on standard templates. Track each submission and validate on upload."
+    }
+  },
+  "stats": {
+    "steps": "Steps",
+    "frameworks": "Frameworks",
+    "formats": "Formats",
+    "fields": "Fields",
+    "sources": "Sources",
+    "quality": "Completeness",
+    "entities": "Entities",
+    "templates": "Templates"
+  },
+  "shared": {
+    "chooseFile": "Choose a file",
+    "or": "or",
+    "browse": "browse your files"
+  }
+}

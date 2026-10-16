@@ -1,0 +1,64 @@
+{
+  "loading": "正在加载已发布的报告…",
+  "unavailable": "该报告已不可用。",
+  "print": "打印",
+  "assured": "已鉴证",
+  "reportTitle": "可持续发展报告 · {{period}}",
+  "meta": "第 {{version}} 版 · 发布于 {{date}}",
+  "quantitative": "定量披露",
+  "narrative": "叙述性披露",
+  "show": "展开",
+  "hide": "收起",
+  "password": {
+    "title": "受密码保护",
+    "body": "此报告受密码保护。请输入发送方提供的密码。",
+    "placeholder": "密码",
+    "submit": "查看报告"
+  },
+  "errors": {
+    "title": "无法加载报告",
+    "invalidPassword": "密码无效",
+    "loadFailed": "报告加载失败",
+    "body": "报告服务未响应，链接本身没有问题，请稍后重试。",
+    "goneTitle": "此链接已失效",
+    "goneBody": "发布方已撤销此链接或链接已过期，请向其索取新链接。",
+    "notFoundBody": "此链接与任何已发布的报告都不匹配。请确认复制了完整链接。"
+  },
+  "table": {
+    "code": "代码",
+    "lineItem": "披露项",
+    "value": "数值",
+    "unit": "单位"
+  },
+  "anchored": {
+    "title": "已锚定至区块链",
+    "body": "本报告的 SHA-256 指纹已通过 OpenTimestamps 锚定至比特币区块链。任何人均可确认文件自发布以来未被更改。",
+    "pill": "哈希已锚定"
+  },
+  "opinion": {
+    "limited": "有限保证",
+    "reasonable": "合理保证"
+  },
+  "footer": {
+    "generated": "生成于 {{date}}",
+    "lastVerified": " · 最近验证于 {{date}}",
+    "assuredBy": "鉴证机构：{{firm}}——由 {{signer}} 于 {{date}} 签署",
+    "auditor": "审计师",
+    "opinionOpen": "（{{opinion}}鉴证",
+    "isaeClose": "，{{reference}}）",
+    "close": "）",
+    "publishedBy": "发布人：{{name}} · SHA-256 {{hash}}…",
+    "poweredBy": "由 Aeiforo 提供技术支持",
+    "publishedByName": "发布人：{{name}}"
+  },
+  "chip": "已发布报告",
+  "assuredBy": "由 {{firm}} 鉴证",
+  "notAssured": "未经独立鉴证",
+  "verifyCta": "验证此报告",
+  "noSections": "本报告中没有已批准的披露项",
+  "noSectionsBody": "发布方未在此版本中纳入任何已批准的数据或叙述。",
+  "integrity": {
+    "title": "完整性",
+    "notAnchored": "本报告的 SHA-256 指纹已保存在平台上，尚未记录外部时间戳。"
+  }
+}

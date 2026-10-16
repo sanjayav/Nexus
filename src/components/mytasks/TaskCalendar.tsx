@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { QuestionAssignment } from '../../lib/orgStore'
-import { isOverdue } from './shared'
+import { isOverdue, dateLocale } from './shared'
+
+const WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const
 
 interface TaskCalendarProps {
   assignments: QuestionAssignment[]
@@ -19,6 +22,8 @@ interface TaskCalendarProps {
  *   - Today is highlighted with a brand ring
  */
 export default function TaskCalendar({ assignments, onPickDay }: TaskCalendarProps) {
+  const { t, i18n } = useTranslation()
+  const locale = dateLocale(i18n.language)
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const [cursor, setCursor] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1))
@@ -37,32 +42,32 @@ export default function TaskCalendar({ assignments, onPickDay }: TaskCalendarPro
   const days = useMemo(() => buildMonthGrid(cursor), [cursor])
 
   return (
-    <div className="card-premium p-4 sm:p-5">
+    <div className="surface-paper p-3 sm:p-5">
       <header className="flex items-center justify-between mb-4">
-        <h3 className="h-section text-[var(--text-primary)]">
-          {cursor.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+        <h3 className="type-h3 text-[var(--text-primary)] whitespace-nowrap">
+          {cursor.toLocaleDateString(locale, { month: 'long', year: 'numeric' })}
         </h3>
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => setCursor(c => new Date(c.getFullYear(), c.getMonth() - 1, 1))}
-            className="w-8 h-8 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)]"
-            aria-label="Previous month"
+            className="w-10 h-10 sm:w-8 sm:h-8 rounded-[var(--radius-sm)] border border-[var(--border-default)] hover:bg-[var(--bg-hover)] flex items-center justify-center text-[var(--text-secondary)]"
+            aria-label={t('tasks.calendar.prevMonth')}
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
           <button
             type="button"
             onClick={() => setCursor(new Date(today.getFullYear(), today.getMonth(), 1))}
-            className="px-3 h-8 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] text-[10px] uppercase tracking-wider font-semibold text-[var(--text-secondary)]"
+            className="px-3 h-10 sm:h-8 rounded-[var(--radius-sm)] border border-[var(--border-default)] hover:bg-[var(--bg-hover)] text-caption font-semibold text-[var(--text-secondary)] whitespace-nowrap"
           >
-            Today
+            {t('tasks.calendar.today')}
           </button>
           <button
             type="button"
             onClick={() => setCursor(c => new Date(c.getFullYear(), c.getMonth() + 1, 1))}
-            className="w-8 h-8 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] flex items-center justify-center text-[var(--text-secondary)]"
-            aria-label="Next month"
+            className="w-10 h-10 sm:w-8 sm:h-8 rounded-[var(--radius-sm)] border border-[var(--border-default)] hover:bg-[var(--bg-hover)] flex items-center justify-center text-[var(--text-secondary)]"
+            aria-label={t('tasks.calendar.nextMonth')}
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -70,9 +75,9 @@ export default function TaskCalendar({ assignments, onPickDay }: TaskCalendarPro
       </header>
 
       <div className="grid grid-cols-7 gap-1 mb-1">
-        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
-          <div key={d} className="text-[9px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] text-center">
-            {d}
+        {WEEKDAY_KEYS.map(d => (
+          <div key={d} className="text-caption font-medium text-[var(--text-tertiary)] text-center py-1">
+            {t(`tasks.calendar.weekday.${d}`)}
           </div>
         ))}
       </div>
@@ -91,42 +96,43 @@ export default function TaskCalendar({ assignments, onPickDay }: TaskCalendarPro
               type="button"
               disabled={items.length === 0}
               onClick={() => items.length > 0 && onPickDay(iso)}
-              className={`text-left rounded-[var(--radius-sm)] p-1.5 min-h-[80px] border transition-colors ${
+              className={`flex flex-col justify-start items-stretch text-left rounded-[var(--radius-sm)] p-1 sm:p-1.5 min-h-[56px] sm:min-h-[84px] border transition-[border-color,transform,background-color] duration-fast min-w-0 ${
                 isToday
-                  ? 'border-[var(--color-brand)] ring-1 ring-[var(--color-brand)]/30'
+                  ? 'border-[var(--color-brand)] shadow-[0_0_0_2px_var(--color-brand-soft)]'
                   : 'border-[var(--border-subtle)]'
               } ${
-                inMonth ? 'bg-[var(--bg-primary)]' : 'bg-[var(--bg-secondary)]/40'
+                inMonth ? 'bg-[var(--bg-primary)]' : 'bg-[var(--bg-secondary)]'
               } ${
-                items.length > 0 ? 'hover:border-[var(--color-brand)]/40 hover:-translate-y-px cursor-pointer' : 'cursor-default'
+                items.length > 0 ? 'hover:border-[var(--border-strong)] hover:bg-[var(--bg-hover)] active:scale-[0.98] cursor-pointer' : 'cursor-default'
               } ${
-                hasOverdue ? 'border-[var(--status-reject)]/40' : ''
+                hasOverdue && !isToday ? 'border-[var(--status-danger-line)]' : ''
               }`}
-              aria-label={`${d.date.toDateString()}, ${items.length} task${items.length === 1 ? '' : 's'}`}
+              aria-label={t('tasks.calendar.dayAria', { date: locale ? d.date.toLocaleDateString(locale, { dateStyle: 'full' }) : d.date.toDateString(), count: items.length })}
             >
-              <div className={`text-[10px] font-semibold mb-1 tabular-nums ${
+              <div className={`text-caption font-semibold mb-1 tabular-nums ${
                 isToday ? 'text-[var(--color-brand)]' : inMonth ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'
               }`}>
                 {d.date.getDate()}
               </div>
-              <div className="space-y-0.5">
+              {/* Phones: one dot per task (codes don't fit a 50 px cell). */}
+              <div className="flex flex-wrap gap-0.5 sm:hidden" aria-hidden>
+                {items.slice(0, 4).map(it => (
+                  <span key={it.id} className="w-1.5 h-1.5 rounded-full" style={{ background: chipTone(it).fg }} />
+                ))}
+              </div>
+              <div className="space-y-0.5 hidden sm:block">
                 {items.slice(0, 2).map(it => (
                   <div
                     key={it.id}
-                    className={`truncate text-[9px] px-1 py-0.5 rounded ${
-                      isOverdue(it)
-                        ? 'bg-[var(--accent-red-light)] text-[var(--status-reject)]'
-                        : it.status === 'approved'
-                          ? 'bg-[var(--accent-green-light)] text-[var(--status-ok)]'
-                          : 'bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)]'
-                    }`}
+                    className="truncate text-caption font-mono px-1 rounded"
+                    style={{ background: chipTone(it).bg, color: chipTone(it).fg }}
                   >
                     {it.gri_code}
                   </div>
                 ))}
                 {items.length > 2 && (
-                  <div className="text-[9px] text-[var(--text-tertiary)] font-semibold">
-                    +{items.length - 2} more
+                  <div className="text-caption text-[var(--text-tertiary)] font-semibold whitespace-nowrap">
+                    {t('tasks.calendar.more', { count: items.length - 2 })}
                   </div>
                 )}
               </div>
@@ -136,6 +142,13 @@ export default function TaskCalendar({ assignments, onPickDay }: TaskCalendarPro
       </div>
     </div>
   )
+}
+
+function chipTone(it: QuestionAssignment): { bg: string; fg: string } {
+  if (isOverdue(it)) return { bg: 'var(--status-danger-soft)', fg: 'var(--status-danger)' }
+  if (it.status === 'approved') return { bg: 'var(--status-success-soft)', fg: 'var(--status-success)' }
+  if (it.status === 'submitted' || it.status === 'reviewed') return { bg: 'var(--status-info-soft)', fg: 'var(--status-info)' }
+  return { bg: 'var(--status-neutral-soft)', fg: 'var(--status-neutral)' }
 }
 
 function buildMonthGrid(cursor: Date): { date: Date }[] {

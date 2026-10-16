@@ -1,0 +1,80 @@
+{
+  "eyebrow": "工作原理",
+  "title": "48 小时，从零到满足 CSRD 要求",
+  "intro": "大多数 ESG 平台的实施周期动辄 4 个月，而 Nexus 只需 2 天。下面为您揭晓其中的奥秘。",
+  "why": {
+    "eyebrow": "为什么这么快？",
+    "heading": "四项设计选择，将数月压缩为数天。",
+    "frameworks": {
+      "title": "框架预置就绪",
+      "body": "第一天即可使用 {{count}} 个框架包和 {{items}} 项披露指标——涵盖 CSRD、ISSB、GRI、TCFD、CDP、SEC、欧盟分类法、沪深北交易所指引等。无需搭建模板，也无需顾问主导配置。"
+    },
+    "ai": {
+      "title": "繁重工作交给 AI",
+      "body": "AI 证据提取可读取供应商 PDF 和发票，草稿生成器负责撰写叙述内容，供应商与排放因子匹配器则处理基于支出的计算——默认使用 Claude，也可按组织使用境内模型服务商。"
+    },
+    "linked": {
+      "title": "数据关联，一次设定",
+      "body": "只需修改一个数值——比如伦敦设施的用电量——所有引用它的框架、披露和图表都会同步更新。"
+    },
+    "onboarding": {
+      "title": "自助式上手",
+      "body": "欢迎向导会引导首次使用的管理员完成实体设置、框架选择和团队邀请。无需实施顾问，也没有专业服务费用。"
+    }
+  },
+  "compare": {
+    "eyebrow": "并列对比",
+    "heading": "传统 ESG 平台 vs Nexus。",
+    "intro": "从八个维度如实对比——不点名任何厂商。如需查看与 Workiva 的逐项对比，请访问 <compareLink>/compare</compareLink>。",
+    "dimension": "对比维度",
+    "legacyPlatforms": "传统 ESG 平台",
+    "legacy": "传统平台",
+    "nexus": "Nexus",
+    "seeWorkiva": "查看与 Workiva 的逐项对比",
+    "rows": {
+      "time": {
+        "dimension": "完成首份披露所需时间",
+        "legacy": "约 4–6 个月",
+        "nexus": "约 48 小时"
+      },
+      "cost": {
+        "dimension": "实施成本",
+        "legacy": "5 万–20 万美元服务费",
+        "nexus": "无初始设置费"
+      },
+      "pricing": {
+        "dimension": "定价透明度"
+      },
+      "learning": {
+        "dimension": "学习曲线",
+        "legacy": "陡峭 · 需培训",
+        "nexus": "数小时，自助上手"
+      },
+      "native": {
+        "dimension": "原生 ESG 定位",
+        "legacy": "外挂式模块",
+        "nexus": "ESG 优先架构"
+      },
+      "reuse": {
+        "dimension": "多框架复用",
+        "legacy": "逐个框架单独配置",
+        "nexus": "一套数据，覆盖所有框架"
+      },
+      "ai": {
+        "dimension": "AI 集成",
+        "legacy": "附加组件 / 部分支持",
+        "nexus": "原生 Claude 流水线"
+      },
+      "audit": {
+        "dimension": "审计追踪",
+        "legacy": "数据库日志",
+        "nexus": "区块链锚定"
+      }
+    }
+  },
+  "cta": {
+    "heading": "别再报六个月的工期，两天即可启动。",
+    "primary": "开始免费试用",
+    "secondary": "查看定价"
+  }
+}

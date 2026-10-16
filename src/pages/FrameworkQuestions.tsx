@@ -1,24 +1,17 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import {
-  ChevronDown,
-  ChevronRight,
-  User,
-  CheckCircle2,
-  Clock,
-  FileEdit,
-  Zap,
-  Filter,
-  ArrowRight,
-  FileText,
-} from 'lucide-react'
-import { frameworkQuestions, csrdSections } from '../data/moduleData'
+import { useId, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
+import { ChevronDown, User, Zap, ArrowRight, FileText, Send } from 'lucide-react'
+import { frameworkQuestions, csrdSections, type FrameworkQuestion } from '../data/moduleData'
 import PageHeader from '../components/PageHeader'
+import { StatLedger, StatusPill, EmptyState, notify } from '../components/ui'
+import { spring, transition } from '../motion/tokens'
 
 /**
- * Map the local FrameworkQuestions tab id to the canonical framework id used by
- * the disclosure editor route. CDP/TCFD/CSRD here all land on a generic editor;
- * GRI maps to the live questionnaire tree.
+ * Map the local tab id to the canonical framework id used by the disclosure
+ * editor route. CDP/TCFD/CSRD land on their editors; GRI maps to the live tree.
  */
 const FRAMEWORK_ROUTE_ID: Record<string, string> = {
   cdp: 'cdp-2024',
@@ -39,109 +32,71 @@ const frameworkTabs: { id: FrameworkTab; label: string }[] = [
 ]
 
 const statusOptions: { value: StatusFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'draft', label: 'Draft' },
-  { value: 'in-review', label: 'In Review' },
-  { value: 'approved', label: 'Approved' },
+  { value: 'all', label: 'common.all' },
+  { value: 'draft', label: 'frameworkQuestions.status.draft' },
+  { value: 'in-review', label: 'frameworkQuestions.status.inReview' },
+  { value: 'approved', label: 'frameworkQuestions.status.approved' },
 ]
 
 const roleOptions: { value: RoleFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'site-owner', label: 'Site Owner' },
-  { value: 'facility-manager', label: 'Facility Manager' },
-  { value: 'team-lead', label: 'Team Lead' },
-  { value: 'auto', label: 'Auto' },
+  { value: 'all', label: 'common.all' },
+  { value: 'site-owner', label: 'workflowStatus.role.siteOwner' },
+  { value: 'facility-manager', label: 'workflowStatus.role.facilityManager' },
+  { value: 'team-lead', label: 'workflowStatus.role.teamLead' },
+  { value: 'auto', label: 'workflowStatus.role.AUTO' },
 ]
 
-function roleBadgeClasses(role: string) {
+function roleLabel(role: string, t: TFunction) {
   switch (role) {
-    case 'site-owner':
-      return 'bg-blue-500/15 text-blue-400 border border-blue-500/20'
-    case 'facility-manager':
-      return 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
-    case 'team-lead':
-      return 'bg-purple-500/15 text-purple-400 border border-purple-500/20'
-    case 'auto':
-      return 'bg-teal-500/15 text-teal-400 border border-teal-500/20'
-    default:
-      return 'bg-dark-700 text-dark-300 border border-dark-500'
-  }
-}
-
-function roleLabel(role: string) {
-  switch (role) {
-    case 'site-owner': return 'Site Owner'
-    case 'facility-manager': return 'Facility Mgr'
-    case 'team-lead': return 'Team Lead'
-    case 'auto': return 'Auto'
+    case 'site-owner': return t('workflowStatus.role.siteOwner')
+    case 'facility-manager': return t('frameworkQuestions.role.facilityMgr')
+    case 'team-lead': return t('workflowStatus.role.teamLead')
+    case 'auto': return t('workflowStatus.role.AUTO')
     default: return role
   }
 }
 
-function statusBadgeClasses(status: string) {
-  switch (status) {
-    case 'draft':
-      return 'bg-amber-500/15 text-amber-400 border border-amber-500/20'
-    case 'in-review':
-      return 'bg-blue-500/15 text-blue-400 border border-blue-500/20'
-    case 'approved':
-      return 'bg-teal-500/15 text-teal-400 border border-teal-500/20'
-    default:
-      return 'bg-dark-700 text-dark-300 border border-dark-500'
-  }
+const PILL: Record<FrameworkQuestion['status'], { status: string; label: string }> = {
+  draft: { status: 'in_progress', label: 'frameworkQuestions.status.draft' },
+  'in-review': { status: 'submitted', label: 'frameworkQuestions.status.inReview' },
+  approved: { status: 'approved', label: 'frameworkQuestions.status.approved' },
 }
 
-function statusLabel(status: string) {
-  switch (status) {
-    case 'draft': return 'Draft'
-    case 'in-review': return 'In Review'
-    case 'approved': return 'Approved'
-    default: return status
-  }
-}
-
-function StatusIcon({ status }: { status: string }) {
-  if (status === 'approved') return <CheckCircle2 className="w-3.5 h-3.5 text-teal-400" />
-  if (status === 'in-review') return <Clock className="w-3.5 h-3.5 text-blue-400" />
-  return <FileEdit className="w-3.5 h-3.5 text-amber-400" />
-}
-
+/**
+ * Templates — the framework questionnaires with role-based assignment, and
+ * the way into each framework's disclosure editor.
+ */
 export default function FrameworkQuestions() {
-  const navigate = useNavigate()
+  const { t } = useTranslation()
+  const tabGroup = useId()
   const [activeTab, setActiveTab] = useState<FrameworkTab>('cdp')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set())
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
-  // Track questions submitted for review (local state simulation)
   const [submittedIds, setSubmittedIds] = useState<Set<string>>(new Set())
 
-  // Filter questions for the active framework
-  const frameworkQs = frameworkQuestions.filter((q) => q.frameworkId === activeTab)
+  const frameworkQs = useMemo(() => frameworkQuestions.filter(q => q.frameworkId === activeTab), [activeTab])
+  const statusOf = (q: FrameworkQuestion): FrameworkQuestion['status'] => (submittedIds.has(q.id) ? 'in-review' : q.status)
 
-  // Apply filters
-  const filtered = frameworkQs.filter((q) => {
-    if (statusFilter !== 'all' && q.status !== statusFilter) return false
+  const filtered = frameworkQs.filter(q => {
+    if (statusFilter !== 'all' && statusOf(q) !== statusFilter) return false
     if (roleFilter !== 'all' && q.assignedRole !== roleFilter) return false
     return true
   })
 
-  // Group by section
-  const sectionMap = new Map<string, typeof filtered>()
+  const sectionMap = new Map<string, FrameworkQuestion[]>()
   for (const q of filtered) {
-    const key = q.sectionId
-    if (!sectionMap.has(key)) sectionMap.set(key, [])
-    sectionMap.get(key)!.push(q)
+    if (!sectionMap.has(q.sectionId)) sectionMap.set(q.sectionId, [])
+    sectionMap.get(q.sectionId)!.push(q)
   }
 
-  // Summary counts (on the full framework set, not filtered)
   const totalCount = frameworkQs.length
-  const approvedCount = frameworkQs.filter((q) => q.status === 'approved').length
-  const inReviewCount = frameworkQs.filter((q) => q.status === 'in-review').length
-  const draftCount = frameworkQs.filter((q) => q.status === 'draft').length
+  const approvedCount = frameworkQs.filter(q => statusOf(q) === 'approved').length
+  const inReviewCount = frameworkQs.filter(q => statusOf(q) === 'in-review').length
+  const draftCount = frameworkQs.filter(q => statusOf(q) === 'draft').length
 
-  function toggleSection(sectionId: string) {
-    setExpandedSections((prev) => {
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections(prev => {
       const next = new Set(prev)
       if (next.has(sectionId)) next.delete(sectionId)
       else next.add(sectionId)
@@ -149,251 +104,182 @@ export default function FrameworkQuestions() {
     })
   }
 
-  function handleSubmitForReview(questionId: string) {
-    setSubmittedIds((prev) => new Set(prev).add(questionId))
-    setToastMessage('Question submitted for review')
-    setTimeout(() => setToastMessage(null), 2500)
+  const handleSubmitForReview = (q: FrameworkQuestion) => {
+    setSubmittedIds(prev => new Set(prev).add(q.id))
+    notify.success(t('frameworkQuestions.toastSubmitted'), {
+      description: q.questionNumber,
+      undo: () => setSubmittedIds(prev => { const n = new Set(prev); n.delete(q.id); return n }),
+    })
   }
 
-  // Get CSRD section names for section lookup when in CSRD tab
-  const csrdSectionMap = new Map(csrdSections.map((s) => [s.id, s.name]))
+  const csrdSectionMap = new Map(csrdSections.map(s => [s.id, s.name]))
+  const sectionTitle = (sectionId: string, sectionName: string) =>
+    activeTab === 'csrd' && csrdSectionMap.has(sectionId) ? `${sectionId} · ${csrdSectionMap.get(sectionId)}` : `${sectionId} · ${sectionName}`
 
-  function getSectionDisplayName(sectionId: string, sectionName: string) {
-    if (activeTab === 'csrd' && csrdSectionMap.has(sectionId)) {
-      return `${sectionId} - ${csrdSectionMap.get(sectionId)}`
-    }
-    return `${sectionId} - ${sectionName}`
-  }
+  const fwLabel = frameworkTabs.find(tab => tab.id === activeTab)?.label
 
   return (
     <div className="page-container space-y-6">
-      <PageHeader
-        breadcrumbs={[
-          { label: 'Reports', to: '/reports' },
-          { label: 'Framework questions' },
+      <PageHeader title={t('frameworkQuestions.title')} description={t('frameworkQuestions.description')} />
+
+      {/* Framework tabs */}
+      <div role="tablist" aria-label={t('frameworkQuestions.tabsAria')} className="inline-flex p-0.5 rounded-[var(--radius-md)] bg-[var(--bg-tertiary)]">
+        {frameworkTabs.map(tab => {
+          const active = activeTab === tab.id
+          return (
+            <button
+              key={tab.id}
+              role="tab"
+              aria-selected={active}
+              onClick={() => { setActiveTab(tab.id); setExpandedSections(new Set()) }}
+              className={`relative h-9 px-4 text-small font-semibold rounded-[calc(var(--radius-md)-2px)] transition-colors ${active ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              {active && <motion.span layoutId={`${tabGroup}-pill`} transition={spring.snappy} className="absolute inset-0 rounded-[calc(var(--radius-md)-2px)] bg-[var(--bg-primary)] shadow-[var(--shadow-card)]" aria-hidden />}
+              <span className="relative">{tab.label}</span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Editor entry point */}
+      <Link
+        to={`/disclosure-editor/${FRAMEWORK_ROUTE_ID[activeTab] ?? activeTab}`}
+        className="group surface-hero flex items-center gap-4 p-4 sm:p-5 outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)]/40"
+      >
+        <span className="w-11 h-11 rounded-[var(--radius-md)] bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)] flex items-center justify-center flex-shrink-0">
+          <FileText className="w-5 h-5" aria-hidden />
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className="block type-h3 text-[var(--text-primary)]">{t('frameworkQuestions.openInEditorFw', { framework: fwLabel })}</span>
+          <span className="block text-small text-[var(--text-secondary)] mt-0.5">{t('frameworkQuestions.editorCta', { framework: fwLabel })}</span>
+        </span>
+        <span className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-small font-semibold group-hover:bg-[var(--btn-primary-bg-hover)] whitespace-nowrap">
+          {t('frameworkQuestions.open')} <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
+        </span>
+      </Link>
+
+      <StatLedger
+        items={[
+          { id: 'total', label: t('frameworkQuestions.stats.total'), value: totalCount },
+          { id: 'approved', label: t('frameworkQuestions.status.approved'), value: approvedCount, tone: 'success' },
+          { id: 'review', label: t('frameworkQuestions.status.inReview'), value: inReviewCount, tone: 'info' },
+          { id: 'draft', label: t('frameworkQuestions.status.draft'), value: draftCount, tone: 'warning' },
         ]}
-        title="Framework Questions"
-        description="Regulatory framework questionnaires with role-based assignment. Manage CDP, TCFD, GRI, and CSRD disclosures from a unified workspace."
       />
 
-      {/* Framework Tab Selector */}
-      <div className="flex gap-2">
-        {frameworkTabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => { setActiveTab(tab.id); setExpandedSections(new Set()) }}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
-              activeTab === tab.id
-                ? 'bg-accent-500 text-white'
-                : 'bg-dark-800 text-dark-300 border border-dark-600 hover:bg-dark-700'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+        <FilterGroup label={t('frameworkQuestions.statusLabel')} options={statusOptions} value={statusFilter} onChange={v => setStatusFilter(v as StatusFilter)} />
+        <FilterGroup label={t('frameworkQuestions.roleLabel')} options={roleOptions} value={roleFilter} onChange={v => setRoleFilter(v as RoleFilter)} />
       </div>
 
-      {/* Disclosure editor CTA — Workiva-style three-pane editor for the active framework. */}
-      <button
-        type="button"
-        onClick={() => navigate(`/disclosure-editor/${FRAMEWORK_ROUTE_ID[activeTab] ?? activeTab}`)}
-        className="w-full group flex items-center gap-4 text-left p-4 rounded-2xl border border-accent-500/30 bg-gradient-to-r from-accent-500/10 to-purple-500/5 hover:border-accent-500/60 hover:from-accent-500/15 transition-colors"
-      >
-        <div className="w-11 h-11 rounded-xl bg-accent-500/15 border border-accent-500/30 flex items-center justify-center flex-shrink-0">
-          <FileText className="w-5 h-5 text-accent-400" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-white">Open in editor</div>
-          <p className="text-xs text-dark-300 mt-0.5">
-            Edit, review and publish {frameworkTabs.find(t => t.id === activeTab)?.label} disclosures in one document-centric workspace — left tree, middle document, right detail rail.
-          </p>
-        </div>
-        <span className="inline-flex items-center gap-1 px-3 h-8 rounded-lg bg-accent-500 text-white text-xs font-semibold group-hover:bg-accent-600 transition-colors">
-          Open <ArrowRight className="w-3.5 h-3.5" />
-        </span>
-      </button>
-
-      {/* Summary Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'Total Questions', value: totalCount, color: 'dark-300' },
-          { label: 'Approved', value: approvedCount, color: 'teal-400' },
-          { label: 'In Review', value: inReviewCount, color: 'blue-400' },
-          { label: 'Draft', value: draftCount, color: 'amber-400' },
-        ].map((stat) => (
-          <div key={stat.label} className="bg-dark-800 rounded-2xl border border-dark-600 shadow-card p-4">
-            <p className="text-xs font-semibold text-dark-400 uppercase tracking-wider">{stat.label}</p>
-            <p className={`text-2xl font-heading font-bold text-${stat.color} mt-1`}>{stat.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Filter Bar */}
-      <div className="bg-dark-800 rounded-2xl border border-dark-600 shadow-card p-4 flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2 text-dark-400">
-          <Filter className="w-4 h-4" />
-          <span className="text-xs font-semibold uppercase tracking-wider">Filters</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-dark-400">Status:</span>
-          {statusOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setStatusFilter(opt.value)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                statusFilter === opt.value
-                  ? 'bg-accent-500/20 text-accent-400 border border-accent-500/30'
-                  : 'bg-dark-700 text-dark-300 border border-dark-600 hover:bg-dark-600'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-dark-400">Role:</span>
-          {roleOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setRoleFilter(opt.value)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                roleFilter === opt.value
-                  ? 'bg-accent-500/20 text-accent-400 border border-accent-500/30'
-                  : 'bg-dark-700 text-dark-300 border border-dark-600 hover:bg-dark-600'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Section Accordions */}
+      {/* Sections */}
       <div className="space-y-3">
         {Array.from(sectionMap.entries()).map(([sectionId, questions]) => {
           const isExpanded = expandedSections.has(sectionId)
-          const sectionName = questions[0].sectionName
-          const approvedInSection = questions.filter((q) => q.status === 'approved' || submittedIds.has(q.id)).length
-          const completionPct = Math.round((approvedInSection / questions.length) * 100)
-
+          const done = questions.filter(q => statusOf(q) === 'approved').length
+          const pct = Math.round((done / questions.length) * 100)
+          const panelId = `fq-${sectionId}`
           return (
-            <div key={sectionId} className="bg-dark-800 rounded-2xl border border-dark-600 shadow-card overflow-hidden">
-              {/* Section Header */}
+            <section key={sectionId} className="surface-paper overflow-hidden">
               <button
                 onClick={() => toggleSection(sectionId)}
-                className="w-full flex items-center gap-4 p-5 hover:bg-dark-750 transition-colors text-left"
+                aria-expanded={isExpanded}
+                aria-controls={panelId}
+                className="w-full flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4 hover:bg-[var(--bg-secondary)] transition-colors text-left"
               >
-                {isExpanded
-                  ? <ChevronDown className="w-4 h-4 text-dark-400 flex-shrink-0" />
-                  : <ChevronRight className="w-4 h-4 text-dark-400 flex-shrink-0" />
-                }
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-sm font-heading font-semibold text-white">
-                      {getSectionDisplayName(sectionId, sectionName)}
-                    </h3>
-                    <span className="text-xs text-dark-400">{questions.length} question{questions.length !== 1 ? 's' : ''}</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className="text-xs text-dark-400">{completionPct}%</span>
-                  <div className="w-24 h-1.5 bg-dark-700 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-teal-500 rounded-full transition-all duration-300"
-                      style={{ width: `${completionPct}%` }}
-                    />
-                  </div>
-                </div>
+                <motion.span animate={{ rotate: isExpanded ? 0 : -90 }} transition={transition.fast} className="text-[var(--text-tertiary)] flex-shrink-0">
+                  <ChevronDown className="w-4 h-4" aria-hidden />
+                </motion.span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-body font-semibold text-[var(--text-primary)] truncate">{sectionTitle(sectionId, questions[0].sectionName)}</span>
+                  <span className="block text-caption text-[var(--text-tertiary)]">{t('frameworkQuestions.questionCount', { count: questions.length })}</span>
+                </span>
+                <span className="flex items-center gap-3 flex-shrink-0">
+                  <span className="text-caption text-[var(--text-secondary)] tabular-nums">{pct}%</span>
+                  <span className="hidden sm:block w-24 h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden">
+                    <motion.span className="block h-full bg-[var(--color-brand)] rounded-full" initial={false} animate={{ width: `${pct}%` }} transition={spring.gentle} />
+                  </span>
+                </span>
               </button>
 
-              {/* Expanded Question Rows */}
-              {isExpanded && (
-                <div className="border-t border-dark-600">
-                  {questions.map((q, idx) => {
-                    const effectiveStatus = submittedIds.has(q.id) ? 'in-review' : q.status
-                    return (
-                      <div
-                        key={q.id}
-                        className={`flex items-start gap-4 px-5 py-4 ${idx % 2 === 0 ? 'bg-dark-750' : ''} ${idx < questions.length - 1 ? 'border-b border-dark-600/50' : ''}`}
-                      >
-                        {/* Status icon */}
-                        <div className="pt-0.5 flex-shrink-0">
-                          <StatusIcon status={effectiveStatus} />
-                        </div>
-
-                        {/* Question number */}
-                        <span className="text-xs font-mono text-dark-400 w-14 flex-shrink-0 pt-0.5">
-                          {q.questionNumber}
-                        </span>
-
-                        {/* Question text + response preview */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-dark-200 leading-relaxed">{q.questionText}</p>
-                          {q.response && (
-                            <p className="text-xs text-dark-400 mt-1 truncate max-w-[600px]">
-                              {q.response}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Auto chip */}
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          {q.autoPopulated && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-teal-500/15 text-teal-400 border border-teal-500/20">
-                              <Zap className="w-2.5 h-2.5" />
-                              Auto
-                            </span>
-                          )}
-
-                          {/* Role badge */}
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold ${roleBadgeClasses(q.assignedRole)}`}>
-                            {q.assignedRole === 'auto' ? <Zap className="w-2.5 h-2.5" /> : <User className="w-2.5 h-2.5" />}
-                            {roleLabel(q.assignedRole)}
-                          </span>
-
-                          {/* Assigned to */}
-                          <span className="text-xs text-dark-400 w-28 truncate text-right">
-                            {q.assignedTo}
-                          </span>
-
-                          {/* Status badge */}
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${statusBadgeClasses(effectiveStatus)}`}>
-                            {statusLabel(effectiveStatus)}
-                          </span>
-
-                          {/* Submit for Review button (only for draft, not yet submitted) */}
-                          {q.status === 'draft' && !submittedIds.has(q.id) && (
-                            <button
-                              onClick={() => handleSubmitForReview(q.id)}
-                              className="px-3 py-1 rounded-lg bg-accent-500 hover:bg-accent-600 text-white text-[10px] font-semibold transition-colors whitespace-nowrap"
-                            >
-                              Submit for Review
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
+              <AnimatePresence initial={false}>
+                {isExpanded && (
+                  <motion.ul
+                    id={panelId}
+                    initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={transition.base}
+                    className="overflow-hidden border-t border-[var(--border-subtle)] divide-y divide-[var(--border-subtle)]"
+                  >
+                    {questions.map(q => {
+                      const st = statusOf(q)
+                      return (
+                        <li key={q.id} className="px-4 sm:px-5 py-4 flex flex-col md:flex-row md:items-start gap-3">
+                          <span className="text-caption font-mono text-[var(--text-tertiary)] md:w-16 flex-shrink-0 md:pt-0.5">{q.questionNumber}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-small text-[var(--text-primary)]">{q.questionText}</p>
+                            {q.response && <p className="text-caption text-[var(--text-tertiary)] mt-1 line-clamp-1">{q.response}</p>}
+                          </div>
+                          <div className="flex items-center gap-2 flex-wrap md:flex-nowrap md:justify-end flex-shrink-0">
+                            {q.autoPopulated && (
+                              <StatusPill tone="brand" size="sm" icon={<Zap aria-hidden />}>{t('workflowStatus.role.AUTO')}</StatusPill>
+                            )}
+                            <StatusPill tone="neutral" size="sm" icon={q.assignedRole === 'auto' ? <Zap aria-hidden /> : <User aria-hidden />}>{roleLabel(q.assignedRole, t)}</StatusPill>
+                            <span className="text-caption text-[var(--text-secondary)] md:w-28 truncate md:text-right">{q.assignedTo}</span>
+                            <StatusPill status={PILL[st].status} size="sm">{t(PILL[st].label)}</StatusPill>
+                            {st === 'draft' && (
+                              <button
+                                onClick={() => handleSubmitForReview(q)}
+                                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-caption font-semibold text-[var(--text-primary)] hover:border-[var(--color-brand)] hover:text-[var(--color-brand-strong)] whitespace-nowrap"
+                              >
+                                <Send className="w-3.5 h-3.5" aria-hidden /> {t('frameworkQuestions.submitForReview')}
+                              </button>
+                            )}
+                          </div>
+                        </li>
+                      )
+                    })}
+                  </motion.ul>
+                )}
+              </AnimatePresence>
+            </section>
           )
         })}
 
         {sectionMap.size === 0 && (
-          <div className="bg-dark-800 rounded-2xl border border-dark-600 shadow-card p-12 text-center">
-            <p className="text-sm text-dark-400">No questions match the current filters.</p>
-          </div>
+          <EmptyState
+            variant="filtered"
+            framed
+            title={t('frameworkQuestions.noMatch')}
+            onClearFilters={() => { setStatusFilter('all'); setRoleFilter('all') }}
+          />
         )}
       </div>
+    </div>
+  )
+}
 
-      {/* Toast */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 bg-teal-500/20 text-teal-400 border border-teal-500/30 px-5 py-3 rounded-xl text-sm font-medium shadow-lg animate-pulse z-50 flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4" />
-          {toastMessage}
-        </div>
-      )}
+function FilterGroup({ label, options, value, onChange }: { label: string; options: { value: string; label: string }[]; value: string; onChange: (v: string) => void }) {
+  const { t } = useTranslation()
+  return (
+    <div className="flex items-center gap-2 flex-wrap" role="group" aria-label={label}>
+      <span className="text-caption font-medium text-[var(--text-secondary)]">{label}</span>
+      {options.map(opt => {
+        const active = value === opt.value
+        return (
+          <button
+            key={opt.value}
+            onClick={() => onChange(opt.value)}
+            aria-pressed={active}
+            className={`h-8 px-3 rounded-full text-caption font-medium border transition-colors whitespace-nowrap ${
+              active
+                ? 'border-[var(--color-brand)] bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)]'
+                : 'border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)]'
+            }`}
+          >
+            {t(opt.label)}
+          </button>
+        )
+      })}
     </div>
   )
 }

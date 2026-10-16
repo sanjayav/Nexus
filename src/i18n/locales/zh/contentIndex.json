@@ -1,0 +1,114 @@
+{
+  "breadcrumbs": {
+    "reports": "报告",
+    "library": "披露库"
+  },
+  "header": {
+    "eyebrow": "披露库",
+    "title": "披露库",
+    "description": "根据指派自动生成：列示{{framework}}下的每一项披露、其报告状态、在报告中的位置及对应的重要议题。该索引位于正式报告的开篇。"
+  },
+  "actions": {
+    "print": "打印",
+    "savePdf": "另存为 PDF"
+  },
+  "summary": {
+    "aria": "披露状态，点击数字可筛选",
+    "total": "披露项",
+    "totalHint": "{{pct}}% 已完整披露",
+    "fully": "完整披露",
+    "fullyHint": "所需数据均已批准",
+    "partially": "部分披露",
+    "partiallyHint": "部分数据已填报或审核中",
+    "omitted": "省略",
+    "omittedHint": "暂无数据 · 需指派"
+  },
+  "coverage": {
+    "title": "披露覆盖率",
+    "value": "{{pct}} 已完整披露"
+  },
+  "filters": {
+    "searchAria": "搜索披露项",
+    "searchPlaceholder": "按编号、披露项或章节搜索…",
+    "statusAria": "按状态筛选",
+    "allStatuses": "全部状态",
+    "fully": "完整披露",
+    "partially": "部分披露",
+    "omitted": "省略",
+    "materialOnly": "仅显示重要议题",
+    "showing": "显示 {{n}}／{{total}} 项",
+    "clear": "清除筛选"
+  },
+  "print": {
+    "title": "{{index}}——{{framework}}",
+    "generated_one": "生成于 {{date}} · 共 {{count}} 项披露",
+    "generated_other": "生成于 {{date}} · 共 {{count}} 项披露"
+  },
+  "columns": {
+    "code": "编号",
+    "disclosure": "披露项",
+    "section": "章节",
+    "topic": "议题",
+    "materialTopic": "重要议题",
+    "status": "状态",
+    "approved": "已批准"
+  },
+  "status": {
+    "fully": "完整",
+    "partially": "部分",
+    "omitted": "省略"
+  },
+  "errorTitle": "披露库加载失败",
+  "empty": {
+    "title": "{{index}}暂无内容",
+    "body": "将该框架的披露项指派给各实体后，索引会根据指派自动生成。",
+    "cta": "前往指派"
+  },
+  "frameworks": {
+    "fallbackIndex": "{{code}} 披露索引",
+    "gri": {
+      "index": "GRI 内容索引",
+      "code": "GRI 披露项"
+    },
+    "cn-sse": {
+      "index": "《可持续发展报告》指标索引",
+      "code": "议题／指标编号"
+    },
+    "cn-csds": {
+      "index": "《企业可持续披露准则》披露索引",
+      "code": "披露要求编号"
+    },
+    "hkex-esg": {
+      "index": "《环境、社会及管治守则》内容索引",
+      "code": "层面／关键绩效指标"
+    },
+    "issb": {
+      "index": "IFRS S1/S2 披露索引",
+      "code": "段落"
+    },
+    "issb-s1": {
+      "index": "IFRS S1 披露索引",
+      "code": "IFRS S1 段落"
+    },
+    "issb-s2": {
+      "index": "IFRS S2 披露索引",
+      "code": "IFRS S2 段落"
+    },
+    "tcfd": {
+      "index": "TCFD 建议披露索引",
+      "code": "建议披露"
+    },
+    "cdp": {
+      "index": "CDP 问卷索引",
+      "code": "问题"
+    },
+    "cdp-2024": {
+      "index": "CDP 问卷索引",
+      "code": "问题"
+    },
+    "cass-esg": {
+      "index": "CASS-ESG 5.0 指标索引",
+      "code": "指标编号"
+    }
+  }
+}

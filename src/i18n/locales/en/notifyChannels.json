@@ -1,0 +1,60 @@
+{
+  "readOnly": "Team channels are managed by workspace admins.",
+  "loadError": "Couldn't load team channels",
+  "envFallback": {
+    "title": "Using the deployment's default group bots",
+    "body": "This workspace has no channels of its own yet, so notifications go to the bots your Nexus operator configured for the whole deployment. Connect a channel below to send to your own group instead."
+  },
+  "channels": {
+    "dingtalk": { "name": "DingTalk", "body": "Post to a DingTalk group robot (自定义机器人). Add a 加签 secret so DingTalk can verify each message.", "urlHint": "Copy the robot's webhook from the group settings: https://oapi.dingtalk.com/robot/send?access_token=…", "secretLabel": "加签 secret" },
+    "feishu": { "name": "Feishu / Lark", "body": "Post to a Feishu or Lark custom bot. Turn on signature verification (签名校验) for extra safety.", "urlHint": "Copy the bot's webhook: https://open.feishu.cn/open-apis/bot/v2/hook/…", "secretLabel": "签名校验 secret" },
+    "wecom": { "name": "WeCom", "body": "Post to a WeCom (企业微信) group robot. WeCom robots don't support a signing secret.", "urlHint": "Copy the robot's webhook: https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=…", "secretLabel": "Secret" }
+  },
+  "status": { "on": "Sending", "paused": "Paused", "notConnected": "Not connected" },
+  "fields": { "endpoint": "Webhook", "signing": "Signing", "kinds": "Sends", "lastTest": "Last test" },
+  "signing": { "on": "Signed (secret stored)", "off": "Not signed", "notSupported": "WeCom robots don't support signing" },
+  "kinds": {
+    "all": "All notifications",
+    "separator": ", ",
+    "custom_one": "{{count}} notification type",
+    "custom_other": "{{count}} notification types",
+    "groups": { "assignments": "Assignments", "reviews": "Review requests", "approvals": "Approval requests", "decisions": "Approvals and send-backs", "discussion": "Comments and mentions" }
+  },
+  "test": {
+    "button": "Send test",
+    "sending": "Sending a test message…",
+    "ok": "Delivered",
+    "failed": "Failed",
+    "never": "Not tested yet",
+    "sent": "Test message delivered to {{channel}}"
+  },
+  "connect": "Connect",
+  "edit": "Edit channel",
+  "toggleAria": "Send notifications to {{channel}}",
+  "toggleFailed": "Couldn't update the channel",
+  "saved": "{{channel}} channel saved",
+  "savedHint": "Send a test message to check the robot receives it.",
+  "remove": {
+    "button": "Remove channel",
+    "title": "Remove the {{channel}} channel?",
+    "body": "Notifications will stop posting to this group. The webhook URL and secret are deleted and can't be recovered.",
+    "confirm": "Remove channel",
+    "done": "{{channel}} channel removed",
+    "failed": "Couldn't remove the channel"
+  },
+  "form": {
+    "url": "Webhook URL",
+    "urlKeep": "Currently {{hint}}. Leave blank to keep it.",
+    "urlInvalid": "Use the robot's https webhook on {{host}}.",
+    "secretHint": "Optional. Stored encrypted and never shown again.",
+    "secretKeep": "A secret is stored. Enter a new one to replace it.",
+    "clearSecret": "Remove the stored secret",
+    "label": "Name",
+    "labelHint": "Optional, to tell groups apart.",
+    "labelPlaceholder": "ESG project group",
+    "kinds": "What to send",
+    "kindsInvalid": "Pick at least one type, or choose All notifications.",
+    "save": "Connect channel",
+    "update": "Save changes"
+  }
+}

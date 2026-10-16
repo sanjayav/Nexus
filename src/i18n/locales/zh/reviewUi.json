@@ -1,0 +1,33 @@
+{
+  "lang": {
+    "en": "English",
+    "zh": "简体中文"
+  },
+  "public": {
+    "languageLabel": "页面语言",
+    "poweredBy": "经 Aeiforo <brand>Nexus</brand> 验证",
+    "tamperNote": "哈希已锚定。文件的任何改动都会改变其指纹。"
+  },
+  "decision": {
+    "region": "审批决定",
+    "commentLabel": "本次决定的备注",
+    "prev": "上一项",
+    "next": "下一项",
+    "position": "第 {{index}} 项，共 {{total}} 项",
+    "navHint": "切换",
+    "done": "已完成"
+  },
+  "comments": {
+    "loadFailed": "评论未能加载。",
+    "retry": "重试"
+  },
+  "history": {
+    "loadFailedTitle": "历史数据未能加载",
+    "loadFailedBody": "无法获取往年数值，因此未进行趋势检查。",
+    "pending": "FY{{year}} 填报值",
+    "reported": "已报告",
+    "vsAvg": "较 {{n}} 年均值变动",
+    "yoyTitle": "较 FY{{year}} 变动",
+    "zWarnTitle": "超出 2σ（|z| = {{z}}）"
+  }
+}

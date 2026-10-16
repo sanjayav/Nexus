@@ -1,4 +1,5 @@
-import { Scope3Calculator, toNum } from './index'
+import type { Scope3Calculator } from './types'
+import { toNum } from './constants'
 
 const TREATMENT_EF: Record<string, number> = {
   landfill: 580,

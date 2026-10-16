@@ -1,22 +1,54 @@
-import Anthropic from '@anthropic-ai/sdk'
+/**
+ * Prompt library + task functions for the AI endpoints. Vendor calls go
+ * through the provider layer in api/_llm.ts — pass `opts.provider` (from
+ * aiGate()) to use the org's provider; omitted, the Anthropic provider from
+ * env is used (pre-Phase-4 behaviour). `opts.locale` appends a language
+ * instruction so free text comes back in the user's language.
+ */
+import { getProvider, type LlmProvider, type LlmProviderId, type LlmResult } from './_llm.js'
+import { languageInstruction, type Locale } from './_i18n.js'
 
-let client: Anthropic | null = null
-function getClient(): Anthropic | null {
-  const key = process.env.ANTHROPIC_API_KEY
-  if (!key) return null
-  if (!client) client = new Anthropic({ apiKey: key })
-  return client
+export interface AiCallOptions {
+  provider?: LlmProvider
+  locale?: Locale
 }
 
+interface ProviderMeta {
+  model?: string
+  provider?: LlmProviderId
+}
+
+function resolveProvider(opts: AiCallOptions): LlmProvider {
+  return opts.provider ?? getProvider('anthropic')
+}
+
+function withLanguage(system: string, locale: Locale | undefined): string {
+  return `${system}\n\n${languageInstruction(locale ?? 'en')}`
+}
+
+function usageOf(r: LlmResult) {
+  return {
+    tokensIn: r.usage?.tokensIn,
+    tokensOut: r.usage?.tokensOut,
+    cached: r.usage?.cached,
+    model: r.model,
+    provider: r.provider,
+  }
+}
+
+/** Framework ids accepted by draftNarrative (legacy short ids + CN pack ids). */
+export const DRAFT_FRAMEWORKS = ['gri', 'csrd', 'tcfd', 'cdp', 'issb', 'cn-sse', 'cn-csds', 'hkex-esg', 'cass-esg'] as const
+export type DraftFramework = (typeof DRAFT_FRAMEWORKS)[number]
+
 export interface DraftRequest {
-  framework: 'gri' | 'csrd' | 'tcfd' | 'cdp' | 'issb'
+  framework: DraftFramework
   section: string                // e.g. "GRI 305 Emissions"
   data: Record<string, unknown>  // structured org data — assignments, values, facilities
   orgContext: { name: string; industry?: string; country?: string }
   tone?: 'formal' | 'narrative' | 'concise'
 }
 
-export interface DraftResponse {
+export interface DraftResponse extends ProviderMeta {
   ok: boolean
   text?: string
   tokensIn?: number
@@ -31,6 +63,11 @@ const SYSTEM_PROMPT = `You are an expert sustainability disclosure writer. Draft
 - TCFD: organise by Governance / Strategy / Risk Management / Metrics & Targets.
 - CDP: respond in CDP questionnaire style — direct, structured answers.
 - ISSB IFRS S2: use sustainability-related financial disclosure language.
+- CN-SSE (上交所/深交所/北交所《上市公司自律监管指引——可持续发展报告（试行）》): apply double materiality (财务重要性 / 影响重要性); for climate (应对气候变化) organise by 治理 / 战略 / 影响、风险和机遇管理 / 指标与目标, including Scope 1/2/3 and any carbon credits or green-power instruments in the data.
+- CN-CSDS (财政部《企业可持续披露准则——基本准则》 and the climate standard (trial)): use the four elements 治理 / 战略 / 影响、风险和机遇管理 / 指标和目标; GHG figures follow GB/T 32150 accounting.
+- HKEX ESG (Appendix C2): mandatory disclosure requirements plus "comply or explain" KPIs A1–A3 / B1–B8; Part D climate disclosures align with IFRS S2.
+- CASS-ESG 5.0: organise under governance, environment, social and value creation.
+Never cite an article, clause or KPI number unless it appears in the provided data or the framework list above.
 
 Style rules: third person, present tense for current period, past tense for prior periods. No marketing language. No hedging adverbs ("we strive to…"). State facts. If a data point is missing, write "[Data not provided]" and continue.
 
@@ -78,7 +115,7 @@ export interface EfMatchToolResult {
   overall_notes?: string
 }
 
-export interface EfMatchResponse {
+export interface EfMatchResponse extends ProviderMeta {
   ok: boolean
   result?: EfMatchToolResult
   tokensIn?: number
@@ -100,9 +137,9 @@ Rules:
 - For software / SaaS / IT services: prefer software/IT services EEIO factors if present, else generic professional-services.
 - Never invent ef_ids. Only use IDs from the candidate list.`
 
-export async function matchEmissionFactor(req: EfMatchRequest): Promise<EfMatchResponse> {
-  const c = getClient()
-  if (!c) return { ok: false, error: 'ANTHROPIC_API_KEY not configured' }
+export async function matchEmissionFactor(req: EfMatchRequest, opts: AiCallOptions = {}): Promise<EfMatchResponse> {
+  const provider = resolveProvider(opts)
+  if (!provider.configured()) return { ok: false, error: provider.notConfiguredError, provider: provider.id, model: provider.model }
 
   // Build the user message — slim the candidate payload to the fields the
   // model actually needs (full row stays server-side for the response).
@@ -126,75 +163,56 @@ ${JSON.stringify(slimCandidates, null, 2)}
 
 Pick the best match and up to 3 alternates by calling submit_ef_match.`
 
-  const tools = [
-    {
+  const efMatchSchema = {
+    type: 'object' as const,
+    properties: {
+      top_match: {
+        type: 'object',
+        properties: {
+          ef_id: { type: 'string' },
+          confidence: { type: 'number' },
+          reasoning: { type: 'string' },
+        },
+        required: ['ef_id', 'confidence', 'reasoning'],
+      },
+      alternates: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            ef_id: { type: 'string' },
+            confidence: { type: 'number' },
+            reasoning: { type: 'string' },
+          },
+          required: ['ef_id', 'confidence', 'reasoning'],
+        },
+      },
+      overall_notes: { type: 'string' },
+    },
+    required: ['top_match', 'alternates'],
+  }
+
+  const res = await provider.complete({
+    system: withLanguage(MATCHER_SYSTEM_PROMPT, opts.locale),
+    cacheSystem: true,
+    maxTokens: 1500,
+    json: {
       name: 'submit_ef_match',
       description: 'Submit the best emission factor match for this vendor + spend category.',
-      input_schema: {
-        type: 'object' as const,
-        properties: {
-          top_match: {
-            type: 'object',
-            properties: {
-              ef_id: { type: 'string' },
-              confidence: { type: 'number' },
-              reasoning: { type: 'string' },
-            },
-            required: ['ef_id', 'confidence', 'reasoning'],
-          },
-          alternates: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                ef_id: { type: 'string' },
-                confidence: { type: 'number' },
-                reasoning: { type: 'string' },
-              },
-              required: ['ef_id', 'confidence', 'reasoning'],
-            },
-          },
-          overall_notes: { type: 'string' },
-        },
-        required: ['top_match', 'alternates'],
-      },
+      schema: efMatchSchema,
     },
-  ]
-
-  try {
-    const res = await c.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1500,
-      system: [{ type: 'text', text: MATCHER_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
-      tools: tools as unknown as Parameters<typeof c.messages.create>[0]['tools'],
-      tool_choice: { type: 'tool', name: 'submit_ef_match' },
-      messages: [{ role: 'user', content: userPrompt }],
-    })
-
-    // Find the tool_use block — tool_choice forces the model to call it.
-    const toolUse = res.content.find((b) => b.type === 'tool_use') as
-      | { type: 'tool_use'; name: string; input: unknown }
-      | undefined
-    if (!toolUse) {
-      return { ok: false, error: 'Claude did not invoke submit_ef_match tool' }
-    }
-    const parsed = toolUse.input as EfMatchToolResult
-    return {
-      ok: true,
-      result: parsed,
-      tokensIn: res.usage.input_tokens,
-      tokensOut: res.usage.output_tokens,
-      cached: (res.usage as { cache_read_input_tokens?: number }).cache_read_input_tokens,
-    }
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Unknown error'
-    return { ok: false, error: msg }
-  }
+    messages: [{ role: 'user', content: userPrompt }],
+  })
+  if (!res.ok) return { ok: false, error: res.error, ...usageOf(res) }
+  const parsed = res.json as EfMatchToolResult
+  if (!parsed?.top_match?.ef_id) return { ok: false, error: 'Model returned no top_match', ...usageOf(res) }
+  parsed.alternates = Array.isArray(parsed.alternates) ? parsed.alternates : []
+  return { ok: true, result: parsed, ...usageOf(res) }
 }
 
-export async function draftNarrative(req: DraftRequest): Promise<DraftResponse> {
-  const c = getClient()
-  if (!c) return { ok: false, error: 'ANTHROPIC_API_KEY not configured' }
+export async function draftNarrative(req: DraftRequest, opts: AiCallOptions = {}): Promise<DraftResponse> {
+  const provider = resolveProvider(opts)
+  if (!provider.configured()) return { ok: false, error: provider.notConfiguredError, provider: provider.id, model: provider.model }
 
   const userPrompt = `Framework: ${req.framework.toUpperCase()}
 Section to draft: ${req.section}
@@ -208,32 +226,16 @@ ${JSON.stringify(req.data, null, 2)}
 
 Write the narrative now.`
 
-  try {
-    // System prompt is large + reusable across many calls → mark as cache breakpoint.
-    // Repeated drafts of different sections reuse the cached prefix (5-min TTL).
-    const res = await c.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2000,
-      system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
-      messages: [{ role: 'user', content: userPrompt }],
-    })
-
-    const text = res.content
-      .filter((b) => b.type === 'text')
-      .map((b) => (b as { text: string }).text)
-      .join('\n')
-
-    return {
-      ok: true,
-      text,
-      tokensIn: res.usage.input_tokens,
-      tokensOut: res.usage.output_tokens,
-      cached: (res.usage as { cache_read_input_tokens?: number }).cache_read_input_tokens,
-    }
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Unknown error'
-    return { ok: false, error: msg }
-  }
+  // System prompt is large + reusable across many calls → cache breakpoint
+  // (Anthropic). Repeated drafts of different sections reuse the cached prefix.
+  const res = await provider.complete({
+    system: withLanguage(SYSTEM_PROMPT, opts.locale),
+    cacheSystem: true,
+    maxTokens: 2000,
+    messages: [{ role: 'user', content: userPrompt }],
+  })
+  if (!res.ok) return { ok: false, error: res.error, ...usageOf(res) }
+  return { ok: true, text: res.text, ...usageOf(res) }
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -272,7 +274,7 @@ export interface AnomalyNarrationContext {
   limited_context?: boolean
 }
 
-export interface AnomalyNarrationResponse {
+export interface AnomalyNarrationResponse extends ProviderMeta {
   ok: boolean
   text?: string
   tokensIn?: number
@@ -288,7 +290,7 @@ const ANOMALY_SYSTEM_PROMPT = `You analyse sustainability data anomalies for ESG
 - Avoid speculation beyond what the data supports.
 - Suggest ONE actionable next step.
 
-Format: ONE paragraph, 3-5 sentences, no bullets, no headings. Plain English. No marketing fluff. No hedging ("might be", "could perhaps"). State facts and one inference. If the historical context is limited (fewer than two prior periods), say so plainly in the narrative.`
+Format: ONE paragraph, 3-5 sentences, no bullets, no headings. Plain language. No marketing fluff. No hedging ("might be", "could perhaps"). State facts and one inference. If the historical context is limited (fewer than two prior periods), say so plainly in the narrative.`
 
 // ──────────────────────────────────────────────────────────────
 // AI Gap Analysis — Workiva-style "ESRS Intelligence" chat. Given a
@@ -343,7 +345,7 @@ export interface GapAnalysisResult {
   recommendedNextSteps: string[]
 }
 
-export interface GapAnalysisResponse {
+export interface GapAnalysisResponse extends ProviderMeta {
   ok: boolean
   result?: GapAnalysisResult
   tokensIn?: number
@@ -366,48 +368,44 @@ Use "your" / "we" framing — you're advising the sustainability team, not lectu
 
 Always respond by calling submit_gap_analysis with the structured fields.`
 
-export async function analyseGaps(ctx: GapAnalysisContext): Promise<GapAnalysisResponse> {
-  const c = getClient()
-  if (!c) return { ok: false, error: 'ANTHROPIC_API_KEY not configured' }
+export async function analyseGaps(ctx: GapAnalysisContext, opts: AiCallOptions = {}): Promise<GapAnalysisResponse> {
+  const provider = resolveProvider(opts)
+  if (!provider.configured()) return { ok: false, error: provider.notConfiguredError, provider: provider.id, model: provider.model }
 
-  const tools = [{
-    name: 'submit_gap_analysis',
-    description: 'Submit a structured gap analysis response.',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        summary: { type: 'string', description: '2-3 sentence executive summary' },
-        missingCount: { type: 'number' },
-        missingItems: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              code: { type: 'string' },
-              lineItem: { type: 'string' },
-              why_critical: { type: 'string', description: 'Why this disclosure is required + impact' },
-              estimated_effort: { type: 'string', enum: ['low','medium','high'] },
-              suggested_owner_role: { type: 'string' },
-            },
-            required: ['code','lineItem','why_critical','estimated_effort'],
+  const gapSchema = {
+    type: 'object' as const,
+    properties: {
+      summary: { type: 'string', description: '2-3 sentence executive summary' },
+      missingCount: { type: 'number' },
+      missingItems: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            code: { type: 'string' },
+            lineItem: { type: 'string' },
+            why_critical: { type: 'string', description: 'Why this disclosure is required + impact' },
+            estimated_effort: { type: 'string', enum: ['low','medium','high'] },
+            suggested_owner_role: { type: 'string' },
           },
+          required: ['code','lineItem','why_critical','estimated_effort'],
         },
-        qualityIssues: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              code: { type: 'string' },
-              issue: { type: 'string' },
-            },
-            required: ['code','issue'],
-          },
-        },
-        recommendedNextSteps: { type: 'array', items: { type: 'string' } },
       },
-      required: ['summary','missingCount','missingItems','recommendedNextSteps'],
+      qualityIssues: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            code: { type: 'string' },
+            issue: { type: 'string' },
+          },
+          required: ['code','issue'],
+        },
+      },
+      recommendedNextSteps: { type: 'array', items: { type: 'string' } },
     },
-  }]
+    required: ['summary','missingCount','missingItems','recommendedNextSteps'],
+  }
 
   // Slim the disclosure payload so we don't waste tokens on UUIDs Claude doesn't need.
   const slimDisclosures = ctx.disclosures.map(d => ({
@@ -441,75 +439,41 @@ ${ctx.question}
 
 Call submit_gap_analysis with the structured response now.`
 
-  try {
-    const res = await c.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 3000,
-      // Large + stable framework-analyst system prompt — cache breakpoint so
-      // follow-up calls (same org, different question) hit the prompt cache.
-      system: [{ type: 'text', text: GAP_ANALYSIS_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
-      tools: tools as unknown as Parameters<typeof c.messages.create>[0]['tools'],
-      tool_choice: { type: 'tool', name: 'submit_gap_analysis' },
-      messages: [{ role: 'user', content: userPrompt }],
-    })
-
-    const toolUse = res.content.find((b) => b.type === 'tool_use') as
-      | { type: 'tool_use'; name: string; input: unknown }
-      | undefined
-    if (!toolUse) {
-      return { ok: false, error: 'Claude did not invoke submit_gap_analysis tool' }
-    }
-    const parsed = toolUse.input as GapAnalysisResult
-    // Defensive — ensure arrays exist (Claude occasionally omits empty arrays).
-    parsed.missingItems = parsed.missingItems ?? []
-    parsed.qualityIssues = parsed.qualityIssues ?? []
-    parsed.recommendedNextSteps = parsed.recommendedNextSteps ?? []
-    parsed.missingCount = parsed.missingCount ?? parsed.missingItems.length
-
-    return {
-      ok: true,
-      result: parsed,
-      tokensIn: res.usage.input_tokens,
-      tokensOut: res.usage.output_tokens,
-      cached: (res.usage as { cache_read_input_tokens?: number }).cache_read_input_tokens,
-    }
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Unknown error'
-    return { ok: false, error: msg }
-  }
+  // Large + stable framework-analyst system prompt — cache breakpoint so
+  // follow-up calls (same org, different question) hit the prompt cache.
+  const res = await provider.complete({
+    system: withLanguage(GAP_ANALYSIS_SYSTEM_PROMPT, opts.locale),
+    cacheSystem: true,
+    maxTokens: 3000,
+    json: { name: 'submit_gap_analysis', description: 'Submit a structured gap analysis response.', schema: gapSchema },
+    messages: [{ role: 'user', content: userPrompt }],
+  })
+  if (!res.ok) return { ok: false, error: res.error, ...usageOf(res) }
+  const parsed = (res.json ?? {}) as GapAnalysisResult
+  // Defensive — ensure arrays exist (models occasionally omit empty arrays).
+  parsed.summary = typeof parsed.summary === 'string' ? parsed.summary : ''
+  parsed.missingItems = Array.isArray(parsed.missingItems) ? parsed.missingItems : []
+  parsed.qualityIssues = Array.isArray(parsed.qualityIssues) ? parsed.qualityIssues : []
+  parsed.recommendedNextSteps = Array.isArray(parsed.recommendedNextSteps) ? parsed.recommendedNextSteps : []
+  parsed.missingCount = typeof parsed.missingCount === 'number' ? parsed.missingCount : parsed.missingItems.length
+  return { ok: true, result: parsed, ...usageOf(res) }
 }
 
-export async function narrateAnomaly(ctx: AnomalyNarrationContext): Promise<AnomalyNarrationResponse> {
-  const c = getClient()
-  if (!c) return { ok: false, error: 'ANTHROPIC_API_KEY not configured' }
+export async function narrateAnomaly(ctx: AnomalyNarrationContext, opts: AiCallOptions = {}): Promise<AnomalyNarrationResponse> {
+  const provider = resolveProvider(opts)
+  if (!provider.configured()) return { ok: false, error: provider.notConfiguredError, provider: provider.id, model: provider.model }
 
   const userPrompt = `Anomaly context (JSON):
 ${JSON.stringify(ctx, null, 2)}
 
 Write the narrative now.`
 
-  try {
-    const res = await c.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 600,
-      system: [{ type: 'text', text: ANOMALY_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
-      messages: [{ role: 'user', content: userPrompt }],
-    })
-
-    const text = res.content
-      .filter((b) => b.type === 'text')
-      .map((b) => (b as { text: string }).text)
-      .join('\n')
-
-    return {
-      ok: true,
-      text,
-      tokensIn: res.usage.input_tokens,
-      tokensOut: res.usage.output_tokens,
-      cached: (res.usage as { cache_read_input_tokens?: number }).cache_read_input_tokens,
-    }
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : 'Unknown error'
-    return { ok: false, error: msg }
-  }
+  const res = await provider.complete({
+    system: withLanguage(ANOMALY_SYSTEM_PROMPT, opts.locale),
+    cacheSystem: true,
+    maxTokens: 600,
+    messages: [{ role: 'user', content: userPrompt }],
+  })
+  if (!res.ok) return { ok: false, error: res.error, ...usageOf(res) }
+  return { ok: true, text: res.text, ...usageOf(res) }
 }

@@ -1,0 +1,106 @@
+{
+  "hero": {
+    "eyebrow": "对比",
+    "title": "Nexus 与 Workiva——坦诚对比。",
+    "subtitle": "我们尊重 Workiva 的业绩积累。以下列出两大平台各自的优势，也包括 Nexus 仍需改进之处。"
+  },
+  "honestTake": {
+    "eyebrow": "坦诚观点",
+    "title": "团队不同，选择不同。",
+    "body": "如果您是《财富》500 强企业，拥有 4 个月的实施预算，需要业界领先的 iXBRL 标记，并希望所有连接器均为预置，Workiva 是很好的选择。Nexus 则适合需要立即交付 CSRD 披露、希望价格透明、并重视现代化用户体验且无需陡峭学习曲线的团队。两大平台都能交付满足审计要求的报告——只是实现路径不同。"
+  },
+  "cta": {
+    "heading": "免费试用 Nexus 14 天。",
+    "primary": "开始免费试用",
+    "secondary": "了解运作方式"
+  },
+  "values": {
+    "free": "免费",
+    "avg60k": "平均约 6 万美元",
+    "twoDays": "约 2 天",
+    "fourMonths": "约 4 个月",
+    "sixTemplates": "6 个模板",
+    "inProgress": "进行中",
+    "anthropicMainland": "Anthropic + 境内服务商"
+  },
+  "rows": {
+    "pricingTransparency": {
+      "feature": "价格透明度",
+      "note": "Nexus 公开各档位价格；Workiva 需定制报价。"
+    },
+    "starterTier": {
+      "feature": "入门档位",
+      "note": "行业估算；Workiva 未公开价格。"
+    },
+    "implementationTime": {
+      "feature": "实施周期"
+    },
+    "frameworksSupported": {
+      "feature": "支持的框架"
+    },
+    "ixbrl": {
+      "feature": "iXBRL 标记",
+      "note": "坦白说：Workiva 在 iXBRL 方面业界领先。Nexus 已具备合作伙伴对接能力，但尚未达到一流水平。"
+    },
+    "esgNative": {
+      "feature": "原生 ESG 架构",
+      "note": "Workiva 的 ESG 模块构建于财务/披露平台之上；Nexus 从一开始就以 ESG 为核心打造。"
+    },
+    "blockchainAudit": {
+      "feature": "区块链审计轨迹"
+    },
+    "aiEvidence": {
+      "feature": "AI 证据提取"
+    },
+    "aiGap": {
+      "feature": "AI 差距分析",
+      "note": "Workiva 将其宣传为「ESRS Intelligence」。双方均提供相当的能力。"
+    },
+    "aiFactorMatcher": {
+      "feature": "AI 供应商 → 排放因子匹配"
+    },
+    "linkedData": {
+      "feature": "关联数据",
+      "note": "两大平台均可从单一来源将数值同步至各项披露。"
+    },
+    "multiLlm": {
+      "feature": "多 LLM 路由",
+      "note": "Workiva 宣称支持多供应商 LLM 路由；Nexus 默认使用 Anthropic，并可按组织使用兼容 OpenAI 接口的境内模型服务商。"
+    },
+    "realtimeCollab": {
+      "feature": "实时协作"
+    },
+    "spreadsheetFormulas": {
+      "feature": "电子表格公式",
+      "note": "坦白说：Workiva 的电子表格引擎是成熟的差异化优势。Nexus 支持批量录入，但不支持完整公式。"
+    },
+    "erpConnectors": {
+      "feature": "70 多个预置 ERP 连接器",
+      "note": "坦白说：Workiva 的连接器库要丰富得多。Nexus 提供 6 个模板及开放 API。"
+    },
+    "pcaf": {
+      "feature": "PCAF 融资排放"
+    },
+    "scim": {
+      "feature": "SCIM 2.0"
+    },
+    "samlSso": {
+      "feature": "SAML SSO"
+    },
+    "soc2": {
+      "feature": "SOC 2 Type II",
+      "note": "坦白说：Workiva 已获得 SOC 2 Type II 认证。Nexus 审计进行中，获得鉴证后将公布。"
+    },
+    "selfServeTrial": {
+      "feature": "自助试用"
+    },
+    "chinaFrameworks": {
+      "feature": "沪深北交易所、财政部及港交所框架包",
+      "note": "沪深北交易所指引、财政部 CSDS、港交所 ESG 守则及 CASS-ESG 均以框架包形式提供。我们尚未评估 Workiva 在此方面的覆盖情况。"
+    },
+    "bilingualReports": {
+      "feature": "简体中文报告输出（PDF / Word）",
+      "note": "未评估 Workiva 的情况。"
+    }
+  }
+}

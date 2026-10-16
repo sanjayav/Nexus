@@ -37,6 +37,10 @@ describe('Framework catalog', () => {
     'issb-s2',
     'cdp-2024',
     'tcfd',
+    'cn-sse',
+    'cn-csds',
+    'hkex-esg',
+    'cass-esg',
   ]
 
   expectedActive.forEach(id => {
@@ -52,6 +56,14 @@ describe('Framework catalog', () => {
       if (f.questionCount !== undefined) {
         expect(Number.isInteger(f.questionCount)).toBe(true)
         expect(f.questionCount).toBeGreaterThan(0)
+      }
+    }
+  })
+
+  it('localised (zh) fields, where present, are non-empty Chinese strings', () => {
+    for (const f of FRAMEWORKS) {
+      for (const v of [f.nameZh, f.bodyZh, f.descriptionZh]) {
+        if (v !== undefined) expect(/[\u4e00-\u9fff]/.test(v), `${f.id}: ${v}`).toBe(true)
       }
     }
   })

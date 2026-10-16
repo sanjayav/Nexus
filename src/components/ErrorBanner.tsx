@@ -1,4 +1,5 @@
 import { AlertCircle, RefreshCw } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   title: string
@@ -13,6 +14,7 @@ interface Props {
  * states (no data vs. failed to load).
  */
 export function ErrorBanner({ title, message, onRetry }: Props) {
+  const { t } = useTranslation()
   return (
     <div
       role="alert"
@@ -29,7 +31,7 @@ export function ErrorBanner({ title, message, onRetry }: Props) {
           onClick={onRetry}
           className="btn-secondary text-xs h-8 px-3 inline-flex items-center gap-1.5 flex-shrink-0"
         >
-          <RefreshCw className="w-3 h-3" /> Retry
+          <RefreshCw className="w-3 h-3" /> {t('components.retry')}
         </button>
       )}
     </div>

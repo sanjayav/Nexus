@@ -1,0 +1,65 @@
+{
+  "noData": "No data",
+  "percent": "percent",
+  "status": {
+    "not_started": "Not started",
+    "draft": "Draft",
+    "in_progress": "In progress",
+    "submitted": "Submitted",
+    "pending": "Pending review",
+    "reviewed": "Reviewed",
+    "approved": "Approved",
+    "rejected": "Sent back",
+    "returned": "Returned",
+    "overdue": "Overdue",
+    "due_soon": "Due soon",
+    "published": "Published",
+    "archived": "Archived",
+    "blocked": "Blocked"
+  },
+  "state": {
+    "loading": "Loading…",
+    "retry": "Try again",
+    "clearFilters": "Clear filters",
+    "details": "Technical details"
+  },
+  "empty": {
+    "empty": {
+      "title": "Nothing here yet",
+      "body": "When there is something to show, it will appear here."
+    },
+    "cleared": {
+      "title": "All clear",
+      "body": "Everything here has been handled. New items will appear as they arrive."
+    },
+    "filtered": {
+      "title": "No results match these filters",
+      "body": "Try removing a filter or searching for something else."
+    },
+    "error": {
+      "title": "This didn't load",
+      "body": "We couldn't reach the server, so nothing here is confirmed yet. Your data is safe. Try again in a moment."
+    }
+  },
+  "routeError": {
+    "title": "This page hit a problem",
+    "body": "The rest of Nexus is still working. Try again, or go back to My Day."
+  },
+  "confirm": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "close": "Close",
+    "working": "Working…",
+    "typeToConfirm": "Type {{text}} to confirm",
+    "failed": "That didn't work. Nothing was changed — try again."
+  },
+  "toast": {
+    "undo": "Undo"
+  },
+  "ledger": {
+    "noChange": "No change"
+  },
+  "chart": {
+    "noData": "No data for this period yet"
+  }
+}

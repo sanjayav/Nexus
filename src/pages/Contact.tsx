@@ -1,224 +1,157 @@
 import { FormEvent, useState } from 'react'
-import { Mail, MapPin, CheckCircle2, Loader2 } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Mail, MapPin, Send, Copy, Check, AlertCircle } from 'lucide-react'
+import { Trans, useTranslation } from 'react-i18next'
 import MarketingShell from '../components/marketing/MarketingShell'
-import { FadeIn } from '../components/MotionPrimitives'
+import PageHero from '../components/marketing/PageHero'
+import { Reveal } from '../components/marketing/motion'
+import { inputClass } from '../components/auth/AuthField'
+import { dur, ease } from '../motion/tokens'
 
 /**
- * /contact — basic enquiry form. POST is a no-op for v1 (does not hit any
- * backend); we just show a "we'll be in touch" success state. When a
- * Formspree-style endpoint is wired in, swap the simulated handler.
+ * /contact — enquiry form.
+ *
+ * There is no enquiry endpoint yet, so the form does not pretend to send:
+ * it composes the message in the visitor's own email app (mailto:) and says
+ * exactly that. A "copy message" fallback covers browsers with no mail app.
+ * When a real endpoint lands, swap `onSubmit` and restore a "received" state.
  */
+const SALES = 'sales@aeiforo.local'
+const SUPPORT = 'support@aeiforo.local'
 
 export default function Contact() {
+  const { t } = useTranslation()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [company, setCompany] = useState('')
   const [message, setMessage] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
+  const [handedOff, setHandedOff] = useState(false)
+  const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const onSubmit = async (e: FormEvent) => {
+  const subject = t('contact.mail.subject', { company: company.trim() || name.trim() || '—' })
+  const body = `${message.trim()}\n\n— ${[name.trim(), email.trim(), company.trim()].filter(Boolean).join(' · ')}`
+
+  const onSubmit = (e: FormEvent) => {
     e.preventDefault()
     setError(null)
     if (!email.trim() || !message.trim()) {
-      setError('Please add at least an email and a message.')
+      setError(t('contact.form.required'))
       return
     }
-    setSubmitting(true)
-    // Simulated network delay for the demo handler; real endpoint TBD.
-    await new Promise((resolve) => setTimeout(resolve, 600))
-    setSubmitting(false)
-    setSubmitted(true)
+    window.location.href = `mailto:${SALES}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    setHandedOff(true)
+  }
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(`${SALES}\n${subject}\n\n${body}`)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch { /* clipboard blocked — the text is still on screen */ }
   }
 
   return (
     <MarketingShell>
-      <section className="pt-16 pb-24 sm:pt-24 sm:pb-28">
-        <div className="max-w-[1180px] mx-auto px-5 sm:px-8">
-          <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-12 lg:gap-20">
-            {/* Form */}
-            <FadeIn>
+      <PageHero kicker={t('contact.eyebrow')} title={t('contact.title')} intro={t('contact.intro')} align="left" />
+
+      <section className="pb-24 sm:pb-28">
+        <div className="max-w-[1040px] mx-auto px-4 sm:px-8 grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[1.3fr_0.7fr] gap-12 lg:gap-16">
+          <Reveal className="surface-paper !rounded-[20px] p-6 sm:p-9">
+            <form onSubmit={onSubmit} noValidate className="space-y-5" aria-describedby={error ? 'contact-err' : undefined}>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Field id="name" label={t('contact.form.name')} value={name} onChange={setName} placeholder={t('contact.form.namePlaceholder')} autoComplete="name" />
+                <Field id="email" label={t('contact.form.email')} type="email" required value={email} onChange={setEmail} placeholder={t('contact.form.emailPlaceholder')} autoComplete="email" />
+              </div>
+              <Field id="company" label={t('contact.form.company')} value={company} onChange={setCompany} placeholder={t('contact.form.companyPlaceholder')} autoComplete="organization" />
               <div>
-                <p
-                  className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-4"
-                  style={{ color: 'var(--accent-600)' }}
-                >
-                  Contact
-                </p>
-                <h1
-                  className="h-display"
-                  style={{
-                    fontSize: 'clamp(2rem, 4.5vw, 2.75rem)',
-                    color: 'var(--text-primary)',
-                    lineHeight: 1.1,
-                  }}
-                >
-                  Get in touch.
-                </h1>
-                <p
-                  className="mt-5 text-[16px] leading-relaxed max-w-[480px]"
-                  style={{ color: 'var(--text-secondary)' }}
-                >
-                  Questions about pricing, security, deployment, or just want to see Nexus on your
-                  own data? Drop us a note and a human will reply within one working day.
-                </p>
+                <label htmlFor="message" className="type-small font-medium block mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+                  {t('contact.form.message')}
+                </label>
+                <textarea
+                  id="message"
+                  required
+                  aria-required="true"
+                  rows={6}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder={t('contact.form.messagePlaceholder')}
+                  className={`${inputClass} !h-auto px-3.5 py-3 resize-y leading-[1.6]`}
+                />
+              </div>
 
-                {submitted ? (
-                  <div
-                    className="mt-10 rounded-[14px] border p-7"
-                    style={{
-                      background: 'color-mix(in srgb, var(--accent-500) 8%, var(--bg-primary))',
-                      borderColor: 'var(--accent-500)',
-                    }}
+              {error && (
+                <p id="contact-err" role="alert" className="flex items-center gap-2 type-small" style={{ color: 'var(--status-danger)' }}>
+                  <AlertCircle className="w-4 h-4" aria-hidden />
+                  {error}
+                </p>
+              )}
+
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <button type="submit" className="btn-primary h-12 px-6 text-[15px]">
+                  <Send className="w-4 h-4" aria-hidden />
+                  {t('contact.form.send')}
+                </button>
+                <span className="type-caption" style={{ color: 'var(--text-tertiary)' }}>{t('contact.form.mailNote')}</span>
+              </div>
+
+              <AnimatePresence>
+                {handedOff && (
+                  <motion.div
+                    role="status"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: dur.base, ease: ease.out }}
+                    className="overflow-hidden"
                   >
-                    <CheckCircle2 className="w-7 h-7 mb-3" style={{ color: 'var(--accent-600)' }} />
-                    <h2 className="h-section mb-2" style={{ color: 'var(--text-primary)' }}>
-                      We&rsquo;ll be in touch.
-                    </h2>
-                    <p className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
-                      Thanks for reaching out — we&rsquo;ve received your message and will respond shortly.
-                    </p>
-                  </div>
-                ) : (
-                  <form onSubmit={onSubmit} className="mt-10 space-y-5">
-                    <div className="grid sm:grid-cols-2 gap-4">
-                      <Field
-                        id="name"
-                        label="Your name"
-                        value={name}
-                        onChange={setName}
-                        placeholder="Jane Doe"
-                      />
-                      <Field
-                        id="email"
-                        label="Email"
-                        type="email"
-                        required
-                        value={email}
-                        onChange={setEmail}
-                        placeholder="jane@company.com"
-                      />
+                    <div className="rounded-[12px] p-4 sm:p-5" style={{ background: 'var(--status-info-soft)', border: '1px solid var(--status-info-line)' }}>
+                      <p className="type-h3" style={{ color: 'var(--text-primary)' }}>{t('contact.handoff.title')}</p>
+                      <p className="mt-1 type-small" style={{ color: 'var(--text-secondary)' }}>{t('contact.handoff.body', { email: SALES })}</p>
+                      <button type="button" onClick={copy} className="btn-secondary mt-3 h-10 text-[13px]">
+                        {copied ? <Check className="w-4 h-4" aria-hidden /> : <Copy className="w-4 h-4" aria-hidden />}
+                        {copied ? t('contact.handoff.copied') : t('contact.handoff.copy')}
+                      </button>
                     </div>
-                    <Field
-                      id="company"
-                      label="Company (optional)"
-                      value={company}
-                      onChange={setCompany}
-                      placeholder="Acme Sustainability"
-                    />
-                    <div>
-                      <label
-                        htmlFor="message"
-                        className="text-[11px] font-semibold uppercase tracking-[0.1em] block mb-1.5"
-                        style={{ color: 'var(--text-tertiary)' }}
-                      >
-                        Message
-                      </label>
-                      <textarea
-                        id="message"
-                        required
-                        rows={5}
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        placeholder="What would you like to know?"
-                        className="w-full px-3.5 py-2.5 text-[14px] rounded-[10px] outline-none resize-y"
-                        style={{
-                          background: 'var(--bg-primary)',
-                          border: '1px solid var(--border-default)',
-                          color: 'var(--text-primary)',
-                        }}
-                      />
-                    </div>
-
-                    {error && (
-                      <p className="text-[13px]" style={{ color: 'var(--accent-red)' }}>
-                        {error}
-                      </p>
-                    )}
-
-                    <button
-                      type="submit"
-                      disabled={submitting}
-                      className="btn-primary"
-                      style={{ height: 44, paddingInline: 22, fontSize: 14 }}
-                    >
-                      {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                      {submitting ? 'Sending…' : 'Send message'}
-                    </button>
-                  </form>
+                  </motion.div>
                 )}
-              </div>
-            </FadeIn>
+              </AnimatePresence>
+            </form>
+          </Reveal>
 
-            {/* Sidebar — address + contact emails */}
-            <FadeIn delay={0.1}>
-              <div className="space-y-7 lg:pl-6">
-                <div>
-                  <p
-                    className="text-[11px] font-semibold uppercase tracking-[0.12em] mb-2"
-                    style={{ color: 'var(--text-tertiary)' }}
-                  >
-                    Sales
-                  </p>
-                  <a
-                    href="mailto:sales@aeiforo.local"
-                    className="inline-flex items-center gap-2 text-[15px] font-semibold"
-                    style={{ color: 'var(--accent-600)' }}
-                  >
-                    <Mail className="w-4 h-4" />
-                    sales@aeiforo.local
-                  </a>
-                </div>
-                <div>
-                  <p
-                    className="text-[11px] font-semibold uppercase tracking-[0.12em] mb-2"
-                    style={{ color: 'var(--text-tertiary)' }}
-                  >
-                    Support
-                  </p>
-                  <a
-                    href="mailto:support@aeiforo.local"
-                    className="inline-flex items-center gap-2 text-[15px] font-semibold"
-                    style={{ color: 'var(--accent-600)' }}
-                  >
-                    <Mail className="w-4 h-4" />
-                    support@aeiforo.local
-                  </a>
-                </div>
-                <div>
-                  <p
-                    className="text-[11px] font-semibold uppercase tracking-[0.12em] mb-2"
-                    style={{ color: 'var(--text-tertiary)' }}
-                  >
-                    Address
-                  </p>
-                  <div className="flex items-start gap-2 text-[14.5px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                    <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-                    <address className="not-italic">
-                      Aeiforo Ltd<br />
-                      Office address placeholder<br />
-                      London, United Kingdom
-                    </address>
-                  </div>
-                </div>
-                <div
-                  className="rounded-[12px] border p-5 text-[13px] leading-relaxed"
-                  style={{
-                    background: 'var(--bg-subtle)',
-                    borderColor: 'var(--border-subtle)',
-                    color: 'var(--text-secondary)',
-                  }}
-                >
-                  For security disclosures, please email{' '}
-                  <a href="mailto:security@aeiforo.local" style={{ color: 'var(--accent-600)' }}>
-                    security@aeiforo.local
-                  </a>{' '}
-                  rather than using the form.
-                </div>
+          {/* Sidebar — contact emails + address */}
+          <Reveal delay={0.08} className="space-y-8 lg:pt-4">
+            {[
+              { label: t('contact.sidebar.sales'), email: SALES },
+              { label: t('contact.sidebar.support'), email: SUPPORT },
+            ].map((c) => (
+              <div key={c.email}>
+                <p className="type-small font-medium mb-2" style={{ color: 'var(--text-tertiary)' }}>{c.label}</p>
+                <a href={`mailto:${c.email}`} className="inline-flex items-center gap-2 min-h-[40px] text-[16px] font-semibold hover:underline underline-offset-4" style={{ color: 'var(--text-link)' }}>
+                  <Mail className="w-4 h-4" aria-hidden />
+                  {c.email}
+                </a>
               </div>
-            </FadeIn>
-          </div>
+            ))}
+            <div>
+              <p className="type-small font-medium mb-2" style={{ color: 'var(--text-tertiary)' }}>{t('contact.sidebar.address')}</p>
+              <div className="flex items-start gap-2 type-body" style={{ color: 'var(--text-secondary)' }}>
+                <MapPin className="w-4 h-4 mt-1 flex-shrink-0" style={{ color: 'var(--text-tertiary)' }} aria-hidden />
+                <address className="not-italic">
+                  Aeiforo Ltd<br />
+                  {t('contact.sidebar.addressLine3')}
+                </address>
+              </div>
+            </div>
+            <div className="rounded-[14px] p-5 type-small" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}>
+              <Trans
+                i18nKey="contact.sidebar.security"
+                components={{
+                  email: <a href="mailto:security@aeiforo.local" className="underline underline-offset-4" style={{ color: 'var(--text-link)' }} />,
+                }}
+              />
+            </div>
+          </Reveal>
         </div>
       </section>
     </MarketingShell>
@@ -233,31 +166,25 @@ interface FieldProps {
   placeholder?: string
   type?: string
   required?: boolean
+  autoComplete?: string
 }
 
-function Field({ id, label, value, onChange, placeholder, type = 'text', required }: FieldProps) {
+function Field({ id, label, value, onChange, placeholder, type = 'text', required, autoComplete }: FieldProps) {
   return (
     <div>
-      <label
-        htmlFor={id}
-        className="text-[11px] font-semibold uppercase tracking-[0.1em] block mb-1.5"
-        style={{ color: 'var(--text-tertiary)' }}
-      >
+      <label htmlFor={id} className="type-small font-medium block mb-1.5" style={{ color: 'var(--text-secondary)' }}>
         {label}
       </label>
       <input
         id={id}
         type={type}
         required={required}
+        aria-required={required || undefined}
+        autoComplete={autoComplete}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full h-11 px-3.5 text-[14px] rounded-[10px] outline-none"
-        style={{
-          background: 'var(--bg-primary)',
-          border: '1px solid var(--border-default)',
-          color: 'var(--text-primary)',
-        }}
+        className={`${inputClass} px-3.5`}
       />
     </div>
   )

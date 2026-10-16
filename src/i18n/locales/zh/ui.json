@@ -1,0 +1,65 @@
+{
+  "noData": "暂无数据",
+  "percent": "百分比",
+  "status": {
+    "not_started": "未开始",
+    "draft": "草稿",
+    "in_progress": "进行中",
+    "submitted": "已提交",
+    "pending": "待审核",
+    "reviewed": "已审核",
+    "approved": "已批准",
+    "rejected": "已退回",
+    "returned": "已退回",
+    "overdue": "已逾期",
+    "due_soon": "即将到期",
+    "published": "已发布",
+    "archived": "已归档",
+    "blocked": "受阻"
+  },
+  "state": {
+    "loading": "加载中…",
+    "retry": "重试",
+    "clearFilters": "清除筛选",
+    "details": "技术详情"
+  },
+  "empty": {
+    "empty": {
+      "title": "暂无内容",
+      "body": "有内容时会显示在这里。"
+    },
+    "cleared": {
+      "title": "全部处理完毕",
+      "body": "这里的事项都已处理。有新事项时会显示在这里。"
+    },
+    "filtered": {
+      "title": "没有符合筛选条件的结果",
+      "body": "请尝试移除筛选条件或换个关键词搜索。"
+    },
+    "error": {
+      "title": "加载失败",
+      "body": "暂时无法连接服务器，此处内容尚未确认。您的数据是安全的，请稍后重试。"
+    }
+  },
+  "routeError": {
+    "title": "此页面出现问题",
+    "body": "Nexus 的其他部分仍可正常使用。请重试，或返回“我的一天”。"
+  },
+  "confirm": {
+    "confirm": "确认",
+    "cancel": "取消",
+    "close": "关闭",
+    "working": "处理中…",
+    "typeToConfirm": "输入 {{text}} 以确认",
+    "failed": "操作未成功，未做任何更改，请重试。"
+  },
+  "toast": {
+    "undo": "撤销"
+  },
+  "ledger": {
+    "noChange": "无变化"
+  },
+  "chart": {
+    "noData": "本期暂无数据"
+  }
+}

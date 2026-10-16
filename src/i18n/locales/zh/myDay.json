@@ -1,0 +1,101 @@
+{
+  "there": "您好",
+  "warn": {
+    "mine": "无法加载您的任务",
+    "all": "无法加载审核队列",
+    "activity": "无法加载动态",
+    "anomalies": "无法加载异常数量",
+    "hash": "无法验证哈希链"
+  },
+  "greeting": {
+    "morning": "早上好",
+    "afternoon": "下午好",
+    "evening": "晚上好"
+  },
+  "greetingLine": "{{name}}，{{greeting}}",
+  "kpi": {
+    "aria": "关键指标概览",
+    "open": "未完成的指派",
+    "approvedWeek": "本周已批准",
+    "critical": "严重异常",
+    "hashChain": "哈希链",
+    "verified": "已验证",
+    "broken": "校验失败",
+    "overdueHint_other": "{{count}} 项已逾期",
+    "vsLastWeek": "较上周",
+    "noAnchors": "暂无锚定记录",
+    "records_other": "已锚定 {{count}} 条记录"
+  },
+  "recentActivity": "最近动态",
+  "viewAll": "查看全部",
+  "activity": {
+    "system": "系统",
+    "today": "今天",
+    "yesterday": "昨天",
+    "emptyTitle": "暂无动态",
+    "none": "提交、审核与批准等操作发生后将显示在此处。",
+    "errorBody": "无法加载近期动态，请稍后重试。",
+    "resource": {
+      "assignment": "披露项",
+      "reporting_period": "报告期",
+      "evidence": "证据",
+      "report": "报告",
+      "user": "用户",
+      "organization": "组织",
+      "period": "报告期"
+    },
+    "verb": {
+      "created": "创建了 {{object}}",
+      "updated": "更新了 {{object}}",
+      "deleted": "删除了 {{object}}",
+      "signedIn": "登录了系统",
+      "approved": "批准了 {{object}}",
+      "sentBack": "退回了 {{object}}",
+      "submitted": "提交了 {{object}}",
+      "reviewed": "审核了 {{object}}",
+      "uploaded": "上传了 {{object}}",
+      "activated": "启用了 {{object}}",
+      "published": "发布了 {{object}}",
+      "assigned": "指派了 {{object}}",
+      "locked": "锁定了 {{object}}",
+      "other": "{{action}} {{object}}"
+    }
+  },
+  "hero": {
+    "kicker": "{{period}} · {{framework}}",
+    "periodStatus": {
+      "setup": "设置中",
+      "active": "进行中",
+      "locked": "已锁定",
+      "published": "已发布",
+      "archived": "已归档"
+    },
+    "figureAria": "{{period}} 已批准 {{pct}}%",
+    "ofApproved": "{{period}} 已批准",
+    "approvedOfTotal": "{{total}} 个披露项中已批准 {{approved}} 个",
+    "barAria": "已批准 {{approved}} 个，审核中 {{review}} 个，待填报 {{open}} 个",
+    "legendApproved": "已批准",
+    "legendReview": "审核中",
+    "legendOpen": "待填报",
+    "deadline": "提交截止日期",
+    "deadlineAria": "提交截止日期",
+    "daysLeft_other": "天后截止",
+    "daysPast_other": "天前已截止",
+    "noDeadline": "本报告期尚未设置提交截止日期。",
+    "overdueMine_other": "您有 {{count}} 项已逾期",
+    "errorTitle": "无法加载报告进度",
+    "errorBody": "进度加载完成前不显示就绪状态，不会默认视为已完成。",
+    "noPeriodTitle": "{{framework}} 尚无报告期",
+    "noPeriodBody": "创建带提交截止日期的报告期后，即可在此跟踪就绪情况。",
+    "setUpPeriod": "设置报告期",
+    "nothingAssignedTitle": "{{period}} 尚未指派披露项",
+    "nothingAssignedBody": "指派披露项后，此处将显示就绪情况。"
+  },
+  "waiting": {
+    "title": "待您处理",
+    "mine": "您待填报的披露项",
+    "returned_other": "{{count}} 项已退回修改",
+    "review": "待审核的提交",
+    "approval": "待批准事项"
+  }
+}

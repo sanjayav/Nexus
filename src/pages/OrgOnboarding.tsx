@@ -11,13 +11,24 @@ import { FrameworkBadge } from '../components/FrameworkBadge'
 import { useFramework } from '../lib/frameworks'
 import ResetWorkspaceButton from '../components/ResetWorkspaceButton'
 import PageHeader from '../components/PageHeader'
+import { Trans, useTranslation } from 'react-i18next'
+import i18n from '../i18n'
+import { frameworkName } from '../components/FrameworkBadge'
+import { StatLedger, StateBoundary, notify, useConfirm, SkeletonCard, Illustration } from '../components/ui'
+import useSetupProgress, { invalidateSetup } from '../components/onboarding/useSetupProgress'
+
+/** Localised entity-type label (TYPE_META.label stays as the English fallback). */
+function typeLabel(type: EntityType): string {
+  return i18n.t(`onboarding.org.types.${type}`, { defaultValue: TYPE_META[type].label })
+}
 
 const TYPE_META: Record<EntityType, { label: string; icon: typeof Building2; tint: string; tintFg: string }> = {
-  group:        { label: 'Group',        icon: Landmark,   tint: 'var(--accent-teal)',    tintFg: '#fff' },
-  business_unit:{ label: 'Business Unit', icon: Globe2,    tint: 'var(--accent-purple)',  tintFg: '#fff' },
-  subsidiary:   { label: 'Subsidiary',   icon: Building2,  tint: 'var(--accent-blue)',    tintFg: '#fff' },
-  plant:        { label: 'Plant',        icon: Factory,    tint: 'var(--accent-amber)',   tintFg: '#1f1404' },
-  office:       { label: 'Office',       icon: Building2,  tint: 'var(--text-tertiary)',  tintFg: '#fff' },
+  // Emerald ordinal scale by depth: group darkest → site lightest.
+  group:        { label: 'Group',        icon: Landmark,   tint: 'var(--chart-s1)',   tintFg: 'var(--bg-primary)' },
+  business_unit:{ label: 'Business Unit', icon: Globe2,    tint: 'var(--chart-target)', tintFg: 'var(--bg-primary)' },
+  subsidiary:   { label: 'Subsidiary',   icon: Building2,  tint: 'var(--chart-s2)',   tintFg: 'var(--bg-primary)' },
+  plant:        { label: 'Plant',        icon: Factory,    tint: 'var(--bg-tertiary)', tintFg: 'var(--text-primary)' },
+  office:       { label: 'Office',       icon: Building2,  tint: 'var(--bg-tertiary)', tintFg: 'var(--text-secondary)' },
 }
 
 const CHILD_TYPE_FOR: Record<EntityType, EntityType[]> = {
@@ -29,6 +40,7 @@ const CHILD_TYPE_FOR: Record<EntityType, EntityType[]> = {
 }
 
 export default function OrgOnboarding() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [entities, setEntities] = useState<OrgEntity[]>([])
   const [members, setMembers] = useState<OrgMember[]>([])
@@ -36,8 +48,13 @@ export default function OrgOnboarding() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [addingUnder, setAddingUnder] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const confirm = useConfirm()
+  const setup = useSetupProgress()
 
   const refresh = async () => {
+    setLoadError(null)
     try {
       const [ents, mems] = await Promise.all([orgStore.listEntities(), orgStore.listMembers()])
       setEntities(ents)
@@ -45,7 +62,16 @@ export default function OrgOnboarding() {
       if (ents.length && !selectedId) setSelectedId(ents[0].id)
       const groups = ents.filter(e => e.type === 'group' || e.type === 'business_unit').map(e => e.id)
       setExpanded(prev => new Set([...prev, ...groups]))
-    } catch { /* silent */ }
+      invalidateSetup()
+    } catch (e) {
+      // Never show an empty tree for a failed load — that reads as "start from scratch".
+      setLoadError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setLoading(false)
+    }
+  }
+  const guard = async (fn: () => Promise<unknown>) => {
+    try { await fn() } catch (e) { notify.error(t('onboarding.org.saveFailed'), { description: e instanceof Error ? e.message : undefined }) }
   }
 
   useEffect(() => { refresh() }, [])
@@ -78,11 +104,11 @@ export default function OrgOnboarding() {
       </div>
       <PageHeader
         breadcrumbs={[
-          { label: 'Setup' },
-          { label: 'Organisation' },
+          { label: t('onboarding.org.breadcrumbSetup') },
+          { label: t('shell.routes.organisation') },
         ]}
-        eyebrow="Organisation onboarding"
-        title="Build your reporting tree"
+        eyebrow={t('onboarding.org.eyebrow')}
+        title={t('onboarding.org.title')}
         actions={entities.length > 0 ? (
           <ResetWorkspaceButton variant="danger" onReset={() => { refresh(); navigate('/dashboard') }} />
         ) : undefined}
@@ -93,26 +119,54 @@ export default function OrgOnboarding() {
         <FrameworkScopeNote />
       </PageHeader>
 
-      <div className="grid grid-cols-4 gap-3 mb-5">
-        <Stat label="Entities" value={stats.total} />
-        <Stat label="Subsidiaries" value={stats.subs} />
-        <Stat label="Reporting plants" value={stats.plants} />
-        <Stat label="Assigned members" value={stats.members} />
-      </div>
+      <StateBoundary
+        loading={loading}
+        error={loadError}
+        onRetry={refresh}
+        hasData={entities.length > 0}
+        skeleton={<div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-5"><SkeletonCard /><SkeletonCard /></div>}
+        errorState={{ title: t('onboarding.org.loadFailed') }}
+      >
+      <StatLedger
+        className="mb-5"
+        aria-label={t('onboarding.org.stats.aria')}
+        items={[
+          { id: 'entities', label: t('onboarding.org.stats.entities'), value: stats.total, tone: 'brand' },
+          { id: 'subs', label: t('onboarding.org.stats.subsidiaries'), value: stats.subs, tone: 'neutral' },
+          { id: 'plants', label: t('onboarding.org.stats.plants'), value: stats.plants, tone: 'neutral' },
+          { id: 'members', label: t('onboarding.org.stats.members'), value: stats.members, tone: stats.members > 0 ? 'success' : 'warning' },
+        ]}
+      />
 
-      <div className="grid grid-cols-[1fr_400px] gap-5">
+      {/* The real next action sits on top, not at the bottom of the rail. */}
+      {entities.length >= 2 && setup.next && setup.next.key !== 'org_tree' && (
+        <div className="surface-paper mb-5 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="text-small font-semibold text-[var(--text-primary)]">{t('onboarding.org.readyTitle')}</div>
+            <div className="text-caption text-[var(--text-secondary)] mt-0.5">{t('onboarding.org.nextStep', { step: t(`onboarding.setup.steps.${setup.next.key}.title`) })}</div>
+          </div>
+          <button
+            onClick={() => navigate(setup.next!.route)}
+            className="inline-flex items-center justify-center gap-2 min-h-[40px] px-4 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-small font-semibold hover:bg-[var(--btn-primary-bg-hover)] transition-colors duration-micro"
+          >
+            {t(`onboarding.setup.steps.${setup.next.key}.title`)} <ArrowRight className="w-4 h-4" aria-hidden />
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-5">
         {/* TREE */}
-        <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-5 min-h-[480px]">
+        <div className="surface-paper p-4 sm:p-5 min-h-[360px] min-w-0">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-[var(--text-base)] font-semibold text-[var(--text-primary)]">
-              Reporting entity tree
+            <h2 className="type-h3 text-[var(--text-primary)]">
+              {t('onboarding.org.treeTitle')}
             </h2>
             {roots.length === 0 && (
               <button
                 onClick={() => setAddingUnder('__root__')}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-xs)] font-semibold hover:bg-[var(--color-brand-strong)] transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-xs)] font-semibold hover:bg-[var(--btn-primary-bg-hover)] transition-colors"
               >
-                <Plus className="w-3 h-3" /> Start with a group
+                <Plus className="w-3 h-3" /> {t('onboarding.org.startWithGroup')}
               </button>
             )}
           </div>
@@ -126,7 +180,7 @@ export default function OrgOnboarding() {
               allowedTypes={['group']}
               parent={null}
               onCancel={() => setAddingUnder(null)}
-              onSave={async data => { await orgStore.addEntity(data); setAddingUnder(null); await refresh() }}
+              onSave={data => guard(async () => { await orgStore.addEntity(data); setAddingUnder(null); await refresh(); notify.success(t('onboarding.org.added', { name: data.name })) })}
             />
           )}
 
@@ -148,19 +202,26 @@ export default function OrgOnboarding() {
               onSelect={setSelectedId}
               onAddChild={id => { setAddingUnder(id); setExpanded(new Set([...expanded, id])) }}
               onEdit={setEditingId}
-              onDelete={id => {
-                if (confirm('Remove this entity and all descendants?')) { (async () => { await orgStore.removeEntity(id); await refresh() })() }
+              onDelete={async id => {
+                const ent = entities.find(e => e.id === id)
+                const ok = await confirm({
+                  title: t('onboarding.org.confirmRemoveTitle', { name: ent?.name ?? '' }),
+                  description: t('onboarding.org.confirmRemove'),
+                  tone: 'destructive',
+                  confirmLabel: t('onboarding.org.remove'),
+                })
+                if (ok) await guard(async () => { await orgStore.removeEntity(id); await refresh(); notify.success(t('onboarding.org.removed', { name: ent?.name ?? '' })) })
               }}
-              onSave={async (id, patch) => { await orgStore.updateEntity(id, patch); setEditingId(null); await refresh() }}
+              onSave={(id, patch) => guard(async () => { await orgStore.updateEntity(id, patch); setEditingId(null); await refresh() })}
               onCancelEdit={() => setEditingId(null)}
-              onAddSubmit={async (parentId, data) => { await orgStore.addEntity({ ...data, parentId }); setAddingUnder(null); await refresh() }}
+              onAddSubmit={(parentId, data) => guard(async () => { await orgStore.addEntity({ ...data, parentId }); setAddingUnder(null); await refresh(); notify.success(t('onboarding.org.added', { name: data.name })) })}
               onAddCancel={() => setAddingUnder(null)}
             />
           ))}
         </div>
 
         {/* SIDE — detail + assign members */}
-        <aside className="space-y-4 sticky top-[72px] self-start">
+        <aside className="space-y-4 lg:sticky lg:top-[72px] self-start min-w-0">
           {selected ? (
             <DetailPanel
               entity={selected}
@@ -169,60 +230,33 @@ export default function OrgOnboarding() {
               onUpdated={refresh}
             />
           ) : (
-            <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)] p-8 text-center">
-              <Building2 className="w-8 h-8 text-[var(--text-tertiary)] mx-auto mb-2" />
-              <p className="text-[var(--text-sm)] text-[var(--text-tertiary)]">
-                Pick an entity from the tree to view and assign members.
+            <div className="surface-paper p-8 text-center">
+              <Illustration name="connect" size={96} className="mx-auto" />
+              <p className="text-small text-[var(--text-tertiary)] mt-2">
+                {t('onboarding.org.pickEntity')}
               </p>
             </div>
           )}
 
-          <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--color-brand-soft)] p-5">
-            <h3 className="text-[var(--text-sm)] font-semibold text-[var(--color-brand-strong)] mb-1">
-              Ready to collect data?
-            </h3>
-            <p className="text-[var(--text-xs)] text-[var(--color-brand-strong)]/80 mb-3">
-              Once the tree looks right, jump into assignments — pick a GRI question, pick a user, pick the plant it applies to.
-            </p>
-            <button
-              onClick={() => navigate('/admin/assignments')}
-              className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)] transition-colors"
-            >
-              Open assignment manager <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
         </aside>
       </div>
-    </div>
-  )
-}
-
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] p-4">
-      <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">{label}</div>
-      <div className="text-[22px] font-bold tabular-nums text-[var(--text-primary)] mt-1">{value}</div>
+      </StateBoundary>
     </div>
   )
 }
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
+  const { t } = useTranslation()
   return (
-    <div className="text-center py-14">
-      <div className="w-14 h-14 mx-auto rounded-2xl bg-[var(--color-brand-soft)] flex items-center justify-center">
-        <Landmark className="w-7 h-7 text-[var(--color-brand)]" />
-      </div>
-      <h3 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)] mt-3">
-        Start with your parent group
-      </h3>
-      <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-1 max-w-sm mx-auto">
-        Then add business units under the group, subsidiaries under each BU, and plants/offices under subsidiaries.
-      </p>
+    <div className="text-center py-10">
+      <Illustration name="connect" size={140} className="mx-auto" />
+      <h3 className="type-h3 text-[var(--text-primary)] mt-3">{t('onboarding.org.emptyTitle')}</h3>
+      <p className="text-small text-[var(--text-tertiary)] mt-1 max-w-sm mx-auto">{t('onboarding.org.emptyBody')}</p>
       <button
         onClick={onAdd}
-        className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold hover:bg-[var(--color-brand-strong)]"
+        className="mt-4 inline-flex items-center gap-1.5 min-h-[40px] px-4 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-small font-semibold hover:bg-[var(--btn-primary-bg-hover)] transition-colors duration-micro"
       >
-        <Plus className="w-4 h-4" /> Add group
+        <Plus className="w-4 h-4" aria-hidden /> {t('onboarding.org.addGroup')}
       </button>
     </div>
   )
@@ -248,6 +282,7 @@ interface TreeNodeProps {
 }
 
 function TreeNode(p: TreeNodeProps) {
+  const { t } = useTranslation()
   const { entity, byParent, expanded, selectedId, editingId, addingUnder, depth } = p
   const children = byParent.get(entity.id) || []
   const isOpen = expanded.has(entity.id)
@@ -261,9 +296,9 @@ function TreeNode(p: TreeNodeProps) {
     <div>
       <div
         className={`group flex items-center gap-2 py-2 px-2 rounded-[var(--radius-md)] transition-colors cursor-pointer ${
-          selected ? 'bg-[var(--color-brand-soft)] border border-[var(--color-brand)]/30' : 'hover:bg-[var(--bg-secondary)] border border-transparent'
+          selected ? 'bg-[var(--bg-hover)] border border-[var(--color-brand)]/40' : 'hover:bg-[var(--bg-hover)] border border-transparent'
         }`}
-        style={{ paddingLeft: `${depth * 20 + 8}px` }}
+        style={{ paddingLeft: `${Math.min(depth, 4) * 16 + 8}px` }}
         onClick={() => p.onSelect(entity.id)}
       >
         <button
@@ -290,21 +325,21 @@ function TreeNode(p: TreeNodeProps) {
         ) : (
           <>
             <div className="min-w-0 flex-1">
-              <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{entity.name}</div>
-              <div className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-2">
-                <span className="uppercase tracking-wider font-semibold">{TYPE_META[entity.type].label}</span>
+              <div className="text-[length:var(--text-sm)] font-semibold text-[var(--text-primary)] truncate">{entity.name}</div>
+              <div className="text-caption text-[var(--text-tertiary)] flex items-center gap-2">
+                <span className="font-medium">{typeLabel(entity.type)}</span>
                 {entity.code && <span>· {entity.code}</span>}
                 {entity.country && <span>· {entity.country}</span>}
-                {entity.equity != null && <span>· {entity.equity}% equity</span>}
+                {entity.equity != null && <span>· {t('onboarding.org.equityPct', { pct: entity.equity })}</span>}
               </div>
             </div>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity">
               {canAddChild && (
                 <button
                   type="button"
                   onClick={e => { e.stopPropagation(); p.onAddChild(entity.id) }}
-                  className="w-6 h-6 rounded hover:bg-[var(--color-brand-soft)] text-[var(--color-brand)] flex items-center justify-center"
-                  title="Add child"
+                  className="w-9 h-9 rounded-[var(--radius-md)] hover:bg-[var(--bg-hover)] text-[var(--color-brand)] flex items-center justify-center" aria-label={t('onboarding.org.addChild')}
+                  title={t('onboarding.org.addChild')}
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -312,16 +347,18 @@ function TreeNode(p: TreeNodeProps) {
               <button
                 type="button"
                 onClick={e => { e.stopPropagation(); p.onEdit(entity.id) }}
-                className="w-6 h-6 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] flex items-center justify-center"
-                title="Edit"
+                className="w-9 h-9 rounded-[var(--radius-md)] hover:bg-[var(--bg-hover)] text-[var(--text-tertiary)] flex items-center justify-center"
+                title={t('common.edit')}
+                aria-label={t('common.edit')}
               >
                 <Pencil className="w-3 h-3" />
               </button>
               <button
                 type="button"
                 onClick={e => { e.stopPropagation(); p.onDelete(entity.id) }}
-                className="w-6 h-6 rounded hover:bg-[var(--accent-red-light)] text-[var(--status-reject)] flex items-center justify-center"
-                title="Remove"
+                className="w-9 h-9 rounded-[var(--radius-md)] hover:bg-[var(--bg-hover)] text-[var(--status-danger)] flex items-center justify-center"
+                title={t('onboarding.org.remove')}
+                aria-label={t('onboarding.org.remove')}
               >
                 <Trash2 className="w-3 h-3" />
               </button>
@@ -357,6 +394,7 @@ function AddRow({
   onCancel: () => void
   onSave: (data: Omit<OrgEntity, 'id' | 'createdAt'>) => void
 }) {
+  const { t } = useTranslation()
   const [type, setType] = useState<EntityType>(allowedTypes[0] || 'subsidiary')
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
@@ -377,52 +415,52 @@ function AddRow({
 
   return (
     <div className="rounded-[var(--radius-md)] border border-[var(--color-brand)]/40 bg-[var(--color-brand-soft)]/40 p-3 space-y-2">
-      <div className="grid grid-cols-[140px_1fr_140px] gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-[140px_1fr_140px] gap-2">
         <select
           value={type}
           onChange={e => setType(e.target.value as EntityType)}
-          className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)]"
+          className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-xs)]"
         >
-          {allowedTypes.map(t => <option key={t} value={t}>{TYPE_META[t].label}</option>)}
+          {allowedTypes.map(ty => <option key={ty} value={ty}>{typeLabel(ty)}</option>)}
         </select>
         <input
           autoFocus
           value={name}
           onChange={e => setName(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && submit()}
-          placeholder="Entity name"
-          className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+          placeholder={t('onboarding.org.entityName')}
+          className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
         />
         <input
           value={code}
           onChange={e => setCode(e.target.value)}
-          placeholder="Code (optional)"
-          className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)] font-mono"
+          placeholder={t('onboarding.org.codeOptional')}
+          className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-xs)] font-mono"
         />
       </div>
-      <div className="grid grid-cols-[1fr_140px_auto_auto] gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-[1fr_140px_auto_auto] gap-2">
         <input
           value={country}
           onChange={e => setCountry(e.target.value)}
-          placeholder="Country"
-          className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)]"
+          placeholder={t('onboarding.org.country')}
+          className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-xs)]"
         />
         {type === 'subsidiary' ? (
           <input
             type="number"
             value={equity}
             onChange={e => setEquity(e.target.value)}
-            placeholder="Equity %"
-            className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)]"
+            placeholder={t('onboarding.org.equityPlaceholder')}
+            className="px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-xs)]"
           />
         ) : <div />}
         <button
           type="button"
           onClick={submit}
           disabled={!name.trim()}
-          className="px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--color-brand)] text-white text-[var(--text-xs)] font-semibold disabled:opacity-50 hover:bg-[var(--color-brand-strong)] inline-flex items-center gap-1"
+          className="px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-xs)] font-semibold disabled:opacity-50 hover:bg-[var(--btn-primary-bg-hover)] inline-flex items-center gap-1"
         >
-          <Check className="w-3 h-3" /> Add
+          <Check className="w-3 h-3" /> {t('onboarding.welcome.step4.add')}
         </button>
         <button
           type="button"
@@ -443,6 +481,7 @@ function EditRow({
   onCancel: () => void
   onSave: (patch: Partial<OrgEntity>) => void
 }) {
+  const { t } = useTranslation()
   const [name, setName] = useState(entity.name)
   const [code, setCode] = useState(entity.code || '')
   const [country, setCountry] = useState(entity.country || '')
@@ -462,14 +501,14 @@ function EditRow({
         value={name}
         onChange={e => setName(e.target.value)}
         onKeyDown={e => e.key === 'Enter' && submit()}
-        className="flex-1 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--color-brand)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+        className="flex-1 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--color-brand)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
       />
-      <input value={code} onChange={e => setCode(e.target.value)} placeholder="Code" className="w-20 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[10px] font-mono" />
-      <input value={country} onChange={e => setCountry(e.target.value)} placeholder="Country" className="w-24 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[10px]" />
+      <input value={code} onChange={e => setCode(e.target.value)} placeholder={t('onboarding.org.code')} className="w-20 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-caption font-mono" />
+      <input value={country} onChange={e => setCountry(e.target.value)} placeholder={t('onboarding.org.country')} className="w-24 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-caption" />
       {entity.type === 'subsidiary' && (
-        <input type="number" value={equity} onChange={e => setEquity(e.target.value)} placeholder="Eq%" className="w-16 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[10px]" />
+        <input type="number" value={equity} onChange={e => setEquity(e.target.value)} placeholder={t('onboarding.org.eqShort')} className="w-16 px-2 py-1 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-caption" />
       )}
-      <button onClick={e => { e.stopPropagation(); submit() }} className="w-6 h-6 rounded bg-[var(--color-brand)] text-white flex items-center justify-center">
+      <button onClick={e => { e.stopPropagation(); submit() }} className="w-6 h-6 rounded bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] flex items-center justify-center">
         <Check className="w-3 h-3" />
       </button>
       <button onClick={e => { e.stopPropagation(); onCancel() }} className="w-6 h-6 rounded text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] flex items-center justify-center">
@@ -487,6 +526,7 @@ function DetailPanel({
   members: OrgMember[]
   onUpdated: () => Promise<void> | void
 }) {
+  const { t } = useTranslation()
   const entityMembers = members.filter(m => m.entityId === entity.id)
   const [addOpen, setAddOpen] = useState(false)
   const [form, setForm] = useState<{ name: string; email: string; role: PlatformRole }>({
@@ -510,12 +550,12 @@ function DetailPanel({
       setAddOpen(false)
       await onUpdated()
     } catch (e) {
-      alert(`Could not add member: ${e instanceof Error ? e.message : e}`)
+      notify.error(t('onboarding.org.addMemberFailed', { error: e instanceof Error ? e.message : String(e) }))
     }
   }
 
   return (
-    <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] overflow-hidden">
+    <div className="surface-paper overflow-hidden">
       <div className="p-5 border-b border-[var(--border-subtle)]">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-10 h-10 rounded-[var(--radius-md)] flex items-center justify-center"
@@ -523,13 +563,13 @@ function DetailPanel({
             <Icon className="w-5 h-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)]">
-              {TYPE_META[entity.type].label}
+            <div className="text-caption font-medium text-[var(--text-tertiary)]">
+              {typeLabel(entity.type)}
             </div>
-            <h3 className="font-display text-[var(--text-base)] font-bold text-[var(--text-primary)] truncate">{entity.name}</h3>
+            <h3 className="font-display text-[length:var(--text-base)] font-bold text-[var(--text-primary)] truncate">{entity.name}</h3>
           </div>
         </div>
-        <nav className="text-[10px] text-[var(--text-tertiary)] flex items-center gap-1 flex-wrap">
+        <nav className="text-caption text-[var(--text-tertiary)] flex items-center gap-1 flex-wrap">
           {path.map((p, i) => (
             <span key={p.id} className={i === path.length - 1 ? 'font-semibold text-[var(--text-primary)]' : ''}>
               {p.name}{i < path.length - 1 && <span className="mx-1 text-[var(--text-tertiary)]">›</span>}
@@ -540,46 +580,47 @@ function DetailPanel({
 
       <div className="p-5 space-y-4">
         <div className="grid grid-cols-2 gap-3">
-          {entity.code && <Field label="Code" value={entity.code} mono />}
-          {entity.country && <Field label="Country" value={entity.country} />}
-          {entity.equity != null && <Field label="Equity" value={`${entity.equity}%`} />}
-          {entity.industry && <Field label="Industry" value={entity.industry} />}
+          {entity.code && <Field label={t('onboarding.org.code')} value={entity.code} mono />}
+          {entity.country && <Field label={t('onboarding.org.country')} value={entity.country} />}
+          {entity.equity != null && <Field label={t('onboarding.org.equity')} value={`${entity.equity}%`} />}
+          {entity.industry && <Field label={t('onboarding.org.industry')} value={t(`onboarding.gics.${entity.industry}`, { defaultValue: entity.industry })} />}
         </div>
 
         <div>
           <div className="flex items-center justify-between mb-2">
-            <h4 className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)] uppercase tracking-wider">
+            <h4 className="text-[length:var(--text-xs)] font-semibold text-[var(--text-primary)] ">
               <Users className="w-3 h-3 inline -mt-0.5 mr-1" />
-              Members ({entityMembers.length})
+              {t('onboarding.org.members', { count: entityMembers.length })}
             </h4>
             {!addOpen && (
               <button
                 onClick={() => setAddOpen(true)}
-                className="text-[var(--text-xs)] font-semibold text-[var(--color-brand)] hover:underline inline-flex items-center gap-1"
+                className="text-[length:var(--text-xs)] font-semibold text-[var(--color-brand)] hover:underline inline-flex items-center gap-1"
               >
-                <Plus className="w-3 h-3" /> Add
+                <Plus className="w-3 h-3" /> {t('onboarding.welcome.step4.add')}
               </button>
             )}
           </div>
           {entityMembers.length === 0 && !addOpen && (
-            <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] italic py-2">No members assigned to this entity yet.</div>
+            <div className="text-[length:var(--text-xs)] text-[var(--text-tertiary)] italic py-2">{t('onboarding.org.noMembers')}</div>
           )}
           <ul className="space-y-1.5">
             {entityMembers.map(m => (
               <li key={m.id} className="flex items-center gap-2 px-2.5 py-2 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)]">
-                <div className="w-7 h-7 rounded-full bg-[var(--color-brand)] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                <div className="w-7 h-7 rounded-full bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-caption font-bold flex items-center justify-center flex-shrink-0">
                   {m.name.slice(0, 2).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)] truncate">{m.name}</div>
-                  <div className="text-[10px] text-[var(--text-tertiary)] truncate">{m.email}</div>
+                  <div className="text-[length:var(--text-xs)] font-semibold text-[var(--text-primary)] truncate">{m.name}</div>
+                  <div className="text-caption text-[var(--text-tertiary)] truncate">{m.email}</div>
                 </div>
-                <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--color-brand)] bg-[var(--color-brand-soft)] px-1.5 py-0.5 rounded">
-                  {ROLE_CATALOG[m.role].name.split(' ').map(w => w[0]).join('')}
+                <span className="text-caption font-medium text-[var(--color-brand)] bg-[var(--color-brand-soft)] px-1.5 py-0.5 rounded">
+                  {t(`shell.roles.${m.role}.name`, { defaultValue: ROLE_CATALOG[m.role]?.name ?? m.role })}
                 </span>
                 <button
-                  onClick={async () => { await orgStore.removeMember(m.id); await onUpdated() }}
-                  className="w-5 h-5 rounded text-[var(--text-tertiary)] hover:text-[var(--status-reject)] hover:bg-[var(--accent-red-light)] flex items-center justify-center"
+                  onClick={async () => { try { await orgStore.removeMember(m.id); await onUpdated() } catch (e) { notify.error(t('onboarding.org.saveFailed'), { description: e instanceof Error ? e.message : undefined }) } }}
+                  aria-label={t('onboarding.org.removeMember', { name: m.name })}
+                  className="w-8 h-8 rounded text-[var(--text-tertiary)] hover:text-[var(--status-reject)] hover:bg-[var(--accent-red-light)] flex items-center justify-center"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -592,28 +633,28 @@ function DetailPanel({
               <input
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                placeholder="Full name"
-                className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                placeholder={t('auth.register.fullName')}
+                className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
               />
               <input
                 type="email"
                 value={form.email}
                 onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                placeholder="Email"
-                className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                placeholder={t('login.email')}
+                className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
               />
               <select
                 value={form.role}
                 onChange={e => setForm(f => ({ ...f, role: e.target.value as PlatformRole }))}
-                className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+                className="w-full px-2 py-1.5 rounded-[var(--radius-sm)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[length:var(--text-sm)]"
               >
                 {Object.values(ROLE_CATALOG).map(r => (
-                  <option key={r.slug} value={r.slug}>{r.name}</option>
+                  <option key={r.slug} value={r.slug}>{t(`shell.roles.${r.slug}.name`, { defaultValue: r.name })}</option>
                 ))}
               </select>
               <div className="flex gap-2">
-                <button onClick={save} className="flex-1 px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--color-brand)] text-white text-[var(--text-xs)] font-semibold">Add member</button>
-                <button onClick={() => setAddOpen(false)} className="px-3 py-1.5 rounded-[var(--radius-sm)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-xs)]">Cancel</button>
+                <button onClick={save} className="flex-1 px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-[length:var(--text-xs)] font-semibold">{t('onboarding.org.addMember')}</button>
+                <button onClick={() => setAddOpen(false)} className="px-3 py-1.5 rounded-[var(--radius-sm)] text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] text-[length:var(--text-xs)]">{t('common.cancel')}</button>
               </div>
             </div>
           )}
@@ -624,12 +665,15 @@ function DetailPanel({
 }
 
 function FrameworkScopeNote() {
+  const { i18n: i18nInst } = useTranslation()
   const { active } = useFramework()
   return (
-    <p className="text-[var(--text-sm)] text-[var(--text-secondary)] max-w-2xl mt-1">
-      The tree you build here is shared across every reporting framework — you do it once, not per framework.
-      Right now you're preparing to report against <strong className="text-[var(--text-primary)]">{active.name}</strong>;
-      the same entities will power CSRD, CDP, TCFD and ISSB when they come online.
+    <p className="text-[length:var(--text-sm)] text-[var(--text-secondary)] max-w-2xl mt-1">
+      <Trans
+        i18nKey="onboarding.org.scopeNote"
+        values={{ framework: frameworkName(active, i18nInst.language) }}
+        components={{ b: <strong className="text-[var(--text-primary)]" /> }}
+      />
     </p>
   )
 }
@@ -637,8 +681,8 @@ function FrameworkScopeNote() {
 function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] font-semibold">{label}</div>
-      <div className={`text-[var(--text-sm)] text-[var(--text-primary)] font-medium ${mono ? 'font-mono' : ''}`}>{value}</div>
+      <div className="text-caption font-medium text-[var(--text-tertiary)]">{label}</div>
+      <div className={`text-[length:var(--text-sm)] text-[var(--text-primary)] font-medium ${mono ? 'font-mono' : ''}`}>{value}</div>
     </div>
   )
 }

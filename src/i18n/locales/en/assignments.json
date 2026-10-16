@@ -1,0 +1,178 @@
+{
+  "errors": {
+    "create": "Could not create assignment: {{message}}",
+    "remove": "Could not remove: {{message}}",
+    "createTitle": "Couldn't create the assignment",
+    "loadTitle": "Couldn't load assignments"
+  },
+  "confirmRemove": "Remove this assignment?",
+  "crumbData": "Data",
+  "title": "Assignments",
+  "description": "Each {{framework}} disclosure goes to the person closest to the data, controlled by <rbac></rbac>. Assignees see it in <b>My tasks</b> the next time they sign in.",
+  "bulkAssign": "Bulk assign",
+  "newAssignment": "New assignment",
+  "frameworkDisclosures": "{{framework}} disclosures",
+  "stats": {
+    "total": "Total",
+    "approved": "Approved",
+    "inReview": "In review",
+    "notStarted": "Not started",
+    "aria": "Assignment status",
+    "open": "Open",
+    "approvedHint": "{{pct}}% of all",
+    "overdue": "Overdue"
+  },
+  "searchPlaceholder": "Search by code, disclosure or assignee…",
+  "allStatuses": "All statuses",
+  "allEntities": "All entities",
+  "view": {
+    "list": "List",
+    "kanban": "Kanban",
+    "tree": "Tree",
+    "network": "Network",
+    "aria": "View"
+  },
+  "empty": {
+    "noneTitle": "No assignments yet",
+    "noResults": "No results match these filters",
+    "noneBody": "Bulk assign a framework section to your team in one step, or create assignments one at a time.",
+    "noResultsBody": "Clear filters above or pick a different framework / status.",
+    "create": "Create assignment"
+  },
+  "table": {
+    "lineItem": "Code · disclosure",
+    "entity": "Plant / entity",
+    "assignee": "Assignee",
+    "mode": "Mode",
+    "due": "Due",
+    "status": "Status",
+    "selectAll": "Select all visible assignments",
+    "selectGroup": "Select all in {{name}}",
+    "select": "Select {{code}}",
+    "groupCount_one": "{{count}} assignment · {{approved}} approved",
+    "groupCount_other": "{{count}} assignments · {{approved}} approved"
+  },
+  "mode": {
+    "Manual": "Manual",
+    "Calculator": "Calculator",
+    "Connector": "Connector",
+    "usedTitle": "Used to record this value",
+    "allowedTitle": "Allowed"
+  },
+  "remove": {
+    "oneTitle": "Remove {{code}} from {{name}}?",
+    "manyTitle_one": "Remove {{count}} assignment?",
+    "manyTitle_other": "Remove {{count}} assignments?",
+    "body_one": "The assignee loses this task. Any value already entered stays in the audit log but the assignment can't be restored.",
+    "body_other": "The assignees lose these tasks. Values already entered stay in the audit log but the assignments can't be restored.",
+    "confirm_one": "Remove assignment",
+    "confirm_other": "Remove {{count}} assignments",
+    "done_one": "Assignment removed",
+    "done_other": "{{count}} assignments removed",
+    "failed_one": "{{count}} assignment couldn't be removed",
+    "failed_other": "{{count}} assignments couldn't be removed"
+  },
+  "drawer": {
+    "step1": "Pick a disclosure",
+    "step2": "What kind of answer does this disclosure need?",
+    "numeric": "Numeric",
+    "numericDesc": "A value with a unit (e.g. tCO₂e, MWh)",
+    "narrative": "Narrative",
+    "narrativeDesc": "Long-form text (GRI 2/3 management approach)",
+    "step3": "Which plant / entity does this data come from?",
+    "selectEntity": "Select entity…",
+    "step4": "Who should answer it?",
+    "pickEntityFirst": "Pick an entity first.",
+    "step5": "How can they answer it?",
+    "modesHint": "Tick every method the assignee is allowed to use. They pick one at answer time.",
+    "noCalculator": "no calculator",
+    "tabSwitcher": "Assignee will see a tab switcher to choose between {{modes}}.",
+    "step6": "Deadline (optional)",
+    "subtitle": "Route one {{framework}} disclosure to the person closest to the data.",
+    "progress": "{{done}} of {{total}} steps done"
+  },
+  "picker": {
+    "change": "Change question",
+    "search": "Search code or disclosure…",
+    "noMatches": "No matches",
+    "noMembers": "No members on this entity yet. Add one in <b>Onboarding</b> first.",
+    "selectAssignee": "Select assignee…"
+  },
+  "kanban": {
+    "emptyLane": "No assignments in this lane"
+  },
+  "counts": {
+    "approved_one": "{{count}} approved",
+    "approved_other": "{{count}} approved",
+    "inReview_one": "{{count}} in review",
+    "inReview_other": "{{count}} in review",
+    "review_one": "{{count}} review",
+    "review_other": "{{count}} review",
+    "open_one": "{{count}} open",
+    "open_other": "{{count}} open",
+    "rejected_one": "{{count}} rejected",
+    "rejected_other": "{{count}} rejected"
+  },
+  "entityType": {
+    "group": "Group",
+    "business_unit": "Business unit",
+    "subsidiary": "Subsidiary",
+    "plant": "Plant",
+    "office": "Office"
+  },
+  "network": {
+    "empty": "No entity tree to graph yet.",
+    "nodesLinks": "{{nodes}} nodes · {{links}} links",
+    "bu": "BU",
+    "orgRoot": "Org root",
+    "hoverHint": "Hover a node for detail."
+  },
+  "bulk": {
+    "pickAssignee": "Pick an assignee",
+    "capError": "Narrow the filter — bulk-assign is capped at 500 items.",
+    "eyebrow": "Bulk assign",
+    "title": "Bulk-assign questionnaire items",
+    "intro": "Hand entire sections to one person with a single click. Existing assignments are skipped (no overwrites). Cap: 500 items per call.",
+    "done": "Done",
+    "result_one": "Created <b>{{count}}</b> assignment; skipped {{skipped}} existing. A summary notification was sent to the assignee.",
+    "result_other": "Created <b>{{count}}</b> assignments; skipped {{skipped}} existing. A summary notification was sent to the assignee.",
+    "entity": "Entity (optional — defaults to root)",
+    "orgRoot": "— org root —",
+    "assignee": "Assignee *",
+    "pickPerson": "— pick a person —",
+    "dueDate": "Due date",
+    "sections_one": "Sections (leave empty for the whole framework — {{count}} item)",
+    "sections_other": "Sections (leave empty for the whole framework — {{count}} items)",
+    "noSections": "No sections in the loaded questionnaire.",
+    "reviewer": "Reviewer email (optional)",
+    "approver": "Approver email (optional)",
+    "matched_one": "<b>{{count}}</b> item matched.",
+    "matched_other": "<b>{{count}}</b> items matched.",
+    "capHint": " Cap is 500/call — narrow the section filter.",
+    "assign": "Assign"
+  },
+  "tree": {
+    "empty": "No entity tree yet — run Onboarding first."
+  },
+  "toast": {
+    "created": "{{code}} assigned to {{name}}"
+  },
+  "removeLabel": "Remove",
+  "removeAria": "Remove assignment {{code}}",
+  "bulkBar": {
+    "aria": "Bulk actions",
+    "selected_one": "selected",
+    "selected_other": "selected",
+    "setDue": "Set due date",
+    "dueDate": "New due date",
+    "apply": "Apply",
+    "remove": "Remove",
+    "clear": "Clear selection",
+    "dueDone_one": "Due date updated on {{count}} assignment",
+    "dueDone_other": "Due date updated on {{count}} assignments",
+    "dueFailed_one": "{{count}} assignment couldn't be updated",
+    "dueFailed_other": "{{count}} assignments couldn't be updated"
+  },
+  "showing": "Showing {{shown}} of {{total}}.",
+  "clearFilters": "Clear filters"
+}

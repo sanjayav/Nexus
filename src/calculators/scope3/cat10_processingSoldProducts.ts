@@ -1,4 +1,5 @@
-import { Scope3Calculator, toNum, ILLUSTRATIVE_NOTE } from './index'
+import type { Scope3Calculator } from './types'
+import { toNum, ILLUSTRATIVE_NOTE } from './constants'
 
 // kgCO2e per tonne intermediate processed — rough sector-level placeholders.
 const PROC_EF: Record<string, number> = {

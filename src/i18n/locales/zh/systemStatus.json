@@ -1,0 +1,59 @@
+{
+  "title": "系统状态",
+  "eyebrow": "管理 · 系统",
+  "subtitle": "实时查看本部署的运行状况及已接入的集成。每 30 秒检查一次。",
+  "errors": {
+    "unreachable": "无法连接 /api/health",
+    "title": "无法连接健康检查服务",
+    "body": "状态服务未响应，当前状态未知。这并不代表平台已停止服务。",
+    "stale": "最近一次检查失败，显示 {{time}} 的结果。"
+  },
+  "banner": {
+    "allOk": "所有系统运行正常",
+    "degraded": "服务降级",
+    "lastChecked": "上次检查：{{time}}",
+    "probing": "正在检测…",
+    "allOkBody": "数据库与 API 响应正常。",
+    "degradedBody": "至少有一项核心服务异常，恢复前数据填报可能受影响。"
+  },
+  "db": {
+    "title": "数据库",
+    "latency": "SELECT 1 耗时 {{ms}} 毫秒",
+    "unavailable": "不可用",
+    "healthy": "正常",
+    "down": "不可用",
+    "engine": "Neon Postgres",
+    "latencyLabel": "数据库延迟",
+    "latencyHint": "SELECT 1 往返耗时",
+    "ms": "毫秒"
+  },
+  "integration": {
+    "configured": "已配置",
+    "notConfigured": "未配置",
+    "ready": "就绪",
+    "missing": "缺失",
+    "setupGuide": "配置指南",
+    "count": "已配置 {{configured}} 项，共 {{total}} 项"
+  },
+  "integrations": {
+    "email": "事务邮件",
+    "sso": "单点登录（SAML）",
+    "ai": "AI 辅助撰写",
+    "sentry": "错误监控",
+    "euRegion": "欧盟数据驻留",
+    "apacRegion": "亚太数据驻留"
+  },
+  "footer": {
+    "version": "版本",
+    "region": "区域",
+    "probedAt": "检测时间"
+  },
+  "checkNow": "立即检查",
+  "checking": "正在检查…",
+  "ledger": {
+    "label": "系统健康指标",
+    "integrations": "集成",
+    "integrationsHint": "本环境已配置",
+    "version": "版本 {{version}}"
+  }
+}

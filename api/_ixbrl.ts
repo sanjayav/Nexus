@@ -22,8 +22,10 @@ import {
   inferConceptId,
   NAMESPACES,
   SCHEMA_REFS,
+  conceptLabel,
   type XbrlConcept,
 } from './_ixbrlTaxonomy.js'
+import { bcp47, getReportFramework, makeReportT, normalizeReportLocale, type ReportLocale } from './_reportI18n.js'
 
 // ─────────────────────────────────────────────────────────────────────
 // Types
@@ -196,6 +198,12 @@ const UNIT_MEASURE: Record<string, string> = {
   EUR: 'iso4217:EUR',
   USD: 'iso4217:USD',
   GBP: 'iso4217:GBP',
+  CNY: 'iso4217:CNY',
+  RMB: 'iso4217:CNY',
+  HKD: 'iso4217:HKD',
+  // Tonne of standard coal equivalent (吨标准煤) — not in the UTR, so it lives
+  // in the Nexus unit namespace declared in NAMESPACES.
+  tce: 'nexus:tce',
   pure: 'xbrli:pure',
   percent: 'xbrli:pure',
   m3: 'utr:m3',
@@ -310,6 +318,8 @@ export interface GenerateOptions {
   reportingYear: number
   frameworkIds: string[]
   approvedOnly?: boolean
+  /** Document language ('en' | 'zh' | 'zh-CN'). Sets xml:lang and the labels. */
+  locale?: string | null
 }
 
 export interface GenerateResult {
@@ -366,13 +376,17 @@ async function loadDataValues(
   approvedOnly: boolean,
 ): Promise<DataValueRow[]> {
   const sql = getDb()
+  // reporting_year's tenant column is organisation_id (it has no org_id).
   const ryRows = await sql`
-    SELECT id FROM reporting_year WHERE org_id = ${orgId} AND year = ${year} LIMIT 1
+    SELECT id FROM reporting_year WHERE organisation_id = ${orgId} AND year = ${year} LIMIT 1
   ` as Array<{ id: string }>
   const ryId = ryRows[0]?.id ?? null
 
   // Pull all data_value rows for the period, then filter status in JS.
   // (Neon serverless tagged templates don't easily compose nested fragments.)
+  // A legacy year can hold other tenants' values, so the year alone is not a
+  // tenant key: every read carries the ownership predicate from
+  // api/_tenancy.ts (DATA_VALUE_OWNER_EXPR).
   let dvRows: Array<DataValueRow & { xbrl_concept_id: string | null }> = []
   if (ryId) {
     try {
@@ -389,7 +403,10 @@ async function loadDataValues(
                dv.xbrl_concept_id
         FROM data_value dv
         LEFT JOIN questionnaire_item qi ON qi.id = dv.questionnaire_item_id
+        LEFT JOIN users eu ON eu.id = dv.entered_by
+        LEFT JOIN reporting_year ry ON ry.id = dv.reporting_year_id
         WHERE dv.reporting_year_id = ${ryId}
+          AND COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${orgId}
       ` as Array<DataValueRow & { xbrl_concept_id: string | null }>
     } catch {
       // xbrl_concept_id column not yet migrated — fall back.
@@ -405,7 +422,10 @@ async function loadDataValues(
                dv.facility_id
         FROM data_value dv
         LEFT JOIN questionnaire_item qi ON qi.id = dv.questionnaire_item_id
+        LEFT JOIN users eu ON eu.id = dv.entered_by
+        LEFT JOIN reporting_year ry ON ry.id = dv.reporting_year_id
         WHERE dv.reporting_year_id = ${ryId}
+          AND COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${orgId}
       ` as Array<DataValueRow>
       dvRows = fallback.map(r => ({ ...r, xbrl_concept_id: null }))
     }
@@ -446,6 +466,9 @@ async function loadDataValues(
 
 export async function generateIxbrlDeep(opts: GenerateOptions): Promise<GenerateResult> {
   const { orgId, reportingYear, frameworkIds, approvedOnly = true } = opts
+  const locale: ReportLocale = normalizeReportLocale(opts.locale) === 'zh' ? 'zh' : 'en'
+  const lang = bcp47(locale)
+  const t = makeReportT(locale)
   const warnings: string[] = []
 
   const org = await loadOrganisation(orgId)
@@ -565,18 +588,26 @@ export async function generateIxbrlDeep(opts: GenerateOptions): Promise<Generate
     factsBySection.get(k)!.push(f)
   }
 
-  const orgName = escapeXml(org?.name ?? 'Organisation')
   const orgCountry = escapeXml(org?.country ?? '')
   const today = new Date().toISOString().slice(0, 10)
 
+  // Labels: zh-CN where we have one; otherwise the English standard label,
+  // tagged xml:lang="en" so the document's language stays truthful.
+  const labelCell = (concept: XbrlConcept): string => {
+    const l = conceptLabel(concept, locale)
+    return l.lang === lang
+      ? `<td>${escapeXml(l.text)}</td>`
+      : `<td xml:lang="${l.lang}" lang="${l.lang}">${escapeXml(l.text)}</td>`
+  }
+
   const body = Array.from(factsBySection.entries()).map(([fw, fs]) => `
     <section>
-      <h2>${escapeXml(fw.toUpperCase())}</h2>
+      <h2>${escapeXml(getReportFramework(fw, locale).name)}</h2>
       <table>
-        <thead><tr><th>Disclosure</th><th>Value</th></tr></thead>
+        <thead><tr><th>${escapeXml(t('ixbrl.colDisclosure'))}</th><th>${escapeXml(t('ixbrl.colValue'))}</th></tr></thead>
         <tbody>
 ${fs.map(f => `          <tr>
-            <td>${escapeXml(f.concept.label)}</td>
+            ${labelCell(f.concept)}
             <td>${tagFact(f)} ${f.concept.unitRef ? `<span class="unit">${escapeXml(f.concept.unitRef)}</span>` : ''}</td>
           </tr>`).join('\n')}
         </tbody>
@@ -584,9 +615,10 @@ ${fs.map(f => `          <tr>
     </section>`).join('\n')
 
   const xhtml = `<?xml version="1.0" encoding="UTF-8"?>
-<html ${nsAttrs}>
+<html ${nsAttrs}
+      xml:lang="${lang}" lang="${lang}">
 <head>
-  <title>${orgName} — Sustainability Report ${reportingYear} (iXBRL draft)</title>
+  <title>${escapeXml(t('ixbrl.title', { org: org?.name ?? 'Organisation', year: reportingYear }))}</title>
   <meta charset="UTF-8"/>
   <meta name="generator" content="Nexus iXBRL Engine v2"/>
   <meta name="reporting-year" content="${reportingYear}"/>
@@ -605,12 +637,9 @@ ${fs.map(f => `          <tr>
 </head>
 <body>
 <header>
-  <h1>${orgName} — FY${reportingYear} Sustainability Disclosures</h1>
+  <h1>${escapeXml(t('ixbrl.heading', { org: org?.name ?? 'Organisation', year: reportingYear }))}</h1>
   <p class="draft-banner">
-    <strong>Draft iXBRL document.</strong> This file is structurally valid inline XBRL and tagged
-    against the ESRS / ISSB / SEC / GRI / EU-Taxonomy concept set. Regulatory filing requires
-    validation against the official EFRAG taxonomy via a certified validator
-    (CoreFiling, ParsePort, IRIS Carbon). See Nexus iXBRL documentation.
+    <strong>${escapeXml(t('ixbrl.bannerLead'))}</strong> ${escapeXml(t('ixbrl.bannerBody'))}
   </p>
 </header>
 
@@ -633,7 +662,7 @@ ${body}
 
 <footer>
   <p style="font-size:11px; color:#888; margin-top:2rem;">
-    Generated by Nexus iXBRL Engine on ${today}. ${facts.length} facts, ${descriptors.length} contexts, ${units.size} units.
+    ${escapeXml(t('ixbrl.footer', { date: today, facts: facts.length, contexts: descriptors.length, units: units.size }))}
   </p>
 </footer>
 </body>
@@ -662,7 +691,9 @@ export async function generateIxbrl(
   reportId: string,
   mappings: IxbrlMapping[],
   data: Record<string, IxbrlTag>,
+  locale?: string | null,
 ): Promise<string> {
+  const lang = bcp47(normalizeReportLocale(locale) === 'zh' ? 'zh' : 'en')
   const tags = Object.values(data).map(t => `
     <ix:nonFraction
       name="${escapeXml(t.conceptName)}"
@@ -680,7 +711,8 @@ export async function generateIxbrl(
 <html xmlns="http://www.w3.org/1999/xhtml"
       xmlns:ix="http://www.xbrl.org/2013/inlineXBRL"
       xmlns:xbrli="http://www.xbrl.org/2003/instance"
-      xmlns:esrs="http://xbrl.efrag.org/taxonomy/esrs/2024">
+      xmlns:esrs="http://xbrl.efrag.org/taxonomy/esrs/2024"
+      xml:lang="${lang}" lang="${lang}">
 <head>
   <title>Sustainability Report ${escapeXml(reportId)} — iXBRL</title>
   ${mappingComment}

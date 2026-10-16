@@ -3,7 +3,7 @@ import { cors, requirePermission } from '../_auth.js'
 import { generateIxbrlDeep } from '../_ixbrl.js'
 
 /**
- * GET /api/ixbrl/preview?year=2026&frameworks=csrd-e1,csrd-e2&include-unapproved=1
+ * GET /api/ixbrl/preview?year=2026&frameworks=csrd-e1,csrd-e2&include-unapproved=1&locale=zh-CN
  * Returns the deep iXBRL document for the caller's org along with coverage
  * diagnostics. Used by /reports/ixbrl preview UI.
  *
@@ -36,6 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       reportingYear: year,
       frameworkIds,
       approvedOnly: !includeUnapproved,
+      locale: req.query.locale ? String(req.query.locale) : null,
     })
     return res.status(200).json(result)
   } catch (err: unknown) {

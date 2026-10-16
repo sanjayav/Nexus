@@ -1,13 +1,15 @@
 /**
  * AI evidence extraction — POST /api/ai/extract-evidence
  *
- * Reads a stored evidence file (PDF / image / xlsx) and calls Claude to
- * extract the primary numeric data point. Persists the extraction so
+ * Reads a stored evidence file (PDF / image / xlsx) and calls the org's AI
+ * provider (api/_llm.ts) to extract the primary numeric data point. The
+ * mainland OpenAI-compatible provider has no PDF input (→ 415) and needs
+ * LLM_CN_VISION_MODEL for images. Persists the extraction so
  * auditors can later trace "value X came from document Y via model Z".
  *
  * Strategy:
  *   • PDF / image → native multimodal input (base64 in a document/image block).
- *   • XLSX        → server-side parse via exceljs to plain-text (Claude does
+ *   • XLSX        → server-side parse via exceljs to plain-text (the model does
  *                   the rest).
  *   • Other       → 400, we don't try to OCR arbitrary blobs.
  *
@@ -23,12 +25,12 @@
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { z } from 'zod'
-import Anthropic from '@anthropic-ai/sdk'
 import { cors, requirePermission } from '../_auth.js'
 import { checkRateLimit } from '../_rateLimit.js'
 import { getDb } from '../_db.js'
+import { languageInstruction } from '../_i18n.js'
+import { aiGate, aiLabel, type LlmContentPart, type LlmJsonSpec } from '../_llm.js'
 
-const MODEL = 'claude-sonnet-4-6'
 const MAX_BYTES = 5 * 1024 * 1024
 
 const schema = z.object({
@@ -44,15 +46,16 @@ const SYSTEM_PROMPT = `You extract structured sustainability and emissions data 
 Rules:
 - Return ONE primary value via the submit_extraction tool. If multiple values appear, pick the one most aligned with the user's lineItemHint and expectedUnit hints.
 - Be conservative: if the document is unclear, ambiguous, or doesn't contain a relevant numeric value, set confidence < 0.4 and explain in reasoning.
-- Preserve the unit as printed on the document — don't convert. The downstream system handles unit conversion.
+- Preserve the unit as printed on the document — don't convert. The downstream system handles unit conversion. If the unit is printed in Chinese, return its standard symbol instead (千瓦时 or 度 → kWh, 兆瓦时 → MWh, 立方米 or 方 → m³, 吨 → t, 千克 → kg, 升 → L, 元 → CNY).
+- Chinese documents: utility bills (电费单/燃气费单), VAT invoices (增值税发票/fapiao) and fuel receipts are common. The period is the billing period (计费周期/抄表周期), not the invoice date (开票日期).
 - The period is what the document covers (e.g. "Jan-Mar 2026") not the issue date.
 - The supplier is the entity that produced the document (e.g. "British Gas", "Shell", "ENGIE").
 - Never hallucinate numbers that aren't in the document.`
 
-const EXTRACTION_TOOL: Anthropic.Messages.Tool = {
+const EXTRACTION_TOOL: LlmJsonSpec = {
   name: 'submit_extraction',
   description: 'Submit the extracted data from this evidence document.',
-  input_schema: {
+  schema: {
     type: 'object',
     properties: {
       value: { type: 'number', description: 'The numeric value of the metric being measured.' },
@@ -123,12 +126,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return res.status(503).json({ error: 'ANTHROPIC_API_KEY not configured' })
-  }
-
   const token = await requirePermission(req, res, 'data.upload')
   if (!token) return
+
+  const gate = await aiGate(getDb(), req, token)
+  if (!gate.ok) return res.status(gate.status).json(gate.body)
 
   const allowed = await checkRateLimit(req, res, {
     key: `ai-extract:${token.org}`,
@@ -161,8 +163,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       FROM evidence e
       JOIN data_value dv ON dv.id = e.data_value_id
       JOIN reporting_year ry ON ry.id = dv.reporting_year_id
+      LEFT JOIN users eu ON eu.id = dv.entered_by
       WHERE e.id = ${body.evidenceId}
-        AND ry.organisation_id = ${token.org}
+        AND COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${token.org}
       LIMIT 1
     `) as typeof rows
   } catch (err) {
@@ -178,20 +181,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Build the user content block based on file type.
-  let userContent: Anthropic.Messages.ContentBlockParam[]
+  let userContent: LlmContentPart[]
   if (isImageType(ev.file_type)) {
     const media =
       ev.file_type === 'image/jpg' ? 'image/jpeg' :
       (ev.file_type as 'image/png' | 'image/jpeg')
-    userContent = [{
-      type: 'image',
-      source: { type: 'base64', media_type: media, data: buf.toString('base64') },
-    }]
+    userContent = [{ type: 'image', mediaType: media, data: buf.toString('base64') }]
   } else if (isPdfType(ev.file_type, ev.filename)) {
-    userContent = [{
-      type: 'document',
-      source: { type: 'base64', media_type: 'application/pdf', data: buf.toString('base64') },
-    }]
+    userContent = [{ type: 'document', mediaType: 'application/pdf', data: buf.toString('base64') }]
   } else if (isXlsxType(ev.file_type, ev.filename)) {
     let text: string
     try {
@@ -215,54 +212,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   hintParts.push('Extract the primary value via the submit_extraction tool.')
   userContent.push({ type: 'text', text: hintParts.join('\n') })
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  let resp: Anthropic.Messages.Message
-  try {
-    resp = await client.messages.create({
-      model: MODEL,
-      max_tokens: 1024,
-      // System prompt marked ephemeral so repeated extractions within the
-      // 5-minute TTL hit cache. The prompt is stable across all calls.
-      system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
-      tools: [EXTRACTION_TOOL],
-      tool_choice: { type: 'tool', name: 'submit_extraction' },
-      messages: [{ role: 'user', content: userContent }],
-    })
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Claude API call failed'
+  // System prompt is a cache breakpoint (Anthropic) so repeated extractions
+  // within the 5-minute TTL hit cache. The prompt is stable across all calls.
+  const resp = await gate.provider.complete({
+    system: `${SYSTEM_PROMPT}\n\n${languageInstruction(gate.locale)} (Applies to reasoning and additional_notes; keep unit symbols and the supplier name as printed.)`,
+    cacheSystem: true,
+    maxTokens: 1024,
+    json: EXTRACTION_TOOL,
+    messages: [{ role: 'user', content: userContent }],
+  })
+
+  if (!resp.ok) {
+    if (resp.code === 'unsupported_input') return res.status(415).json({ error: resp.error })
+    if (resp.code === 'invalid_json') {
+      // Model refused / didn't produce a structured extraction.
+      return res.status(422).json({
+        error: 'Could not extract a value',
+        reasoning: resp.text || 'No structured extraction returned.',
+      })
+    }
     // Don't log the document — only the error.
     // eslint-disable-next-line no-console
-    console.error('[extract-evidence] Claude error:', msg)
-    return res.status(502).json({ error: msg })
+    console.error('[extract-evidence] model error:', resp.error)
+    return res.status(502).json({ error: resp.error })
   }
 
-  // Find the tool_use block.
-  const toolUse = resp.content.find((b): b is Anthropic.Messages.ToolUseBlock => b.type === 'tool_use')
-  if (!toolUse || toolUse.name !== 'submit_extraction') {
-    // Claude refused / didn't produce a structured extraction.
-    const textBlock = resp.content.find((b): b is Anthropic.Messages.TextBlock => b.type === 'text')
-    return res.status(422).json({
-      error: 'Could not extract a value',
-      reasoning: textBlock?.text ?? 'No tool call returned.',
-    })
-  }
-
-  const extracted = toolUse.input as ExtractionInput
-  // Defensive — Claude shouldn't omit `required` fields, but if input parsing
+  const rawInput = resp.json
+  const extracted = rawInput as ExtractionInput
+  // Defensive — the model shouldn't omit `required` fields, but if input parsing
   // fails (rare schema regression) we still record the raw response below.
   if (typeof extracted?.value !== 'number' || typeof extracted?.confidence !== 'number') {
     return res.status(422).json({
       error: 'Extraction missing required fields',
-      raw: toolUse.input,
+      raw: rawInput,
     })
   }
 
-  const usage = resp.usage as Anthropic.Messages.Usage & {
-    cache_read_input_tokens?: number
-  }
+  const usage = resp.usage
 
   // Persist for audit. raw_response captures the full tool input so reviewers
-  // can replay Claude's reasoning even if the schema changes later.
+  // can replay the model's reasoning even if the schema changes later.
   let savedId: string | null = null
   try {
     const inserted = (await sql`
@@ -274,9 +263,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         (${body.evidenceId}, ${body.questionnaireItemId ?? null},
          ${extracted.value}, ${extracted.unit ?? null},
          ${extracted.period ?? null}, ${extracted.supplier ?? null},
-         ${JSON.stringify(toolUse.input)}::jsonb, ${extracted.confidence},
-         ${usage.input_tokens}, ${usage.output_tokens},
-         ${usage.cache_read_input_tokens ?? 0}, ${MODEL})
+         ${JSON.stringify(rawInput)}::jsonb, ${extracted.confidence},
+         ${usage.tokensIn}, ${usage.tokensOut},
+         ${usage.cached}, ${resp.model})
       RETURNING id
     `) as Array<{ id: string }>
     savedId = inserted[0]?.id ?? null
@@ -300,9 +289,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       additionalNotes: extracted.additional_notes ?? null,
     },
     usage: {
-      tokensIn: usage.input_tokens,
-      tokensOut: usage.output_tokens,
-      cached: usage.cache_read_input_tokens ?? 0,
+      tokensIn: usage.tokensIn,
+      tokensOut: usage.tokensOut,
+      cached: usage.cached,
     },
+    ...aiLabel(gate.locale, resp),
   })
 }

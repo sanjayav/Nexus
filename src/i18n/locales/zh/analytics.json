@@ -1,0 +1,187 @@
+{
+  "header": {
+    "eyebrow": "分析",
+    "title": "数据洞察信号",
+    "subtitle": "数据质量、差异、目标差距、工厂绩效与重要性覆盖情况——基于已批准数据和历史基准实时计算。"
+  },
+  "dqi": {
+    "kicker": "质量",
+    "title": "数据质量指数",
+    "subtitle": "综合完整性、及时性、证据、返工及差异的加权评分（0–100）。",
+    "emptyTitle": "数据质量指数暂无数据",
+    "emptyBody": "已批准的任务陆续提交后，数据质量指数将自动生成。请前往「我的任务」提交第一项数据。",
+    "emptyCta": "打开我的任务",
+    "ring": {
+      "strong": "优秀",
+      "improving": "改善中",
+      "needsWork": "待改进",
+      "composite": "综合评分 · 0–100",
+      "aria": "数据质量指数 {{score}}／100，{{label}}"
+    },
+    "components": {
+      "completeness": {
+        "label": "完整性",
+        "hint": "已批准 {{approved}}/{{total}}"
+      },
+      "timeliness": {
+        "label": "按时率",
+        "hint": "{{onTime}}/{{dueEligible}} 按期完成"
+      },
+      "evidence": {
+        "label": "证据",
+        "hint": "已附证据 {{withEvidence}}/{{needsEvidence}}"
+      },
+      "rework": {
+        "label": "低返工",
+        "hint": "已驳回 {{rejected}} 项"
+      },
+      "variance": {
+        "label": "差异合格",
+        "hint": "{{variancePass}}/{{approvedNum}} 同比变动在 ±20% 以内"
+      }
+    },
+    "weight": "权重 {{pct}}%"
+  },
+  "pathway": {
+    "kicker": "路径",
+    "title": "气候目标与排放分解",
+    "subtitle": "当前所处位置与承诺目标的对比，以及哪些工厂贡献了主要排放。"
+  },
+  "variance": {
+    "kicker": "差异",
+    "title": "同比差异分析",
+    "subtitle": "已批准数值与最近一期历史基准的对比，按绝对变动排序。",
+    "empty": "暂无可对比的已批准数值任务。",
+    "columns": {
+      "disclosure": "披露",
+      "prior": "上期",
+      "current": "本期",
+      "delta": "较上期变动",
+      "assessment": "评估"
+    },
+    "fy": "{{year}} 财年",
+    "flags": {
+      "ok": "正常范围",
+      "watch": "关注",
+      "warn": "需调查",
+      "noBaseline": "无上年数据"
+    }
+  },
+  "performance": {
+    "kicker": "绩效",
+    "title": "工厂计分卡与议题覆盖",
+    "subtitle": "谁在领先、差距在哪里，以及重要议题是否已得到报告。"
+  },
+  "target": {
+    "emptyTitle": "目标差距分析",
+    "emptyBody": "尚未设定气候目标。请在「设置」中承诺 SBTi 目标，以在此查看与减排路径的差距分析。",
+    "title": "目标差距",
+    "onPathway": "符合路径",
+    "behindPathway": "落后于路径",
+    "series": {
+      "pathway": "路径",
+      "actual": "实际",
+      "target": "目标"
+    },
+    "stats": {
+      "currentGap": "当前差距",
+      "requiredAbatement": "所需年度减排量",
+      "yearsToTarget": "距目标年数"
+    },
+    "perYear": "{{unit}}/年",
+    "behindWarning": "当前高于线性路径 {{gap}}。需每年减排 {{abatement}} {{unit}} 方可弥补差距。",
+    "manageLink": "管理目标",
+    "allScopes": "全部范围",
+    "noActuals": "等待实际数据",
+    "perYearSuffix": "／年"
+  },
+  "emissions": {
+    "title": "按工厂 × 范围的排放",
+    "empty": "暂无已批准的 GRI 305 数据。工厂提交且您批准范围一/二/三数据后，此分解图将自动生成。",
+    "scope1": "范围一",
+    "scope2": "范围二",
+    "scope3": "范围三",
+    "subtitle": "已批准的 GRI 305 数据，单位 tCO₂e",
+    "footnote": "按各工厂及办公室已批准的范围一、二、三数据堆叠。"
+  },
+  "plant": {
+    "title": "工厂计分卡",
+    "rollup": "集团汇总",
+    "empty": "暂无工厂。请通过「入门引导」添加。",
+    "columns": {
+      "plant": "工厂",
+      "score": "评分",
+      "complete": "完成率",
+      "reject": "驳回",
+      "overdue": "逾期",
+      "days": "平均周期"
+    },
+    "daysValue": "{{days}} 天",
+    "complete": "已批准 {{pct}}%"
+  },
+  "materiality": {
+    "title": "重要议题覆盖",
+    "manage": "管理议题",
+    "empty": "尚未声明重要议题。请开展 GRI 3 重要性评估。",
+    "unassigned_one": "{{count}} 个 GRI 代码尚未分配",
+    "unassigned_other": "{{count}} 个 GRI 代码尚未分配",
+    "approvedOf": "已批准 {{approved}}／{{total}}"
+  },
+  "error": {
+    "title": "分析数据加载失败",
+    "body": "暂时无法获取组织数据，数据没有丢失，请重试。"
+  },
+  "ledger": {
+    "aria": "分析概览",
+    "dqi": "数据质量指数",
+    "approved": "已批准数据",
+    "ofTotal": "共 {{total}} 项指派",
+    "gap": "与路径差距",
+    "noTarget": "尚未设定目标",
+    "abovePathway": "高于路径，进度落后",
+    "belowPathway": "低于路径，进度正常",
+    "variance": "差异预警",
+    "varianceHint_one": "{{count}} 项中超 ±20%",
+    "varianceHint_other": "{{count}} 项中超 ±20%",
+    "topics": "已覆盖的实质性议题",
+    "topicsHint": "已全部指派",
+    "noData": "等待已批准数据"
+  },
+  "unlock": {
+    "title": "解锁更多分析",
+    "body": "每完成一步，本页即会基于您的数据生成对应面板。",
+    "progress": "已解锁 {{done}}／{{total}}",
+    "unlocked": "已解锁",
+    "items": {
+      "target": {
+        "title": "设定气候目标",
+        "body": "生成目标差距路径图。"
+      },
+      "emissions": {
+        "title": "批准范围一至三数据",
+        "body": "生成按工厂与范围划分的排放。"
+      },
+      "variance": {
+        "title": "批准数值型数据",
+        "body": "生成同比差异分析。"
+      },
+      "materiality": {
+        "title": "开展重要性评估",
+        "body": "生成实质性议题覆盖情况。"
+      }
+    }
+  },
+  "targetChart": {
+    "actual": "实际排放",
+    "pathway": "减排路径",
+    "target": "{{year}} 年目标",
+    "above": "高于路径 {{value}} {{unit}}",
+    "below": "低于路径 {{value}} {{unit}}",
+    "fy": "{{year}} 财年"
+  },
+  "scopes": {
+    "s1": "范围一",
+    "s2": "范围二",
+    "s3": "范围三"
+  }
+}

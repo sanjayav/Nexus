@@ -1,224 +1,256 @@
-import { ReactNode, useState } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Menu, X, Twitter, Linkedin, Github } from 'lucide-react'
+import { AnimatePresence, motion, useScroll, useSpring } from 'framer-motion'
+import { Menu, X, ArrowRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import NexusBrand from '../NexusBrand'
+import LanguageSwitch from './LanguageSwitch'
+import { useIsDark } from './useIsDark'
+import { dur, ease, spring } from '../../motion/tokens'
 
 /**
  * MarketingShell — public-site chrome (top nav + footer).
  *
- * Wraps every unauthenticated marketing page (Landing, Features, Pricing,
- * About, Contact). Uses design-token CSS variables so it inherits the
- * platform's light/dark theme rather than hard-coding palette values.
+ * Wraps every unauthenticated marketing page. Uses design-token CSS variables
+ * so it follows the platform's light/dark theme. The header carries the EN /
+ * 中文 language switch, a sliding active-link indicator and a hairline scroll
+ * progress bar; it lifts onto a blurred surface once the page scrolls.
  *
- * Top nav collapses to a hamburger drawer below `md` (768px). Footer is a
- * 3-column links block + brand strip; hrefs are intentional `#` placeholders
- * for the v1 marketing surface.
+ * Below `lg` the nav collapses into an animated sheet.
  */
 
-const NAV_LINKS: { label: string; to: string }[] = [
-  { label: 'Features', to: '/features' },
-  { label: 'Pricing', to: '/pricing' },
-  { label: 'How it works', to: '/how-it-works' },
-  { label: 'Compare', to: '/compare' },
-  { label: 'About', to: '/about' },
-  { label: 'Contact', to: '/contact' },
+// `labelKey` / `headingKey` are i18n keys (locales/<lang>/marketing.json).
+const NAV_LINKS: { labelKey: string; to: string }[] = [
+  { labelKey: 'marketing.nav.features', to: '/features' },
+  { labelKey: 'marketing.nav.howItWorks', to: '/how-it-works' },
+  { labelKey: 'marketing.nav.pricing', to: '/pricing' },
+  { labelKey: 'marketing.nav.compare', to: '/compare' },
+  { labelKey: 'marketing.nav.about', to: '/about' },
+  { labelKey: 'marketing.nav.contact', to: '/contact' },
 ]
 
 interface FooterColumn {
-  heading: string
-  items: { label: string; to: string }[]
+  headingKey: string
+  items: { labelKey: string; to: string }[]
 }
 
 const FOOTER_COLS: FooterColumn[] = [
   {
-    heading: 'Product',
+    headingKey: 'marketing.footer.product',
     items: [
-      { label: 'Features', to: '/features' },
-      { label: 'Pricing', to: '/pricing' },
-      { label: 'How it works', to: '/how-it-works' },
-      { label: 'Compare', to: '/compare' },
-      { label: 'Security', to: '#' },
-      { label: 'API', to: '#' },
+      { labelKey: 'marketing.nav.features', to: '/features' },
+      { labelKey: 'marketing.nav.pricing', to: '/pricing' },
+      { labelKey: 'marketing.nav.howItWorks', to: '/how-it-works' },
+      { labelKey: 'marketing.nav.compare', to: '/compare' },
     ],
   },
   {
-    heading: 'Company',
+    headingKey: 'marketing.footer.company',
     items: [
-      { label: 'About', to: '/about' },
-      { label: 'Contact', to: '/contact' },
-      { label: 'Careers', to: '#' },
-      { label: 'Blog', to: '#' },
+      { labelKey: 'marketing.nav.about', to: '/about' },
+      { labelKey: 'marketing.nav.contact', to: '/contact' },
+      { labelKey: 'marketing.nav.signIn', to: '/login' },
     ],
   },
   {
-    heading: 'Legal',
+    headingKey: 'marketing.footer.legal',
     items: [
-      { label: 'Terms', to: '#' },
-      { label: 'Privacy', to: '#' },
-      { label: 'DPA', to: '#' },
-      { label: 'Subprocessors', to: '#' },
+      { labelKey: 'marketing.footer.terms', to: '#' },
+      { labelKey: 'marketing.footer.privacy', to: '#' },
+      { labelKey: 'marketing.footer.dpa', to: '#' },
+      { labelKey: 'marketing.footer.subprocessors', to: '#' },
     ],
   },
 ]
 
 export default function MarketingShell({ children }: { children: ReactNode }) {
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const location = useLocation()
+  const { t } = useTranslation()
+  const isDark = useIsDark()
+  const { scrollYProgress } = useScroll()
+  const progress = useSpring(scrollYProgress, { stiffness: 260, damping: 40, restDelta: 0.001 })
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  // Close the sheet on navigation; lock body scroll while it is open.
+  useEffect(() => { setDrawerOpen(false) }, [location.pathname])
+  useEffect(() => {
+    if (!drawerOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setDrawerOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', onKey) }
+  }, [drawerOpen])
+
+  // New page → top of page (marketing pages are long; keep the reveal story intact).
+  useEffect(() => { window.scrollTo(0, 0) }, [location.pathname])
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ background: 'var(--bg-app)', color: 'var(--text-primary)' }}
-    >
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg-app)', color: 'var(--text-primary)' }}>
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[60] focus:px-4 focus:py-2 focus:rounded-md btn-primary"
+      >
+        {t('marketing.nav.skip')}
+      </a>
+
       {/* ── Sticky top nav ── */}
       <header
-        className="sticky top-0 z-40 backdrop-blur-md"
+        className="sticky top-0 z-40 transition-[background-color,border-color] duration-300"
         style={{
-          background: 'color-mix(in srgb, var(--bg-app) 78%, transparent)',
-          borderBottom: '1px solid var(--border-subtle)',
+          background: scrolled || drawerOpen ? 'color-mix(in srgb, var(--bg-app) 82%, transparent)' : 'transparent',
+          backdropFilter: scrolled ? 'saturate(160%) blur(14px)' : undefined,
+          WebkitBackdropFilter: scrolled ? 'saturate(160%) blur(14px)' : undefined,
+          borderBottom: `1px solid ${scrolled ? 'var(--border-subtle)' : 'transparent'}`,
         }}
       >
-        <div className="max-w-[1280px] mx-auto px-5 sm:px-8 h-16 flex items-center justify-between gap-4">
-          <Link to="/" aria-label="Nexus — home" className="flex items-center">
-            <NexusBrand size="sm" layout="horizontal" animated={false} showAttribution />
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-4">
+          <Link to="/" aria-label={t('marketing.nav.homeAria')} className="flex items-center rounded-md">
+            <NexusBrand size="sm" layout="horizontal" animated={false} showAttribution variant={isDark ? 'dark' : 'light'} />
           </Link>
 
           {/* Desktop links */}
-          <nav className="hidden md:flex items-center gap-7" aria-label="Marketing navigation">
+          <nav className="hidden lg:flex items-center gap-1" aria-label={t('marketing.nav.navAria')}>
             {NAV_LINKS.map((link) => {
               const active = location.pathname === link.to
               return (
                 <Link
                   key={link.to}
                   to={link.to}
-                  className="text-[14px] font-medium transition-colors"
-                  style={{
-                    color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    opacity: active ? 1 : 0.75,
-                  }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = active ? '1' : '0.75' }}
+                  aria-current={active ? 'page' : undefined}
+                  className="relative px-3 h-9 inline-flex items-center rounded-full text-[14px] font-medium transition-colors hover:text-[var(--text-primary)]"
+                  style={{ color: active ? 'var(--text-primary)' : 'var(--text-secondary)' }}
                 >
-                  {link.label}
+                  {active && (
+                    <motion.span
+                      layoutId="mkt-nav-active"
+                      className="absolute inset-0 rounded-full"
+                      style={{ background: 'var(--bg-secondary)', boxShadow: 'inset 0 0 0 1px var(--border-subtle)' }}
+                      transition={spring.snappy}
+                      aria-hidden
+                    />
+                  )}
+                  <span className="relative">{t(link.labelKey)}</span>
                 </Link>
               )
             })}
           </nav>
 
-          {/* Desktop CTAs */}
-          <div className="hidden md:flex items-center gap-3">
-            <Link
-              to="/login"
-              className="btn-secondary"
-              style={{ height: 36, paddingInline: 14, fontSize: 13 }}
-            >
-              Sign in
+          {/* Desktop actions */}
+          <div className="hidden lg:flex items-center gap-2.5">
+            <LanguageSwitch size="sm" />
+            <Link to="/login" className="btn-secondary h-9 px-3.5 text-[13px]">
+              {t('marketing.nav.signIn')}
             </Link>
-            <Link
-              to="/login?mode=register"
-              className="btn-primary"
-              style={{ height: 36, paddingInline: 16, fontSize: 13 }}
-            >
-              Get started
+            <Link to="/login?mode=register" className="btn-primary h-9 px-4 text-[13px]">
+              {t('marketing.nav.getStarted')}
             </Link>
           </div>
 
-          {/* Mobile menu button */}
-          <button
-            type="button"
-            aria-label="Open menu"
-            aria-expanded={drawerOpen}
-            onClick={() => setDrawerOpen((v) => !v)}
-            className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-md"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            {drawerOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          {/* Mobile actions */}
+          <div className="flex lg:hidden items-center gap-2">
+            <LanguageSwitch size="sm" />
+            <button
+              type="button"
+              aria-label={drawerOpen ? t('marketing.nav.closeMenu') : t('marketing.nav.openMenu')}
+              aria-expanded={drawerOpen}
+              aria-controls="mkt-drawer"
+              onClick={() => setDrawerOpen((v) => !v)}
+              className="inline-flex items-center justify-center w-10 h-10 rounded-full"
+              style={{ color: 'var(--text-primary)', border: '1px solid var(--border-default)', background: 'var(--bg-primary)' }}
+            >
+              {drawerOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
 
-        {/* Mobile drawer */}
-        {drawerOpen && (
-          <div
-            className="md:hidden"
-            style={{ borderTop: '1px solid var(--border-subtle)', background: 'var(--bg-primary)' }}
-          >
-            <div className="max-w-[1280px] mx-auto px-5 py-4 flex flex-col gap-1">
-              {NAV_LINKS.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  onClick={() => setDrawerOpen(false)}
-                  className="block px-3 py-2.5 rounded-md text-[15px] font-medium"
-                  style={{ color: 'var(--text-primary)' }}
-                >
-                  {link.label}
-                </Link>
-              ))}
-              <div className="flex flex-col gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-                <Link
-                  to="/login"
-                  onClick={() => setDrawerOpen(false)}
-                  className="btn-secondary w-full justify-center"
-                >
-                  Sign in
-                </Link>
-                <Link
-                  to="/login?mode=register"
-                  onClick={() => setDrawerOpen(false)}
-                  className="btn-primary w-full justify-center"
-                >
-                  Get started
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Scroll progress hairline */}
+        <motion.div
+          aria-hidden
+          className="absolute left-0 right-0 bottom-[-1px] h-px origin-left"
+          style={{ scaleX: progress, background: 'var(--color-brand)', opacity: scrolled ? 0.7 : 0 }}
+        />
+
+        {/* Mobile sheet */}
+        <AnimatePresence>
+          {drawerOpen && (
+            <motion.div
+              id="mkt-drawer"
+              className="lg:hidden absolute inset-x-0 top-16 h-[calc(100dvh-4rem)] overflow-y-auto"
+              style={{ background: 'var(--bg-app)', borderTop: '1px solid var(--border-subtle)' }}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: dur.base, ease: ease.out }}
+            >
+              <nav className="px-4 py-4 flex flex-col" aria-label={t('marketing.nav.navAria')}>
+                {NAV_LINKS.map((link, i) => (
+                  <motion.div
+                    key={link.to}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: dur.base, ease: ease.out, delay: 0.03 * i }}
+                  >
+                    <Link
+                      to={link.to}
+                      aria-current={location.pathname === link.to ? 'page' : undefined}
+                      className="flex items-center justify-between h-14 px-1 type-h2"
+                      style={{ color: 'var(--text-primary)', borderBottom: '1px solid var(--border-subtle)' }}
+                    >
+                      {t(link.labelKey)}
+                      <ArrowRight className="w-4 h-4" style={{ color: 'var(--text-tertiary)' }} aria-hidden />
+                    </Link>
+                  </motion.div>
+                ))}
+                <div className="grid grid-cols-2 gap-2 mt-6">
+                  <Link to="/login" className="btn-secondary h-12 text-[15px]">{t('marketing.nav.signIn')}</Link>
+                  <Link to="/login?mode=register" className="btn-primary h-12 text-[15px]">{t('marketing.nav.getStarted')}</Link>
+                </div>
+              </nav>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       {/* ── Page content ── */}
-      <main className="flex-1">{children}</main>
+      <main id="main" className="flex-1">{children}</main>
 
       {/* ── Footer ── */}
-      <footer
-        className="mt-20"
-        style={{
-          background: 'var(--bg-inverse)',
-          color: 'var(--text-inverse)',
-          borderTop: '1px solid var(--border-default)',
-        }}
-      >
-        <div className="max-w-[1280px] mx-auto px-5 sm:px-8 py-16">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
-            {/* Brand cell */}
-            <div className="md:pr-6">
+      <footer style={{ background: 'var(--bg-inverse)', color: 'var(--sidebar-fg)' }}>
+        <div className="max-w-[1280px] mx-auto px-4 sm:px-8 pt-16 pb-10">
+          <div className="grid grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr_1fr] gap-x-8 gap-y-10">
+            <div className="col-span-2 md:col-span-1 md:pr-8">
               <NexusBrand size="sm" layout="horizontal" animated={false} showAttribution variant="dark" />
-              <p
-                className="mt-4 text-[13px] leading-relaxed"
-                style={{ color: 'rgba(255,255,255,0.6)' }}
-              >
-                The sustainability intelligence platform — every framework, one dataset, auditor-ready.
+              <p className="mt-4 type-small max-w-[320px]" style={{ color: 'var(--sidebar-fg-muted)' }}>
+                {t('marketing.footer.tagline')}
+              </p>
+              <p className="mt-4 type-caption" style={{ color: 'var(--sidebar-fg-subtle)' }}>
+                {t('marketing.footer.languages')}
               </p>
             </div>
 
             {FOOTER_COLS.map((col) => (
-              <div key={col.heading}>
-                <h4
-                  className="text-[11px] font-semibold uppercase tracking-[0.12em] mb-4"
-                  style={{ color: 'rgba(255,255,255,0.5)' }}
-                >
-                  {col.heading}
-                </h4>
-                <ul className="space-y-2.5">
+              <div key={col.headingKey}>
+                <h2 className="type-small font-semibold mb-4" style={{ color: 'var(--sidebar-fg)' }}>
+                  {t(col.headingKey)}
+                </h2>
+                <ul className="space-y-1">
                   {col.items.map((item) => (
-                    <li key={item.label}>
+                    <li key={item.labelKey}>
                       <Link
                         to={item.to}
-                        className="text-[13px] transition-colors"
-                        style={{ color: 'rgba(255,255,255,0.75)' }}
-                        onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = '#fff' }}
-                        onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.75)' }}
+                        className="inline-flex items-center min-h-[36px] type-small transition-colors hover:text-[var(--sidebar-fg)]"
+                        style={{ color: 'var(--sidebar-fg-muted)' }}
                       >
-                        {item.label}
+                        {t(item.labelKey)}
                       </Link>
                     </li>
                   ))}
@@ -227,25 +259,13 @@ export default function MarketingShell({ children }: { children: ReactNode }) {
             ))}
           </div>
 
-          {/* Bottom strip */}
           <div
-            className="mt-12 pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
-            style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
+            className="mt-14 pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+            style={{ borderTop: '1px solid var(--sidebar-divider)' }}
           >
-            <p className="text-[12px]" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              © 2026 Aeiforo Ltd · All rights reserved
+            <p className="type-caption" style={{ color: 'var(--sidebar-fg-subtle)' }}>
+              {t('marketing.footer.copyright')}
             </p>
-            <div className="flex items-center gap-4">
-              <a href="#" aria-label="Twitter" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                <Twitter className="w-4 h-4" />
-              </a>
-              <a href="#" aria-label="LinkedIn" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                <Linkedin className="w-4 h-4" />
-              </a>
-              <a href="#" aria-label="GitHub" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                <Github className="w-4 h-4" />
-              </a>
-            </div>
           </div>
         </div>
       </footer>

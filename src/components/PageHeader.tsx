@@ -1,10 +1,11 @@
 import { ReactNode } from 'react'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import JourneyBar from './JourneyBar'
 import type { StageKey } from '../lib/journey'
-import { SPRING } from './motion'
+import { dur, ease, STAGGER } from '../motion/tokens'
 
 export interface Breadcrumb {
   label: string
@@ -25,15 +26,14 @@ interface PageHeaderProps {
   showPipeline?: boolean
   /** Pass additional content below the title block (e.g. filters, tabs). */
   children?: ReactNode
-  /** Visual treatment: 'default' (minimal) | 'hero' (gradient sheen). */
+  /** 'default' — h1 (28/34). 'hero' — display (40/44) on the emerald contour wash. */
   variant?: 'default' | 'hero'
 }
 
 /**
- * PageHeader v2 — the anchor moment of every page.
- *
- * Typographic hierarchy matches Linear / Vercel — oversized display headline,
- * tiny brand eyebrow, muted subtitle, right-aligned action rail.
+ * PageHeader — the anchor of every page and the ONLY in-page entrance
+ * animation (PageTransition just lifts the page 4 px). Breadcrumb, eyebrow,
+ * title, description and actions arrive 30 ms apart.
  */
 export default function PageHeader({
   eyebrow,
@@ -47,28 +47,41 @@ export default function PageHeader({
   children,
   variant = 'default',
 }: PageHeaderProps) {
+  const { t } = useTranslation()
+  const reduce = useReducedMotion()
   const shouldShowPipeline = showPipeline ?? stage != null
   // `description` is the canonical IA-reset name; `subtitle` kept as a synonym for back-compat.
   const sub = description ?? subtitle
+  const hero = variant === 'hero'
+
+  let step = 0
+  const enter = () => {
+    const i = step++
+    return reduce
+      ? {}
+      : {
+          initial: { opacity: 0, y: 6 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: dur.base, ease: ease.out, delay: 0.04 + i * STAGGER },
+        }
+  }
+
   return (
-    <div className={`mb-7 ${variant === 'hero' ? 'relative backdrop-mesh -mx-8 -mt-7 pt-7 px-8 pb-7 mb-7' : ''}`}>
+    <div
+      className={`mb-7 ${hero ? 'backdrop-mesh -mx-4 -mt-5 px-4 pt-6 pb-7 sm:-mx-6 sm:-mt-6 sm:px-6 lg:-mx-8 lg:-mt-7 lg:px-8 lg:pt-8 rounded-b-[var(--radius-2xl)]' : ''}`}
+    >
       {breadcrumbs && breadcrumbs.length > 0 && (
         <motion.nav
-          aria-label="Breadcrumb"
-          initial={{ opacity: 0, y: -2 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...SPRING, delay: 0.02 }}
-          className="flex items-center gap-1.5 text-[12px] text-[var(--text-tertiary)] mb-3"
+          aria-label={t('components.breadcrumb')}
+          {...enter()}
+          className="flex items-center flex-wrap gap-1.5 text-caption text-[var(--text-tertiary)] mb-3"
         >
           {breadcrumbs.map((b, i) => {
             const last = i === breadcrumbs.length - 1
             return (
-              <span key={`${b.label}-${i}`} className="inline-flex items-center gap-1.5">
+              <span key={`${b.label}-${i}`} className="inline-flex items-center gap-1.5 whitespace-nowrap">
                 {b.to && !last ? (
-                  <Link
-                    to={b.to}
-                    className="hover:text-[var(--text-primary)] transition-colors font-medium"
-                  >
+                  <Link to={b.to} className="hover:text-[var(--text-primary)] transition-colors font-medium">
                     {b.label}
                   </Link>
                 ) : (
@@ -81,47 +94,28 @@ export default function PageHeader({
         </motion.nav>
       )}
       {shouldShowPipeline && (
-        <motion.div
-          initial={{ opacity: 0, y: -4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ ...SPRING, delay: 0.05 }}
-          className="mb-5"
-        >
+        <motion.div {...enter()} className="mb-5">
           <JourneyBar variant="compact" highlight={stage} />
         </motion.div>
       )}
-      {/* Stack vertically on mobile (< sm), side-by-side on tablet+. Mobile
-          actions sit below the description so the title/sub stay above-the-fold. */}
+      {/* Stack on mobile; title and actions side by side from sm. */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6 sm:flex-wrap">
         <div className="min-w-0 flex-1">
           {eyebrow && (
-            <motion.span
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...SPRING, delay: 0.05 }}
-              className="kicker"
-            >
+            <motion.span {...enter()} className="kicker block">
               {eyebrow}
             </motion.span>
           )}
           <motion.h1
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ ...SPRING, delay: eyebrow ? 0.1 : 0.05 }}
-            className={`text-display text-[var(--text-primary)] ${
-              variant === 'hero' ? 'text-[28px] sm:text-[40px] md:text-[48px] mt-2' : 'text-[22px] sm:text-[30px] md:text-[34px] mt-1.5'
-            }`}
+            {...enter()}
+            className={`${hero ? 'type-display mt-2' : 'type-h1 mt-1'} text-[var(--text-primary)] text-balance`}
           >
             {title}
           </motion.h1>
           {sub && (
             <motion.p
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...SPRING, delay: 0.15 }}
-              className={`text-[var(--text-secondary)] max-w-2xl leading-relaxed ${
-                variant === 'hero' ? 'text-[14px] sm:text-[16px] mt-3' : 'text-[13px] sm:text-[14px] mt-2'
-              }`}
+              {...enter()}
+              className={`text-[var(--text-secondary)] max-w-2xl ${hero ? 'type-body sm:text-[16px] sm:leading-[26px] mt-3' : 'type-body mt-2'}`}
             >
               {sub}
             </motion.p>
@@ -130,9 +124,7 @@ export default function PageHeader({
         </div>
         {actions && (
           <motion.div
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ ...SPRING, delay: 0.15 }}
+            {...enter()}
             className="flex items-center gap-2 flex-shrink-0 flex-wrap [&>*]:flex-1 sm:[&>*]:flex-initial"
           >
             {actions}

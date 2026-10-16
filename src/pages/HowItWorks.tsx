@@ -8,348 +8,167 @@ import {
   Check,
   Minus,
 } from 'lucide-react'
+import { Trans, useTranslation } from 'react-i18next'
 import MarketingShell from '../components/marketing/MarketingShell'
 import TimelineGraphic from '../components/marketing/TimelineGraphic'
 import CTABand from '../components/marketing/CTABand'
-import { FadeIn, Stagger, StaggerItem } from '../components/MotionPrimitives'
+import FeatureGrid, { type Feature } from '../components/marketing/FeatureGrid'
+import PageHero, { SectionHeading } from '../components/marketing/PageHero'
+import { FRAMEWORK_COUNT, DISCLOSURE_ITEM_COUNT } from '../components/marketing/FrameworkStrip'
+import { Reveal, RevealGroup, RevealItem } from '../components/marketing/motion'
 
 /**
  * /how-it-works — the flagship time-to-disclosure story.
  *
- * Sections:
  *   1. Hero — "From zero to CSRD-ready in 48 hours"
- *   2. TimelineGraphic — Hour 1 / 4 / 24 / 48 milestones
- *   3. "Why so fast?" — 4 design-choice cards
- *   4. Legacy-vs-Nexus comparison table (8 dimensions)
- *   5. CTABand — "Stop quoting six months."
+ *   2. TimelineGraphic — Hour 1 / 4 / 24 / 48 milestones (draws on scroll)
+ *   3. "Why so fast?" — four design choices, ruled ledger
+ *   4. Legacy-vs-Nexus comparison (8 dimensions)
+ *   5. CTABand
  */
 
+// Copy lives in locales/<lang>/howItWorks.json under `howItWorks.why.<id>`
+// and `howItWorks.compare.rows.<id>`.
 const DESIGN_CHOICES = [
-  {
-    icon: Layers,
-    title: 'Frameworks pre-loaded',
-    body:
-      '24 frameworks and 700+ datapoints are ready on day one — CSRD, ISSB, GRI, TCFD, CDP, SEC, EU Taxonomy and more. No template buildouts, no consultant-led configuration.',
-  },
-  {
-    icon: Sparkles,
-    title: 'AI does the heavy lifting',
-    body:
-      'Claude-powered evidence extraction reads supplier PDFs and invoices, draft generators write the narrative, and a vendor-to-emission-factor matcher handles the spend-based maths.',
-  },
-  {
-    icon: GitMerge,
-    title: 'Linked data, set once',
-    body:
-      'Change a single value — say, your London facility electricity figure — and every framework, every disclosure, every chart referencing it updates in lockstep.',
-  },
-  {
-    icon: Rocket,
-    title: 'Self-serve onboarding',
-    body:
-      'The welcome wizard walks first-time admins through entity setup, framework selection, and team invites. No implementation consultant required, no professional services fees.',
-  },
-]
+  { id: 'frameworks', icon: Layers },
+  { id: 'ai', icon: Sparkles },
+  { id: 'linked', icon: GitMerge },
+  { id: 'onboarding', icon: Rocket },
+] as const
 
+/** `true`/`false` render as check/minus; a string is an i18n key. */
 type CompareValue = boolean | string
 
-const LEGACY_COMPARE: { dimension: string; legacy: CompareValue; nexus: CompareValue }[] = [
-  { dimension: 'Time to first disclosure',     legacy: '~4–6 months',        nexus: '~48 hours' },
-  { dimension: 'Implementation cost',          legacy: '$50K–$200K services', nexus: 'No setup fee' },
-  { dimension: 'Pricing transparency',         legacy: false,                 nexus: true },
-  { dimension: 'Learning curve',               legacy: 'Steep · training',    nexus: 'Hours, self-serve' },
-  { dimension: 'Native ESG focus',             legacy: 'Bolted-on module',    nexus: 'ESG-first architecture' },
-  { dimension: 'Multi-framework reuse',        legacy: 'Per-framework setup', nexus: 'One dataset, all frameworks' },
-  { dimension: 'AI integration',               legacy: 'Add-on / partial',    nexus: 'Native Claude pipeline' },
-  { dimension: 'Audit trail',                  legacy: 'Database logs',       nexus: 'Blockchain-anchored' },
+const rowKey = (id: string) => `howItWorks.compare.rows.${id}`
+
+const LEGACY_COMPARE: { id: string; legacy: CompareValue; nexus: CompareValue }[] = [
+  { id: 'time',     legacy: `${rowKey('time')}.legacy`,     nexus: `${rowKey('time')}.nexus` },
+  { id: 'cost',     legacy: `${rowKey('cost')}.legacy`,     nexus: `${rowKey('cost')}.nexus` },
+  { id: 'pricing',  legacy: false,                          nexus: true },
+  { id: 'learning', legacy: `${rowKey('learning')}.legacy`, nexus: `${rowKey('learning')}.nexus` },
+  { id: 'native',   legacy: `${rowKey('native')}.legacy`,   nexus: `${rowKey('native')}.nexus` },
+  { id: 'reuse',    legacy: `${rowKey('reuse')}.legacy`,    nexus: `${rowKey('reuse')}.nexus` },
+  { id: 'ai',       legacy: `${rowKey('ai')}.legacy`,       nexus: `${rowKey('ai')}.nexus` },
+  { id: 'audit',    legacy: `${rowKey('audit')}.legacy`,    nexus: `${rowKey('audit')}.nexus` },
 ]
 
-function CmpCell({ value }: { value: CompareValue }) {
+function CmpCell({ value, strong }: { value: CompareValue; strong?: boolean }) {
+  const { t } = useTranslation()
   if (value === true) {
-    return <Check className="w-5 h-5 mx-auto" style={{ color: 'var(--accent-500)' }} />
+    return <Check className="w-5 h-5 mx-auto" style={{ color: 'var(--color-brand)' }} aria-label={t('marketing.comparison.ariaYes')} />
   }
   if (value === false) {
-    return <Minus className="w-5 h-5 mx-auto" style={{ color: 'var(--text-quaternary)' }} />
+    return <Minus className="w-5 h-5 mx-auto" style={{ color: 'var(--text-quaternary)' }} aria-label={t('marketing.comparison.ariaNo')} />
   }
   return (
-    <span
-      className="text-[13px] font-medium"
-      style={{ color: 'var(--text-primary)' }}
-    >
-      {value}
+    <span className={`type-small ${strong ? 'font-semibold' : ''}`} style={{ color: strong ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+      {t(value)}
     </span>
   )
 }
 
 export default function HowItWorks() {
+  const { t } = useTranslation()
+  const why: Feature[] = DESIGN_CHOICES.map((c) => ({
+    icon: c.icon,
+    title: t(`howItWorks.why.${c.id}.title`),
+    body: t(`howItWorks.why.${c.id}.body`, { count: FRAMEWORK_COUNT, items: DISCLOSURE_ITEM_COUNT.toLocaleString() }),
+  }))
+
   return (
     <MarketingShell>
-      {/* ── Hero ── */}
-      <section
-        className="relative overflow-hidden"
-        style={{
-          background:
-            'radial-gradient(75% 50% at 50% 0%, color-mix(in srgb, var(--accent-500) 8%, transparent), transparent 70%)',
-        }}
-      >
-        <div className="max-w-[920px] mx-auto px-5 sm:px-8 pt-16 pb-12 sm:pt-24 sm:pb-16 text-center">
-          <FadeIn>
-            <p
-              className="text-[12px] font-semibold uppercase tracking-[0.18em] mb-5"
-              style={{ color: 'var(--accent-600)' }}
-            >
-              How it works
-            </p>
-            <h1
-              className="h-display"
-              style={{
-                fontSize: 'clamp(2rem, 4.8vw, 3.5rem)',
-                color: 'var(--text-primary)',
-                letterSpacing: '-0.02em',
-                lineHeight: 1.08,
-              }}
-            >
-              From zero to CSRD-ready in 48 hours
-            </h1>
-            <p
-              className="mt-5 mx-auto max-w-[640px] text-[17px] leading-relaxed"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              Most ESG platforms quote 4-month implementations. Nexus takes 2 days. Here's how.
-            </p>
-          </FadeIn>
-        </div>
-      </section>
+      <PageHero kicker={t('howItWorks.eyebrow')} title={t('howItWorks.title')} intro={t('howItWorks.intro')} />
 
-      {/* ── Timeline ── */}
       <TimelineGraphic />
 
-      {/* ── Why so fast? ── */}
-      <section className="py-16 sm:py-20" style={{ background: 'var(--bg-secondary)' }}>
-        <div className="max-w-[1180px] mx-auto px-5 sm:px-8">
-          <div className="max-w-[680px] mb-10">
-            <p
-              className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-3"
-              style={{ color: 'var(--accent-600)' }}
-            >
-              Why so fast?
-            </p>
-            <h2
-              className="h-display"
-              style={{
-                fontSize: 'clamp(1.75rem, 3.5vw, 2.25rem)',
-                color: 'var(--text-primary)',
-                lineHeight: 1.15,
-              }}
-            >
-              Four design choices that compress months into days.
-            </h2>
-          </div>
-
-          <Stagger
-            staggerMs={70}
-            className="grid grid-cols-1 md:grid-cols-2 gap-5"
-          >
-            {DESIGN_CHOICES.map((c) => (
-              <StaggerItem key={c.title}>
-                <article
-                  className="h-full rounded-[16px] border p-7"
-                  style={{
-                    background: 'var(--bg-primary)',
-                    borderColor: 'var(--border-default)',
-                    boxShadow: 'var(--shadow-card)',
-                  }}
-                >
-                  <div
-                    className="w-11 h-11 rounded-[10px] flex items-center justify-center mb-5"
-                    style={{
-                      background: 'color-mix(in srgb, var(--accent-500) 12%, transparent)',
-                      color: 'var(--accent-600)',
-                    }}
-                  >
-                    <c.icon className="w-5 h-5" />
-                  </div>
-                  <h3
-                    className="h-section mb-2"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    {c.title}
-                  </h3>
-                  <p
-                    className="text-[14px] leading-relaxed"
-                    style={{ color: 'var(--text-secondary)' }}
-                  >
-                    {c.body}
-                  </p>
-                </article>
-              </StaggerItem>
-            ))}
-          </Stagger>
-        </div>
-      </section>
+      <div style={{ background: 'var(--bg-secondary)' }}>
+        <FeatureGrid variant="ledger" heading={t('howItWorks.why.heading')} features={why} columns={2} />
+      </div>
 
       {/* ── Compare to legacy ── */}
-      <section className="py-16 sm:py-20">
-        <div className="max-w-[1180px] mx-auto px-5 sm:px-8">
-          <div className="max-w-[680px] mb-10">
-            <p
-              className="text-[12px] font-semibold uppercase tracking-[0.15em] mb-3"
-              style={{ color: 'var(--accent-600)' }}
-            >
-              Side-by-side
-            </p>
-            <h2
-              className="h-display"
-              style={{
-                fontSize: 'clamp(1.75rem, 3.5vw, 2.25rem)',
-                color: 'var(--text-primary)',
-                lineHeight: 1.15,
-              }}
-            >
-              Legacy ESG platforms vs Nexus.
-            </h2>
-            <p
-              className="mt-4 text-[16px] leading-relaxed"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              The honest summary across eight dimensions — without naming names.
-              For a head-to-head against Workiva specifically, see{' '}
-              <Link to="/compare" className="underline" style={{ color: 'var(--accent-600)' }}>
-                /compare
-              </Link>.
-            </p>
-          </div>
+      <section className="py-20 sm:py-28">
+        <div className="max-w-[1180px] mx-auto px-4 sm:px-8">
+          <Reveal>
+            <SectionHeading
+              title={t('howItWorks.compare.heading')}
+              lead={
+                <Trans
+                  i18nKey="howItWorks.compare.intro"
+                  components={{
+                    compareLink: <Link to="/compare" className="underline underline-offset-4" style={{ color: 'var(--text-link)' }} />,
+                  }}
+                />
+              }
+              className="mb-10"
+            />
+          </Reveal>
 
           {/* Desktop table */}
-          <div
-            className="hidden md:block overflow-x-auto rounded-[12px] border"
-            style={{ borderColor: 'var(--border-default)', background: 'var(--bg-primary)' }}
-          >
-            <table className="w-full text-left text-[14px]">
+          <Reveal className="hidden md:block surface-paper !rounded-[20px] overflow-hidden">
+            <table className="w-full text-left">
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-default)' }}>
-                  <th
-                    className="py-4 px-6 font-semibold text-[12px] uppercase tracking-[0.1em]"
-                    style={{ color: 'var(--text-tertiary)' }}
-                  >
-                    Dimension
+                  <th scope="col" className="py-4 px-6 type-small font-semibold" style={{ color: 'var(--text-tertiary)' }}>
+                    {t('howItWorks.compare.dimension')}
                   </th>
-                  <th
-                    className="py-4 px-6 font-semibold text-center"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    Legacy ESG platforms
+                  <th scope="col" className="py-4 px-6 type-small font-semibold text-center" style={{ color: 'var(--text-secondary)' }}>
+                    {t('howItWorks.compare.legacyPlatforms')}
                   </th>
-                  <th
-                    className="py-4 px-6 font-semibold text-center"
-                    style={{
-                      color: 'var(--accent-600)',
-                      background: 'color-mix(in srgb, var(--accent-500) 6%, transparent)',
-                    }}
-                  >
-                    Nexus
+                  <th scope="col" className="py-4 px-6 type-small font-semibold text-center" style={{ color: 'var(--text-link)', background: 'var(--color-brand-soft)' }}>
+                    {t('howItWorks.compare.nexus')}
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {LEGACY_COMPARE.map((row, i) => (
-                  <tr
-                    key={row.dimension}
-                    style={{
-                      borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)',
-                    }}
-                  >
-                    <td
-                      className="py-3.5 px-6 font-medium"
-                      style={{ color: 'var(--text-primary)' }}
-                    >
-                      {row.dimension}
-                    </td>
-                    <td className="py-3.5 px-6 text-center" style={{ color: 'var(--text-secondary)' }}>
-                      <CmpCell value={row.legacy} />
-                    </td>
-                    <td
-                      className="py-3.5 px-6 text-center"
-                      style={{ background: 'color-mix(in srgb, var(--accent-500) 3%, transparent)' }}
-                    >
-                      <CmpCell value={row.nexus} />
+                  <tr key={row.id} style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)' }}>
+                    <th scope="row" className="py-4 px-6 type-body font-medium" style={{ color: 'var(--text-primary)' }}>
+                      {t(`howItWorks.compare.rows.${row.id}.dimension`)}
+                    </th>
+                    <td className="py-4 px-6 text-center"><CmpCell value={row.legacy} /></td>
+                    <td className="py-4 px-6 text-center" style={{ background: 'color-mix(in srgb, var(--color-brand-soft) 60%, transparent)' }}>
+                      <CmpCell value={row.nexus} strong />
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </Reveal>
 
           {/* Mobile cards */}
-          <div className="md:hidden space-y-3">
+          <RevealGroup className="md:hidden space-y-3">
             {LEGACY_COMPARE.map((row) => (
-              <div
-                key={row.dimension}
-                className="rounded-[12px] border p-4"
-                style={{
-                  background: 'var(--bg-primary)',
-                  borderColor: 'var(--border-default)',
-                }}
-              >
-                <p
-                  className="text-[14px] font-semibold mb-3"
-                  style={{ color: 'var(--text-primary)' }}
-                >
-                  {row.dimension}
+              <RevealItem key={row.id} className="surface-paper p-4">
+                <p className="type-h3 mb-3" style={{ color: 'var(--text-primary)' }}>
+                  {t(`howItWorks.compare.rows.${row.id}.dimension`)}
                 </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div
-                    className="rounded-[8px] py-3 px-3 text-center"
-                    style={{
-                      background: 'var(--bg-secondary)',
-                      border: '1px solid var(--border-subtle)',
-                    }}
-                  >
-                    <p
-                      className="text-[10px] font-semibold uppercase tracking-[0.1em] mb-1.5"
-                      style={{ color: 'var(--text-tertiary)' }}
-                    >
-                      Legacy
-                    </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-[10px] py-3 px-3 text-center" style={{ background: 'var(--bg-secondary)' }}>
+                    <p className="type-caption font-medium mb-1.5" style={{ color: 'var(--text-tertiary)' }}>{t('howItWorks.compare.legacy')}</p>
                     <CmpCell value={row.legacy} />
                   </div>
-                  <div
-                    className="rounded-[8px] py-3 px-3 text-center"
-                    style={{
-                      background: 'color-mix(in srgb, var(--accent-500) 8%, transparent)',
-                      border: '1px solid color-mix(in srgb, var(--accent-500) 20%, transparent)',
-                    }}
-                  >
-                    <p
-                      className="text-[10px] font-semibold uppercase tracking-[0.1em] mb-1.5"
-                      style={{ color: 'var(--accent-600)' }}
-                    >
-                      Nexus
-                    </p>
-                    <CmpCell value={row.nexus} />
+                  <div className="rounded-[10px] py-3 px-3 text-center" style={{ background: 'var(--color-brand-soft)' }}>
+                    <p className="type-caption font-semibold mb-1.5" style={{ color: 'var(--text-link)' }}>{t('howItWorks.compare.nexus')}</p>
+                    <CmpCell value={row.nexus} strong />
                   </div>
                 </div>
-              </div>
+              </RevealItem>
             ))}
-          </div>
+          </RevealGroup>
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              to="/compare"
-              className="btn-secondary"
-              style={{ height: 42, paddingInline: 20, fontSize: 14 }}
-            >
-              See the head-to-head vs Workiva
-              <ArrowRight className="w-4 h-4" />
+          <div className="mt-10 flex justify-center">
+            <Link to="/compare" className="btn-secondary h-11 px-5 text-[14px]">
+              {t('howItWorks.compare.seeWorkiva')}
+              <ArrowRight className="w-4 h-4" aria-hidden />
             </Link>
           </div>
         </div>
       </section>
 
       <CTABand
-        heading="Stop quoting six months. Start in two days."
-        primary={{ label: 'Start free trial', to: '/login?mode=register' }}
-        secondary={{ label: 'See pricing', to: '/pricing' }}
+        heading={t('howItWorks.cta.heading')}
+        primary={{ label: t('howItWorks.cta.primary'), to: '/login?mode=register' }}
+        secondary={{ label: t('howItWorks.cta.secondary'), to: '/pricing' }}
       />
     </MarketingShell>
   )

@@ -1,0 +1,36 @@
+{
+  "status": {
+    "not_started": "未开始",
+    "in_progress": "进行中",
+    "submitted": "已提交",
+    "reviewed": "已审核",
+    "approved": "已批准",
+    "rejected": "已驳回",
+    "draft": "草稿",
+    "pending": "待处理",
+    "signed": "已签署",
+    "withdrawn": "已撤回",
+    "overdue": "已逾期",
+    "published": "已发布"
+  },
+  "role": {
+    "AUTO": "自动",
+    "FM": "设施经理",
+    "SO": "可持续发展官",
+    "TL": "团队负责人",
+    "siteOwner": "站点负责人",
+    "facilityManager": "设施经理",
+    "teamLead": "团队负责人",
+    "sustainabilityOfficer": "可持续发展官",
+    "auditor": "审计师",
+    "admin": "管理员"
+  },
+  "deadline": {
+    "none": "无截止日期",
+    "overdueDays_other": "已逾期 {{count}} 天",
+    "today": "今天到期",
+    "tomorrow": "明天到期",
+    "inDays_other": "{{count}} 天后到期",
+    "inWeeks_other": "{{count}} 周后到期"
+  }
+}

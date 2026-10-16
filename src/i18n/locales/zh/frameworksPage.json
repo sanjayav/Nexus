@@ -1,0 +1,47 @@
+{
+  "breadcrumbs": {
+    "reports": "报告",
+    "template": "GRI 模板"
+  },
+  "title": "GRI 报告模板 — FY{{year}}",
+  "description": "完整的 GRI 指标清单，沿用已发布的可持续发展绩效数据报告——层级、披露项和单位均保持一致。点击任意行即可录入、计算或拉取其 FY{{year}} 数值。",
+  "errors": {
+    "title": "无法加载问卷",
+    "retry": "重试",
+    "loadFailed": "加载失败"
+  },
+  "scope": {
+    "group": "Demo Co",
+    "jv": "合资企业（并行）"
+  },
+  "stats": {
+    "items_one": "<n>{{count}}</n> 项",
+    "items_other": "<n>{{count}}</n> 项",
+    "approved_one": "<n>{{count}}</n> 项已批准",
+    "approved_other": "<n>{{count}}</n> 项已批准",
+    "inFlight_one": "<n>{{count}}</n> 项处理中",
+    "inFlight_other": "<n>{{count}}</n> 项处理中",
+    "notStarted_one": "<n>{{count}}</n> 项未开始",
+    "notStarted_other": "<n>{{count}}</n> 项未开始"
+  },
+  "searchPlaceholder": "搜索 GRI 代码、披露项或子章节…",
+  "noMatches": "未找到与「{{query}}」匹配的结果。",
+  "itemCount_one": "{{count}} 项",
+  "itemCount_other": "{{count}} 项",
+  "rowCount_one": "{{count}} 行",
+  "rowCount_other": "{{count}} 行",
+  "target": "目标 {{value}}",
+  "status": {
+    "not_started": "未开始",
+    "draft": "草稿",
+    "submitted": "已提交",
+    "reviewed": "已审核",
+    "approved": "已批准",
+    "published": "已发布",
+    "rejected": "已驳回"
+  },
+  "actions": {
+    "viewReport": "查看重新生成的报告",
+    "publishCentre": "发布中心"
+  }
+}

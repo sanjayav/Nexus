@@ -1,0 +1,143 @@
+{
+  "breadcrumb": "组织",
+  "title": "组织架构",
+  "description": "集团层级、设施及排放源登记。",
+  "actions": {
+    "addGroup": "添加业务集团",
+    "addFacility": "添加设施"
+  },
+  "kpi": {
+    "businessGroups": "业务集团",
+    "subsidiaries": "子公司",
+    "facilities": "设施",
+    "countries": "国家/地区",
+    "emissionSources": "排放源",
+    "label": "组织概况"
+  },
+  "company": {
+    "sector": "石化与炼油",
+    "boundary": "运营控制权",
+    "baseYear": "基准年 {{year}}",
+    "reportingPeriod": "2025 财年"
+  },
+  "tabs": {
+    "hierarchy": "层级结构",
+    "facilities": "设施",
+    "sources": "排放源"
+  },
+  "counts": {
+    "subsidiary_one": "{{count}} 家子公司",
+    "subsidiary_other": "{{count}} 家子公司",
+    "facility_one": "{{count}} 个设施",
+    "facility_other": "{{count}} 个设施",
+    "sources": "{{n}} 个排放源",
+    "staff": "{{value}} 名员工",
+    "equity": "持股 {{value}}%",
+    "site_one": "{{count}} 个站点",
+    "site_other": "{{count}} 个站点"
+  },
+  "legend": {
+    "businessGroup": "业务集团",
+    "subsidiary": "子公司",
+    "facility": "设施"
+  },
+  "search": {
+    "placeholder": "搜索设施…",
+    "noMatch": "没有与搜索条件匹配的设施。",
+    "clear": "清除搜索"
+  },
+  "scopes": {
+    "s1": "范围一 — 直接排放",
+    "s1Types": "固定燃烧、移动燃烧、工艺排放、逸散排放",
+    "s2": "范围二 — 间接排放",
+    "s2Types": "外购电力、热力、蒸汽",
+    "s3": "范围三 — 价值链排放",
+    "s3Types": "上游及下游活动"
+  },
+  "routing": {
+    "title": "计算器路由",
+    "desc": "每个排放源均自动路由至对应的 GHG Protocol 计算器"
+  },
+  "sourcesByFacility": "按设施划分的排放源",
+  "listSeparator": "、",
+  "facilityType": {
+    "manufacturing": "生产制造",
+    "refinery": "炼油厂",
+    "office": "办公场所",
+    "warehouse": "仓储",
+    "jointVenture": "合资企业",
+    "laboratory": "实验室",
+    "dataCentre": "数据中心"
+  },
+  "status": {
+    "operational": "运营中",
+    "planned": "规划中",
+    "decommissioned": "已退役"
+  },
+  "groupNames": {
+    "chemicals": "化工",
+    "polymers": "聚合物",
+    "greenChemicals": "绿色化工"
+  },
+  "sourceNames": {
+    "boilersFurnaces": "锅炉与加热炉",
+    "flareSystems": "火炬系统",
+    "processVenting": "工艺排气",
+    "gridElectricity": "电网电力",
+    "companyVehicles": "公司车辆",
+    "crackingFurnaces": "裂解炉",
+    "coolingTowers": "冷却塔",
+    "purchasedSteam": "外购蒸汽",
+    "refrigerationUnits": "制冷机组",
+    "extruderHeaters": "挤出机加热器",
+    "pelletDryers": "颗粒干燥机",
+    "reactorFurnaces": "反应炉",
+    "processEmissions": "工艺排放",
+    "fleetVehicles": "车队车辆",
+    "labEquipmentGas": "实验室设备（燃气）"
+  },
+  "addGroupModal": {
+    "title": "添加业务集团",
+    "groupName": "集团名称",
+    "groupNamePlaceholder": "例如：高性能材料",
+    "description": "描述",
+    "descriptionPlaceholder": "业务板块描述",
+    "accentColour": "标识颜色",
+    "submit": "创建集团"
+  },
+  "colours": {
+    "teal": "青绿色",
+    "blue": "蓝色",
+    "purple": "紫色",
+    "amber": "琥珀色",
+    "green": "绿色"
+  },
+  "addFacilityModal": {
+    "title": "添加设施",
+    "facilityName": "设施名称",
+    "facilityNamePlaceholder": "例如：大阪配送中心",
+    "businessGroup": "业务集团",
+    "facilityType": "设施类型",
+    "country": "国家/地区",
+    "countryPlaceholder": "例如：日本",
+    "countryCode": "国家/地区代码",
+    "countryCodePlaceholder": "例如：JP",
+    "gridSubregion": "电网子区域",
+    "gridSubregionPlaceholder": "例如：JP-Kansai",
+    "headcount": "员工人数",
+    "submit": "创建设施"
+  },
+  "facilityModal": {
+    "country": "国家/地区",
+    "gridRegion": "电网区域",
+    "gridEf": "电网排放因子",
+    "headcount": "员工人数",
+    "emissionSources": "排放源",
+    "facilityType": "设施类型",
+    "registeredSources": "已登记排放源",
+    "callout": " — 基于位置的排放因子：{{ef}} kgCO₂e/kWh（IEA {{period}}）。基于市场的排放因子（来自供应商合同）另行管理。",
+    "addSource": "添加排放源",
+    "decommission": "退役"
+  },
+  "modalClose": "关闭"
+}

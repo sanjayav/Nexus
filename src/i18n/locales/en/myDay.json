@@ -1,0 +1,107 @@
+{
+  "there": "there",
+  "warn": {
+    "mine": "Could not load your tasks",
+    "all": "Could not load review queue",
+    "activity": "Could not load activity",
+    "anomalies": "Could not load anomaly count",
+    "hash": "Could not verify chain"
+  },
+  "greeting": {
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening"
+  },
+  "greetingLine": "{{greeting}}, {{name}}",
+  "kpi": {
+    "aria": "At-a-glance metrics",
+    "open": "Open assignments",
+    "approvedWeek": "Approved this week",
+    "critical": "Critical anomalies",
+    "hashChain": "Hash chain",
+    "verified": "Verified",
+    "broken": "Broken",
+    "overdueHint_one": "{{count}} overdue",
+    "overdueHint_other": "{{count}} overdue",
+    "vsLastWeek": "vs last week",
+    "noAnchors": "No anchors yet",
+    "records_one": "{{count}} record anchored",
+    "records_other": "{{count}} records anchored"
+  },
+  "recentActivity": "Recent activity",
+  "viewAll": "View all",
+  "activity": {
+    "system": "System",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "emptyTitle": "No activity yet",
+    "none": "Submissions, reviews and approvals will show up here as they happen.",
+    "errorBody": "We couldn't load recent activity. Try again in a moment.",
+    "resource": {
+      "assignment": "a disclosure",
+      "reporting_period": "reporting period",
+      "evidence": "evidence",
+      "report": "report",
+      "user": "a user",
+      "organization": "the organisation",
+      "period": "reporting period"
+    },
+    "verb": {
+      "created": "created {{object}}",
+      "updated": "updated {{object}}",
+      "deleted": "deleted {{object}}",
+      "signedIn": "signed in",
+      "approved": "approved {{object}}",
+      "sentBack": "sent back {{object}}",
+      "submitted": "submitted {{object}}",
+      "reviewed": "reviewed {{object}}",
+      "uploaded": "uploaded {{object}}",
+      "activated": "activated {{object}}",
+      "published": "published {{object}}",
+      "assigned": "assigned {{object}}",
+      "locked": "locked {{object}}",
+      "other": "{{action}} {{object}}"
+    }
+  },
+  "hero": {
+    "kicker": "{{period}} · {{framework}}",
+    "periodStatus": {
+      "setup": "Setting up",
+      "active": "Active",
+      "locked": "Locked",
+      "published": "Published",
+      "archived": "Archived"
+    },
+    "figureAria": "{{pct}}% of {{period}} approved",
+    "ofApproved": "of {{period}} approved",
+    "approvedOfTotal": "{{approved}} of {{total}} disclosures",
+    "barAria": "{{approved}} approved, {{review}} in review, {{open}} open",
+    "legendApproved": "Approved",
+    "legendReview": "In review",
+    "legendOpen": "Open",
+    "deadline": "Submission deadline",
+    "deadlineAria": "Submission deadline",
+    "daysLeft_one": "day left",
+    "daysLeft_other": "days left",
+    "daysPast_one": "day past deadline",
+    "daysPast_other": "days past deadline",
+    "noDeadline": "No submission deadline is set for this period.",
+    "overdueMine_one": "{{count}} of yours overdue",
+    "overdueMine_other": "{{count}} of yours overdue",
+    "errorTitle": "Couldn't load reporting progress",
+    "errorBody": "Readiness isn't shown until it loads. Nothing is assumed complete.",
+    "noPeriodTitle": "No {{framework}} reporting period yet",
+    "noPeriodBody": "Create a reporting period with a submission deadline to track readiness here.",
+    "setUpPeriod": "Set up a period",
+    "nothingAssignedTitle": "Nothing assigned in {{period}} yet",
+    "nothingAssignedBody": "Readiness appears here once disclosures are assigned."
+  },
+  "waiting": {
+    "title": "Waiting on you",
+    "mine": "Your open disclosures",
+    "returned_one": "{{count}} sent back to you",
+    "returned_other": "{{count}} sent back to you",
+    "review": "Submissions to review",
+    "approval": "Items to approve"
+  }
+}

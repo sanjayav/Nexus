@@ -63,6 +63,28 @@ export const SUBSECTION_ORDER: Record<string, string[]> = {
   ],
 }
 
+/**
+ * i18n helpers. CAPITAL_ORDER / SUBSECTION_ORDER values are matched against DB
+ * `section` / `subsection` strings, so they must stay in English. Render sites
+ * translate them at display time with a slug key and the English fallback:
+ *
+ *   t(capitalLabelKey(name), { defaultValue: name })
+ *   t(subsectionLabelKey(name), { defaultValue: name })
+ *
+ * Translations live in `src/i18n/locales/<lng>/perfReport.json`.
+ */
+export function i18nSlug(s: string): string {
+  return s.toLowerCase().replace(/%/g, 'pct').replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+}
+
+export function capitalLabelKey(name: string): string {
+  return `perfReport.capitals.${i18nSlug(name)}`
+}
+
+export function subsectionLabelKey(name: string): string {
+  return `perfReport.subsections.${i18nSlug(name)}`
+}
+
 export interface TemplateRow {
   item: NexusQuestionnaireItem
   // FY2026 value (from data_value) — may be absent if not yet entered.

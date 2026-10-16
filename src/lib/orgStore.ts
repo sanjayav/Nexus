@@ -1,4 +1,5 @@
 import type { PlatformRole } from './rbac'
+import { currentLanguageTag } from './api'
 
 /**
  * Live org + assignment store. Everything below hits /api/org on the live
@@ -72,6 +73,7 @@ export interface QuestionAssignment {
   questionId: string
   gri_code: string
   line_item: string
+  line_item_zh?: string | null
   entityId: string
   assigneeId: string | null
   assigneeName: string
@@ -155,8 +157,12 @@ export interface ContentIndexRow {
   id: string
   gri_code: string
   line_item: string
+  line_item_zh?: string | null
   section: string
   subsection: string
+  /** Simplified Chinese headings (null until the column is seeded). */
+  section_zh?: string | null
+  subsection_zh?: string | null
   unit: string | null
   reporting_scope: string
   total: number
@@ -210,6 +216,7 @@ interface AssignmentWire {
   question_id: string
   gri_code: string
   line_item: string
+  line_item_zh?: string | null
   unit: string | null
   entity_id: string
   assignee_email: string
@@ -239,6 +246,7 @@ function mapAssignment(a: AssignmentWire): QuestionAssignment {
     questionId: a.question_id,
     gri_code: a.gri_code,
     line_item: a.line_item,
+    line_item_zh: a.line_item_zh ?? null,
     unit: a.unit,
     entityId: a.entity_id,
     assigneeEmail: a.assignee_email,
@@ -271,6 +279,8 @@ async function req<T>(path: string, opts: RequestInit = {}): Promise<T> {
     ...opts,
     headers: {
       'Content-Type': 'application/json',
+      // UI language → server-rendered text (anomaly headlines etc.); see src/lib/api.ts.
+      'Accept-Language': currentLanguageTag(),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(opts.headers as Record<string, string> || {}),
     },
@@ -635,7 +645,8 @@ export const orgStore = {
   async listPublishedReports(): Promise<PublishedReport[]> {
     return req<PublishedReport[]>('/org?view=published-reports')
   },
-  async publishReport(period_id: string, assurance_request_id?: string): Promise<PublishReportResult> {
+  /** `locale` is the report language (the UI language, e.g. 'zh-CN'); the server resolves it per org. */
+  async publishReport(period_id: string, assurance_request_id?: string, locale?: string): Promise<PublishReportResult> {
     return req<PublishReportResult>('/org', {
       method: 'POST',
       body: JSON.stringify({
@@ -643,6 +654,7 @@ export const orgStore = {
         period_id,
         assurance_request_id: assurance_request_id ?? null,
         base_url: window.location.origin,
+        ...(locale ? { locale } : {}),
       }),
     })
   },
@@ -790,6 +802,29 @@ export const orgStore = {
   },
 
   // ── Emission factors — admin CRUD via /api/emission-factors ──
+  /**
+   * List factors with the org's preference applied: each (scope, category,
+   * fuel_or_activity, region) group lists its `preferred` row first. China-market
+   * orgs prefer official MEE / GB/T factors for CN regions over IEA.
+   * `preferredOnly` returns one row per group.
+   */
+  async listEmissionFactors(params: {
+    scope?: 1 | 2 | 3
+    category?: string
+    region?: string
+    source?: string
+    preferredOnly?: boolean
+  } = {}): Promise<PreferredEmissionFactor[]> {
+    const q = new URLSearchParams()
+    if (params.scope) q.set('scope', String(params.scope))
+    if (params.category) q.set('category', params.category)
+    if (params.region) q.set('region', params.region)
+    if (params.source) q.set('source', params.source)
+    if (params.preferredOnly) q.set('preferred_only', '1')
+    const qs = q.toString()
+    return req<PreferredEmissionFactor[]>(`/emission-factors${qs ? `?${qs}` : ''}`)
+  },
+
   // Soft-deletes (is_active = false) so historical activity_data references
   // remain intact. Admin-only on the server.
   async deleteEmissionFactor(id: string): Promise<void> {
@@ -870,8 +905,12 @@ export type AnomalyStatusValue = 'open' | 'investigating' | 'resolved' | 'dismis
 export interface DisclosureStandard {
   gri_code: string
   line_item: string
+  line_item_zh?: string | null
   section: string | null
   subsection: string | null
+  /** Simplified Chinese headings (null until the column is seeded). */
+  section_zh?: string | null
+  subsection_zh?: string | null
   unit: string | null
   framework_id: string
   definition: string | null
@@ -896,10 +935,15 @@ export interface Anomaly {
   entity_name: string
   gri_code: string
   line_item: string
+  line_item_zh?: string | null
   anomaly_type: AnomalyType
   severity: AnomalySeverity
   headline: string
   detail: string
+  /** i18n key prefix used to render headline/detail server-side, e.g. 'anomaly.yoy_spike'. */
+  code?: string
+  /** Interpolation values for `code` (lets a client re-template in another language). */
+  params?: Record<string, string | number | null>
   current: number | null
   prior: number | null
   prior_year: number | null
@@ -929,6 +973,7 @@ export interface HistoricalReference {
     id: string
     gri_code: string
     line_item: string
+    line_item_zh?: string | null
     unit: string | null
     section: string | null
     subsection: string | null
@@ -946,6 +991,8 @@ export interface HistoricalReference {
 }
 
 export interface PublishedReport {
+  /** Report language ('en' | 'zh' | 'th'); null for reports published before locale existed. */
+  locale?: string | null
   id: string
   period_id: string
   framework_id: string
@@ -968,6 +1015,8 @@ export interface PublishedReport {
 }
 
 export interface PublishReportResult {
+  /** Report language ('en' | 'zh' | 'th'); null for reports published before locale existed. */
+  locale?: string | null
   ok: true
   id: string
   version: number
@@ -1030,6 +1079,8 @@ export async function submitAssuranceStatement(payload: {
 }
 
 export interface VerifyReportResponse {
+  /** Report language ('en' | 'zh' | 'th'); null for reports published before locale existed. */
+  locale?: string | null
   verified: boolean
   organisation: string
   framework: string
@@ -1038,4 +1089,28 @@ export interface VerifyReportResponse {
   pdf: { sha256: string; size: number; pages: number | null }
   anchor: { tip_hash: string; calendar: string; anchored_at: string; note: string } | null
   assurance: { firm: string | null; signed_by: string | null; signed_at: string; opinion: string | null; standard: string | null } | null
+}
+
+/** Row from GET /api/emission-factors with the org-specific preference flag. */
+export interface PreferredEmissionFactor {
+  id: string
+  scope: number
+  category: string
+  subcategory: string | null
+  fuel_or_activity: string
+  region: string
+  unit: string
+  co2e_per_unit: number | string
+  co2_per_unit: number | string | null
+  ch4_per_unit: number | string | null
+  n2o_per_unit: number | string | null
+  source: string
+  source_version: string | null
+  valid_from: string
+  valid_to: string | null
+  notes: string | null
+  is_active: boolean
+  created_at: string
+  /** The row to use for its (scope, category, fuel_or_activity, region) group. */
+  preferred: boolean
 }

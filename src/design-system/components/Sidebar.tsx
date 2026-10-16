@@ -1,5 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   // Section icons
   Briefcase, FileBarChart, Database, BarChart3 as AnalyticsIcon, Cog,
@@ -8,7 +10,7 @@ import {
   FileText, BookMarked, Library,
   UserCog, Plug, BookOpen, Atom, Calculator as CalcIcon, AlertTriangle, Paperclip,
   Sparkles, Users, Scale, Target as TargetIcon, Settings as SettingsIcon,
-  ShieldCheck, Activity, KeyRound,
+  ShieldCheck, Activity, KeyRound, Leaf, CalendarRange, Hash,
   // Chrome
   ChevronLeft, ChevronRight, ChevronDown, LogOut,
 } from 'lucide-react'
@@ -18,9 +20,14 @@ import SetupGuide from '../../components/SetupGuide'
 import { useOrgBrand } from '../../lib/useOrgBrand'
 import { orgStore } from '../../lib/orgStore'
 import NexusBrandCard from '../../components/NexusBrandCard'
+import { ContourField } from '../illustrations/ContourField'
+import { spring } from '../../motion/tokens'
+import { useFramework } from '../../lib/frameworks'
+import { isOpenAssignment } from '../../lib/journey'
 
 type NavItem = {
   path: string
+  /** i18n key — rendered with t(). */
   label: string
   icon: typeof LayoutDashboard
   roles?: PlatformRole[]
@@ -31,6 +38,7 @@ type NavItem = {
 
 type NavGroup = {
   key: string
+  /** i18n key — rendered with t(). */
   label: string
   icon: typeof Briefcase
   items: NavItem[]
@@ -45,51 +53,55 @@ type NavGroup = {
  */
 const NAV: NavGroup[] = [
   {
-    key: 'work', label: 'Work', icon: Briefcase,
+    key: 'work', label: 'shell.nav.groups.work', icon: Briefcase,
     items: [
-      { path: '/',                label: 'My Day',     icon: LayoutDashboard },
-      { path: '/my-tasks',        label: 'Tasks',      icon: ClipboardList, badgeKey: 'myTasks' },
-      { path: '/inbox',           label: 'Inbox',      icon: Inbox },
+      { path: '/',                label: 'shell.nav.items.myDay',     icon: LayoutDashboard },
+      { path: '/my-tasks',        label: 'shell.nav.items.tasks',      icon: ClipboardList, badgeKey: 'myTasks' },
+      { path: '/inbox',           label: 'shell.nav.items.inbox',      icon: Inbox },
       // Calendar removed from the sidebar — the page itself stays as a
       // "coming soon" placeholder so bookmarks don't 404, but until the
       // event-scheduling layer is real we don't promote it in the nav.
     ],
   },
   {
-    key: 'reports', label: 'Reports', icon: FileBarChart,
+    key: 'reports', label: 'shell.nav.groups.reports', icon: FileBarChart,
     items: [
-      { path: '/reports',           label: 'Active Reports',      icon: FileText,
+      { path: '/reports',           label: 'shell.nav.items.activeReports',      icon: FileText,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner', 'auditor'] },
-      { path: '/reports/templates', label: 'Templates',           icon: BookMarked,
+      { path: '/reports/templates', label: 'shell.nav.items.templates',           icon: BookMarked,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner', 'auditor'] },
-      { path: '/reports/library',   label: 'Disclosures Library', icon: Library,
+      { path: '/reports/library',   label: 'shell.nav.items.disclosuresLibrary', icon: Library,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner', 'auditor'] },
     ],
   },
   {
-    key: 'data', label: 'Data', icon: Database,
+    key: 'data', label: 'shell.nav.groups.data', icon: Database,
     roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'plant_manager', 'data_contributor'],
     items: [
-      { path: '/data',                label: 'Values',            icon: UserCog,
+      { path: '/admin/assignments',   label: 'shell.nav.items.assignments',       icon: UserCog,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead'] },
-      { path: '/data/spreadsheet',    label: 'Spreadsheet',       icon: ClipboardList,
+      { path: '/data',                label: 'shell.nav.items.dataCollection',    icon: Database,
+        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead'] },
+      { path: '/data/spreadsheet',    label: 'shell.nav.items.spreadsheet',       icon: ClipboardList,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'plant_manager', 'data_contributor'] },
-      { path: '/data/evidence',       label: 'Evidence',          icon: Paperclip },
-      { path: '/calculators',         label: 'Calculators',       icon: CalcIcon },
-      { path: '/calculators/pcaf',    label: 'PCAF Portfolio',    icon: Scale, pin: true,
+      { path: '/data/evidence',       label: 'shell.nav.items.evidence',          icon: Paperclip },
+      { path: '/calculators',         label: 'shell.nav.items.calculators',       icon: CalcIcon },
+      { path: '/calculators/pcaf',    label: 'shell.nav.items.pcafPortfolio',    icon: Scale, pin: true,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead'] },
-      { path: '/data/connectors',     label: 'Connectors',        icon: Plug },
-      { path: '/data/ef-library',     label: 'Emission factors',  icon: BookOpen,
+      { path: '/data/green-ledger',   label: 'shell.nav.items.greenLedger',       icon: Leaf,
+        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'plant_manager'] },
+      { path: '/data/connectors',     label: 'shell.nav.items.connectors',        icon: Plug },
+      { path: '/data/ef-library',     label: 'shell.nav.items.emissionFactors',  icon: BookOpen,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead'] },
-      { path: '/data/anomalies',      label: 'Anomalies',         icon: AlertTriangle, badgeKey: 'anomalies' },
+      { path: '/data/anomalies',      label: 'shell.nav.items.anomalies',         icon: AlertTriangle, badgeKey: 'anomalies' },
     ],
   },
   {
-    key: 'analytics', label: 'Analytics', icon: AnalyticsIcon,
+    key: 'analytics', label: 'shell.nav.groups.analytics', icon: AnalyticsIcon,
     roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'plant_manager', 'auditor'],
     items: [
-      { path: '/analytics',   label: 'Analytics', icon: AnalyticsIcon },
-      { path: '/reports/ai',  label: 'AI Report', icon: Sparkles, pin: true,
+      { path: '/analytics',   label: 'shell.nav.items.analytics', icon: AnalyticsIcon },
+      { path: '/reports/ai',  label: 'shell.nav.items.aiReport', icon: Sparkles, pin: true,
         roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner'] },
     ],
   },
@@ -100,16 +112,17 @@ const ADMIN_TRAY: NavItem[] = [
   // surfaced as a duplicate "Organisation" link. The onboarding flow is
   // still reachable from the workspace setup card; the legacy org tree
   // editor lives on at /admin/org/legacy.
-  { path: '/admin/users',         label: 'Users & Roles',   icon: Users,        roles: ['platform_admin'] },
-  { path: '/admin/materiality',   label: 'Materiality',     icon: Scale,        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner'] },
-  { path: '/admin/targets',       label: 'Climate Targets', icon: TargetIcon,   roles: ['platform_admin', 'group_sustainability_officer'] },
-  { path: '/admin/data-standard', label: 'Data Standard',   icon: BookOpen,     roles: ['platform_admin', 'group_sustainability_officer'] },
-  { path: '/admin/audit',         label: 'Activity History', icon: ShieldCheck, roles: ['platform_admin', 'auditor'] },
-  { path: '/admin/api-keys',      label: 'API Keys',        icon: KeyRound,     roles: ['platform_admin'] },
-  { path: '/admin/scim',          label: 'SCIM',            icon: KeyRound,     roles: ['platform_admin'] },
-  { path: '/admin/blockchain',    label: 'Blockchain',      icon: ShieldCheck,  roles: ['platform_admin', 'auditor'] },
-  { path: '/admin/system-status', label: 'System Status',   icon: Activity,     roles: ['platform_admin'] },
-  { path: '/admin/settings',      label: 'Settings',        icon: SettingsIcon, roles: ['platform_admin'] },
+  { path: '/admin/users',         label: 'shell.nav.items.usersRoles',   icon: Users,        roles: ['platform_admin'] },
+  { path: '/admin/periods',       label: 'shell.nav.items.reportingCycles', icon: CalendarRange, roles: ['platform_admin', 'group_sustainability_officer'] },
+  { path: '/admin/materiality',   label: 'shell.nav.items.materiality',     icon: Scale,        roles: ['platform_admin', 'group_sustainability_officer', 'subsidiary_lead', 'narrative_owner'] },
+  { path: '/admin/targets',       label: 'shell.nav.items.climateTargets', icon: TargetIcon,   roles: ['platform_admin', 'group_sustainability_officer'] },
+  { path: '/admin/data-standard', label: 'shell.nav.items.dataStandard',   icon: BookOpen,     roles: ['platform_admin', 'group_sustainability_officer'] },
+  { path: '/admin/audit',         label: 'shell.nav.items.activityHistory', icon: ShieldCheck, roles: ['platform_admin', 'auditor'] },
+  { path: '/admin/api-keys',      label: 'shell.nav.items.apiKeys',        icon: KeyRound,     roles: ['platform_admin'] },
+  { path: '/admin/scim',          label: 'shell.nav.items.scim',            icon: KeyRound,     roles: ['platform_admin'] },
+  { path: '/admin/blockchain',    label: 'shell.nav.items.blockchain',      icon: Hash,  roles: ['platform_admin', 'auditor'] },
+  { path: '/admin/system-status', label: 'shell.nav.items.systemStatus',   icon: Activity,     roles: ['platform_admin'] },
+  { path: '/admin/settings',      label: 'shell.nav.items.settings',        icon: SettingsIcon, roles: ['platform_admin'] },
 ]
 
 function canSee(role: PlatformRole, required?: PlatformRole[]): boolean {
@@ -126,6 +139,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
+  const { t } = useTranslation()
   const location = useLocation()
   const { user, logout } = useAuth()
   const role = resolveRole(user)
@@ -175,14 +189,17 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   return (
     <aside
       className={`${collapsed ? 'w-[68px]' : 'w-[248px]'} flex-shrink-0 flex flex-col h-screen sticky top-0
-        bg-[var(--bg-inverse)] text-white transition-all duration-300 ease-[var(--ease-out-expo)]
-        border-r border-white/[0.06] relative overflow-hidden`}
+        bg-[var(--bg-inverse)] text-white transition-[width] duration-300 ease-[var(--ease-out-expo)]
+        shadow-[inset_-1px_0_0_var(--sidebar-edge)] relative overflow-hidden`}
     >
-      {/* Ambient glow */}
+      {/* Signature: faint emerald contour lines behind the brand lockup. */}
+      <div aria-hidden className="pointer-events-none absolute -top-6 -right-28 w-[440px] h-[240px]" style={{ color: 'var(--sidebar-accent)', opacity: 0.11 }}>
+        <ContourField anchor="top-right" rings={11} seed={7} className="w-full h-full" />
+      </div>
       <div
         aria-hidden
-        className="pointer-events-none absolute top-0 right-0 w-[200px] h-[200px] opacity-40"
-        style={{ background: 'radial-gradient(circle, rgba(27,107,123,0.3), transparent 60%)' }}
+        className="pointer-events-none absolute top-0 inset-x-0 h-[160px]"
+        style={{ background: 'radial-gradient(80% 100% at 100% 0%, rgba(16,185,129,0.10), transparent 70%)' }}
       />
 
       {/* Brand lockup */}
@@ -226,16 +243,16 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
       )}
 
       {/* User + logout */}
-      <div className={`flex-shrink-0 border-t border-white/[0.06] ${collapsed ? 'px-2' : 'px-3'} py-3 space-y-2 relative`}>
+      <div className={`flex-shrink-0 border-t border-[var(--sidebar-divider)] ${collapsed ? 'px-2' : 'px-3'} py-3 space-y-2 relative`}>
         <div
           className={`flex items-center ${collapsed ? 'justify-center py-2' : 'gap-3 px-2 py-2'} rounded-[10px]`}
           style={{ background: 'rgba(255,255,255,0.03)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)' }}
         >
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold text-white flex-shrink-0"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-caption font-semibold text-white flex-shrink-0"
             style={{
-              background: 'linear-gradient(135deg, #2fa98e, #1B6B7B)',
-              boxShadow: '0 2px 8px rgba(27,107,123,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
+              background: 'linear-gradient(135deg, var(--accent-600), var(--accent-800))',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), 0 0 0 1px rgba(52,211,153,0.25)',
             }}
           >
             {firstName[0]}
@@ -243,13 +260,13 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           {!collapsed && (
             <>
               <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-semibold text-white/90 truncate leading-tight">{user?.name}</p>
-                <p className="text-[10px] text-white/45 truncate leading-tight mt-0.5 font-medium">{roleMeta.name}</p>
+                <p className="text-small font-semibold text-[var(--sidebar-fg)] truncate leading-tight">{user?.name}</p>
+                <p className="text-caption text-[var(--sidebar-fg-subtle)] truncate leading-tight mt-0.5 font-medium">{t(`shell.roles.${role}.name`, { defaultValue: roleMeta.name })}</p>
               </div>
               <button
                 onClick={logout}
-                title="Sign out"
-                className="w-7 h-7 rounded-[6px] flex items-center justify-center text-white/35 hover:text-white/85 hover:bg-white/[0.06] transition-all"
+                title={t('nav.logout')}
+                className="w-7 h-7 rounded-[6px] flex items-center justify-center text-[var(--sidebar-fg-subtle)] hover:text-white hover:bg-[var(--sidebar-hover-bg)] transition-colors"
               >
                 <LogOut className="w-3.5 h-3.5" />
               </button>
@@ -259,8 +276,8 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
         <button
           onClick={onToggle}
-          className="w-full flex items-center justify-center h-7 rounded-[6px] text-white/30 hover:text-white/60 hover:bg-white/[0.04] transition-all"
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="w-full flex items-center justify-center h-7 rounded-[6px] text-[var(--sidebar-fg-subtle)] hover:text-[var(--sidebar-fg-muted)] hover:bg-[var(--sidebar-hover-bg)] transition-colors"
+          aria-label={collapsed ? t('shell.sidebar.expand') : t('shell.sidebar.collapse')}
         >
           {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
         </button>
@@ -272,6 +289,15 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
 function isMatch(pathname: string, target: string): boolean {
   if (target === '/') return pathname === '/' || pathname === '/my-day' || pathname === '/dashboard'
   return pathname === target || pathname.startsWith(target + '/')
+}
+
+const ALL_PATHS = [...NAV.flatMap(g => g.items.map(it => it.path)), ...ADMIN_TRAY.map(it => it.path)]
+
+/** Active only when no more specific nav item also matches (so /data/evidence
+ *  lights "Evidence", not "Data collection" as well). */
+function isActivePath(pathname: string, target: string): boolean {
+  if (!isMatch(pathname, target)) return false
+  return !ALL_PATHS.some(p => p !== target && p.length > target.length && isMatch(pathname, p))
 }
 
 // ─── Section (collapsible) ─────────────────────────────────────
@@ -294,7 +320,7 @@ function Section({
   // Collapsed (icon-rail) mode: flat list of item icons.
   if (collapsed) {
     return (
-      <div className={isFirst ? '' : 'mt-1.5 pt-1.5 border-t border-white/[0.04]'}>
+      <div className={isFirst ? '' : 'mt-1.5 pt-1.5 border-t border-[var(--sidebar-divider)]'}>
         {items.map(it => <IconOnlyItem key={it.path} item={it} badges={badges} pathname={pathname} />)}
       </div>
     )
@@ -324,6 +350,7 @@ function ExpandedSection({
   badges: BadgeMap
   pathname: string
 }) {
+  const { t } = useTranslation()
   const isActive = activeKey === group.key
   const SectIcon = group.icon
   const aggBadge = items.reduce((s, it) => it.badgeKey ? s + (badges[it.badgeKey] ?? 0) : s, 0)
@@ -332,24 +359,26 @@ function ExpandedSection({
     <div>
       <button
         onClick={onToggle}
-        className={`w-full flex items-center gap-2.5 px-2.5 h-9 lg:h-8 min-h-[44px] lg:min-h-0 rounded-[6px] text-[11.5px] font-bold uppercase tracking-[0.08em] transition-colors duration-[120ms] ease-[var(--ease-out-expo)]
+        className={`w-full flex items-center gap-2.5 px-2.5 h-9 lg:h-8 min-h-[44px] lg:min-h-0 rounded-[6px] text-micro font-semibold uppercase tracking-[0.06em] transition-colors duration-[120ms] ease-[var(--ease-out-expo)]
           ${isActive && !expanded
-            ? 'bg-white/[0.05] text-white'
-            : 'text-white/55 hover:text-white/85 hover:bg-white/[0.04]'
+            ? 'bg-[var(--sidebar-hover-bg)] text-white'
+            : isActive
+              ? 'text-[var(--sidebar-fg)] hover:bg-[var(--sidebar-hover-bg)]'
+              : 'text-[var(--sidebar-fg-muted)] hover:text-white hover:bg-[var(--sidebar-hover-bg)]'
           }`}
       >
-        <SectIcon className={`w-[14px] h-[14px] flex-shrink-0 transition-colors ${isActive ? 'text-[#2fa98e]' : ''}`} />
-        <span className="flex-1 text-left">{group.label}</span>
+        <SectIcon className={`w-[14px] h-[14px] flex-shrink-0 transition-colors ${isActive ? 'text-[var(--sidebar-accent)]' : ''}`} />
+        <span className="flex-1 text-left">{t(group.label)}</span>
         {aggBadge > 0 && !expanded && (
           <span
-            className="text-[10px] font-bold px-1.5 min-w-[18px] h-[18px] rounded-full leading-none inline-flex items-center justify-center tabular-nums"
-            style={{ background: 'rgba(47,169,142,0.18)', color: '#2fa98e' }}
+            className="text-micro font-semibold px-1.5 min-w-[18px] h-[18px] rounded-full leading-none inline-flex items-center justify-center tabular-nums"
+            style={{ background: 'var(--sidebar-badge-bg)', color: 'var(--sidebar-badge-fg)' }}
           >
             {aggBadge}
           </span>
         )}
         <ChevronDown
-          className={`w-3 h-3 text-white/35 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+          className={`w-3 h-3 text-[var(--sidebar-fg-subtle)] transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -362,7 +391,7 @@ function ExpandedSection({
           opacity: expanded ? 1 : 0,
         }}
       >
-        <div className="pt-0.5 pb-1 pl-[11px]" style={{ borderLeft: '1px solid rgba(255,255,255,0.06)', marginLeft: '18px' }}>
+        <div className="pt-0.5 pb-1 pl-[11px]" style={{ borderLeft: '1px solid var(--sidebar-divider)', marginLeft: '18px' }}>
           {items.map(it => <ChildItem key={it.path} item={it} badges={badges} pathname={pathname} />)}
         </div>
       </div>
@@ -381,32 +410,33 @@ function AdminTray({
   items: NavItem[]
   pathname: string
 }) {
+  const { t } = useTranslation()
   if (collapsed) {
     // Icon-only rail: the items render in the collapsed gap; render the
     // gear at the bottom of the nav to keep parity.
     return (
-      <div className="px-2 pb-2 border-t border-white/[0.04] pt-1.5">
+      <div className="px-2 pb-2 border-t border-[var(--sidebar-divider)] pt-1.5">
         {items.map(it => <IconOnlyItem key={it.path} item={it} badges={{ myTasks: 0, reviewQueue: 0, approvalQueue: 0, anomalies: 0 }} pathname={pathname} />)}
       </div>
     )
   }
   return (
-    <div className="px-2.5 pb-2 border-t border-white/[0.04] pt-2">
+    <div className="px-2.5 pb-2 border-t border-[var(--sidebar-divider)] pt-2">
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="w-full flex items-center gap-2.5 px-2.5 h-10 rounded-[6px] text-[12.5px] font-semibold text-white/55 hover:text-white/85 hover:bg-white/[0.04] transition-colors"
+        className="w-full flex items-center gap-2.5 px-2.5 h-10 rounded-[6px] text-small font-semibold text-[var(--sidebar-fg-muted)] hover:text-white hover:bg-[var(--sidebar-hover-bg)] transition-colors"
       >
         <Cog className="w-[15px] h-[15px] flex-shrink-0" />
-        <span className="flex-1 text-left uppercase tracking-[0.08em] text-[11px] font-bold">Admin</span>
-        <ChevronDown className={`w-3 h-3 text-white/35 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <span className="flex-1 text-left uppercase tracking-[0.06em] text-micro font-semibold">{t('shell.nav.groups.admin')}</span>
+        <ChevronDown className={`w-3 h-3 text-[var(--sidebar-fg-subtle)] transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       <div
         className="overflow-hidden transition-[max-height,opacity] duration-250"
         style={{ maxHeight: open ? `${items.length * 48 + 12}px` : 0, opacity: open ? 1 : 0 }}
       >
-        <div className="pt-0.5 pl-[11px]" style={{ borderLeft: '1px solid rgba(255,255,255,0.06)', marginLeft: '18px' }}>
+        <div className="pt-0.5 pl-[11px]" style={{ borderLeft: '1px solid var(--sidebar-divider)', marginLeft: '18px' }}>
           {items.map(it => <ChildItem key={it.path} item={it} badges={{ myTasks: 0, reviewQueue: 0, approvalQueue: 0, anomalies: 0 }} pathname={pathname} />)}
         </div>
       </div>
@@ -425,8 +455,9 @@ function tourTagFor(path: string): string | undefined {
 }
 
 function ChildItem({ item, badges, pathname }: { item: NavItem; badges: BadgeMap; pathname: string }) {
+  const { t } = useTranslation()
   const Icon = item.icon
-  const isActive = isMatch(pathname, item.path)
+  const isActive = isActivePath(pathname, item.path)
   const badge = item.badgeKey ? badges[item.badgeKey] : 0
   const tourTag = tourTagFor(item.path)
 
@@ -435,32 +466,40 @@ function ChildItem({ item, badges, pathname }: { item: NavItem; badges: BadgeMap
       to={item.path}
       end={item.path === '/'}
       data-tour={tourTag}
-      className={`group relative flex items-center gap-2 px-2.5 h-9 lg:h-8 min-h-[44px] lg:min-h-0 rounded-[6px] text-[13px] lg:text-[12.5px] font-medium transition-colors duration-[120ms] ease-[var(--ease-out-expo)]
+      className={`group relative flex items-center gap-2 px-2.5 h-9 lg:h-8 min-h-[44px] lg:min-h-0 rounded-[6px] text-small font-medium transition-colors duration-[120ms] ease-[var(--ease-out-expo)]
         ${isActive
-          ? 'bg-white/[0.08] text-white'
-          : 'text-white/55 hover:text-white hover:bg-white/[0.04]'
+          ? 'text-white'
+          : 'text-[var(--sidebar-fg-muted)] hover:text-white hover:bg-[var(--sidebar-hover-bg)]'
         }`}
     >
       {isActive && (
-        <span
-          className="absolute -left-[12px] top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full"
-          style={{ background: 'linear-gradient(180deg, #2fa98e, #1B6B7B)', boxShadow: '0 0 8px rgba(47,169,142,0.5)' }}
-        />
+        // Sliding active indicator: the pill and its rail glide between items.
+        <motion.span
+          layoutId="nav-active"
+          transition={spring.snappy}
+          aria-hidden
+          className="absolute inset-0 rounded-[6px]"
+          style={{ background: 'var(--sidebar-active-bg)', boxShadow: 'inset 0 0 0 1px rgba(52,211,153,0.10)' }}
+        >
+          <span
+            className="absolute -left-[12px] top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-r-full"
+            style={{ background: 'var(--sidebar-accent)' }}
+          />
+        </motion.span>
       )}
-      <Icon className={`w-[14px] h-[14px] flex-shrink-0 transition-colors ${isActive ? 'text-[#2fa98e]' : 'group-hover:text-white/80'}`} />
-      <span className="truncate flex-1">{item.label}</span>
+      <Icon className={`relative w-[14px] h-[14px] flex-shrink-0 transition-colors ${isActive ? 'text-[var(--sidebar-accent)]' : 'group-hover:text-white/80'}`} />
+      <span className="relative truncate flex-1">{t(item.label)}</span>
       {item.pin && !isActive && (
-        <span className="w-1.5 h-1.5 rounded-full bg-[#E6A817] flex-shrink-0" title="Flagship feature" />
+        <span className="relative w-1.5 h-1.5 rounded-full bg-[var(--sidebar-warn)] flex-shrink-0" title={t('shell.sidebar.flagship')} />
       )}
       {badge > 0 && (
         <span
-          className="text-[10px] font-bold px-1.5 min-w-[17px] h-[17px] rounded-full leading-none inline-flex items-center justify-center tabular-nums"
+          className="relative text-micro font-semibold px-1.5 min-w-[18px] h-[18px] rounded-full leading-none inline-flex items-center justify-center tabular-nums"
           style={{
             background: isActive
-              ? 'linear-gradient(135deg, #2fa98e, #1B6B7B)'
-              : item.badgeKey === 'anomalies' ? 'rgba(230,168,23,0.25)' : 'rgba(255,255,255,0.08)',
-            color: item.badgeKey === 'anomalies' && !isActive ? '#E6A817' : 'white',
-            boxShadow: isActive ? '0 2px 8px rgba(47,169,142,0.3)' : 'none',
+              ? 'var(--sidebar-accent)'
+              : item.badgeKey === 'anomalies' ? 'var(--sidebar-warn-bg)' : 'rgba(255,255,255,0.08)',
+            color: isActive ? '#03241A' : item.badgeKey === 'anomalies' ? 'var(--sidebar-warn)' : 'var(--sidebar-fg)',
           }}
         >
           {badge}
@@ -473,8 +512,9 @@ function ChildItem({ item, badges, pathname }: { item: NavItem; badges: BadgeMap
 // ─── IconOnlyItem (for collapsed sidebar: flat icon rail) ─────
 
 function IconOnlyItem({ item, badges, pathname }: { item: NavItem; badges: BadgeMap; pathname: string }) {
+  const { t } = useTranslation()
   const Icon = item.icon
-  const isActive = isMatch(pathname, item.path)
+  const isActive = isActivePath(pathname, item.path)
   const badge = item.badgeKey ? badges[item.badgeKey] : 0
   const tourTag = tourTagFor(item.path)
 
@@ -482,35 +522,38 @@ function IconOnlyItem({ item, badges, pathname }: { item: NavItem; badges: Badge
     <NavLink
       to={item.path}
       end={item.path === '/'}
-      title={item.label}
+      title={t(item.label)}
       data-tour={tourTag}
-      className={`group relative flex items-center justify-center h-9 w-full rounded-[8px] my-0.5 transition-all duration-150
+      className={`group relative flex items-center justify-center h-9 w-full rounded-[8px] my-0.5 transition-colors duration-150
         ${isActive
-          ? 'bg-white/[0.08] text-white'
-          : 'text-white/55 hover:text-white hover:bg-white/[0.04]'
+          ? 'text-white'
+          : 'text-[var(--sidebar-fg-muted)] hover:text-white hover:bg-[var(--sidebar-hover-bg)]'
         }`}
     >
       {isActive && (
-        <span
-          className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
-          style={{ background: 'linear-gradient(180deg, #2fa98e, #1B6B7B)', boxShadow: '0 0 8px rgba(47,169,142,0.5)' }}
-        />
+        <motion.span
+          layoutId="nav-active-rail"
+          transition={spring.snappy}
+          aria-hidden
+          className="absolute inset-0 rounded-[8px]"
+          style={{ background: 'var(--sidebar-active-bg)', boxShadow: 'inset 0 0 0 1px rgba(52,211,153,0.10)' }}
+        >
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 rounded-r-full" style={{ background: 'var(--sidebar-accent)' }} />
+        </motion.span>
       )}
-      <Icon className={`w-[16px] h-[16px] ${isActive ? 'text-[#2fa98e]' : ''}`} />
+      <Icon className={`relative w-[16px] h-[16px] ${isActive ? 'text-[var(--sidebar-accent)]' : ''}`} />
       {item.pin && !isActive && (
         <span
-          className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[#E6A817]"
-          title="Flagship feature"
+          className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[var(--sidebar-warn)]"
+          title={t('shell.sidebar.flagship')}
         />
       )}
       {badge > 0 && (
         <span
-          className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 rounded-full text-[9px] font-bold text-white flex items-center justify-center tabular-nums leading-none"
+          className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 rounded-full text-micro font-semibold flex items-center justify-center tabular-nums leading-none"
           style={{
-            background: item.badgeKey === 'anomalies'
-              ? 'linear-gradient(135deg, #E6A817, #D97706)'
-              : 'linear-gradient(135deg, #2fa98e, #1B6B7B)',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+            background: item.badgeKey === 'anomalies' ? 'var(--sidebar-warn)' : 'var(--sidebar-accent)',
+            color: '#03241A',
           }}
         >
           {badge}
@@ -524,6 +567,7 @@ function IconOnlyItem({ item, badges, pathname }: { item: NavItem; badges: Badge
 
 function useBadges() {
   const { user } = useAuth()
+  const { active: framework } = useFramework()
   const [badges, setBadges] = useState<BadgeMap>({ myTasks: 0, reviewQueue: 0, approvalQueue: 0, anomalies: 0 })
 
   useEffect(() => {
@@ -531,19 +575,20 @@ function useBadges() {
     let cancelled = false
     const load = async () => {
       try {
-        const [rows, anomalies] = await Promise.all([
+        const [mine, rows, anomalies] = await Promise.all([
+          // Same source and definition as My Day / My Tasks (lib/journey):
+          // my assignments in the active framework that are open — not
+          // started, in progress or sent back.
+          orgStore.myAssignments(),
           orgStore.listAssignments(),
           orgStore.anomalyScan('role', { limit: 1 }).catch(() => ({ summary: { critical: 0, warn: 0, info: 0, total: 0, suppressed_total: 0, by_type: {} } as any })),
         ])
         if (cancelled) return
-        const email = user.email.toLowerCase()
+        const fw = rows.filter(a => a.framework_id === framework.id)
         setBadges({
-          myTasks: rows.filter(a =>
-            a.assigneeEmail.toLowerCase() === email &&
-            (a.status === 'not_started' || a.status === 'in_progress' || a.status === 'rejected')
-          ).length,
-          reviewQueue: rows.filter(a => a.status === 'submitted').length,
-          approvalQueue: rows.filter(a => a.status === 'reviewed').length,
+          myTasks: mine.filter(a => a.framework_id === framework.id && isOpenAssignment(a)).length,
+          reviewQueue: fw.filter(a => a.status === 'submitted').length,
+          approvalQueue: fw.filter(a => a.status === 'reviewed').length,
           anomalies: anomalies.summary?.critical ?? 0,
         })
       } catch { /* silent */ }
@@ -551,7 +596,7 @@ function useBadges() {
     load()
     const iv = setInterval(load, 30000)
     return () => { cancelled = true; clearInterval(iv) }
-  }, [user?.email])
+  }, [user?.email, framework.id])
 
   return badges
 }

@@ -1,0 +1,587 @@
+{
+  "framework": {
+    "reportingFramework": "报告框架",
+    "phase1": "第一阶段 · 仅 GRI",
+    "on": "已启用",
+    "off": "未启用",
+    "soon": "即将推出",
+    "items_one": "{{count}} 项",
+    "items_other": "{{count}} 项"
+  },
+  "retry": "重试",
+  "errorBoundary": {
+    "unexpected": "发生意外错误",
+    "body": "页面发生意外错误。您的数据是安全的——请重试操作、返回首页或刷新页面。",
+    "stack": "堆栈跟踪（仅开发环境）",
+    "tryAgain": "重试",
+    "goHome": "返回首页"
+  },
+  "theme": {
+    "label": "颜色主题",
+    "light": "浅色",
+    "auto": "自动",
+    "dark": "深色",
+    "switchTo": "切换为{{label}}主题"
+  },
+  "breadcrumb": "面包屑导航",
+  "jargon": {
+    "noDefinition": "暂无定义。",
+    "whatIs": "什么是{{term}}？"
+  },
+  "unknownError": "未知错误",
+  "integration": {
+    "ai": "当前环境未配置 AI。请联系管理员设置 ANTHROPIC_API_KEY。",
+    "email": "未配置邮件发送。请联系管理员设置 RESEND_API_KEY。",
+    "sso": "未配置单点登录（SSO）。请联系管理员设置 WORKOS_API_KEY。",
+    "realtime": "未配置实时协作。请联系管理员设置 LIVEBLOCKS_SECRET_KEY。"
+  },
+  "live": {
+    "soloTitle": "未配置实时协作。在服务器上添加 LIVEBLOCKS_SECRET_KEY 即可启用多人编辑。",
+    "solo": "单人模式",
+    "reconnectingTitle": "正在重新连接实时服务器…",
+    "connectingTitle": "正在连接实时服务器…",
+    "reconnecting": "正在重新连接…",
+    "connecting": "正在连接…",
+    "offlineTitle": "实时同步已离线。连接恢复前，您的编辑仅保存在本地。",
+    "offline": "离线",
+    "liveTitle": "实时同步已开启——编辑内容将同步给此房间内的其他编辑者。",
+    "live": "实时"
+  },
+  "setupGuard": {
+    "title": "未找到实时数据",
+    "message": "此页面直接读取 Nexus 后端数据。数据库似乎为空——请运行幂等初始化以创建数据表并写入 FY2022–FY2025 历史数值。",
+    "complete": "初始化完成",
+    "failed": "初始化失败",
+    "reloading": "正在加载实时数据…",
+    "initializing": "正在初始化…",
+    "retry": "重新初始化",
+    "initialize": "初始化数据库",
+    "footnote": "幂等操作。缺失时创建数据表并写入 SPD 演示数据，可安全地多次运行。"
+  },
+  "demoCta": {
+    "hide": "隐藏——我将手动设置",
+    "kicker": "演示用",
+    "title": "加载演示示例数据",
+    "body": "一键预填您的工作区：7 个实体、2 个气候目标、5 个重要议题以及 FY2025 报告周期。完全跳过手动入门设置，可立即演示发布、异常检测和鉴证流程。",
+    "cta": "加载演示设置"
+  },
+  "demoSeed": {
+    "stages": {
+      "org": "组织架构（集团 + 3 家子公司 + 3 个工厂）",
+      "targets": "气候目标（SBTi + 净零）",
+      "materiality": "重要议题（5 个优先议题）",
+      "period": "FY2025 报告周期"
+    },
+    "seedFailed": "数据写入失败",
+    "title": "加载演示示例",
+    "subtitle": "预填您的工作区，几秒钟即可演示所有流程。",
+    "intro": "将在您的工作区中创建以下内容。现有数据不受影响。之后您可以保留、编辑或删除任何内容。",
+    "recommended": "推荐用于演示。如需手动入门设置可跳过——所有步骤也可在设置指南中完成。",
+    "working": "处理中…",
+    "done": "完成",
+    "allSet": "全部完成，正在关闭…",
+    "couldNotSeed": "无法写入工作区数据",
+    "load": "加载示例数据"
+  },
+  "dismiss": "关闭",
+  "reset": {
+    "failed": "重置失败",
+    "triggerTitle": "清除工作区数据——保留用户和登录信息",
+    "trigger": "重置工作区",
+    "title": "重置工作区？",
+    "closeAria": "关闭重置工作区对话框",
+    "body": "此操作将永久删除此工作区中的<b>所有实体、成员、气候目标、重要议题、报告期间、任务指派、鉴证请求和已发布报告</b>。",
+    "preserved": "保留内容：您的登录信息、用户与角色、GRI 问卷目录以及审计追踪。",
+    "typeToConfirm": "请在下方输入 <b>RESET</b> 以确认。",
+    "done": "工作区已重置，正在重新加载…",
+    "resetting": "正在重置…",
+    "everything": "全部重置"
+  },
+  "quickStart": {
+    "kicker": "三步快速上手",
+    "title": "从电子表格到经鉴证的报告",
+    "body": "使用 Nexus 的最快路径。点击任一步骤即可开始——无需按顺序完成。",
+    "s1": {
+      "title": "导入数据",
+      "body": "拖入 Excel 文件，或使用预加载的演示数据填充报告。",
+      "cta": "打开绩效数据"
+    },
+    "s2": {
+      "title": "审核与审批",
+      "body": "系统自动运行异常检查。在队列中审批披露项。",
+      "cta": "打开审核队列"
+    },
+    "s3": {
+      "title": "发布报告",
+      "body": "生成哈希锚定的 PDF。审计师可通过公开链接进行验证。",
+      "cta": "打开发布中心"
+    }
+  },
+  "journey": {
+    "stages": {
+      "onboard": {
+        "label": "设置组织",
+        "description": "构建报告架构并添加成员",
+        "cta": "从集团开始"
+      },
+      "assign": {
+        "label": "指派",
+        "description": "选择 GRI 披露条目并指派给相关人员",
+        "cta": "创建首个指派"
+      },
+      "collect": {
+        "label": "收集",
+        "description": "工厂填写问题并附上证据",
+        "cta": "打开我的任务"
+      },
+      "review": {
+        "label": "审核",
+        "description": "子公司负责人审核工厂提交的数据",
+        "cta": "审核提交内容"
+      },
+      "approve": {
+        "label": "审批",
+        "description": "可持续发展负责人签署汇总数据",
+        "cta": "审批汇总数据"
+      },
+      "publish": {
+        "label": "发布",
+        "description": "锁定年度数据并生成 GRI 报告",
+        "cta": "发布报告"
+      }
+    },
+    "headline": {
+      "startGroup": "首先添加您的母公司集团",
+      "entitiesMembers": "{{entities}} 个实体，{{members}} 名成员",
+      "addPlants": "{{entities}} 个实体——请在子公司下添加工厂",
+      "inviteMembers": "{{entities}} 个实体——邀请成员以开始",
+      "finishOrg": "请先完成组织设置",
+      "noneAssigned": "尚未指派任何问题",
+      "assignedAcross": "已向 {{plants}} 个工厂指派 {{assigned}} 个问题",
+      "nothingToCollect": "暂无待收集数据",
+      "allSubmitted": "所有工厂均已提交",
+      "outstanding": "{{outstanding}} 项未完成 · {{submitted}} 项已提交",
+      "allReviewed": "全部已审核",
+      "nothingToReview": "暂无待审核内容",
+      "waitingLead": "{{count}} 项待子公司负责人审核",
+      "approvedCount": "{{count}} 项已审批",
+      "nothingToApprove": "暂无待审批内容",
+      "awaitingOfficer": "{{count}} 项待可持续发展负责人审批",
+      "approvalsRequired": "发布前需完成审批",
+      "partialApproved": "已审批 {{approved}}/{{assigned}}——等待其余项",
+      "readyToPublish": "可以发布集团报告"
+    },
+    "pipeline": "报告流程",
+    "allComplete": "所有阶段已完成",
+    "publishGroup": "发布集团报告",
+    "yourTurn": "轮到您",
+    "stagesComplete": "个阶段已完成",
+    "pipelineShort": "流程",
+    "sixStages": "工厂 → 报告 · 六个阶段",
+    "youWorkAt": "您所在阶段",
+    "legend": {
+      "complete": "已完成",
+      "active": "进行中",
+      "upcoming": "待开始"
+    },
+    "doNext": "下一步",
+    "owners": {
+      "platform_admin": "管理员",
+      "group_sustainability_officer": "集团可持续发展负责人",
+      "subsidiary_lead": "子公司负责人",
+      "plant_manager": "工厂经理",
+      "data_contributor": "填报人",
+      "narrative_owner": "叙述负责人",
+      "auditor": "审计师"
+    }
+  },
+  "notifications": {
+    "ariaUnread": "通知，{{count}} 条未读",
+    "title": "通知",
+    "unread": "{{count}} 条未读",
+    "markAllRead": "全部标为已读",
+    "markRead": "标为已读",
+    "emptyTitle": "暂无通知",
+    "emptyBody": "任务指派、审核和审批通知将显示在此处。",
+    "viewAll": "查看全部通知",
+    "kinds": {
+      "assignment_created": "任务指派",
+      "assignment_bulk_created": "批量指派",
+      "comment": "评论",
+      "mention": "提及",
+      "review_request": "审核请求",
+      "review_decision": "审核结果",
+      "review_requested": "待审核",
+      "approval_requested": "待审批",
+      "approve": "审批",
+      "approved": "已审批",
+      "rejected": "已退回"
+    }
+  },
+  "time": {
+    "justNow": "刚刚",
+    "minutesShort": "{{count}} 分钟前",
+    "hoursShort": "{{count}} 小时前",
+    "daysShort": "{{count}} 天前"
+  },
+  "setupGuide": {
+    "collapsedTitle": "设置 {{completed}}/{{total}}",
+    "title": "设置指南",
+    "progress": "已完成 {{completed}}/{{total}} 步",
+    "dismiss": "关闭——可在设置中恢复",
+    "steps": {
+      "org_tree": {
+        "title": "构建组织架构",
+        "helper": "添加集团、子公司和工厂。"
+      },
+      "users": {
+        "title": "邀请团队成员",
+        "helper": "添加工厂经理、审核人和负责人。"
+      },
+      "materiality": {
+        "title": "开展重要性评估",
+        "helper": "识别最重要的议题。"
+      },
+      "targets": {
+        "title": "设定气候目标",
+        "helper": "承诺 SBTi 近期目标或净零目标。"
+      },
+      "period": {
+        "title": "开启报告周期",
+        "helper": "创建您要报告的财年。"
+      },
+      "assign": {
+        "title": "指派披露项",
+        "helper": "将每个 GRI 披露条目指派给合适的填报人。"
+      },
+      "publish": {
+        "title": "发布首份报告",
+        "helper": "数据审批通过后，生成审计级 PDF。"
+      }
+    }
+  },
+  "guidedTour": {
+    "skip": "跳过导览",
+    "getStarted": "开始使用",
+    "s0": {
+      "title": "欢迎使用 Nexus",
+      "description": "Nexus 是一个经区块链验证的 ESG 报告平台。收集数据、计算排放、映射到框架、通过工作流审批并发布经鉴证的报告——一站式完成。"
+    },
+    "s1": {
+      "title": "指挥中心",
+      "description": "仪表盘为您提供全局视图：模块状态、SBTi 路径以及 Demo Co 所有运营设施的绩效。"
+    },
+    "s2": {
+      "title": "数据收集 → 计算器",
+      "description": "从数据收集开始提交实体和供应商数据，然后使用计算引擎按温室气体核算体系（GHG Protocol）方法计算排放。"
+    },
+    "s3": {
+      "title": "框架与工作流",
+      "description": "框架问题将披露项指派给合适的人员。审批队列确保每个数据点在报告前均经过审核并锚定到区块链。"
+    },
+    "s4": {
+      "title": "分析与鉴证",
+      "description": "分析模块根据历史基线标记异常。鉴证审查在发布前提供第三方验证流程。"
+    },
+    "s5": {
+      "title": "报告发布",
+      "description": "基于单一经验证的数据集生成 CDP、TCFD、GRI 和 CSRD 报告。使用 AI 叙述自动生成执行摘要。"
+    },
+    "s6": {
+      "title": "每个数字均可验证",
+      "description": "留意数据点旁的盾牌图标。点击即可查看完整的区块链证明——提交人、审批人以及链上交易哈希。"
+    }
+  },
+  "tour": {
+    "quickTour": "快速导览",
+    "skip": "跳过导览",
+    "start": "开始使用 Nexus",
+    "steps": {
+      "welcome": {
+        "title": "欢迎使用 Nexus",
+        "body": "在同一个工作区中收集 ESG 数据、起草框架报告并发布经鉴证的披露。快速浏览一下各项功能的位置。"
+      },
+      "day": {
+        "title": "这是您的一天",
+        "body": "待办指派、审核队列和建议的下一步操作——尽在一屏。每天从这里开始。"
+      },
+      "frameworks": {
+        "title": "框架即文档",
+        "body": "选择框架，打开编辑器，像编辑文档一样填写。数值会在所有报告间自动关联。"
+      },
+      "search": {
+        "title": "Cmd+K 打开一切",
+        "body": "按 ⌘K 可跳转到任意页面、执行操作或查找框架。⌘N 可新建内容。"
+      }
+    }
+  },
+  "comments": {
+    "discussion": "讨论",
+    "openCount": "{{count}} 条未解决",
+    "filterAria": "筛选评论",
+    "filter": {
+      "unresolved": "未解决",
+      "mine": "提及我的",
+      "review": "审核请求"
+    },
+    "noMatch": "没有符合筛选条件的评论。请在下方发起讨论。",
+    "hideResolved": "隐藏已解决",
+    "showResolved": "显示已解决",
+    "couldNotUpdate": "无法更新：{{error}}",
+    "couldNotPost": "无法发布：{{error}}",
+    "reopen": "重新打开",
+    "resolve": "解决",
+    "reviewRequested": "已请求审核",
+    "requestReview": "请求审核",
+    "cancelReply": "取消回复",
+    "reply": "回复",
+    "submitHint": "⌘+Enter 提交",
+    "replyPlaceholder": "回复…",
+    "placeholder": "撰写评论——输入 @ 可提及他人",
+    "writeAria": "撰写评论",
+    "submitAria": "提交评论",
+    "mentionSuggestions": "提及建议",
+    "kinds": {
+      "review_decision": "审核结果",
+      "approval_decision": "审批结果",
+      "rejection_reason": "退回原因",
+      "system": "系统"
+    }
+  },
+  "savedViews": {
+    "loadFailed": "无法加载已保存的视图",
+    "saveFailed": "保存失败",
+    "ownerOnly": "只有所有者可以删除此视图。",
+    "deleteFailed": "删除失败",
+    "region": "已保存的视图",
+    "shared": "已与组织共享",
+    "private": "私有视图",
+    "more": "视图“{{name}}”的更多操作",
+    "saveView": "保存视图",
+    "namePlaceholder": "例如：“逾期的 E1 排放”"
+  },
+  "mfa": {
+    "loadFailed": "无法加载多因素认证状态。",
+    "enrollFailed": "无法开始注册。",
+    "verifyFailed": "验证失败。",
+    "disableFailed": "无法停用多因素认证。",
+    "title": "账户安全",
+    "intro": "使用 TOTP 身份验证器应用（Google Authenticator、1Password、Authy、Apple 密码）添加第二重验证。启用后，每次登录都需要输入 6 位验证码。",
+    "checking": "正在检查状态…",
+    "off": "双因素认证未开启",
+    "recommended": "强烈建议拥有发布或管理权限的账户开启。",
+    "settingUp": "正在设置…",
+    "enable": "启用双因素认证",
+    "step1": "第 1 步 · 扫描二维码",
+    "step1Body": "打开身份验证器应用，扫描此二维码添加新账户。",
+    "manualSecret": "或手动输入此密钥：",
+    "step2": "第 2 步 · 保存恢复码",
+    "step2Body": "请妥善保存——设备丢失时每个恢复码可使用一次。恢复码将不会再次显示。",
+    "copied": "已复制！",
+    "copyAll": "复制全部恢复码",
+    "step3": "第 3 步 · 输入应用中的 6 位验证码",
+    "verifying": "正在验证…",
+    "verifyEnable": "验证并启用",
+    "on": "双因素认证已开启",
+    "lastUsed": "上次使用：{{date}}",
+    "promptEverySignIn": "每次登录时都需要输入验证码。",
+    "disable": "停用",
+    "confirmDisable": "确认密码以停用双因素认证",
+    "confirmDisableBody": "停用后，登录时仅需密码。",
+    "currentPassword": "当前密码",
+    "disabling": "正在停用…",
+    "disable2fa": "停用双因素认证"
+  },
+  "linked": {
+    "title": "关联数据",
+    "autoFilled": "已从其他框架自动填充",
+    "overridden": "已本地覆盖",
+    "appearsIn": "此数值出现在 <b>{{count}}</b> 个框架中。在此审批将自动同步到所有关联披露项（已本地覆盖的除外）。"
+  },
+  "history": {
+    "loadFailed": "加载失败",
+    "title": "历史参考",
+    "definition": "定义",
+    "calcMethod": "计算方法",
+    "entry": "FY{{year}} 填报值",
+    "target": "目标",
+    "avg": "均值",
+    "noValues": "暂无历史数值记录",
+    "nYearAvg": "{{n}} 年均值",
+    "min": "最小值",
+    "max": "最大值",
+    "yearByYear": "逐年数据",
+    "fyTarget": "FY{{year}} 目标",
+    "peers": "同类工厂 · 已审批",
+    "qualityCheck": "质量检查",
+    "sources": "已注明每年数据来源 · 置信度评分：{{level}}",
+    "high": "高",
+    "mixed": "参差",
+    "flags": {
+      "yoyTitle": "较 FY{{year}} {{pct}}",
+      "yoyCritical": "远超 50% 的审核阈值。请确认这反映了真实变化（重述、边界变更、重大项目），或更正数据。",
+      "yoyWarn": "超过 20% 的预警阈值——请在评论栏中补充说明理由。",
+      "zExtremeTitle": "|z 分数| = {{z}}——极端离群值",
+      "zExtremeBody": "该数值偏离四年均值 {{z}} 个标准差。若无结构性变化，出现的可能性极低。",
+      "zWarnBody": "超出四年历史数据的 2σ 范围——建议核查。",
+      "ratioTitle": "为历史均值的 {{ratio}} 倍",
+      "ratioBody": "通常意味着单位错误（吨与千克、立方米与升）。请仔细核对单位和数量级。",
+      "okTitle": "处于历史范围内",
+      "okBody": "未检测到统计异常。数值与四年历史数据一致。"
+    }
+  },
+  "ai": {
+    "high": "高",
+    "medium": "中",
+    "low": "低",
+    "notConfigured": "未配置 AI。请联系管理员设置 ANTHROPIC_API_KEY。",
+    "failed": "提取失败",
+    "title": "AI 提取",
+    "extract": "使用 AI 提取数据",
+    "unavailable": "AI 不可用",
+    "envHint": "当前环境未配置 AI 功能。请联系管理员设置 <c>ANTHROPIC_API_KEY</c>。",
+    "reading": "正在读取文档…",
+    "period": "期间",
+    "supplier": "供应商",
+    "reasoning": "推理依据：",
+    "useValue": "使用此数值",
+    "reExtract": "重新提取"
+  },
+  "anomalyFeed": {
+    "title": "已标记的异常",
+    "critical": "{{count}} 项严重",
+    "warn": "{{count}} 项警告",
+    "info": "{{count}} 项提示",
+    "noneDetected": "未检测到异常",
+    "noneDetectedTitle": "未检测到异常",
+    "noneAt": "“{{severity}}”级别下无异常",
+    "hideSuppressed": "隐藏 {{count}} 项已忽略",
+    "showSuppressed": "显示 {{count}} 项已忽略",
+    "tabCrit": "严重",
+    "tabWarn": "警告",
+    "tabInfo": "提示",
+    "refreshAria": "刷新异常",
+    "refresh": "刷新",
+    "allClear": "所有数值均处于历史范围内，证据完整。",
+    "seeAll": "查看全部 {{count}} 项异常",
+    "suppressedBy": "由 {{by}} 忽略：“{{reason}}”",
+    "openDisclosure": "打开披露项",
+    "open": "打开",
+    "restoreTitle": "恢复——重新显示此异常",
+    "restore": "恢复",
+    "suppressTitle": "忽略——注明原因并标记为已知悉",
+    "suppress": "忽略",
+    "reasonTooShort": "请至少输入 10 个字符说明原因——这将记入审计追踪。",
+    "suppressFailed": "忽略失败",
+    "suppressAnomaly": "忽略异常",
+    "suppressBody": "不会删除任何内容——异常仍会保留记录，可通过“显示已忽略”查看。您填写的原因将记入审计链。",
+    "reason": "原因 *",
+    "reasonPlaceholder": "例如：“FY2026 边界扩大至包含 D 工厂，数值不可直接比较”",
+    "charCount": "{{n}}/10+ 个字符",
+    "types": {
+      "yoy_spike": "同比激增",
+      "magnitude_jump": "数量级跳变",
+      "z_score_outlier": "离群值",
+      "trend_break": "趋势中断",
+      "unit_change": "单位变更",
+      "missing_evidence": "缺少证据",
+      "late_submission": "逾期",
+      "narrative_gap": "叙述缺失",
+      "peer_deviation": "同级偏差"
+    }
+  },
+  "blockchain": {
+    "status": "已验证并上链",
+    "chain": {
+      "submitted": "数据已提交",
+      "review": "同行审核",
+      "anchored": "已锚定至区块链",
+      "system": "系统",
+      "included": "已纳入 CDP 报告",
+      "reportEngine": "报告引擎"
+    },
+    "title": "区块链验证",
+    "subtitle": "不可篡改的审计证明",
+    "closeAria": "关闭区块链验证",
+    "verifiedBody": "此数据点在链上拥有完整的监管链。",
+    "tabProof": "证明详情",
+    "tabChain": "监管链",
+    "onChain": "链上数据",
+    "rows": {
+      "dataPoint": "数据点",
+      "facility": "设施",
+      "submittedBy": "提交人",
+      "submittedAt": "提交时间",
+      "approvedBy": "审批人",
+      "approvedAt": "审批时间",
+      "anchoredAt": "上链时间",
+      "merkleRoot": "默克尔根",
+      "txHash": "交易哈希",
+      "blockNumber": "区块号",
+      "network": "网络",
+      "gasUsed": "Gas 消耗"
+    },
+    "whatMeans": "这意味着什么？",
+    "explanation": "此数据点由设施工程师提交，经数据审批人审核批准后，以密码学方式锚定至 Polygon zkEVM 区块链。默克尔根证明该数据已包含在一批经验证的可持续发展记录中。交易哈希可在公共区块链浏览器上独立验证。一经上链，该记录将无法修改或删除。",
+    "sampleDataPoint": "范围一排放 - 2026 年第一季度"
+  },
+  "excel": {
+    "scope1": "范围一",
+    "scope2": "范围二",
+    "scope3": "范围三",
+    "unknown": "未知",
+    "empty": "该电子表格似乎为空。",
+    "parseError": "无法解析文件。请确认文件为有效的 .xlsx 或 .csv 格式。",
+    "title": "导入排放数据",
+    "subtitle": "上传 Excel / CSV 或加载 PTTEP 演示数据",
+    "closeAria": "关闭 Excel 导入",
+    "parsing": "正在解析电子表格…",
+    "drop": "将 Excel 或 CSV 文件拖放到此处",
+    "supports": "支持 .xlsx、.xls、.csv——自动识别列",
+    "or": "或",
+    "loadDemo": "加载 PTTEP 演示数据",
+    "demoBody": "预加载温室气体清单：{{count}} 个排放源，覆盖范围一、二、三——Arthit、Bongkot、S1、Zawtika 资产",
+    "expectedColumns": "所需列",
+    "flexible": "列名支持灵活匹配——“Fuel Type”、“Energy Type”、“Emission Factor”均可正确映射。",
+    "detected": "检测到 {{rows}} 行 · {{cols}} 列",
+    "autoMapped": "已自动映射",
+    "fields": {
+      "scope": "范围",
+      "category": "类别",
+      "source": "来源",
+      "fuelOrFactor": "燃料 / 因子",
+      "quantity": "数量",
+      "unit": "单位"
+    },
+    "skip": "— 跳过 —",
+    "rawPreview": "原始数据预览（前 3 行）",
+    "totalRows": "总行数",
+    "sources": "个排放源",
+    "rows_one": "{{count}} 行",
+    "rows_other": "{{count}} 行",
+    "successTitle": "数据导入成功",
+    "successBody": "已将 {{count}} 个排放源加载到计算器中。打开任一计算器即可查看预填数据。",
+    "footerUpload": "拖入文件或使用演示数据开始",
+    "footerMapping": "来自 {{file}} 的 {{count}} 行",
+    "footerPreview": "{{count}} 行待导入",
+    "previewData": "预览数据",
+    "importRows": "导入 {{count}} 行"
+  },
+  "brand": {
+    "sustainability": "可持续发展",
+    "esgReporting": "ESG 报告",
+    "tagline": "可持续发展智能平台"
+  },
+  "notFound": {
+    "title": "页面未找到",
+    "body": "您访问的页面不存在或已被移动。请使用下方链接返回。",
+    "goBack": "返回上一页",
+    "backToDashboard": "返回仪表盘"
+  },
+  "inbox": {
+    "description": "共 {{total}} 条 · {{unread}} 条未读。使用方向键浏览，按 Enter 打开。",
+    "emptyTitle": "暂无通知",
+    "emptyBody": "任务指派、审核和审批通知将在发生时显示在此处。",
+    "loadMore": "加载更多（剩余 {{count}} 条）"
+  }
+}

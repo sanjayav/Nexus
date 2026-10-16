@@ -1,0 +1,86 @@
+{
+  "title": "Entity submissions",
+  "subtitle": "Collect Excel or CSV files from intercompany divisions, subsidiaries and suppliers, and track every submission.",
+  "uploadFile": "Upload file",
+  "tabsAria": "Entity type",
+  "tabs": {
+    "intercompany": "Intercompany",
+    "subsidiary": "Subsidiary",
+    "supplier": "Supplier"
+  },
+  "toastImported_one": "{{count}} data row imported",
+  "toastImported_other": "{{count}} data rows imported",
+  "toastImportedSub": "{{file}} · {{entity}}",
+  "toastReverted": "Import of {{file}} undone",
+  "templates": {
+    "title": "Data templates",
+    "subtitle": "Standard column layouts that pass validation first time. CSV opens cleanly in Excel, including Chinese Excel.",
+    "emissions": "Emissions",
+    "energy": "Energy",
+    "supplier": "Supplier data",
+    "waterWaste": "Water and waste",
+    "downloaded": "{{name}} template downloaded"
+  },
+  "stats": {
+    "total": "Submissions",
+    "complete": "Complete",
+    "pendingSubmitted": "Pending or submitted",
+    "overdue": "Overdue"
+  },
+  "recent": "Recent file uploads",
+  "rows_one": "{{count}} row",
+  "rows_other": "{{count}} rows",
+  "processed": "Processed",
+  "warnings_one": "{{count}} warning",
+  "warnings_other": "{{count}} warnings",
+  "tableTitle": {
+    "intercompany": "Intercompany submissions",
+    "subsidiary": "Subsidiary submissions",
+    "supplier": "Supplier submissions"
+  },
+  "empty": "No submissions for this entity type yet",
+  "col": {
+    "entity": "Entity",
+    "dataType": "Data type",
+    "period": "Period",
+    "format": "Format",
+    "value": "Value",
+    "submittedBy": "Submitted by",
+    "date": "Date",
+    "status": "Status"
+  },
+  "format": {
+    "raw": "Raw",
+    "measured": "Measured",
+    "reported": "Reported",
+    "supplier-provided": "Supplier-provided"
+  },
+  "status": {
+    "complete": "Complete",
+    "submitted": "Submitted",
+    "pending": "Pending",
+    "overdue": "Overdue"
+  },
+  "modal": {
+    "title": "Upload data file",
+    "formats": "Accepted formats: .xlsx, .xls, .csv",
+    "entity": "Reporting entity",
+    "selectEntity": "Select an entity…",
+    "entityRequired": "Choose the entity this file reports for.",
+    "fileLabel": "File",
+    "drop": "Drop your file here",
+    "dropHere": "Release to upload",
+    "browse": "or click to browse",
+    "remove": "Remove file",
+    "badType": "That file type isn't supported",
+    "validating": "Validating file structure…",
+    "passed": "Validation passed",
+    "dataRows": "Data rows",
+    "valid": "Valid",
+    "warningsLabel": "Warnings",
+    "warningFound_one": "{{count}} warning found",
+    "warningFound_other": "{{count}} warnings found",
+    "warningDetail": "Row 8: emissions value 52,000 is 3× the historical average — flagged for review.",
+    "import": "Import data"
+  }
+}

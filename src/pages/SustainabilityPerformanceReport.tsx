@@ -1,10 +1,16 @@
-import { Fragment, useRef, useState } from 'react'
+import { Fragment, useMemo, useRef, useState } from 'react'
+import { useTranslation, Trans } from 'react-i18next'
 import ExcelJS from 'exceljs'
 import { Download, Plus, FileSpreadsheet, CheckCircle2, AlertTriangle, Loader2, X } from 'lucide-react'
 import { DEMO_REPORT, flattenRows, type DemoReport, type ReportSection, type ReportTable, type ReportRow, type CellValue } from '../data/demoReport'
 import PageHeader from '../components/PageHeader'
 import Button from '../design-system/components/Button'
 import JargonTooltip from '../components/JargonTooltip'
+import { StatLedger, StatusPill, notify, type StatLedgerItem } from '../components/ui'
+import { useFmt } from '../lib/fmt'
+import { i18nSlug } from '../reports/spdTemplate'
+import ReportSheet from '../components/analytics/reports/ReportSheet'
+import { EmissionsByScopeChart, EnergyChart, series } from '../components/analytics/reports/PerfCharts'
 
 type ImportSummary = {
   year: number
@@ -14,9 +20,11 @@ type ImportSummary = {
 }
 
 export default function SustainabilityPerformanceReport() {
+  const { t } = useTranslation()
   const [report, setReport] = useState<DemoReport>(() => structuredClone(DEMO_REPORT))
   const [importOpen, setImportOpen] = useState(false)
   const [summary, setSummary] = useState<ImportSummary | null>(null)
+  const [downloading, setDownloading] = useState(false)
 
   const addYear = (year: number, rows: Record<string, CellValue>) => {
     setReport(prev => {
@@ -35,168 +43,278 @@ export default function SustainabilityPerformanceReport() {
     })
   }
 
+  const onDownload = async () => {
+    setDownloading(true)
+    try {
+      await downloadTemplate(report)
+      notify.success(t('perfReport.toast.templateReady'))
+    } catch (e) {
+      notify.error(t('perfReport.toast.templateFailed'), { description: e instanceof Error ? e.message : undefined })
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  const firstYear = report.years[0]
+  const lastYear = report.years[report.years.length - 1]
+
   return (
-    <div className="space-y-6">
+    <div className="max-w-[1280px] mx-auto">
       <PageHeader
-        eyebrow="Reports"
-        title="Sustainability Performance Data"
-        subtitle={(
-          <>
-            {report.organisation} —{' '}
-            <JargonTooltip term="GRI">Global Reporting Initiative — the most widely-adopted standard for sustainability reporting. GRI Standards 2021 covers economic, environmental, and social topics with specific disclosures (e.g. 305-1 = direct GHG emissions).</JargonTooltip>
-            {' / '}
-            <JargonTooltip term="IFRS S1+S2">IFRS Sustainability Disclosure Standards — issued by the ISSB (International Sustainability Standards Board). S1 covers general sustainability-related financial disclosures; S2 specifically targets climate-related risks and opportunities.</JargonTooltip>
-            {' / '}
-            <JargonTooltip term="SASB">Sustainability Accounting Standards Board — industry-specific metrics designed for investor decision-useful disclosures. Now part of the IFRS Foundation alongside ISSB.</JargonTooltip>
-            . Year columns are dynamic; import a new year to append a column.
-          </>
-        )}
+        breadcrumbs={[{ label: t('perfReport.breadcrumb.reports'), to: '/reports' }, { label: t('perfReport.breadcrumb.here') }]}
+        title={t('perfReport.title')}
+        subtitle={t('perfReport.subtitle')}
         actions={
           <>
             <Button
               variant="secondary"
               size="md"
+              loading={downloading}
               icon={<Download className="w-4 h-4" />}
-              onClick={() => { void downloadTemplate(report) }}
+              onClick={() => { void onDownload() }}
             >
-              Download Excel template
+              {t('perfReport.actions.downloadTemplate')}
             </Button>
             <Button
-              variant="brand"
+              variant="primary"
               size="md"
               icon={<Plus className="w-4 h-4" />}
               onClick={() => { setSummary(null); setImportOpen(true) }}
             >
-              Add reporting year
+              {t('perfReport.actions.addYear')}
             </Button>
           </>
         }
       />
 
-      {summary && (
-        <div className="surface-paper p-4 flex items-start gap-3 relative" style={{ borderColor: 'rgba(46,125,50,0.3)' }}>
-          <CheckCircle2 className="w-5 h-5 text-[var(--status-ok)] flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <div className="text-[14px] font-semibold text-[var(--text-primary)]">
-              {summary.year} column added · {summary.matched} indicator{summary.matched === 1 ? '' : 's'} populated
+      <div className="space-y-6">
+        {summary && (
+          <div
+            role="status"
+            className="rounded-[var(--radius-xl)] border border-[var(--status-success-line)] bg-[var(--status-success-soft)] p-4 flex items-start gap-3"
+          >
+            <CheckCircle2 className="w-5 h-5 text-[var(--status-success)] flex-shrink-0 mt-0.5" aria-hidden />
+            <div className="flex-1 min-w-0">
+              <p className="type-small font-semibold text-[var(--text-primary)]">
+                {t('perfReport.summary.added', { year: summary.year, count: summary.matched })}
+              </p>
+              {summary.unmatched > 0 && (
+                <p className="text-caption text-[var(--status-warning)] mt-1">
+                  {t('perfReport.summary.unmatched', { count: summary.unmatched, examples: summary.unmatchedSamples.slice(0, 3).join(t('perfReport.summary.sep')) })}
+                </p>
+              )}
             </div>
-            {summary.unmatched > 0 && (
-              <div className="text-[12px] text-[var(--status-draft)] mt-1">
-                {summary.unmatched} row(s) in the file did not match any indicator. Examples: {summary.unmatchedSamples.slice(0, 3).join(' · ')}
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={() => setSummary(null)}
+              aria-label={t('perfReport.summary.dismiss')}
+              className="-m-2 w-10 h-10 inline-flex items-center justify-center rounded-[var(--radius-md)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+            >
+              <X className="w-4 h-4" aria-hidden />
+            </button>
           </div>
-          <button onClick={() => setSummary(null)} className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+        )}
 
-      {/* Cover */}
-      <div className="surface-hero p-8">
-        <div className="kicker mb-2">Demo Co</div>
-        <h2 className="text-display text-[28px] text-[var(--text-primary)] mb-2">{report.subtitle}</h2>
-        <p className="text-[13px] text-[var(--text-secondary)] leading-relaxed max-w-2xl">
-          Operational performance for the period 1 January – 31 December, including companies in which Demo Co holds 50%+ shares and Polymers JV Ltd. Prepared in accordance with{' '}
-          <JargonTooltip term="GRI Standards 2021">The latest revision of the Global Reporting Initiative standards, modular by topic (universal, economic, environmental, social) — the de-facto sustainability reporting framework worldwide.</JargonTooltip>
-          ,{' '}
-          <JargonTooltip term="IFRS S1">General Requirements for Disclosure of Sustainability-related Financial Information — investors-first sustainability reporting baseline issued by the ISSB.</JargonTooltip>
-          ,{' '}
-          <JargonTooltip term="IFRS S2">Climate-related Disclosures — sets out specific requirements for reporting climate risks, opportunities, scenario analysis, and Scope 1/2/3 emissions.</JargonTooltip>
-          , and{' '}
-          <JargonTooltip term="SASB">Sustainability Accounting Standards Board — industry-specific KPIs (e.g. for chemicals, oil & gas) designed for investor relevance.</JargonTooltip>
-          .
-        </p>
+        {/* ── Cover ── */}
+        <section aria-labelledby="perf-cover" className="surface-hero p-6 sm:p-9">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px]">
+            <div className="min-w-0">
+              <p className="text-small font-medium text-[var(--color-brand-strong)]">{t('perfReport.cover.title')}</p>
+              <h2 id="perf-cover" className="type-display text-[var(--text-primary)] mt-2 text-balance">
+                {report.organisation}
+              </h2>
+              <p className="type-h3 font-medium text-[var(--text-secondary)] mt-2 tabular-nums">
+                {t('perfReport.cover.period', { from: firstYear, to: lastYear, count: report.years.length })}
+              </p>
+              <p className="type-body text-[var(--text-secondary)] mt-5 max-w-[68ch] text-pretty">
+                {t('perfReport.cover.intro')}
+                <JargonTooltip term="GRI Standards 2021">{t('perfReport.cover.jargon.gri2021')}</JargonTooltip>
+                {t('perfReport.cover.sep')}
+                <JargonTooltip term="IFRS S1">{t('perfReport.cover.jargon.ifrsS1')}</JargonTooltip>
+                {t('perfReport.cover.sep')}
+                <JargonTooltip term="IFRS S2">{t('perfReport.cover.jargon.ifrsS2')}</JargonTooltip>
+                {t('perfReport.cover.and')}
+                <JargonTooltip term="SASB">{t('perfReport.cover.jargon.sasb')}</JargonTooltip>
+                {t('perfReport.cover.end')}
+              </p>
+            </div>
+            <nav aria-label={t('perfReport.contents.title')} className="hidden md:block lg:border-l lg:border-[var(--border-subtle)] lg:pl-8">
+              <p className="text-caption font-medium text-[var(--text-tertiary)]">{t('perfReport.contents.title')}</p>
+              <ol className="mt-3 space-y-0.5">
+                {report.sections.map((s, i) => (
+                  <li key={s.id}>
+                    <a
+                      href={`#perf-${s.id}`}
+                      onClick={e => {
+                        e.preventDefault()
+                        document.getElementById(`perf-${s.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                      }}
+                      className="group flex items-baseline gap-3 py-1.5 min-h-[32px] text-small text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                    >
+                      <span className="w-4 text-caption tabular-nums text-[var(--text-quaternary)] group-hover:text-[var(--color-brand)]">{i + 1}</span>
+                      <span className="min-w-0">{t(`perfReport.demo.sections.${s.id}`, { defaultValue: s.title })}</span>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          </div>
+        </section>
+
+        <KpiLedger report={report} />
+
+        <div className="grid gap-5 lg:grid-cols-2">
+          <EmissionsByScopeChart report={report} />
+          <EnergyChart report={report} />
+        </div>
+
+        {report.sections.map((section, i) => (
+          <SectionBlock key={section.id} section={section} years={report.years} index={i + 1} />
+        ))}
+
+        <p className="text-caption text-[var(--text-tertiary)] pt-2">{t('perfReport.footnote')}</p>
       </div>
 
-      {report.sections.map(section => (
-        <SectionBlock key={section.id} section={section} years={report.years} />
-      ))}
-
-      {importOpen && (
-        <AddYearModal
-          report={report}
-          onClose={() => setImportOpen(false)}
-          onImport={(year, rows, summary) => {
-            addYear(year, rows)
-            setSummary(summary)
-            setImportOpen(false)
-          }}
-        />
-      )}
+      <AddYearSheet
+        open={importOpen}
+        report={report}
+        onClose={() => setImportOpen(false)}
+        onImport={(year, rows, s) => {
+          addYear(year, rows)
+          setSummary(s)
+          setImportOpen(false)
+          notify.success(t('perfReport.summary.added', { year: s.year, count: s.matched }))
+        }}
+      />
     </div>
   )
 }
 
-// ─── Section ──────────────────────────────────────────────────────────
-function SectionBlock({ section, years }: { section: ReportSection; years: number[] }) {
-  const accent = section.scope === 'jv'
-    ? { bg: '#7C3AED', label: 'JV' }
-    : sectionAccent(section.id)
-
+// ─── KPI ledger ───────────────────────────────────────────────────────
+function KpiLedger({ report }: { report: DemoReport }) {
+  const { t } = useTranslation()
+  const f = useFmt()
+  const items = useMemo<StatLedgerItem[]>(() => {
+    // Latest year with a value, its predecessor, and the full spark series.
+    const build = (
+      id: string,
+      values: Array<number | null>,
+      opts: { unit: string; goodWhen: 'up' | 'down' | 'neutral'; compact?: boolean },
+    ): StatLedgerItem => {
+      const idx = values.map((v, i) => (v == null ? -1 : i)).filter(i => i >= 0)
+      const li = idx[idx.length - 1]
+      const pi = idx[idx.length - 2]
+      const latest = li == null ? null : values[li]
+      const prev = pi == null ? null : values[pi]
+      const change = latest != null && prev != null && prev !== 0 ? ((latest - prev) / Math.abs(prev)) * 100 : null
+      return {
+        id,
+        label: t(`perfReport.kpi.${id}`),
+        value: latest,
+        format: opts.compact ? (n: number) => f.compact(n) : (n: number) => f.number(n, { maxFraction: 0 }),
+        unit: opts.unit,
+        tone: 'neutral',
+        delta: change == null ? undefined : { value: change, percent: true, goodWhen: opts.goodWhen, label: t('perfReport.kpi.vs', { year: report.years[pi] }) },
+        spark: values.filter((v): v is number => v != null),
+        hint: li == null ? t('perfReport.kpi.noData') : undefined,
+      }
+    }
+    const MT = 1_000_000
+    const s1 = series(report, 'nc-ghg-s1', MT)
+    const s2 = series(report, 'nc-ghg-s2', MT)
+    const s12 = s1.map((v, i) => (v == null && s2[i] == null ? null : (v ?? 0) + (s2[i] ?? 0)))
+    return [
+      build('scope12', s12, { unit: f.unit('tCO2e'), goodWhen: 'down', compact: true }),
+      build('scope3', series(report, 'nc-ghg-s3', MT), { unit: f.unit('tCO2e'), goodWhen: 'down', compact: true }),
+      build('energy', series(report, 'nc-en-total'), { unit: 'MWh', goodWhen: 'down', compact: true }),
+      build('water', series(report, 'nc-water-w'), { unit: t('perfReport.kpi.mlUnit'), goodWhen: 'down', compact: true }),
+      build('employees', series(report, 'hc-total-employee'), { unit: t('perfReport.kpi.personsUnit'), goodWhen: 'neutral' }),
+    ]
+  }, [report, t, f])
+  const last = report.years[report.years.length - 1]
   return (
-    <section>
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-1 h-6 rounded-full" style={{ background: accent.bg }} />
-        <h3 className="font-display text-[20px] font-bold text-[var(--text-primary)] tracking-[-0.01em]">{section.title}</h3>
-        <span className="chip" style={{ background: `${accent.bg}15`, color: accent.bg, borderColor: `${accent.bg}40` }}>{accent.label}</span>
+    <section aria-labelledby="perf-kpi">
+      <div className="flex items-baseline justify-between gap-4 mb-3">
+        <h2 id="perf-kpi" className="type-h3 text-[var(--text-primary)]">{t('perfReport.kpi.title', { year: last })}</h2>
+        <span className="text-caption text-[var(--text-tertiary)]">{t('perfReport.kpi.scope')}</span>
       </div>
+      <StatLedger items={items} aria-label={t('perfReport.kpi.title', { year: last })} />
+    </section>
+  )
+}
+
+// ─── Section ──────────────────────────────────────────────────────────
+function SectionBlock({ section, years, index }: { section: ReportSection; years: number[]; index: number }) {
+  const { t } = useTranslation()
+  const indicators = section.tables.reduce((n, tb) => n + tb.rows.filter(r => r.unit !== '').length, 0)
+  return (
+    <section id={`perf-${section.id}`} aria-labelledby={`perf-${section.id}-h`} className="scroll-mt-6 pt-6">
+      <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1 mb-4 pb-3 border-b border-[var(--border-default)]">
+        <span className="type-h2 tabular-nums text-[var(--text-quaternary)]" aria-hidden>{index}</span>
+        <h2 id={`perf-${section.id}-h`} className="type-h2 text-[var(--text-primary)]">
+          {t(`perfReport.demo.sections.${section.id}`, { defaultValue: section.title })}
+        </h2>
+        {section.scope === 'jv' && <StatusPill tone="info" size="sm">{t('perfReport.section.jv')}</StatusPill>}
+        <span className="text-caption text-[var(--text-tertiary)] sm:ml-auto">{t('perfReport.section.count', { count: indicators })}</span>
+      </header>
       <div className="space-y-4">
         {section.tables.map(table => (
-          <ReportTableBlock key={table.id} table={table} years={years} accent={accent.bg} />
+          <ReportTableBlock key={table.id} table={table} years={years} />
         ))}
       </div>
     </section>
   )
 }
 
-function sectionAccent(id: ReportSection['id']): { bg: string; label: string } {
-  switch (id) {
-    case 'financial':   return { bg: '#1B6B7B', label: 'Financial Capital' }
-    case 'manufacture': return { bg: '#3B8A9B', label: 'Manufacture Capital' }
-    case 'human':       return { bg: '#E6A817', label: 'Human Capital' }
-    case 'social':      return { bg: '#C2410C', label: 'Social Capital' }
-    case 'natural':     return { bg: '#2E7D32', label: 'Natural Capital' }
-    default:            return { bg: '#7C3AED', label: 'JV' }
-  }
-}
-
 // ─── Table ────────────────────────────────────────────────────────────
-function ReportTableBlock({ table, years, accent }: { table: ReportTable; years: number[]; accent: string }) {
+const TH = 'px-4 py-2.5 text-caption font-medium text-[var(--text-secondary)] whitespace-nowrap'
+// Below sm the label column stays pinned while the year columns scroll.
+const STICKY = 'sticky left-0 z-[1] sm:static shadow-[1px_0_0_var(--border-subtle)] sm:shadow-none'
+
+function ReportTableBlock({ table, years }: { table: ReportTable; years: number[] }) {
+  const { t } = useTranslation()
   const hasSplit = table.rows.some(r => r.split === 'mf')
+  const last = years[years.length - 1]
+  const title = table.title ? t(`perfReport.demo.tables.${table.id}`, { defaultValue: table.title }) : null
 
   return (
     <div className="surface-paper overflow-hidden">
-      {table.title && (
-        <div className="px-5 py-2.5 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
-          <span className="text-[12.5px] font-semibold text-[var(--text-primary)]">{table.title}</span>
+      {title && (
+        <div className="px-4 sm:px-5 py-3 border-b border-[var(--border-subtle)]">
+          <h3 className="type-small font-semibold text-[var(--text-primary)]">{title}</h3>
         </div>
       )}
       <div className="overflow-x-auto">
-        <table className="w-full text-[12px] tabular-nums">
-          <thead>
-            <tr style={{ background: `${accent}10` }}>
-              <th rowSpan={hasSplit ? 2 : 1} className="text-left px-4 py-2 font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] text-[10.5px] border-b border-[var(--border-subtle)] w-[90px]">GRI</th>
-              <th rowSpan={hasSplit ? 2 : 1} className="text-left px-4 py-2 font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] text-[10.5px] border-b border-[var(--border-subtle)]">Required Data</th>
-              <th rowSpan={hasSplit ? 2 : 1} className="text-left px-4 py-2 font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] text-[10.5px] border-b border-[var(--border-subtle)] w-[140px]">Unit</th>
+        <table className="w-full tabular-nums border-collapse">
+          {title && <caption className="sr-only">{title}</caption>}
+          <thead className="bg-[var(--bg-secondary)]">
+            <tr>
+              <th scope="col" rowSpan={hasSplit ? 2 : 1} className={`${TH} text-left w-[96px] hidden sm:table-cell`}>{t('perfReport.table.gri')}</th>
+              <th scope="col" rowSpan={hasSplit ? 2 : 1} className={`${TH} ${STICKY} bg-[var(--bg-secondary)] text-left min-w-[180px] sm:min-w-[240px]`}>{t('perfReport.table.requiredData')}</th>
+              <th scope="col" rowSpan={hasSplit ? 2 : 1} className={`${TH} text-left min-w-[120px] hidden sm:table-cell`}>{t('perfReport.table.unit')}</th>
               {years.map(y => (
-                <th key={y} colSpan={hasSplit ? 2 : 1} className="text-center px-4 py-2 font-semibold text-[var(--text-secondary)] uppercase tracking-[0.06em] text-[10.5px] border-b border-[var(--border-subtle)] border-l border-[var(--border-subtle)]">
+                <th
+                  key={y}
+                  scope="colgroup"
+                  colSpan={hasSplit ? 2 : 1}
+                  className={`${TH} text-right border-l border-[var(--border-subtle)] ${y === last ? 'text-[var(--text-primary)] font-semibold' : ''}`}
+                >
                   {y}
                 </th>
               ))}
             </tr>
             {hasSplit && (
-              <tr style={{ background: `${accent}08` }}>
+              <tr className="border-t border-[var(--border-subtle)]">
                 {years.map(y => (
                   <Fragment key={y}>
-                    <th className="text-right px-3 py-1.5 font-medium text-[var(--text-tertiary)] text-[10px] border-b border-[var(--border-subtle)] border-l border-[var(--border-subtle)] w-[80px]">Male</th>
-                    <th className="text-right px-3 py-1.5 font-medium text-[var(--text-tertiary)] text-[10px] border-b border-[var(--border-subtle)] w-[80px]">Female</th>
+                    <th scope="col" className={`${TH} py-1.5 text-right text-[var(--text-tertiary)] border-l border-[var(--border-subtle)] min-w-[76px]`}>{t('perfReport.table.male')}</th>
+                    <th scope="col" className={`${TH} py-1.5 text-right text-[var(--text-tertiary)] min-w-[76px]`}>{t('perfReport.table.female')}</th>
                   </Fragment>
                 ))}
               </tr>
             )}
           </thead>
-          <tbody className="divide-y divide-[var(--border-subtle)]">
+          <tbody className="divide-y divide-[var(--border-subtle)] border-t border-[var(--border-subtle)]">
             {table.rows.map(row => (
               <ReportRowEl key={row.id} row={row} years={years} hasSplit={hasSplit} />
             ))}
@@ -208,33 +326,52 @@ function ReportTableBlock({ table, years, accent }: { table: ReportTable; years:
 }
 
 function ReportRowEl({ row, years, hasSplit }: { row: ReportRow; years: number[]; hasSplit: boolean }) {
+  const { t } = useTranslation()
+  const f = useFmt()
+  const na = t('perfReport.table.na')
   const indent = row.indent ?? 0
   const isHeader = row.unit === '' && Object.values(row.values).every(v => v == null)
+  const last = years[years.length - 1]
+  const cell = (n: number | null) => (n == null ? <span className="text-[var(--text-quaternary)]">{na}</span> : f.exact(n))
+  const unitLabel = row.unit ? f.unit(t(`perfReport.demo.units.${i18nSlug(row.unit)}`, { defaultValue: row.unit })) : ''
+  const valueClass = (y: number) => `text-small text-right whitespace-nowrap ${y === last ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)]'}`
+
+  if (isHeader) {
+    return (
+      <tr className="bg-[var(--bg-secondary)]">
+        <td className="px-4 py-2 text-caption font-mono text-[var(--text-tertiary)] align-top whitespace-nowrap hidden sm:table-cell">{row.gri ?? ''}</td>
+        <th scope="rowgroup" colSpan={2 + years.length * (hasSplit ? 2 : 1)} className="px-4 py-2 text-left type-small font-semibold text-[var(--text-primary)]">
+          <span className="sticky left-4 sm:static">{t(`perfReport.demo.rows.${row.id}`, { defaultValue: row.label })}</span>
+          {row.gri && <span className="sm:hidden ml-2 text-caption font-mono font-normal text-[var(--text-tertiary)]">{row.gri}</span>}
+        </th>
+      </tr>
+    )
+  }
+
   return (
-    <tr className={isHeader ? 'bg-[var(--bg-secondary)]' : 'hover:bg-[var(--bg-secondary)]'}>
-      <td className="px-4 py-2 text-[10.5px] font-mono text-[var(--text-tertiary)] align-top">{row.gri ?? ''}</td>
-      <td className="px-4 py-2 text-[12px] text-[var(--text-primary)]" style={{ paddingLeft: 16 + indent * 16, fontWeight: isHeader ? 600 : 400 }}>
-        {row.label}
-      </td>
-      <td className="px-4 py-2 text-[11.5px] text-[var(--text-tertiary)]">{row.unit}</td>
+    <tr className="group hover:bg-[var(--bg-hover)] transition-colors">
+      <td className="px-4 py-2.5 text-caption font-mono text-[var(--text-tertiary)] align-top whitespace-nowrap hidden sm:table-cell">{row.gri ?? ''}</td>
+      <th scope="row" className={`${STICKY} bg-[var(--bg-primary)] group-hover:bg-[var(--bg-hover)] sm:bg-transparent px-4 py-2.5 text-left text-small font-normal text-[var(--text-primary)]`} style={{ paddingLeft: 16 + indent * 12 }}>
+        {t(`perfReport.demo.rows.${row.id}`, { defaultValue: row.label })}
+        <span className="block sm:hidden mt-0.5 text-caption text-[var(--text-tertiary)]">
+          {[unitLabel, row.gri].filter(Boolean).join(' · ')}
+        </span>
+      </th>
+      <td className="px-4 py-2.5 text-caption text-[var(--text-tertiary)] hidden sm:table-cell">{unitLabel}</td>
       {years.map(y => {
         const val = row.values[y]
         if (row.split === 'mf') {
           const mf = (val ?? null) as { male: number | null; female: number | null } | null
           return (
             <Fragment key={y}>
-              <td className="px-3 py-2 text-right text-[12px] text-[var(--text-primary)] border-l border-[var(--border-subtle)]">{fmt(mf?.male ?? null)}</td>
-              <td className="px-3 py-2 text-right text-[12px] text-[var(--text-primary)]">{fmt(mf?.female ?? null)}</td>
+              <td className={`px-3 py-2.5 border-l border-[var(--border-subtle)] ${valueClass(y)}`}>{cell(mf?.male ?? null)}</td>
+              <td className={`px-3 py-2.5 ${valueClass(y)}`}>{cell(mf?.female ?? null)}</td>
             </Fragment>
           )
         }
         return (
-          <td
-            key={y}
-            colSpan={hasSplit ? 2 : 1}
-            className="px-4 py-2 text-right text-[12px] text-[var(--text-primary)] border-l border-[var(--border-subtle)]"
-          >
-            {fmt(typeof val === 'number' ? val : null)}
+          <td key={y} colSpan={hasSplit ? 2 : 1} className={`px-4 py-2.5 border-l border-[var(--border-subtle)] ${valueClass(y)}`}>
+            {cell(typeof val === 'number' ? val : null)}
           </td>
         )
       })}
@@ -242,25 +379,32 @@ function ReportRowEl({ row, years, hasSplit }: { row: ReportRow; years: number[]
   )
 }
 
-function fmt(n: number | null): string {
-  if (n == null) return 'NA'
-  if (n === 0) return '0'
-  if (Math.abs(n) >= 1000) return n.toLocaleString(undefined, { maximumFractionDigits: 2 })
-  if (Math.abs(n) < 1 && n !== 0) return n.toFixed(2)
-  return n.toLocaleString(undefined, { maximumFractionDigits: 2 })
-}
-
-// ─── Add-Year Modal ───────────────────────────────────────────────────
-function AddYearModal({ report, onClose, onImport }: {
+// ─── Add-year sheet ───────────────────────────────────────────────────
+function AddYearSheet({ open, report, onClose, onImport }: {
+  open: boolean
   report: DemoReport
   onClose: () => void
   onImport: (year: number, rows: Record<string, CellValue>, summary: ImportSummary) => void
 }) {
+  const { t } = useTranslation()
   const nextYear = Math.max(...report.years) + 1
   const [year, setYear] = useState<number>(nextYear)
   const [parsing, setParsing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [dragging, setDragging] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const yearExists = report.years.includes(year)
+
+  // Reset the form each time the sheet opens.
+  const [openedFor, setOpenedFor] = useState<boolean>(false)
+  if (open !== openedFor) {
+    setOpenedFor(open)
+    if (open) {
+      setYear(nextYear)
+      setError(null)
+      setParsing(false)
+    }
+  }
 
   const handleFile = (file: File) => {
     setError(null); setParsing(true)
@@ -271,7 +415,7 @@ function AddYearModal({ report, onClose, onImport }: {
         const wb = new ExcelJS.Workbook()
         await wb.xlsx.load(data)
         const sheet = wb.worksheets[0]
-        if (!sheet) throw new Error('Workbook has no sheets')
+        if (!sheet) throw new Error(t('perfReport.modal.noSheets'))
 
         // First row is the header. Build header list, then map each row to
         // a `{ header: value }` record — same shape XLSX.sheet_to_json gave.
@@ -307,17 +451,21 @@ function AddYearModal({ report, onClose, onImport }: {
         const { matched, unmatched, unmatchedSamples, rows } = mapExcelRows(report, json)
         onImport(year, rows, { year, matched, unmatched, unmatchedSamples })
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to parse Excel')
+        setError(err instanceof Error ? err.message : t('perfReport.modal.parseFailed'))
       } finally {
         setParsing(false)
       }
+    }
+    reader.onerror = () => {
+      setError(t('perfReport.modal.parseFailed'))
+      setParsing(false)
     }
     reader.readAsArrayBuffer(file)
   }
 
   const loadDemo = () => {
     setError(null)
-    // Synthesise a realistic 2026 set: small drift on every numeric historical value.
+    // Synthesise a realistic year: small drift on every numeric historical value.
     const rows: Record<string, CellValue> = {}
     for (const { row } of flattenRows(report)) {
       const last = row.values[Math.max(...report.years)]
@@ -336,60 +484,94 @@ function AddYearModal({ report, onClose, onImport }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{ background: 'rgba(11,18,32,0.5)', backdropFilter: 'blur(8px)' }} onClick={onClose}>
-      <div className="surface-paper max-w-lg w-full p-6" onClick={e => e.stopPropagation()}>
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <span className="kicker">Append</span>
-            <h2 className="text-display text-[20px] text-[var(--text-primary)] mt-0.5">Add reporting year</h2>
-            <p className="text-[12.5px] text-[var(--text-secondary)] mt-1.5 leading-relaxed">
-              Upload an Excel with the year's values. Each row is matched by <span className="font-mono">id</span> (or by <span className="font-mono">GRI</span> + <span className="font-mono">Required Data</span>) to an existing indicator. Unmatched rows are flagged.
-            </p>
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)]">
-            <X className="w-4 h-4" />
+    <ReportSheet
+      open={open}
+      onClose={onClose}
+      busy={parsing}
+      kicker={t('perfReport.modal.kicker')}
+      title={t('perfReport.modal.title')}
+      description={<Trans i18nKey="perfReport.modal.description" components={{ mono: <code className="font-mono text-[var(--text-primary)]" /> }} />}
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={loadDemo}
+            disabled={parsing}
+            className="text-small font-medium text-[var(--color-brand-strong)] hover:underline underline-offset-4 min-h-[40px] text-left disabled:opacity-50"
+          >
+            {t('perfReport.modal.generateSample', { year })}
           </button>
-        </div>
+          <Button variant="secondary" size="md" onClick={onClose} disabled={parsing}>{t('common.cancel')}</Button>
+        </>
+      }
+    >
+      <label htmlFor="perf-year" className="block text-small font-medium text-[var(--text-primary)] mb-1.5">{t('perfReport.modal.year')}</label>
+      <input
+        id="perf-year"
+        type="number"
+        inputMode="numeric"
+        value={year}
+        onChange={e => setYear(Number(e.target.value))}
+        min={2020}
+        max={2100}
+        aria-describedby={yearExists ? 'perf-year-hint' : undefined}
+        className="w-full px-3 h-10 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-body tabular-nums text-[var(--text-primary)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand-soft)] outline-none"
+      />
+      {yearExists && (
+        <p id="perf-year-hint" className="mt-1.5 text-caption text-[var(--status-warning)]">{t('perfReport.modal.yearExists', { year })}</p>
+      )}
 
-        <div className="mb-4">
-          <label className="text-[10.5px] uppercase tracking-[0.12em] font-semibold text-[var(--text-tertiary)] mb-1.5 block">Year</label>
-          <input
-            type="number"
-            value={year}
-            onChange={e => setYear(Number(e.target.value))}
-            min={2020}
-            max={2100}
-            className="w-full px-3 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[14px] text-[var(--text-primary)] focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/15 outline-none"
-          />
-        </div>
-
-        <div
-          className="border-2 border-dashed border-[var(--border-default)] rounded-[12px] p-6 flex flex-col items-center gap-3 cursor-pointer hover:border-[var(--color-brand)] hover:bg-[var(--bg-secondary)] transition-all"
-          onClick={() => fileRef.current?.click()}
-        >
-          <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv" onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} className="hidden" />
-          {parsing ? <Loader2 className="w-6 h-6 text-[var(--color-brand)] animate-spin" /> : <FileSpreadsheet className="w-6 h-6 text-[var(--color-brand)]" />}
-          <div className="text-center">
-            <div className="text-[13px] font-semibold text-[var(--text-primary)]">Drop your Excel for FY {year}</div>
-            <div className="text-[11.5px] text-[var(--text-tertiary)] mt-1">Use the downloaded template — the <span className="font-mono">id</span> column is the key</div>
-          </div>
-        </div>
-
-        {error && (
-          <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-[8px] bg-red-50 border border-red-100">
-            <AlertTriangle className="w-4 h-4 text-[var(--accent-red)]" />
-            <span className="text-[12px] text-[var(--accent-red)]">{error}</span>
-          </div>
+      <button
+        type="button"
+        onClick={() => fileRef.current?.click()}
+        onDragOver={e => { e.preventDefault(); setDragging(true) }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={e => {
+          e.preventDefault()
+          setDragging(false)
+          const file = e.dataTransfer.files?.[0]
+          if (file) handleFile(file)
+        }}
+        disabled={parsing}
+        className={`mt-4 w-full rounded-[var(--radius-xl)] border border-dashed p-6 flex flex-col items-center gap-3 transition-colors ${
+          dragging ? 'border-[var(--color-brand)] bg-[var(--color-brand-soft)]' : 'border-[var(--border-strong)] hover:border-[var(--color-brand)] hover:bg-[var(--bg-secondary)]'
+        }`}
+      >
+        {parsing ? (
+          <Loader2 className="w-6 h-6 text-[var(--color-brand)] animate-spin" aria-hidden />
+        ) : (
+          <FileSpreadsheet className="w-6 h-6 text-[var(--color-brand)]" aria-hidden />
         )}
+        <span className="text-center">
+          <span className="block type-small font-semibold text-[var(--text-primary)]">
+            {parsing ? t('perfReport.modal.parsing') : t('perfReport.modal.drop', { year })}
+          </span>
+          <span className="block text-caption text-[var(--text-tertiary)] mt-1">
+            <Trans i18nKey="perfReport.modal.dropHint" components={{ mono: <code className="font-mono" /> }} />
+          </span>
+        </span>
+      </button>
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".xlsx,.xls,.csv"
+        onChange={e => {
+          const file = e.target.files?.[0]
+          if (file) handleFile(file)
+          e.target.value = ''
+        }}
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+      />
 
-        <div className="mt-4 flex items-center justify-between gap-2">
-          <button onClick={loadDemo} className="text-[12px] text-[var(--color-brand-strong)] hover:underline cursor-pointer">
-            Or generate sample {year} data (demo)
-          </button>
-          <Button variant="secondary" size="md" onClick={onClose}>Cancel</Button>
+      {error && (
+        <div role="alert" className="mt-3 flex items-start gap-2 px-3 py-2.5 rounded-[var(--radius-md)] bg-[var(--status-danger-soft)] border border-[var(--status-danger-line)]">
+          <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--status-danger)]" aria-hidden />
+          <span className="text-small text-[var(--status-danger)]">{error}</span>
         </div>
-      </div>
-    </div>
+      )}
+    </ReportSheet>
   )
 }
 

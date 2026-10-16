@@ -20,7 +20,13 @@
  *   critical  — almost certainly an error / data integrity problem
  *
  * Output is a flat list. Consumers group/filter as they see fit.
+ *
+ * Language: `headline` / `detail` are rendered from api/_i18n.ts in the
+ * requested locale (default 'en', identical to the pre-i18n English text).
+ * Each anomaly also carries `code` (the dictionary key prefix) and `params`
+ * so a client can re-template in its own language.
  */
+import { t, intlTag, type Locale, type MessageParams } from './_i18n.js'
 
 export type AnomalySeverity = 'info' | 'warn' | 'critical'
 
@@ -44,8 +50,10 @@ export interface Anomaly {
   line_item: string
   anomaly_type: AnomalyType
   severity: AnomalySeverity
-  headline: string          // one-line for the feed
+  headline: string          // one-line for the feed (rendered in the requested locale)
   detail: string            // why we flagged it, human readable
+  code?: string             // i18n key prefix, e.g. 'anomaly.yoy_spike'
+  params?: MessageParams    // interpolation values for headline/detail
   current: number | null
   prior: number | null
   prior_year: number | null
@@ -109,8 +117,12 @@ function fmtPct(x: number): string {
   const s = (x * 100).toFixed(1)
   return (x > 0 ? '+' : '') + s + '%'
 }
-function fmtNum(x: number | null | undefined): string {
+function fmtNum(x: number | null | undefined, locale: Locale = 'en'): string {
   if (x == null || !isFinite(x)) return '—'
+  if (locale !== 'en') {
+    // zh → 万/亿, th → native compact forms.
+    return new Intl.NumberFormat(intlTag(locale), { notation: 'compact', maximumFractionDigits: 2 }).format(x)
+  }
   if (Math.abs(x) >= 1_000_000) return (x / 1_000_000).toFixed(2) + 'M'
   if (Math.abs(x) >= 1_000) return (x / 1_000).toFixed(2) + 'k'
   return x.toFixed(2)
@@ -120,9 +132,18 @@ function fmtNum(x: number | null | undefined): string {
 export function detectAnomaliesForAssignment(
   a: AssignmentLike,
   history: HistoricalPoint[],
-  peerIntensities?: number[]
+  peerIntensities?: number[],
+  locale: Locale = 'en',
 ): Anomaly[] {
   const out: Anomaly[] = []
+  const num = (x: number | null | undefined) => fmtNum(x, locale)
+  /** headline/detail from the dictionary + code/params for client re-templating. */
+  const msg = (code: string, headlineKey: string, detailKey: string, params: MessageParams) => ({
+    headline: t(locale, `${code}.${headlineKey}`, params),
+    detail: t(locale, `${code}.${detailKey}`, params),
+    code,
+    params,
+  })
   const base = {
     assignment_id: a.id,
     entity_id: a.entity_id,
@@ -147,8 +168,7 @@ export function detectAnomaliesForAssignment(
         ...base,
         anomaly_type: 'missing_evidence',
         severity: a.status === 'approved' ? 'critical' : 'warn',
-        headline: `No evidence attached for ${a.gri_code}`,
-        detail: `Status is "${a.status}" but no evidence file is on the record. Audit will fail without supporting documentation.`,
+        ...msg('anomaly.missing_evidence', 'headline', 'detail', { code: a.gri_code, status: a.status }),
       }))
     }
   }
@@ -158,8 +178,7 @@ export function detectAnomaliesForAssignment(
       ...base,
       anomaly_type: 'narrative_gap',
       severity: 'critical',
-      headline: `Narrative approved but empty — ${a.gri_code}`,
-      detail: 'Disclosure marked approved with no narrative body. This will not appear in the published report.',
+      ...msg('anomaly.narrative_gap', 'headline', 'detail', { code: a.gri_code }),
     }))
   }
 
@@ -172,8 +191,11 @@ export function detectAnomaliesForAssignment(
         ...base,
         anomaly_type: 'late_submission',
         severity: daysLate > 14 ? 'warn' : 'info',
-        headline: `Submitted ${daysLate} day${daysLate !== 1 ? 's' : ''} after due date`,
-        detail: `Due ${a.due_date.slice(0, 10)}, submitted ${new Date(a.last_updated).toISOString().slice(0, 10)}. Track for process improvement.`,
+        ...msg('anomaly.late_submission', 'headline', 'detail', {
+          count: daysLate,
+          due: a.due_date.slice(0, 10),
+          submitted: new Date(a.last_updated).toISOString().slice(0, 10),
+        }),
       }))
     }
   }
@@ -193,8 +215,7 @@ export function detectAnomaliesForAssignment(
       ...base,
       anomaly_type: 'unit_change',
       severity: 'warn',
-      headline: `Unit changed: "${priorUnit}" → "${a.unit}"`,
-      detail: `Historical filings used "${priorUnit}" for this disclosure. Current entry uses "${a.unit}". Confirm unit conversion was applied.`,
+      ...msg('anomaly.unit_change', 'headline', 'detail', { from: priorUnit, to: a.unit }),
     }))
   }
 
@@ -214,16 +235,18 @@ export function detectAnomaliesForAssignment(
         ...base,
         anomaly_type: 'yoy_spike',
         severity: 'critical',
-        headline: `${fmtPct(delta)} vs FY${latestPrior.year}`,
-        detail: `Current ${fmtNum(a.value)} vs prior year ${fmtNum(latestPrior.value)} — a ${fmtPct(delta)} change. Confirm whether this reflects a genuine change (restatement, boundary change, major project) or a data error.`,
+        ...msg('anomaly.yoy_spike', 'headline', 'detail_critical', {
+          delta: fmtPct(delta), year: latestPrior.year, current: num(a.value), prior: num(latestPrior.value),
+        }),
       }))
     } else if (abs >= YOY_WARN_THRESHOLD) {
       out.push(mkAnomaly({
         ...base,
         anomaly_type: 'yoy_spike',
         severity: 'warn',
-        headline: `${fmtPct(delta)} vs FY${latestPrior.year}`,
-        detail: `Current ${fmtNum(a.value)} vs prior year ${fmtNum(latestPrior.value)}. Variance above the 20% review threshold — recommend a short justification.`,
+        ...msg('anomaly.yoy_spike', 'headline', 'detail_warn', {
+          delta: fmtPct(delta), year: latestPrior.year, current: num(a.value), prior: num(latestPrior.value),
+        }),
       }))
     }
   }
@@ -237,8 +260,9 @@ export function detectAnomaliesForAssignment(
         ...base,
         anomaly_type: 'magnitude_jump',
         severity: 'critical',
-        headline: `${ratio.toFixed(1)}× vs historical average`,
-        detail: `Current ${fmtNum(a.value)} is ${ratio.toFixed(1)}× the 4yr average (${fmtNum(priorAvg)}). Often indicates a unit typo (tonnes vs kg, m³ vs litres).`,
+        ...msg('anomaly.magnitude_jump', 'headline', 'detail', {
+          ratio: ratio.toFixed(1), current: num(a.value), avg: num(priorAvg),
+        }),
       }))
     }
   }
@@ -255,16 +279,18 @@ export function detectAnomaliesForAssignment(
           ...base,
           anomaly_type: 'z_score_outlier',
           severity: 'critical',
-          headline: `|z-score| = ${abs.toFixed(2)} — extreme outlier`,
-          detail: `Value sits ${abs.toFixed(2)} standard deviations from the ${series.length}-year mean of ${fmtNum(priorAvg)} (σ=${fmtNum(sd)}). Extremely unlikely without a structural change.`,
+          ...msg('anomaly.z_score_outlier', 'headline_critical', 'detail_critical', {
+            z: abs.toFixed(2), years: series.length, avg: num(priorAvg), sd: num(sd),
+          }),
         }))
       } else if (abs >= Z_WARN) {
         out.push(mkAnomaly({
           ...base,
           anomaly_type: 'z_score_outlier',
           severity: 'warn',
-          headline: `|z-score| = ${abs.toFixed(2)}`,
-          detail: `${abs.toFixed(2)}σ from the ${series.length}-year mean. Worth a sanity check.`,
+          ...msg('anomaly.z_score_outlier', 'headline_warn', 'detail_warn', {
+            z: abs.toFixed(2), years: series.length,
+          }),
         }))
       }
     }
@@ -280,16 +306,14 @@ export function detectAnomaliesForAssignment(
         ...base,
         anomaly_type: 'trend_break',
         severity: 'info',
-        headline: `Breaks a 3-year rising trend`,
-        detail: `Previous 3 years rose monotonically. Current value (${fmtNum(a.value)}) reverses the trend. Good news if genuine — worth narrating.`,
+        ...msg('anomaly.trend_break', 'headline_rising', 'detail_rising', { current: num(a.value) }),
       }))
     } else if (falling && a.value > last3[2] * 1.1) {
       out.push(mkAnomaly({
         ...base,
         anomaly_type: 'trend_break',
         severity: 'warn',
-        headline: `Breaks a 3-year downward trend`,
-        detail: `Previous 3 years fell monotonically. Current (${fmtNum(a.value)}) reverses the trend upward. Usually worth explaining.`,
+        ...msg('anomaly.trend_break', 'headline_falling', 'detail_falling', { current: num(a.value) }),
       }))
     }
   }
@@ -305,8 +329,9 @@ export function detectAnomaliesForAssignment(
           ...base,
           anomaly_type: 'peer_deviation',
           severity: 'warn',
-          headline: `${z > 0 ? 'Higher' : 'Lower'} than peer plants (z=${z.toFixed(2)})`,
-          detail: `Value sits ${Math.abs(z).toFixed(2)}σ from the peer plant mean (${fmtNum(peerMean)}). May reflect a real operating difference or a reporting boundary mismatch.`,
+          ...msg('anomaly.peer_deviation', z > 0 ? 'headline_higher' : 'headline_lower', 'detail', {
+            z: z.toFixed(2), absz: Math.abs(z).toFixed(2), avg: num(peerMean),
+          }),
         }))
       }
     }
@@ -315,17 +340,7 @@ export function detectAnomaliesForAssignment(
   return out
 }
 
-/** Pretty-print label for an anomaly type. */
-export function anomalyLabel(t: AnomalyType): string {
-  switch (t) {
-    case 'yoy_spike': return 'YoY spike'
-    case 'magnitude_jump': return 'Magnitude jump'
-    case 'z_score_outlier': return 'Statistical outlier'
-    case 'trend_break': return 'Trend break'
-    case 'unit_change': return 'Unit change'
-    case 'missing_evidence': return 'Missing evidence'
-    case 'late_submission': return 'Late submission'
-    case 'narrative_gap': return 'Narrative gap'
-    case 'peer_deviation': return 'Peer deviation'
-  }
+/** Pretty-print label for an anomaly type, in `locale` (default English). */
+export function anomalyLabel(type: AnomalyType, locale: Locale = 'en'): string {
+  return t(locale, `anomaly.label.${type}`)
 }

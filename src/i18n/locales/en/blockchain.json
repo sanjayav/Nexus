@@ -1,0 +1,105 @@
+{
+  "eventType": {
+    "submitted": "Submitted",
+    "approved": "Approved",
+    "anchored": "Anchored",
+    "reportGenerated": "Report Generated",
+    "corrected": "Corrected"
+  },
+  "status": {
+    "verified": "Verified",
+    "pending": "Pending",
+    "inReview": "In Review"
+  },
+  "unknownFacility": "Unknown",
+  "system": "System",
+  "chain": {
+    "title": "Chain of Custody Visualization",
+    "tracing": "Tracing <hl>{{dataPoint}}</hl> at <hl>{{facility}}</hl>"
+  },
+  "faqTitle": "Understanding Blockchain Verification",
+  "faq": {
+    "merkleRoot": {
+      "question": "What is a Merkle root?",
+      "answer": "A Merkle root is a single cryptographic hash that summarizes all the data in a Merkle tree. When sustainability data points are collected, each one is hashed individually. These hashes are then paired and hashed again, layer by layer, until a single root hash remains. This root is stored on-chain, allowing anyone to verify that any individual data point was included in the batch without needing access to all the data. If even one data point changes, the Merkle root changes entirely, making tampering immediately detectable."
+    },
+    "txHash": {
+      "question": "What does the transaction hash mean?",
+      "answer": "A transaction hash (Tx Hash) is a unique identifier for a specific blockchain transaction. When sustainability data is anchored on-chain, the anchoring action produces a transaction that is permanently recorded. The Tx Hash acts as a receipt: anyone can look it up on a block explorer to verify when the data was anchored, which smart contract processed it, and that the Merkle root stored matches the original data batch. It provides an immutable, publicly verifiable proof of the action."
+    },
+    "whyBlockchain": {
+      "question": "Why blockchain for sustainability data?",
+      "answer": "Sustainability reporting is under increasing scrutiny from regulators, investors, and civil society. Traditional databases can be silently altered, creating trust gaps. By anchoring data hashes on a blockchain, every submission, approval, and correction is permanently timestamped and tamper-evident. This creates an auditable chain of custody from data entry to published report. Auditors can independently verify data integrity without relying on the reporting company's internal systems, dramatically reducing assurance costs and greenwashing risk."
+    }
+  },
+  "hero": {
+    "title": "Tamper-evident audit trail",
+    "subtitle": "Every assignment submission, approval, comment and publish is hash-chained. Any modification to a past record breaks the chain.",
+    "live": "Live"
+  },
+  "actions": {
+    "verify": "Verify chain",
+    "verifying": "Verifying…",
+    "anchor": "Anchor to Bitcoin",
+    "anchoring": "Anchoring…",
+    "anchorTitle": "Submit the current chain tip to OpenTimestamps for Bitcoin notarization"
+  },
+  "alerts": {
+    "verifyFailed": "Verify failed: {{error}}",
+    "downloadFailed": "Download failed"
+  },
+  "flash": {
+    "alreadyAnchored": "This tip was already anchored within the last minute.",
+    "submitted": "Submitted {{hash}}… to OpenTimestamps · {{size}} bytes · Bitcoin confirmation 1-6h",
+    "failed": "Anchor failed: {{error}}"
+  },
+  "verifyResult": {
+    "intact": "Chain intact",
+    "recordsVerified_one": "{{count}} record verified. Tip: <mono>{{tip}}…</mono>",
+    "recordsVerified_other": "{{count}} records verified. Tip: <mono>{{tip}}…</mono>",
+    "broken": "Chain broken",
+    "brokenAt": "At block #{{block}}."
+  },
+  "kpi": {
+    "totalRecords": "Total Records",
+    "verified": "Verified",
+    "pending": "Pending",
+    "blockHeight": "Block Height"
+  },
+  "anchors": {
+    "title": "Bitcoin anchors · OpenTimestamps",
+    "refresh": "Refresh",
+    "cols": {
+      "anchored": "Anchored",
+      "tipHash": "Tip hash",
+      "block": "Block",
+      "status": "Status",
+      "receipt": "Receipt"
+    },
+    "btcBlock": "BTC block #{{height}}",
+    "pendingSubmitted": "Pending · submitted",
+    "failed": "Failed",
+    "footnote": "Every anchor submits the chain tip's SHA-256 to the public OpenTimestamps calendar network. Partial receipts confirm within minutes; Bitcoin block confirmation follows in 1–6 hours. Download the <code>.ots</code> file to verify independently via <link>opentimestamps.org</link>."
+  },
+  "filters": {
+    "label": "Filters",
+    "allFacilities": "All Facilities",
+    "allEventTypes": "All Event Types",
+    "searchPlaceholder": "Search by hash, Merkle root, or data point...",
+    "resultCount_one": "{{shown}} of {{count}} record",
+    "resultCount_other": "{{shown}} of {{count}} records"
+  },
+  "table": {
+    "timestamp": "Timestamp",
+    "eventType": "Event Type",
+    "facility": "Facility",
+    "dataPoint": "Data Point",
+    "submitter": "Submitter (DID)",
+    "approver": "Approver (DID)",
+    "merkleRoot": "Merkle Root",
+    "txHash": "Tx Hash",
+    "block": "Block #",
+    "status": "Status",
+    "empty": "No records match the current filters."
+  }
+}

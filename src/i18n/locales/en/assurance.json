@@ -1,0 +1,55 @@
+{
+  "status": {
+    "notStarted": "Not started",
+    "inReview": "In review",
+    "findingsRaised": "Findings raised",
+    "cleared": "Cleared",
+    "readyToPublish": "Ready to publish"
+  },
+  "filter": {
+    "findings": "Findings"
+  },
+  "toast": {
+    "started": "Review started",
+    "cleared": "Item cleared for publishing"
+  },
+  "title": "Assurance review",
+  "subtitle": "Third-party validation pipeline. Assurance teams review, raise findings, and clear data packages before they are published to frameworks.",
+  "reportingYear": "Reporting year {{year}}",
+  "dataPackages": "data packages",
+  "pipeline": "Assurance pipeline",
+  "total_one": "{{count}} total",
+  "total_other": "{{count}} total",
+  "table": {
+    "dataPackage": "Data package",
+    "scope": "Scope",
+    "entity": "Entity",
+    "period": "Period",
+    "reviewer": "Reviewer"
+  },
+  "noMatch": "No items match the current filter.",
+  "process": {
+    "title": "Assurance process",
+    "integrityTitle": "Data integrity check",
+    "integrityBody": "Blockchain-anchored records are verified against source submissions. Any hash mismatch triggers an automatic finding.",
+    "reviewTitle": "Third-party review",
+    "reviewBody": "LRQA Thailand or Internal Audit reviews each data package against GHG Protocol, ISO 14064, and framework-specific requirements.",
+    "publishTitle": "Clear and publish",
+    "publishBody": "Once all findings are resolved, cleared packages are released to the Report Publishing module for final disclosure generation."
+  },
+  "startReview": "Start review",
+  "clearForPublishing": "Clear for publishing",
+  "findingsCount_one": "Findings ({{count}})",
+  "findingsCount_other": "Findings ({{count}})",
+  "severity": {
+    "major": "Major",
+    "minor": "Minor"
+  },
+  "resolution": "Resolution",
+  "resolved": "Resolved: {{date}}",
+  "linkedAnomalies": "Linked anomalies",
+  "blockchainAnchors": "Blockchain anchors",
+  "nothingLinked": "No findings, anomalies, or blockchain anchors linked yet.",
+  "filterAria": "Filter by status",
+  "expand": "Show details"
+}

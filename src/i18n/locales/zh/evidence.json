@@ -1,0 +1,38 @@
+{
+  "breadcrumbs": {
+    "data": "数据",
+    "evidence": "证据"
+  },
+  "title": "证据",
+  "description": {
+    "loading": "正在列出本组织所有披露所附的文件。",
+    "empty": "尚未上传证据。请在数据录入页面为披露附加文件。",
+    "summary": "{{disclosures}}共附有{{files}}。",
+    "fileCount_one": "{{count}} 个文件",
+    "fileCount_other": "{{count}} 个文件",
+    "disclosureCount_one": "{{count}} 项披露",
+    "disclosureCount_other": "{{count}} 项披露"
+  },
+  "uploadPrompt": {
+    "title": "为披露附加证据",
+    "body": "证据需关联到具体数值。请从“我的任务”中打开一项披露，在其“证据”区域上传文件。",
+    "openMyTasks": "打开我的任务",
+    "dismiss": "关闭"
+  },
+  "empty": {
+    "title": "暂无证据",
+    "body": "在「我的任务」中打开任一披露并附加支持文件。证据上传后将显示在此处，并可全文检索。",
+    "cta": "打开我的任务"
+  },
+  "columns": {
+    "disclosure": "披露",
+    "files": "文件",
+    "assignee": "负责人",
+    "lastUpdated": "最近更新",
+    "status": "状态"
+  },
+  "openDisclosure": "打开披露",
+  "error": {
+    "title": "无法加载证据"
+  }
+}

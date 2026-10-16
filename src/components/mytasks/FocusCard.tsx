@@ -1,7 +1,11 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Calendar, CheckCircle2, Sparkles, SkipForward } from 'lucide-react'
+import { Trans, useTranslation } from 'react-i18next'
+import { ArrowRight, Calendar, MessageSquare, SkipForward } from 'lucide-react'
 import type { QuestionAssignment } from '../../lib/orgStore'
 import { getFramework } from '../../lib/frameworks'
+import { itemLabel } from '../../lib/itemLabel'
+import { taskRoute } from '../../lib/journey'
+import { Illustration, StatusPill } from '../ui'
 import { deadlineLabel, isOverdue, daysUntilDue } from './shared'
 
 interface FocusCardProps {
@@ -9,36 +13,51 @@ interface FocusCardProps {
   totalApproved: number
   onSkip: () => void
   onSeeApproved: () => void
+  /** 'fix' when the task was sent back. Default 'answer'. */
+  kind?: 'answer' | 'fix'
+  /** Opens the task. Default: open it inline in My Tasks. */
+  onOpen?: (a: QuestionAssignment) => void
+  entityName?: string
+  /** One sentence of context under the title. */
+  reason?: string
 }
 
 /**
- * The "what to do next" card. Picks ONE highest-priority open task and
- * surfaces it with framework chips, plain-English deadline and CTAs.
- *
- * When the user has nothing open, shows a calm congratulation card.
+ * The body of the "Your next action" header: ONE task (picked by
+ * `lib/journey.nextAction`), with its code, entity, deadline and a primary
+ * "Answer now". The empty branch is the *cleared* state only — callers must
+ * not render it while loading, on error, or when nothing is assigned.
  */
-export default function FocusCard({ focus, totalApproved, onSkip, onSeeApproved }: FocusCardProps) {
+export default function FocusCard({
+  focus, totalApproved, onSkip, onSeeApproved, kind = 'answer', onOpen, entityName, reason,
+}: FocusCardProps) {
   const navigate = useNavigate()
+  const { t, i18n } = useTranslation()
 
   if (!focus) {
     return (
-      <div className="card-premium p-5 flex items-center justify-between gap-4 flex-wrap" data-testid="focus-card-empty">
-        <div className="flex items-start gap-3">
-          <span className="w-9 h-9 rounded-full bg-[var(--accent-green-light)] flex items-center justify-center flex-shrink-0">
-            <CheckCircle2 className="w-5 h-5 text-[var(--status-ok)]" />
-          </span>
-          <div>
-            <div className="h-section text-[var(--text-primary)]">You're caught up.</div>
-            <p className="body text-[var(--text-secondary)] text-[var(--text-sm)] mt-0.5">
-              No open disclosures right now. {totalApproved > 0 && (
-                <>You have <strong className="tabular-nums text-[var(--text-primary)]">{totalApproved}</strong> approved this period.</>
-              )}
-            </p>
-          </div>
+      <div className="flex items-center gap-4 flex-wrap" data-testid="focus-card-empty">
+        <Illustration name="cleared" size={72} className="flex-shrink-0 -my-2" />
+        <div className="min-w-0 flex-1">
+          <h2 className="type-h3 text-[var(--text-primary)]">{t('tasks.focus.caughtUp')}</h2>
+          <p className="type-small text-[var(--text-secondary)] mt-0.5">
+            {t('tasks.focus.noOpen')}{' '}
+            {totalApproved > 0 && (
+              <Trans
+                i18nKey="tasks.focus.approvedThisPeriod"
+                values={{ count: totalApproved }}
+                components={{ b: <strong className="tabular-nums text-[var(--text-primary)]" /> }}
+              />
+            )}
+          </p>
         </div>
         {totalApproved > 0 && (
-          <button onClick={onSeeApproved} className="btn-secondary inline-flex items-center gap-1.5 text-[var(--text-sm)]">
-            See approved history <ArrowRight className="w-3.5 h-3.5" />
+          <button
+            type="button"
+            onClick={onSeeApproved}
+            className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-small font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors whitespace-nowrap"
+          >
+            {t('tasks.focus.seeApproved')} <ArrowRight className="w-3.5 h-3.5" aria-hidden />
           </button>
         )}
       </div>
@@ -49,68 +68,64 @@ export default function FocusCard({ focus, totalApproved, onSkip, onSeeApproved 
   const overdue = isOverdue(focus)
   const d = daysUntilDue(focus.due_date)
   const dueSoon = !overdue && d != null && d <= 7
-  const preview = (focus.comment || focus.narrative_body || focus.line_item || '').slice(0, 140)
-
-  const deadlineTone = overdue
-    ? 'bg-[var(--accent-red-light)] text-[var(--status-reject)] border border-[var(--status-reject)]/30'
-    : dueSoon
-      ? 'bg-[var(--accent-amber-light)] text-[var(--status-draft)] border border-[var(--status-draft)]/30'
-      : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border-subtle)]'
+  const label = itemLabel(focus, i18n.language)
+  const open = () => (onOpen ? onOpen(focus) : navigate(taskRoute(focus)))
 
   return (
-    <div
-      className="card-premium p-5 sm:p-6 relative overflow-hidden transition-all hover:-translate-y-px hover:border-[var(--color-brand)]/30"
-      data-testid="focus-card"
-    >
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[var(--color-brand)]/40 to-transparent" />
-
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
-              <Sparkles className="w-3 h-3" /> Up next
-            </span>
-            {fw && (
-              <span
-                className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
-                style={{ background: `${fw.color}22`, color: fw.color }}
-              >
-                {fw.code}
-              </span>
-            )}
-            <span className="text-[10px] font-bold text-[var(--color-brand)] tabular-nums">{focus.gri_code}</span>
-            <span
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold tabular-nums ${deadlineTone}`}
-            >
-              <Calendar className="w-3 h-3" /> {deadlineLabel(focus.due_date, focus.status)}
-            </span>
-          </div>
-
-          <h2 className="h-section text-[var(--text-primary)] leading-snug">
-            {focus.line_item}
-          </h2>
-          {preview && preview !== focus.line_item && (
-            <p className="body text-[var(--text-secondary)] text-[var(--text-sm)] mt-1.5 line-clamp-2 max-w-2xl">
-              {preview}
-            </p>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <button
-            onClick={onSkip}
-            className="btn-secondary inline-flex items-center gap-1.5 text-[var(--text-sm)]"
-            aria-label="Skip this task for now"
+    <div className="min-w-0" data-testid="focus-card">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="type-caption font-semibold text-[var(--color-brand-strong)] whitespace-nowrap">
+          {kind === 'fix' ? t('tasks.next.kind.fix') : t('tasks.focus.upNext')}
+        </span>
+        {focus.due_date && (
+          <StatusPill
+            tone={overdue ? 'danger' : dueSoon ? 'warning' : 'neutral'}
+            icon={<Calendar aria-hidden />}
+            size="sm"
           >
-            <SkipForward className="w-3.5 h-3.5" /> Skip for now
-          </button>
-          <button
-            onClick={() => navigate(`/data/entry/${focus.questionId}`)}
-            className="btn-primary inline-flex items-center gap-1.5 text-[var(--text-sm)]"
-          >
-            Open <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
+            {deadlineLabel(focus.due_date, focus.status, t, i18n.language)}
+          </StatusPill>
+        )}
+      </div>
+
+      <h2 className="type-h2 text-[var(--text-primary)] mt-1.5 line-clamp-2 text-balance">{label}</h2>
+
+      <div className="mt-1.5 flex items-center gap-x-2 gap-y-1 flex-wrap text-caption text-[var(--text-tertiary)]">
+        {fw && <span className="font-semibold text-[var(--text-secondary)] whitespace-nowrap">{fw.code}</span>}
+        <span className="font-mono tabular-nums text-[var(--text-secondary)]">{focus.gri_code}</span>
+        {entityName && (
+          <>
+            <span aria-hidden>·</span>
+            <span className="truncate max-w-[16rem]">{entityName}</span>
+          </>
+        )}
+      </div>
+
+      {kind === 'fix' && focus.comment ? (
+        <p className="mt-3 flex items-start gap-2 type-small text-[var(--text-secondary)] max-w-2xl">
+          <MessageSquare className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--status-danger)]" aria-hidden />
+          <span className="line-clamp-2">“{focus.comment}”</span>
+        </p>
+      ) : reason ? (
+        <p className="mt-3 type-small text-[var(--text-secondary)] max-w-2xl">{reason}</p>
+      ) : null}
+
+      <div className="mt-4 flex items-center gap-2 flex-wrap">
+        <button
+          type="button"
+          onClick={open}
+          className="inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] text-small font-semibold hover:bg-[var(--btn-primary-bg-hover)] active:scale-[0.98] transition-[background-color,transform] duration-150 whitespace-nowrap shadow-[var(--btn-primary-shadow)]"
+        >
+          {kind === 'fix' ? t('tasks.next.fixNow') : t('tasks.next.answerNow')} <ArrowRight className="w-3.5 h-3.5" aria-hidden />
+        </button>
+        <button
+          type="button"
+          onClick={onSkip}
+          className="inline-flex items-center justify-center gap-1.5 h-10 px-3.5 rounded-[var(--radius-md)] text-small font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors whitespace-nowrap"
+          aria-label={t('tasks.focus.skipAria')}
+        >
+          <SkipForward className="w-3.5 h-3.5" aria-hidden /> {t('tasks.focus.skip')}
+        </button>
       </div>
     </div>
   )

@@ -1,24 +1,19 @@
 import { ReactNode } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useLocation } from 'react-router-dom'
+import { pageVariants } from '../motion/tokens'
 
 /**
- * PageTransition — wraps routed content with a subtle fade/rise on navigation.
- * Uses AnimatePresence keyed on pathname so route changes trigger the enter anim.
+ * PageTransition — one quiet entrance per navigation: opacity 0→1, y 4→0
+ * over 160 ms. No exit animation and no `mode="wait"`, so the next page
+ * starts immediately (the old version spent ~280 ms fading the previous
+ * page out). PageHeader owns the in-page stagger; this only lifts the page.
  */
 export default function PageTransition({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <motion.div
-        key={pathname}
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -4 }}
-        transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
+    <motion.div key={pathname} variants={pageVariants} initial="initial" animate="enter">
+      {children}
+    </motion.div>
   )
 }

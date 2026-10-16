@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { itemLabel } from '../lib/itemLabel'
 import {
   useReactTable,
   getCoreRowModel,
@@ -8,13 +10,18 @@ import {
   type ColumnDef,
 } from '@tanstack/react-table'
 import {
-  Loader2, AlertCircle, Search, Link2, Download, Send, ShieldCheck, AlertTriangle, X,
+  Search, Download, Send, ShieldCheck, AlertTriangle, X, CalendarClock,
 } from 'lucide-react'
 import { useAuth } from '../auth/AuthContext'
 import { orgStore, type QuestionAssignment, type OrgEntity } from '../lib/orgStore'
 import { useFramework, getFramework, getActiveFrameworks } from '../lib/frameworks'
 import { nexus } from '../lib/api'
-import { showWarning } from '../lib/toast'
+import { downloadCsv } from '../lib/csv'
+import { StateBoundary, EmptyState, StatusPill as Pill, toneForStatus, notify } from '../components/ui'
+import { SkeletonTable } from '../components/Skeleton'
+import SaveStatus from '../components/entry/SaveStatus'
+import { parseNumeric } from '../components/entry/persist'
+import { useActiveReportingYear, fetchActiveReportingYear } from '../lib/activeReportingYear'
 import {
   asNumber,
   isFormula,
@@ -50,43 +57,39 @@ interface RowSaveState {
   timeoutId?: ReturnType<typeof setTimeout>
 }
 
+/** i18n keys for each status — render with `t(STATUS_LABEL[s])`. */
 const STATUS_LABEL: Record<StatusKey, string> = {
-  not_started: 'Not started',
-  in_progress: 'In progress',
-  submitted: 'Submitted',
-  reviewed: 'Reviewed',
-  approved: 'Approved',
-  rejected: 'Rejected',
+  not_started: 'workflowStatus.status.not_started',
+  in_progress: 'workflowStatus.status.in_progress',
+  submitted: 'workflowStatus.status.submitted',
+  reviewed: 'workflowStatus.status.reviewed',
+  approved: 'workflowStatus.status.approved',
+  rejected: 'workflowStatus.status.rejected',
 }
 
-const STATUS_CLASS: Record<StatusKey, string> = {
-  not_started:  'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]',
-  in_progress:  'bg-blue-100 text-blue-800',
-  submitted:    'bg-amber-100 text-amber-800',
-  reviewed:     'bg-violet-100 text-violet-800',
-  approved:     'bg-emerald-100 text-emerald-800',
-  rejected:     'bg-rose-100 text-rose-800',
-}
-
-const ACTIVE_REPORTING_YEAR_ID = '11000000-0000-0000-0000-000000000026'
-
-/** Pre-canned formula recipes for the Help popover. */
+/** Pre-canned formula recipes for the Help popover. `description` is an i18n key. */
 const FORMULA_EXAMPLES: Array<{ formula: string; description: string }> = [
-  { formula: '=SUM(D2:D5)',               description: 'Total of Scope 1 sources' },
-  { formula: '=AVERAGE(D2:D10)',          description: 'Mean of a range' },
-  { formula: '=COUNTIF(E2:E50, "approved")', description: 'Count of approved rows' },
-  { formula: '=SUMIF(A2:A50, "GRI 305-1", D2:D50)', description: 'Conditional sum by code' },
-  { formula: '=D5/D10*100',               description: 'Percentage' },
-  { formula: '=IF(D5>1000, "high", "ok")', description: 'Conditional label' },
-  { formula: '=ROUND(D5*0.4044, 2)',      description: 'Unit conversion + rounding' },
-  { formula: "='gri'!D5",                 description: 'Cross-framework reference (sheet tab)' },
-  { formula: '=TODAY()',                  description: 'Today’s date (stamped at save)' },
+  { formula: '=SUM(D2:D5)',               description: 'dataEntry.sheet.examples.sum' },
+  { formula: '=AVERAGE(D2:D10)',          description: 'dataEntry.sheet.examples.average' },
+  { formula: '=COUNTIF(E2:E50, "approved")', description: 'dataEntry.sheet.examples.countif' },
+  { formula: '=SUMIF(A2:A50, "GRI 305-1", D2:D50)', description: 'dataEntry.sheet.examples.sumif' },
+  { formula: '=D5/D10*100',               description: 'dataEntry.sheet.examples.percentage' },
+  { formula: '=IF(D5>1000, "high", "ok")', description: 'dataEntry.sheet.examples.if' },
+  { formula: '=ROUND(D5*0.4044, 2)',      description: 'dataEntry.sheet.examples.round' },
+  { formula: "='gri'!D5",                 description: 'dataEntry.sheet.examples.crossRef' },
+  { formula: '=TODAY()',                  description: 'dataEntry.sheet.examples.today' },
 ]
 
 export default function DataEntrySpreadsheet() {
   const { user } = useAuth()
   const { active: framework } = useFramework()
   const navigate = useNavigate()
+  const { t, i18n } = useTranslation()
+
+  // The org's own open reporting year. The data_value mirror below writes
+  // into it; with no open year the mirror is skipped (assignment edits still
+  // save) and a notice points to Reporting cycles.
+  const activeYear = useActiveReportingYear()
 
   const [assignments, setAssignments] = useState<QuestionAssignment[]>([])
   const [entities, setEntities] = useState<OrgEntity[]>([])
@@ -100,6 +103,9 @@ export default function DataEntrySpreadsheet() {
   const [rowSaves, setRowSaves] = useState<Map<string, RowSaveState>>(new Map())
   const [bulkBusy, setBulkBusy] = useState(false)
   const [loadWarning, setLoadWarning] = useState<string | null>(null)
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null)
+  const hasRowsRef = useRef(false)
+  hasRowsRef.current = assignments.length > 0
 
   // ── Formula support ────────────────────────────────────────────────
   // Active formula-bar cell (assignment.id). null when nothing selected.
@@ -128,10 +134,11 @@ export default function DataEntrySpreadsheet() {
       // Don't blank the grid — surface a banner so the user understands why
       // the rows they were editing aren't visible. Toast fires once per load
       // so background refreshes don't spam.
-      const msg = e instanceof Error ? e.message : 'Could not load assignments'
+      const msg = e instanceof Error ? e.message : t('dataEntry.sheet.loadFailed')
       console.warn('[spreadsheet] refresh failed', e)
-      if (loadWarning !== msg) {
-        showWarning('Could not load assignments — try refreshing the page')
+      // With nothing on screen the page shows a full error state instead.
+      if (loadWarning !== msg && hasRowsRef.current) {
+        notify.warning(t('dataEntry.sheet.loadFailedToast'))
       }
       setLoadWarning(msg)
     }
@@ -155,10 +162,10 @@ export default function DataEntrySpreadsheet() {
       if (frameworkFilter !== 'all' && a.framework_id !== frameworkFilter) return false
       if (statusFilter !== 'all' && a.status !== statusFilter) return false
       if (entityFilter !== 'all' && a.entityId !== entityFilter) return false
-      if (q && !a.line_item.toLowerCase().includes(q) && !a.gri_code.toLowerCase().includes(q)) return false
+      if (q && !a.line_item.toLowerCase().includes(q) && !itemLabel(a, i18n.language).toLowerCase().includes(q) && !a.gri_code.toLowerCase().includes(q)) return false
       return true
     })
-  }, [assignments, search, statusFilter, frameworkFilter, entityFilter])
+  }, [assignments, search, statusFilter, frameworkFilter, entityFilter, i18n.language])
 
   // ── Formula engine lifecycle ──────────────────────────────────────
   //
@@ -251,11 +258,14 @@ export default function DataEntrySpreadsheet() {
       })
       // Mirror into data_value so the workflow + reports pipeline see it.
       // Failures here are non-fatal: the assignment is the user-facing record.
-      if (input.value !== null) {
+      // Awaiting the (cached) lookup avoids racing the hook on first edit.
+      const year = input.value !== null ? await fetchActiveReportingYear() : null
+      const reportingYearId = year?.kind === 'ready' ? year.year.id : null
+      if (input.value !== null && reportingYearId) {
         try {
           await nexus.enterValue({
             question_id: a.questionId,
-            reporting_year_id: ACTIVE_REPORTING_YEAR_ID,
+            reporting_year_id: reportingYearId,
             value: input.value,
             unit: a.unit ?? undefined,
             mode: 'Manual',
@@ -289,15 +299,16 @@ export default function DataEntrySpreadsheet() {
         m.set(a.id, { state: 'saved', error: null, timeoutId: id })
         return m
       })
+      setLastSavedAt(Date.now())
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Save failed'
+      const msg = e instanceof Error ? e.message : t('dataEntry.entry.saveFailed')
       setRowSaves(prev => {
         const m = new Map(prev)
         m.set(a.id, { state: 'error', error: msg })
         return m
       })
     }
-  }, [])
+  }, [t])
 
   // Parse the user's raw input (formula or number) and dispatch to saveCell.
   // Called from both the in-cell editor and the formula bar.
@@ -328,13 +339,14 @@ export default function DataEntrySpreadsheet() {
       }
       return
     }
-    const n = Number(trimmed)
-    if (Number.isNaN(n)) {
-      // Silently ignore unparseable plain text — the cell stays as it was.
+    const parsed = parseNumeric(trimmed)
+    if (!parsed.ok) {
+      // Not a number and not a formula — flag the cell instead of dropping it silently.
+      setRowSaves(prev => { const m = new Map(prev); m.set(a.id, { state: 'error', error: t('dataEntry.sheet.notANumber', { text: trimmed }) }); return m })
       return
     }
-    saveCell(a, { value: n, formula: null })
-  }, [saveCell, rowIndexOf, bumpEngine])
+    saveCell(a, { value: parsed.value, formula: null })
+  }, [saveCell, rowIndexOf, bumpEngine, t])
 
   const transitionStatus = useCallback(async (a: QuestionAssignment, next: StatusKey) => {
     setRowSaves(prev => {
@@ -354,10 +366,10 @@ export default function DataEntrySpreadsheet() {
         return m
       })
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Save failed'
+      const msg = e instanceof Error ? e.message : t('dataEntry.entry.saveFailed')
       setRowSaves(prev => { const m = new Map(prev); m.set(a.id, { state: 'error', error: msg }); return m })
     }
-  }, [])
+  }, [t])
 
   const toggleSelect = (id: string, checked: boolean) => {
     setSelected(s => {
@@ -383,7 +395,7 @@ export default function DataEntrySpreadsheet() {
       header: () => (
         <input
           type="checkbox"
-          aria-label="Select all visible rows"
+          aria-label={t('dataEntry.sheet.selectAll')}
           onChange={e => selectAllVisible(e.target.checked)}
           checked={filtered.length > 0 && filtered.every(a => selected.has(a.id))}
         />
@@ -391,7 +403,7 @@ export default function DataEntrySpreadsheet() {
       cell: ({ row }) => (
         <input
           type="checkbox"
-          aria-label={`Select ${row.original.gri_code}`}
+          aria-label={t('dataEntry.sheet.selectRow', { code: row.original.gri_code })}
           checked={selected.has(row.original.id)}
           onChange={e => toggleSelect(row.original.id, e.target.checked)}
         />
@@ -399,33 +411,33 @@ export default function DataEntrySpreadsheet() {
       size: 40,
     },
     helper.accessor('gri_code', {
-      header: 'Code',
+      header: t('dataEntry.sheet.col.code'),
       cell: info => (
-        <span className="font-mono text-[11px] text-[var(--text-secondary)]">{info.getValue()}</span>
+        <span className="font-mono text-caption text-[var(--text-secondary)] whitespace-nowrap">{info.getValue()}</span>
       ),
       size: 110,
     }),
     helper.accessor('line_item', {
-      header: 'Disclosure',
+      header: t('dataEntry.sheet.col.disclosure'),
       cell: info => (
         <div className="flex items-center gap-2 min-w-0">
-          <span className="truncate text-[12px] text-[var(--text-primary)]">{info.getValue()}</span>
+          <span className="truncate text-small text-[var(--text-primary)]">{itemLabel(info.row.original, i18n.language) || info.getValue()}</span>
           {/* Linked-data indicator — appears when the assignment is linked
               via concept_mappings. The flag is populated lazily, see effect below. */}
           {info.row.original.is_overdue ? (
-            <span className="px-1.5 h-5 inline-flex items-center rounded text-[10px] font-semibold bg-rose-100 text-rose-700">overdue</span>
+            <Pill status="overdue" size="sm" />
           ) : null}
         </div>
       ),
       size: 300,
     }),
     helper.accessor('unit', {
-      header: 'Unit',
-      cell: info => <span className="text-[11px] text-[var(--text-tertiary)]">{info.getValue() ?? '—'}</span>,
+      header: t('dataEntry.entry.unit'),
+      cell: info => <span className="text-caption text-[var(--text-tertiary)] whitespace-nowrap">{info.getValue() ?? '—'}</span>,
       size: 80,
     }),
     helper.accessor('value', {
-      header: 'Value',
+      header: t('dataEntry.sheet.col.value'),
       cell: info => {
         const a = info.row.original
         const { raw, computed } = cellStateOf(a.id)
@@ -433,7 +445,7 @@ export default function DataEntrySpreadsheet() {
         const saveState: CellSaveState = !rs
           ? { state: 'idle' }
           : rs.state === 'error'
-            ? { state: 'error', message: rs.error ?? 'Save failed' }
+            ? { state: 'error', message: rs.error ?? t('dataEntry.entry.saveFailed') }
             : rs.state === 'saved'
               ? { state: 'saved' }
               : rs.state === 'saving'
@@ -454,7 +466,7 @@ export default function DataEntrySpreadsheet() {
       size: 180,
     }),
     helper.accessor('status', {
-      header: 'Status',
+      header: t('common.status'),
       cell: info => (
         <StatusPill
           assignment={info.row.original}
@@ -465,22 +477,22 @@ export default function DataEntrySpreadsheet() {
     }),
     {
       id: 'assignee',
-      header: 'Assignee',
+      header: t('dataEntry.sheet.col.assignee'),
       cell: ({ row }) => (
         <div className="flex flex-col min-w-0">
-          <span className="text-[12px] text-[var(--text-primary)] truncate">{row.original.assigneeName || '—'}</span>
-          <span className="text-[10px] text-[var(--text-tertiary)] truncate">{entityById.get(row.original.entityId)?.name ?? ''}</span>
+          <span className="text-small text-[var(--text-primary)] truncate">{row.original.assigneeName || '—'}</span>
+          <span className="text-caption text-[var(--text-tertiary)] truncate">{entityById.get(row.original.entityId)?.name ?? ''}</span>
         </div>
       ),
       size: 180,
     },
     helper.accessor('last_updated', {
-      header: 'Updated',
+      header: t('dataEntry.sheet.col.updated'),
       cell: info => {
         const ts = info.getValue()
-        if (!ts) return <span className="text-[10px] text-[var(--text-tertiary)]">—</span>
+        if (!ts) return <span className="text-caption text-[var(--text-tertiary)]">—</span>
         const d = new Date(ts)
-        return <span className="text-[10px] text-[var(--text-tertiary)] tabular-nums">{d.toLocaleDateString()}</span>
+        return <span className="text-caption text-[var(--text-tertiary)] tabular-nums whitespace-nowrap">{d.toLocaleDateString(i18n.language?.startsWith('zh') ? 'zh-CN' : undefined)}</span>
       },
       size: 90,
     }),
@@ -490,15 +502,15 @@ export default function DataEntrySpreadsheet() {
       cell: ({ row }) => (
         <button
           type="button"
-          onClick={() => navigate(`/data/entry/${row.original.questionId}`)}
-          className="text-[10px] font-semibold text-[var(--color-brand)] hover:underline"
+          onClick={() => navigate(`/data/entry/${row.original.questionId}?assignment=${encodeURIComponent(row.original.id)}`)}
+          className="h-8 px-2 rounded-[var(--radius-sm)] text-caption font-semibold text-[var(--color-brand-strong)] hover:bg-[var(--color-brand-soft)] whitespace-nowrap"
         >
-          Open
+          {t('dataEntry.evidence.open')}
         </button>
       ),
       size: 60,
     },
-  ], [filtered, selected, rowSaves, entityById, cellStateOf, commitCellRaw, activeCellId, transitionStatus, navigate, helper])
+  ], [filtered, selected, rowSaves, entityById, cellStateOf, commitCellRaw, activeCellId, transitionStatus, navigate, helper, t, i18n.language])
 
   const table = useReactTable({
     data: filtered,
@@ -509,95 +521,94 @@ export default function DataEntrySpreadsheet() {
   // Save indicator summary
   const savingCount = Array.from(rowSaves.values()).filter(v => v.state === 'saving').length
   const errorCount  = Array.from(rowSaves.values()).filter(v => v.state === 'error').length
-  const saveLabel = savingCount > 0
-    ? `Saving ${savingCount}…`
-    : errorCount > 0
-      ? `${errorCount} unsaved`
-      : 'All changes saved'
+  const sheetSaveState = savingCount > 0 ? 'saving' as const : errorCount > 0 ? 'error' as const : lastSavedAt ? 'saved' as const : 'idle' as const
 
-  const bulkSubmit = async () => {
+  /** Bulk status move with an outcome toast (counts what actually moved). */
+  const bulkMove = async (from: StatusKey[], to: StatusKey, okKey: string) => {
     if (selected.size === 0) return
     setBulkBusy(true)
+    let moved = 0, failed = 0
+    const total = selected.size
     try {
-      const ids = Array.from(selected)
-      for (const id of ids) {
+      for (const id of Array.from(selected)) {
         const a = assignments.find(x => x.id === id)
-        if (!a) continue
-        if (a.status === 'in_progress' || a.status === 'not_started') {
-          await orgStore.updateAssignment(id, { status: 'submitted' })
-        }
+        if (!a || !from.includes(a.status)) continue
+        try { await orgStore.updateAssignment(id, { status: to }); moved += 1 } catch { failed += 1 }
       }
       await refresh()
       setSelected(new Set())
+      const skipped = total - moved - failed
+      if (moved > 0) notify.success(t(okKey, { count: moved }), skipped > 0 ? { description: t('dataEntry.sheet.bulkSkipped', { count: skipped }) } : undefined)
+      else if (failed === 0) notify.info(t('dataEntry.sheet.bulkNothing'))
+      if (failed > 0) notify.error(t('dataEntry.sheet.bulkFailed', { count: failed }))
     } finally {
       setBulkBusy(false)
     }
   }
-
-  const bulkApprove = async () => {
-    if (selected.size === 0) return
-    setBulkBusy(true)
-    try {
-      const ids = Array.from(selected)
-      for (const id of ids) {
-        const a = assignments.find(x => x.id === id)
-        if (!a) continue
-        if (a.status === 'submitted' || a.status === 'reviewed') {
-          await orgStore.updateAssignment(id, { status: 'approved' })
-        }
-      }
-      await refresh()
-      setSelected(new Set())
-    } finally {
-      setBulkBusy(false)
-    }
-  }
+  const bulkSubmit = () => bulkMove(['in_progress', 'not_started'], 'submitted', 'dataEntry.sheet.bulkSubmitted')
+  const bulkApprove = () => bulkMove(['submitted', 'reviewed'], 'approved', 'dataEntry.sheet.bulkApproved')
 
   const exportSelectedCsv = () => {
     const rows = filtered.filter(a => selected.has(a.id))
     if (rows.length === 0) return
     const header = ['gri_code', 'line_item', 'unit', 'value', 'status', 'assignee', 'entity', 'last_updated']
-    const lines = [header.join(',')]
-    for (const r of rows) {
-      const fields = [
+    // downloadCsv adds the UTF-8 BOM so Excel (incl. Chinese Windows) reads
+    // Chinese line items correctly.
+    downloadCsv(`data-entry-${Date.now()}.csv`, [
+      header,
+      ...rows.map(r => [
         r.gri_code, r.line_item, r.unit ?? '', r.value ?? '', r.status,
         r.assigneeName, entityById.get(r.entityId)?.name ?? '', r.last_updated ?? '',
-      ].map(v => `"${String(v).replace(/"/g, '""')}"`)
-      lines.push(fields.join(','))
-    }
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url; a.download = `data-entry-${Date.now()}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+      ]),
+    ])
   }
 
-  if (loading) {
+  if (loading || (loadWarning && assignments.length === 0)) {
     return (
-      <div className="flex items-center justify-center h-[400px] gap-2 text-[var(--text-tertiary)]">
-        <Loader2 className="w-4 h-4 animate-spin" />
-        Loading assignments…
+      <div className="space-y-4">
+        <h1 className="type-h1 text-[var(--text-primary)]">{t('dataEntry.sheet.title')}</h1>
+        <StateBoundary
+          loading={loading}
+          error={loadWarning}
+          onRetry={() => { setLoading(true); void refresh().finally(() => setLoading(false)) }}
+          errorState={{ title: t('dataEntry.sheet.loadFailed') }}
+          skeleton={<SkeletonTable rows={8} cols={6} />}
+        >
+          {null}
+        </StateBoundary>
       </div>
     )
   }
 
-  const frameworks = [{ id: 'all', code: 'All' }, ...getActiveFrameworks().map(f => ({ id: f.id, code: f.code }))]
+  const frameworks = [{ id: 'all', code: t('common.all') }, ...getActiveFrameworks().map(f => ({ id: f.id, code: f.code }))]
 
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-display text-[24px] text-[var(--text-primary)] leading-[1.1]">Data entry spreadsheet</h1>
-          <p className="text-[12px] text-[var(--text-tertiary)] mt-1 max-w-xl">
-            Bulk-edit values across every assigned disclosure. Tab to advance, Enter to save and move down,
-            Esc to revert. Approved values propagate to every linked framework automatically.
+          <h1 className="type-h1 text-[var(--text-primary)]">{t('dataEntry.sheet.title')}</h1>
+          <p className="text-small text-[var(--text-secondary)] mt-1 max-w-xl">
+            {t('dataEntry.sheet.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <SaveIndicator label={saveLabel} saving={savingCount > 0} error={errorCount > 0} />
+          <SaveStatus state={sheetSaveState} savedAt={lastSavedAt} />
+          {errorCount > 0 && <span className="text-caption text-[var(--status-danger)]">{t('dataEntry.sheet.unsaved', { count: errorCount })}</span>}
         </div>
       </div>
+
+      {activeYear.kind === 'none' && (
+        <div className="surface-paper">
+          <EmptyState
+            density="compact"
+            icon={CalendarClock}
+            title={t('reportingYear.none.title')}
+            body={t('reportingYear.none.inlineBody')}
+            cta={{ label: t('reportingYear.none.cta'), onClick: () => navigate('/admin/periods') }}
+            secondaryCta={{ label: t('reportingYear.none.retry'), onClick: activeYear.reload }}
+          />
+        </div>
+      )}
 
       {/* Load-failure banner — grid still renders any rows that did make it
           into local state from a previous refresh, but the user needs to know
@@ -605,10 +616,11 @@ export default function DataEntrySpreadsheet() {
       {loadWarning && (
         <div
           role="status"
-          className="flex items-start gap-2 px-3 py-2 rounded-[8px] bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[12px]"
+          className="flex items-start gap-2 px-3 py-2.5 rounded-[var(--radius-md)] bg-[var(--status-warning-soft)] border border-[var(--status-warning-line)] text-[var(--text-primary)] text-small"
         >
-          <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-          <span>Could not load latest assignments — showing the last successful load. {loadWarning}</span>
+          <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0 text-[var(--status-warning)]" aria-hidden />
+          <span className="flex-1">{t('dataEntry.sheet.loadBanner')} <span className="text-[var(--text-secondary)]">{loadWarning}</span></span>
+          <button type="button" onClick={() => void refresh()} className="h-8 px-2 -my-1 rounded-[var(--radius-sm)] text-small font-semibold text-[var(--color-brand-strong)] hover:bg-[var(--color-brand-soft)]">{t('dataEntry.picker.retry')}</button>
         </div>
       )}
 
@@ -618,78 +630,79 @@ export default function DataEntrySpreadsheet() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-tertiary)]" />
           <input
             type="text"
-            placeholder="Search disclosures…"
+            placeholder={t('dataEntry.sheet.search')}
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 h-9 rounded-[8px] border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[12px] focus:border-[var(--color-brand)] outline-none"
+            aria-label={t('dataEntry.sheet.search')}
+            className="w-full pl-9 pr-3 h-10 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-small focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 outline-none"
           />
         </div>
         <select
           value={frameworkFilter}
           onChange={e => setFrameworkFilter(e.target.value)}
-          className="h-9 px-3 rounded-[8px] border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[12px]"
-          aria-label="Framework filter"
+          className="h-10 px-3 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-small"
+          aria-label={t('dataEntry.sheet.frameworkFilter')}
         >
           {frameworks.map(f => <option key={f.id} value={f.id}>{f.code}</option>)}
         </select>
         <select
           value={entityFilter}
           onChange={e => setEntityFilter(e.target.value)}
-          className="h-9 px-3 rounded-[8px] border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[12px]"
-          aria-label="Entity filter"
+          className="h-10 px-3 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-small"
+          aria-label={t('dataEntry.sheet.entityFilter')}
         >
-          <option value="all">All entities</option>
+          <option value="all">{t('dataEntry.sheet.allEntities')}</option>
           {entities.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
         </select>
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value as 'all' | StatusKey)}
-          className="h-9 px-3 rounded-[8px] border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[12px]"
-          aria-label="Status filter"
+          className="h-10 px-3 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-small"
+          aria-label={t('dataEntry.sheet.statusFilter')}
         >
-          <option value="all">All statuses</option>
+          <option value="all">{t('dataEntry.sheet.allStatuses')}</option>
           {(Object.keys(STATUS_LABEL) as StatusKey[]).map(s => (
-            <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+            <option key={s} value={s}>{t(STATUS_LABEL[s])}</option>
           ))}
         </select>
-        <div className="ml-auto text-[11px] text-[var(--text-tertiary)] tabular-nums">
-          {filtered.length} rows · {selected.size} selected
+        <div className="ml-auto text-caption text-[var(--text-tertiary)] tabular-nums">
+          {t('dataEntry.sheet.rowsSelected', { rows: filtered.length, selected: selected.size })}
         </div>
       </div>
 
       {/* Bulk actions */}
       {selected.size > 0 && (
         <div className="surface-paper p-3 flex items-center gap-2 flex-wrap">
-          <span className="text-[11px] text-[var(--text-tertiary)] mr-2">{selected.size} selected</span>
+          <span className="text-small font-semibold text-[var(--text-primary)] mr-2 tabular-nums">{t('dataEntry.sheet.nSelected', { count: selected.size })}</span>
           <button
             type="button"
-            onClick={bulkSubmit}
+            onClick={() => void bulkSubmit()}
             disabled={bulkBusy}
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[7px] bg-[var(--color-brand)] text-white text-[11px] font-semibold disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[var(--radius-md)] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)] hover:bg-[var(--btn-primary-bg-hover)] text-small font-semibold disabled:opacity-50"
           >
-            <Send className="w-3 h-3" /> Submit selected
+            <Send className="w-3.5 h-3.5" aria-hidden /> {t('dataEntry.sheet.submitSelected')}
           </button>
           <button
             type="button"
-            onClick={bulkApprove}
+            onClick={() => void bulkApprove()}
             disabled={bulkBusy}
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[7px] bg-emerald-600 text-white text-[11px] font-semibold disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] hover:border-[var(--color-brand)] text-small font-semibold disabled:opacity-50"
           >
-            <ShieldCheck className="w-3 h-3" /> Approve selected
+            <ShieldCheck className="w-3.5 h-3.5 text-[var(--color-brand)]" aria-hidden /> {t('dataEntry.sheet.approveSelected')}
           </button>
           <button
             type="button"
             onClick={exportSelectedCsv}
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[7px] border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[var(--text-primary)] text-[11px] font-semibold"
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] text-small font-semibold"
           >
-            <Download className="w-3 h-3" /> Export CSV
+            <Download className="w-3.5 h-3.5" aria-hidden /> {t('dataEntry.sheet.exportCsv')}
           </button>
           <button
             type="button"
             onClick={() => setSelected(new Set())}
-            className="ml-2 text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+            className="ml-1 h-9 px-2 text-small text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           >
-            Clear
+            {t('dataEntry.sheet.clear')}
           </button>
         </div>
       )}
@@ -721,30 +734,30 @@ export default function DataEntrySpreadsheet() {
       {showFormulaHelp && (
         <div
           role="dialog"
-          aria-label="Formula examples"
-          className="surface-paper p-3 border border-[var(--border-subtle)] rounded-[8px]"
+          aria-label={t('dataEntry.sheet.formulaExamples')}
+          className="surface-paper p-4"
         >
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-[12px] font-semibold text-[var(--text-primary)]">Formula examples</h2>
+            <h2 className="text-small font-semibold text-[var(--text-primary)]">{t('dataEntry.sheet.formulaExamples')}</h2>
             <button
               type="button"
               onClick={() => setShowFormulaHelp(false)}
-              aria-label="Close formula help"
+              aria-label={t('dataEntry.sheet.closeHelp')}
               className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
-          <ul className="grid grid-cols-1 md:grid-cols-2 gap-1.5 text-[11px]">
+          <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-caption">
             {FORMULA_EXAMPLES.map(ex => (
               <li key={ex.formula} className="flex flex-col">
-                <code className="font-mono text-[var(--color-brand)]">{ex.formula}</code>
-                <span className="text-[var(--text-tertiary)]">{ex.description}</span>
+                <code className="font-mono text-[var(--color-brand-strong)]">{ex.formula}</code>
+                <span className="text-[var(--text-tertiary)]">{t(ex.description)}</span>
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-[10px] text-[var(--text-tertiary)]">
-            Powered by HyperFormula. See docs/FORMULAS.md for the full reference.
+          <p className="mt-2 text-caption text-[var(--text-tertiary)]">
+            {t('dataEntry.sheet.poweredBy')}
           </p>
         </div>
       )}
@@ -760,7 +773,7 @@ export default function DataEntrySpreadsheet() {
                     <th
                       key={h.id}
                       style={{ width: h.getSize() }}
-                      className="px-3 py-2 text-[10px] uppercase tracking-[0.08em] font-semibold text-[var(--text-tertiary)]"
+                      className="px-3 py-2.5 text-caption font-semibold text-[var(--text-secondary)] whitespace-nowrap"
                     >
                       {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
                     </th>
@@ -771,8 +784,12 @@ export default function DataEntrySpreadsheet() {
             <tbody>
               {table.getRowModel().rows.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length} className="text-center py-10 text-[12px] text-[var(--text-tertiary)]">
-                    No rows match the current filters.
+                  <td colSpan={columns.length} className="p-0">
+                    {assignments.length === 0 ? (
+                      <EmptyState art="noData" title={t('dataEntry.sheet.noAssignmentsTitle')} body={t('dataEntry.sheet.noAssignmentsBody')} cta={{ label: t('dataEntry.sheet.openTasks'), onClick: () => navigate('/my-tasks') }} density="compact" />
+                    ) : (
+                      <EmptyState variant="filtered" title={t('dataEntry.sheet.noRows')} density="compact" onClearFilters={() => { setSearch(''); setStatusFilter('all'); setEntityFilter('all'); setFrameworkFilter('all') }} />
+                    )}
                   </td>
                 </tr>
               ) : (
@@ -780,7 +797,7 @@ export default function DataEntrySpreadsheet() {
                   <tr
                     key={row.id}
                     data-row-id={row.original.id}
-                    className={`border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]/40 transition-colors ${selected.has(row.original.id) ? 'bg-[var(--accent-teal-subtle)]' : ''}`}
+                    className={`border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]/60 transition-colors ${selected.has(row.original.id) ? 'bg-[var(--color-brand-soft)]' : ''}`}
                   >
                     {row.getVisibleCells().map(cell => (
                       <td key={cell.id} className="px-3 py-2 align-middle">
@@ -795,16 +812,18 @@ export default function DataEntrySpreadsheet() {
         </div>
       </div>
 
-      <p className="text-[10px] text-[var(--text-tertiary)] px-1">
-        {getFramework(frameworkFilter)?.name ?? 'Cross-framework'} · {filtered.length} rows. Virtualization is disabled
-        at this scale — re-enable when the grid exceeds ~500 visible rows.
+      <p className="text-caption text-[var(--text-tertiary)] px-1">
+        {t('dataEntry.sheet.footer', {
+          framework: (() => { const fw = getFramework(frameworkFilter); return fw ? ((i18n.language?.startsWith('zh') && (fw as { nameZh?: string }).nameZh) || fw.name) : t('dataEntry.sheet.crossFramework') })(),
+          count: filtered.length,
+        })}
       </p>
     </div>
   )
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// StatusPill — click → dropdown of valid transitions.
+// StatusPill — click → menu of valid transitions.
 // ─────────────────────────────────────────────────────────────────────
 
 function StatusPill({
@@ -813,16 +832,17 @@ function StatusPill({
   assignment: QuestionAssignment
   onTransition: (a: QuestionAssignment, next: StatusKey) => void
 }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const wrap = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) return
-    const onClick = (e: MouseEvent) => {
-      if (!wrap.current?.contains(e.target as Node)) setOpen(false)
-    }
+    const onClick = (e: MouseEvent) => { if (!wrap.current?.contains(e.target as Node)) setOpen(false) }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
     document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
+    document.addEventListener('keydown', onKey)
+    return () => { document.removeEventListener('mousedown', onClick); document.removeEventListener('keydown', onKey) }
   }, [open])
 
   // Valid next states from each status (simplified — server is the source of truth).
@@ -842,43 +862,29 @@ function StatusPill({
         type="button"
         onClick={() => options.length > 0 && setOpen(o => !o)}
         disabled={options.length === 0}
-        className={`inline-flex items-center px-2 h-6 rounded-full text-[10px] font-semibold ${STATUS_CLASS[assignment.status]} ${options.length === 0 ? 'cursor-default' : 'cursor-pointer hover:opacity-80'}`}
+        aria-haspopup={options.length > 0 ? 'menu' : undefined}
+        aria-expanded={options.length > 0 ? open : undefined}
+        className={`nx-pill ${options.length === 0 ? 'cursor-default' : 'cursor-pointer hover:brightness-95'}`}
+        data-tone={toneForStatus(assignment.status)}
+        data-size="sm"
       >
-        {STATUS_LABEL[assignment.status]}
+        {t(STATUS_LABEL[assignment.status])}
       </button>
       {open && options.length > 0 && (
-        <div className="absolute left-0 top-7 z-20 surface-paper p-1 min-w-[140px] shadow-lg">
+        <div role="menu" className="absolute left-0 top-8 z-20 surface-paper p-1 min-w-[160px] shadow-[var(--shadow-overlay)]">
           {options.map(next => (
             <button
               key={next}
               type="button"
+              role="menuitem"
               onClick={() => { setOpen(false); onTransition(assignment, next) }}
-              className="block w-full text-left px-2 h-7 rounded-[5px] text-[11px] text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+              className="flex items-center gap-2 w-full text-left px-2.5 h-9 rounded-[var(--radius-sm)] text-small text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
             >
-              → {STATUS_LABEL[next]}
+              <span className="nx-pill" data-tone={toneForStatus(next)} data-size="sm">{t(STATUS_LABEL[next])}</span>
             </button>
           ))}
         </div>
       )}
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────
-// SaveIndicator — top-right "All changes saved" pill.
-// ─────────────────────────────────────────────────────────────────────
-
-function SaveIndicator({ label, saving, error }: { label: string; saving: boolean; error: boolean }) {
-  return (
-    <div className={`inline-flex items-center gap-1.5 px-2.5 h-7 rounded-full text-[11px] font-semibold ${
-      error ? 'bg-rose-100 text-rose-700' :
-      saving ? 'bg-amber-100 text-amber-700' :
-      'bg-emerald-50 text-emerald-700'
-    }`}>
-      {saving ? <Loader2 className="w-3 h-3 animate-spin" /> :
-       error ? <AlertCircle className="w-3 h-3" /> :
-       <Link2 className="w-3 h-3" />}
-      {label}
     </div>
   )
 }

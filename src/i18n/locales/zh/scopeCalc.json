@@ -1,0 +1,285 @@
+{
+  "title": "排放计算器",
+  "subtitle": "按月收集范围一、范围二和范围三排放数据。按排放源录入活动数据，查看累计总量，并提交区块链验证。",
+  "methodology": "计算方法",
+  "fy": "{{year}} 财年",
+  "monthYear": "{{year}}年{{month}}",
+  "months": {
+    "Jan": "1月",
+    "Feb": "2月",
+    "Mar": "3月",
+    "Apr": "4月",
+    "May": "5月",
+    "Jun": "6月",
+    "Jul": "7月",
+    "Aug": "8月",
+    "Sep": "9月",
+    "Oct": "10月",
+    "Nov": "11月",
+    "Dec": "12月"
+  },
+  "facilities": {
+    "all": "全部设施",
+    "allProof": "Demo Co（全部）"
+  },
+  "scope": {
+    "scope1": "范围一",
+    "scope2": "范围二",
+    "scope3": "范围三"
+  },
+  "scopeSub": {
+    "scope1": "直接排放",
+    "scope2": "能源间接排放",
+    "scope3": "价值链排放"
+  },
+  "scopeHeading": {
+    "scope1": "范围一 — 直接排放",
+    "scope2": "范围二 — 能源间接排放",
+    "scope3": "范围三 — 价值链排放"
+  },
+  "methodHeading": {
+    "scope1": "范围一 — 直接排放",
+    "scope2": "范围二 — 能源间接排放",
+    "scope3": "范围三 — 价值链排放"
+  },
+  "status": {
+    "verified": "已验证",
+    "submitted": "已提交",
+    "draft": "草稿",
+    "pending": "待处理"
+  },
+  "pctOfTotal": "占总量 {{pct}}%",
+  "total": "总计",
+  "yoy": "同比 {{pct}}",
+  "charts": {
+    "monthlyTitle": "月度排放明细",
+    "monthlySub": "2026 财年各月范围一 + 二 + 三排放",
+    "sourcesTitle": "{{scope}}排放源",
+    "sourcesSub": "按排放源的年度明细",
+    "cumulativeTitle": "累计排放",
+    "cumulativeSub": "2026 财年逐月累计总量"
+  },
+  "pie": {
+    "process": "工艺",
+    "combustion": "燃烧",
+    "mobile": "移动源",
+    "fugitive": "逸散",
+    "electricity": "电力",
+    "steam": "蒸汽",
+    "cooling": "冷量",
+    "cat1": "类别1",
+    "cat4": "类别4",
+    "cat11": "类别11",
+    "others": "其他"
+  },
+  "table": {
+    "subtitle": "按月收集数据并细分至排放源。点击任意行可展开并编辑。",
+    "saveDraft": "保存草稿",
+    "export": "导出",
+    "exportAs": "导出为 {{format}}",
+    "submitAll": "全部提交审核",
+    "month": "月份",
+    "total": "合计",
+    "cumulative": "累计",
+    "status": "状态",
+    "actions": "操作",
+    "annualTotal": "年度合计",
+    "verifiedOf12": "已验证 {{count}}/12",
+    "submitting": "提交中…",
+    "viewProof": "查看区块链证明",
+    "submitForReview": "提交审核",
+    "expand": "展开排放源明细"
+  },
+  "toast": {
+    "monthSubmitted": "{{month}}数据已提交审核",
+    "allAlreadySubmitted": "所有月份均已提交或验证",
+    "monthsSubmitted_one": "已提交 {{count}} 个月的数据供审核",
+    "monthsSubmitted_other": "已提交 {{count}} 个月的数据供审核",
+    "draftSaved": "草稿已保存",
+    "exporting": "正在将{{scope}}数据导出为 {{format}}…",
+    "downloaded": "{{format}} 文件已下载",
+    "exportFailed": "导出失败"
+  },
+  "proofDataPoint": "{{scope}}排放 - {{month}}",
+  "kpi": {
+    "intensity": "排放强度",
+    "intensityUnit": "tCO₂e / 吨产品",
+    "vsFy": "较 {{year}} 财年 {{pct}}",
+    "production": "产量",
+    "productionUnit": "2026 财年产量（吨）",
+    "completeness": "数据完整度",
+    "completenessSub": "12 个月中已有 {{count}} 个月提交或验证",
+    "label": "排放强度与完整度"
+  },
+  "methodModal": {
+    "title": "计算方法",
+    "subtitle": "温室气体核算体系企业标准（2004 修订版），ISO 14064-1:2018",
+    "coreFormulaLabel": "核心公式：",
+    "coreFormula": "排放量（tCO₂e）= 活动数据 × 排放因子 × 全球变暖潜势（GWP）",
+    "note": "所有排放均采用 AR5 全球变暖潜势，以吨二氧化碳当量（tCO₂e）报告。当结构性变化超过总排放量的 5% 时，触发基准年重新计算。",
+    "source": "排放源",
+    "emissionFactor": "排放因子",
+    "methodology": "方法学",
+    "assuranceTitle": "鉴证与验证",
+    "assurance1": "由 LRQA 提供第三方有限鉴证（范围一和范围二）",
+    "assurance2": "通过 Nexus 实现区块链锚定的数据溯源",
+    "assurance3": "符合 SBTi 的目标追踪（1.5°C 路径）",
+    "assurance4": "符合 CDP、GRI 305、TCFD / IFRS S2 披露要求"
+  },
+  "ef": {
+    "naturalGas": {
+      "source": "天然气",
+      "factor": "56.1 kgCO₂e/GJ",
+      "method": "IPCC 2006 GL"
+    },
+    "fuelOil": {
+      "source": "燃料油",
+      "factor": "77.4 kgCO₂e/GJ",
+      "method": "IPCC 2006 GL"
+    },
+    "diesel": {
+      "source": "柴油",
+      "factor": "74.1 kgCO₂e/GJ",
+      "method": "IPCC 2006 GL"
+    },
+    "gasoline": {
+      "source": "汽油",
+      "factor": "69.3 kgCO₂e/GJ",
+      "method": "IPCC 2006 GL"
+    },
+    "ethyleneCracking": {
+      "source": "乙烯裂解",
+      "factor": "1.04 tCO₂e/吨产品",
+      "method": "API 汇编"
+    },
+    "fugitiveCh4": {
+      "source": "逸散 CH₄",
+      "factor": "GWP = 28（AR5）",
+      "method": "IPCC AR5"
+    },
+    "gridElectricity": {
+      "source": "泰国电网电力",
+      "factor": "0.4999 tCO₂e/MWh",
+      "method": "TGO 2023 排放因子（基于位置）"
+    },
+    "marketRe": {
+      "source": "基于市场（可再生能源）",
+      "factor": "0.0 tCO₂e/MWh",
+      "method": "RE100 / I-REC"
+    },
+    "purchasedSteam": {
+      "source": "外购蒸汽",
+      "factor": "0.0822 tCO₂e/GJ",
+      "method": "供应商特定"
+    },
+    "districtCooling": {
+      "source": "区域供冷",
+      "factor": "0.67 kgCO₂e/kWh(th)",
+      "method": "IEA 排放因子（2023）"
+    },
+    "cat1": {
+      "source": "类别1 — 外购商品",
+      "factor": "基于支出 + 混合法",
+      "method": "温室气体核算体系 类别1"
+    },
+    "cat4": {
+      "source": "类别4 — 运输",
+      "factor": "基于距离",
+      "method": "GLEC 框架"
+    },
+    "cat11": {
+      "source": "类别11 — 售出产品的使用",
+      "factor": "产品特定 LCA",
+      "method": "ISO 14040 / ecoinvent"
+    },
+    "cat12": {
+      "source": "类别12 — 报废处理",
+      "factor": "按废弃物类型法",
+      "method": "EPA WARM v16"
+    }
+  },
+  "sources": {
+    "process": {
+      "label": "工艺排放",
+      "short": "工艺",
+      "description": "生产过程中的化学反应（裂解、重整、聚合）"
+    },
+    "combustion": {
+      "label": "固定燃烧",
+      "short": "固定燃烧",
+      "description": "锅炉、熔炉、涡轮机、加热器、焚烧炉中燃烧的燃料"
+    },
+    "mobile": {
+      "label": "移动燃烧",
+      "short": "移动源",
+      "description": "公司自有车辆、叉车及移动设备"
+    },
+    "fugitive": {
+      "label": "逸散排放",
+      "short": "逸散",
+      "description": "设备接头、密封件、阀门及管道配件的泄漏"
+    },
+    "electricity": {
+      "label": "外购电力",
+      "short": "电力",
+      "description": "所有设施的电网用电量。排放因子：国家电网 0.4999 tCO₂e/MWh"
+    },
+    "steam": {
+      "label": "外购蒸汽",
+      "short": "蒸汽",
+      "description": "从第三方热电联产厂购买的蒸汽"
+    },
+    "cooling": {
+      "label": "外购冷量",
+      "short": "冷量",
+      "description": "从外部供应商购买的区域供冷及冷冻水"
+    },
+    "cat1": {
+      "label": "类别1：外购商品和服务",
+      "description": "外购原材料及服务生产过程中的上游排放"
+    },
+    "cat2": {
+      "label": "类别2：资本货物",
+      "description": "资本设备及基础设施生产过程中的排放"
+    },
+    "cat3": {
+      "label": "类别3：燃料和能源相关活动",
+      "description": "未计入范围一或范围二的外购燃料上游排放及输配电损耗"
+    },
+    "cat4": {
+      "label": "类别4：运输和配送",
+      "description": "外购商品、材料及燃料的上游运输"
+    },
+    "cat5": {
+      "label": "类别5：运营中产生的废弃物",
+      "description": "运营中产生的废弃物由第三方处置和处理"
+    },
+    "cat6": {
+      "label": "类别6：商务差旅",
+      "description": "员工商务航班、酒店住宿及地面交通"
+    },
+    "cat7": {
+      "label": "类别7：员工通勤",
+      "description": "员工往返住所与工作地点的交通"
+    },
+    "cat11": {
+      "label": "类别11：售出产品的使用",
+      "description": "售出石化及聚合物产品的终端使用排放"
+    },
+    "cat12": {
+      "label": "类别12：售出产品的报废处理",
+      "description": "售出产品废弃处置产生的排放"
+    }
+  },
+  "detail": {
+    "heading": "{{month}} — 排放源明细",
+    "production": "产量：",
+    "tonnes": "吨",
+    "intensity": "强度：",
+    "invalid": "请输入大于或等于 0 的数值。",
+    "edit": "编辑{{source}}"
+  },
+  "facilityLabel": "设施",
+  "scopeTabs": "范围",
+  "close": "关闭"
+}

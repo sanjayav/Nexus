@@ -1,0 +1,157 @@
+{
+  "title": "组织设置",
+  "subtitle": "分 {{count}} 步完成租户、组织边界、框架及组织层级的配置。",
+  "progress": "进度",
+  "stepLabel": "第 {{number}} 步",
+  "complete": "已完成",
+  "autoSaved": "更改将自动保存",
+  "markComplete": "标记完成并继续",
+  "steps": {
+    "tenant": {
+      "title": "租户配置",
+      "desc": "公司信息、财年、基准年及报告币种"
+    },
+    "boundary": {
+      "title": "组织边界方法",
+      "desc": "在运营控制权、财务控制权或股权比例法之间进行选择"
+    },
+    "frameworks": {
+      "title": "框架选择",
+      "desc": "选择适用的报告框架 — GRI、CSRD、ISSB、TCFD、CDP"
+    },
+    "groups": {
+      "title": "业务集团",
+      "desc": "定义用于多实体合并的顶层组织集团"
+    },
+    "subdivisions": {
+      "title": "下属单位登记",
+      "desc": "登记各集团下的设施、办公场所及运营站点"
+    },
+    "sources": {
+      "title": "排放源登记与计算器自动路由",
+      "desc": "登记排放源，并自动分配 GHG Protocol 核算模块"
+    },
+    "grid": {
+      "title": "电网子区域映射",
+      "desc": "将设施映射至电网子区域，以确定范围二排放因子"
+    }
+  },
+  "done": {
+    "title": "组织设置已完成",
+    "body": "租户、组织层级及框架均已配置完毕，现在可以开始数据采集。",
+    "steps": "{{done}} / {{total}} 步",
+    "frameworks": "{{n}} 个框架",
+    "groups": "{{n}} 个集团"
+  },
+  "tenant": {
+    "companyName": "公司名称",
+    "tradingName": "商号",
+    "fiscalYearStart": "财年起始月",
+    "months": {
+      "jan": "一月",
+      "apr": "四月",
+      "jul": "七月",
+      "oct": "十月"
+    },
+    "baseYear": "基准年",
+    "reportingCurrency": "报告币种",
+    "currencies": {
+      "THB": "THB — 泰铢",
+      "USD": "USD — 美元",
+      "EUR": "EUR — 欧元"
+    },
+    "registeredCountry": "注册国家/地区",
+    "registeredCountryDefault": "泰国",
+    "industrySector": "所属行业",
+    "industrySectorDefault": "石化与炼油",
+    "infoStrong": "基准年",
+    "infoBody": "用于 SBTi 目标测算及趋势对比。请选择拥有可靠温室气体清单数据的最早年份。"
+  },
+  "boundary": {
+    "recommended": "推荐",
+    "operational": {
+      "title": "运营控制权",
+      "desc": "对拥有运营控制权的业务，核算其 100% 的排放量。这是最常用的方法。"
+    },
+    "financial": {
+      "title": "财务控制权",
+      "desc": "对拥有财务控制权的业务，核算其 100% 的排放量。"
+    },
+    "equity": {
+      "title": "股权比例",
+      "desc": "按在各项业务中所持股权比例核算排放量。"
+    }
+  },
+  "frameworks": {
+    "labels": {
+      "gri": "GRI 标准",
+      "csrd": "CSRD / ESRS",
+      "issb": "ISSB（IFRS S1/S2）",
+      "tcfd": "TCFD",
+      "cdp": "CDP 气候变化"
+    },
+    "active": "已启用",
+    "setupPending": "待设置",
+    "selected_one": "已选择 {{count}} 个框架。系统将根据您的选择生成问卷模块。",
+    "selected_other": "已选择 {{count}} 个框架。系统将根据您的选择生成问卷模块。"
+  },
+  "groups": {
+    "defined": "已定义 {{n}} 个业务集团",
+    "add": "添加集团",
+    "summary": "{{subsidiaries}} 家子公司 · {{subdivisions}} 个下属单位",
+    "sites": "{{n}} 个站点",
+    "names": {
+      "chemicals": "Demo Co — 化工",
+      "polymers": "Demo Co — 聚合物",
+      "greenChemicals": "Demo Co — 绿色化工"
+    },
+    "remove": "移除{{name}}"
+  },
+  "subdivisions": {
+    "registered": "所有集团下共登记 {{n}} 个下属单位",
+    "add": "添加下属单位",
+    "cols": {
+      "facility": "设施",
+      "group": "集团",
+      "country": "国家/地区",
+      "type": "类型",
+      "sources": "排放源"
+    },
+    "groupNames": {
+      "chemicals": "化工",
+      "polymers": "聚合物",
+      "greenChemicals": "绿色化工"
+    },
+    "types": {
+      "manufacturing": "生产制造",
+      "refinery": "炼油厂",
+      "jointVenture": "合资企业",
+      "office": "办公场所"
+    }
+  },
+  "sources": {
+    "intro": "系统根据排放源类型，自动将其路由至对应的 GHG Protocol 核算模块。",
+    "count": "{{n}} 个排放源",
+    "types": {
+      "stationary": "固定燃烧",
+      "mobile": "移动燃烧",
+      "process": "工艺排放",
+      "electricity": "外购电力",
+      "heat": "外购热力/蒸汽"
+    },
+    "scope1": "范围一",
+    "scope2": "范围二",
+    "scope3": "范围三"
+  },
+  "grid": {
+    "intro": "将每个设施映射至其所在的电网子区域，以获取基于位置的范围二排放因子。",
+    "cols": {
+      "facility": "设施",
+      "gridSubregion": "电网子区域",
+      "ef": "排放因子",
+      "unit": "单位"
+    },
+    "noteStrong": "电网子区域排放因子",
+    "noteBody": "取自 IEA/IPCC 数据库，每年更新。基于市场的排放因子（来自供应商合同）另行管理。"
+  }
+}

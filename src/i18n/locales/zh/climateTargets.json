@@ -1,0 +1,134 @@
+{
+  "kinds": {
+    "sbti_near_term": {
+      "label": "SBTi 近期目标",
+      "helper": "经科学碳目标倡议（SBTi）验证的 5–10 年减排目标。"
+    },
+    "sbti_long_term": {
+      "label": "SBTi 长期目标",
+      "helper": "与 1.5°C 温控目标对齐的 15 年以上脱碳路径。"
+    },
+    "net_zero": {
+      "label": "净零",
+      "helper": "长期（通常为 2040–2050 年）实现净零排放的承诺。"
+    },
+    "custom": {
+      "label": "自定义目标",
+      "helper": "不属于 SBTi 或净零类别的内部承诺。"
+    }
+  },
+  "status": {
+    "committed": "已承诺",
+    "validated": "已验证",
+    "achieved": "已达成",
+    "missed": "未达成"
+  },
+  "scopes": {
+    "scope1": "范围一",
+    "scope12": "范围一＋二",
+    "scope123": "范围一＋二＋三",
+    "scope3Only": "仅范围三"
+  },
+  "breadcrumbs": {
+    "strategy": "战略",
+    "climateTargets": "气候目标"
+  },
+  "eyebrow": "战略",
+  "title": "气候目标",
+  "subtitleBefore": "设定本工作区据以报告的脱碳目标。经验证的目标将用于仪表板的 ",
+  "subtitleAfter": " 追踪器及 GRI 305-5 披露。",
+  "sbtiTooltip": "科学碳目标倡议——制定与最新气候科学（1.5°C／远低于 2°C）相一致的气候目标的全球标准。经验证的目标均由 SBTi 独立审核。",
+  "addTarget": "添加目标",
+  "loadError": {
+    "title": "无法加载目标",
+    "fallback": "目标加载失败",
+    "retry": "重试"
+  },
+  "toast": {
+    "updated": "目标已更新",
+    "created": "目标已创建",
+    "removed": "已移除「{{label}}」",
+    "saveFailed": "保存失败",
+    "removeFailed": "移除失败"
+  },
+  "tip": "<lead>提示——审计师关注要点：</lead>SBTi 近期目标应相较近期基准年实现<b>到 2030 年绝对减排至少 42%</b>（与 1.5°C 对齐）。长期目标应<b>到 2050 年实现净零</b>，且绝对减排至少 90%。低于上述要求的目标将无法通过验证。",
+  "card": {
+    "remove": "移除",
+    "baseline": "基准年",
+    "reduction": "减排",
+    "target": "目标",
+    "by": "{{year}} 年前",
+    "validatedBy": "验证方：{{name}}",
+    "edit": "编辑目标",
+    "progress": "已实现减排",
+    "progressValue": "已完成承诺减排的 {{pct}}% · {{year}} 财年",
+    "noActuals": "暂无实际数据",
+    "expected": "路径预期位置",
+    "expectedHint": "标记：按路径此时应完成 {{pct}}%"
+  },
+  "empty": {
+    "title": "暂无气候目标",
+    "body": "设定 SBTi 近期目标，以便在仪表板、报告及鉴证流程中追踪实际进展。",
+    "addFirst": "添加首个目标"
+  },
+  "editor": {
+    "editTitle": "编辑气候目标",
+    "addTitle": "添加气候目标",
+    "subtitle": "目标将用于仪表板、报告及鉴证审核。",
+    "kind": "目标类型",
+    "label": "名称",
+    "labelPlaceholder": "例如：SBTi 近期目标：到 2030 年绝对减排 42%",
+    "scopeCoverage": "范围覆盖",
+    "baselineYear": "基准年",
+    "targetYear": "目标年份",
+    "baselineValue": "基准值",
+    "unit": "单位",
+    "reductionPct": "减排比例",
+    "projection": "到 {{year}} 年，排放量 ≤ {{value}} {{unit}}",
+    "status": "状态",
+    "notes": "备注（可选）",
+    "notesPlaceholder": "填写 SBTi 案例编号、董事会批准日期或方法学脚注。",
+    "invalid": "请填写名称和正数基准值，并确保目标年份晚于基准年。",
+    "saveChanges": "保存更改",
+    "create": "创建目标",
+    "errors": {
+      "label": "请填写目标名称。",
+      "year": "请输入 1901 至 2099 之间的年份。",
+      "targetYear": "目标年须晚于基准年。",
+      "baseline": "基准值须大于零。",
+      "pct": "请输入 1% 至 100% 之间的减排比例。"
+    }
+  },
+  "remove": {
+    "title": "移除气候目标？",
+    "body": "<strong>{{label}}</strong> 将从本工作区移除，仪表板追踪器和报告将不再显示该目标。",
+    "keep": "保留目标",
+    "confirm": "移除"
+  },
+  "ledger": {
+    "aria": "气候目标概览",
+    "targets": "目标数",
+    "validated": "已验证",
+    "validatedHint": "已获独立验证或已达成",
+    "gap": "与路径差距",
+    "noActuals": "等待实际数据",
+    "behind": "高于路径，进度落后",
+    "ahead": "低于路径，进度正常",
+    "nextMilestone": "最近目标年",
+    "yearsLeft_one": "剩余 {{count}} 年",
+    "yearsLeft_other": "剩余 {{count}} 年"
+  },
+  "pathway": {
+    "title": "减排路径追踪",
+    "subtitle": "按各目标覆盖范围统计的实际排放，对照从基准年到目标年的线性减排路径。",
+    "pick": "选择目标",
+    "baselineTo": "{{from}}–{{to}} 年",
+    "onTrack": "符合路径",
+    "behind": "落后于路径",
+    "noActuals": "等待实际数据",
+    "noActualsBody": "基准年之后尚无排放记录。批准范围一至三数据后将在此显示。",
+    "required": "所需年均减排量",
+    "perYear": "，方可达成目标",
+    "partial": "暂无法获取服务器历史数据，仅显示已批准数据"
+  }
+}

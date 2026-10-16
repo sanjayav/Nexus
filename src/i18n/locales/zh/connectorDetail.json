@@ -1,0 +1,75 @@
+{
+  "errors": {
+    "load": "加载连接失败",
+    "sync": "同步失败",
+    "disconnect": "断开连接失败",
+    "notFound": "未找到该连接",
+    "loadTitle": "连接加载失败",
+    "loadBody": "无法连接服务器，该连接未发生任何变更。",
+    "notFoundBody": "该连接可能已被删除。请返回连接器页面重新配置。"
+  },
+  "toast": {
+    "syncResult": "已导入 {{imported}} / {{fetched}} 行（{{failed}} 行失败）",
+    "disconnected": "已断开连接，令牌已从存储中清除。"
+  },
+  "loading": "加载中…",
+  "allConnectors": "全部连接器",
+  "breadcrumbs": {
+    "data": "数据",
+    "connectors": "连接器"
+  },
+  "eyebrow": "实时集成",
+  "authTypes": {
+    "oauth2": "OAuth 2.0",
+    "api_key": "API 密钥",
+    "basic": "基本认证",
+    "jwt": "JWT"
+  },
+  "fields": {
+    "status": "状态",
+    "lastSync": "上次同步",
+    "never": "从未同步",
+    "account": "账户 / 实例",
+    "summary": "连接概况"
+  },
+  "connectionStatus": {
+    "pending": "待处理",
+    "active": "已启用",
+    "error": "错误",
+    "disabled": "已停用"
+  },
+  "sync": {
+    "heading": "同步",
+    "fromDate": "开始日期",
+    "toDate": "结束日期",
+    "syncNow": "立即同步",
+    "helpBefore": "日期留空则拉取最近 12 个月的数据。数据行将以 ",
+    "helpAfter": " 状态写入 activity_data，经审批后方可汇总至报告。"
+  },
+  "history": {
+    "heading": "同步历史",
+    "empty": "尚未同步。点击“立即同步”获取第一批数据。",
+    "started": "开始时间",
+    "status": "状态",
+    "fetched": "已获取",
+    "imported": "已导入",
+    "failed": "失败",
+    "error": "错误",
+    "count_one": "{{count}} 次同步",
+    "count_other": "{{count}} 次同步"
+  },
+  "runStatus": {
+    "running": "运行中",
+    "complete": "已完成",
+    "failed": "失败",
+    "cancelled": "已取消"
+  },
+  "disconnect": {
+    "heading": "断开连接",
+    "body": "清除已加密的访问令牌和刷新令牌。同步历史将被保留，您可随时重新连接。",
+    "cancel": "取消",
+    "confirm": "确认",
+    "button": "断开连接",
+    "confirmTitle": "断开「{{name}}」？"
+  }
+}

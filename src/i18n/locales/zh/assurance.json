@@ -1,0 +1,53 @@
+{
+  "status": {
+    "notStarted": "未开始",
+    "inReview": "审核中",
+    "findingsRaised": "已提出发现事项",
+    "cleared": "已通过",
+    "readyToPublish": "可发布"
+  },
+  "filter": {
+    "findings": "发现事项"
+  },
+  "toast": {
+    "started": "已成功开始审核",
+    "cleared": "该项已获准发布"
+  },
+  "title": "鉴证审核",
+  "subtitle": "第三方验证流程。鉴证团队在数据包发布到各框架之前进行审核、提出发现事项并予以通过。",
+  "reportingYear": "报告年度 {{year}}",
+  "dataPackages": "个数据包",
+  "pipeline": "鉴证流程",
+  "total_other": "共 {{count}} 项",
+  "table": {
+    "dataPackage": "数据包",
+    "scope": "范围",
+    "entity": "实体",
+    "period": "期间",
+    "reviewer": "审核人"
+  },
+  "noMatch": "没有符合当前筛选条件的项目。",
+  "process": {
+    "title": "鉴证流程说明",
+    "integrityTitle": "数据完整性检查",
+    "integrityBody": "区块链锚定记录将与原始提交数据进行核对，任何哈希不匹配都会自动生成发现事项。",
+    "reviewTitle": "第三方审核",
+    "reviewBody": "由 LRQA 泰国或内部审计依据温室气体核算体系（GHG Protocol）、ISO 14064 及各框架特定要求审核每个数据包。",
+    "publishTitle": "通过并发布",
+    "publishBody": "所有发现事项解决后，已通过的数据包将移交至报告发布模块，用于生成最终披露。"
+  },
+  "startReview": "开始审核",
+  "clearForPublishing": "批准发布",
+  "findingsCount_other": "发现事项（{{count}}）",
+  "severity": {
+    "major": "重大",
+    "minor": "轻微"
+  },
+  "resolution": "处理结果",
+  "resolved": "解决日期：{{date}}",
+  "linkedAnomalies": "关联异常",
+  "blockchainAnchors": "区块链锚点",
+  "nothingLinked": "尚未关联任何发现事项、异常或区块链锚点。",
+  "filterAria": "按状态筛选",
+  "expand": "显示详情"
+}

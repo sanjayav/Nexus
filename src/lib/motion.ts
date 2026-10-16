@@ -1,35 +1,27 @@
 /**
- * Premium motion tokens — restrained easings + durations.
- *
- * Used by the shared Motion primitives in `src/components/Motion.tsx`
- * and by any page that wants framer-motion transitions consistent
- * with the rest of the design system.
- *
- * Note: this lives alongside the older `src/components/motion.ts`
- * helpers (riseIn / popIn / etc.) — both are valid; pick whichever
- * is more ergonomic for the surface you're building. The premium
- * layer prefers `transitions.fade` / `transitions.slideUp`.
+ * Legacy premium motion tokens — now an alias of `src/motion/tokens.ts`.
+ * Kept so existing imports keep working; new code should import
+ * `dur` / `ease` / `spring` / `transition` from `../motion/tokens`.
  */
+import { dur, ease, spring, staggerDelay } from '../motion/tokens'
 
 export const easings = {
-  /** Premium / restrained — gentle deceleration. */
-  out:   [0.22, 1, 0.36, 1] as const,
-  inOut: [0.65, 0, 0.35, 1] as const,
-  /** Snappy for inputs / interactive controls. */
-  spring: { type: 'spring', stiffness: 300, damping: 30 } as const,
+  out: ease.out,
+  inOut: ease.inOut,
+  spring: spring.gentle,
 }
 
 export const durations = {
-  instant: 0.1,
-  fast:    0.18,
-  base:    0.25,
-  slow:    0.4,
-  slower:  0.6,
+  instant: dur.micro,
+  fast: dur.fast,
+  base: dur.base,
+  slow: dur.slow,
+  slower: dur.draw,
 }
 
 export const transitions = {
-  fade:    { duration: durations.base, ease: easings.out },
-  slideUp: { duration: durations.base, ease: easings.out, type: 'tween' as const },
-  /** Stagger child indexed at `i` — useful for list reveals. */
-  stagger: (i: number) => ({ duration: durations.base, ease: easings.out, delay: i * 0.04 }),
+  fade: { duration: dur.base, ease: ease.out },
+  slideUp: { duration: dur.base, ease: ease.out, type: 'tween' as const },
+  /** Stagger child indexed at `i` (30 ms steps, capped at 8). */
+  stagger: (i: number) => ({ duration: dur.base, ease: ease.out, delay: staggerDelay(i) }),
 } as const

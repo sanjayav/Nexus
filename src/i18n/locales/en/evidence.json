@@ -1,0 +1,38 @@
+{
+  "breadcrumbs": {
+    "data": "Data",
+    "evidence": "Evidence"
+  },
+  "title": "Evidence",
+  "description": {
+    "loading": "Listing every file attached to disclosures across this org.",
+    "empty": "No evidence uploaded yet. Attach files to disclosures from the data-entry page.",
+    "summary": "{{files}} attached across {{disclosures}}.",
+    "fileCount_one": "{{count}} file",
+    "fileCount_other": "{{count}} files",
+    "disclosureCount_one": "{{count}} disclosure",
+    "disclosureCount_other": "{{count}} disclosures"
+  },
+  "uploadPrompt": {
+    "title": "Attach evidence to a disclosure",
+    "body": "Evidence is attached to a specific value. Open a disclosure from My Tasks and add files in its Evidence section.",
+    "openMyTasks": "Open My Tasks",
+    "dismiss": "Dismiss"
+  },
+  "empty": {
+    "title": "No evidence yet",
+    "body": "Open any disclosure in My Tasks and attach a supporting file. Once evidence is uploaded it will appear here, fully searchable.",
+    "cta": "Open My Tasks"
+  },
+  "columns": {
+    "disclosure": "Disclosure",
+    "files": "Files",
+    "assignee": "Assignee",
+    "lastUpdated": "Last updated",
+    "status": "Status"
+  },
+  "openDisclosure": "Open disclosure",
+  "error": {
+    "title": "Couldn't load evidence"
+  }
+}

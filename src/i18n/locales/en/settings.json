@@ -1,0 +1,343 @@
+{
+  "title": "Settings",
+  "description": "Workspace and personal settings. Workspace changes apply to everyone and are recorded in the audit log.",
+  "tabs": {
+    "aria": "Settings sections",
+    "attention": "Needs attention",
+    "organisation": "Organisation",
+    "market": "Market & compliance",
+    "frameworks": "Frameworks",
+    "notifications": "Notifications",
+    "ai": "AI",
+    "security": "Security",
+    "language": "Language & display"
+  },
+  "saveBar": {
+    "region": "Unsaved changes",
+    "unsaved": "You have unsaved changes",
+    "discard": "Discard",
+    "save": "Save changes",
+    "saving": "Saving…"
+  },
+  "org": {
+    "heroAria": "Workspace summary",
+    "kicker": "Workspace",
+    "summary": {
+      "market": "Market",
+      "residency": "Data residency",
+      "ai": "AI provider",
+      "frameworks": "Frameworks",
+      "frameworksValue_one": "{{count}} enabled",
+      "frameworksValue_other": "{{count}} enabled",
+      "notSet": "Not set"
+    },
+    "period": {
+      "title": "Reporting period",
+      "description": "The period people are collecting data for now. Lock and publish it from Reporting cycles.",
+      "emptyTitle": "No reporting period yet",
+      "emptyBody": "Create the fiscal year you're reporting on so assignments can collect values.",
+      "create": "Create reporting period",
+      "manage": "Manage reporting cycles",
+      "noDates": "No dates set",
+      "deadline": "Submission deadline {{date}}",
+      "status": {
+        "setup": "Setup",
+        "active": "Active",
+        "locked": "Locked",
+        "published": "Published",
+        "archived": "Archived"
+      }
+    },
+    "admin": {
+      "title": "Administration",
+      "description": "People, structure, access and the record of who changed what.",
+      "links": {
+        "users": {
+          "label": "Users & roles",
+          "hint": "Invite people and set what each role can do"
+        },
+        "structure": {
+          "label": "Organisation structure",
+          "hint": "Group, subsidiaries, plants and offices"
+        },
+        "periods": {
+          "label": "Reporting cycles",
+          "hint": "Open, lock and publish fiscal years"
+        },
+        "apiKeys": {
+          "label": "API keys",
+          "hint": "Programmatic access for BI and ERP sync"
+        },
+        "scim": {
+          "label": "SCIM provisioning",
+          "hint": "Sync people from your identity provider"
+        },
+        "audit": {
+          "label": "Audit log",
+          "hint": "Every change, who made it and when"
+        },
+        "status": {
+          "label": "System status",
+          "hint": "Database and integration health"
+        }
+      }
+    }
+  },
+  "frameworks": {
+    "heading": "Frameworks",
+    "intro": "Choose which frameworks this workspace reports against. {{name}} is the active framework; turn on others as you need them.",
+    "currentlyActive": "Currently active",
+    "comingSoon": "Coming soon",
+    "lineItems_one": "{{count}} line item",
+    "lineItems_other": "{{count}} line items",
+    "enabledCount": "{{count}} of {{total}} enabled",
+    "regionAria": "Filter by region",
+    "keepOne": "Keep at least one framework turned on.",
+    "turnedOff": "{{name}} turned off",
+    "toggleAria": "Use {{name}}",
+    "regions": {
+      "all": "All",
+      "global": "Global",
+      "eu": "EU",
+      "us": "US",
+      "cn": "Greater China"
+    },
+    "coverage": {
+      "Adaptation": "Adaptation",
+      "Air": "Air",
+      "Anti-corruption": "Anti-corruption",
+      "Assurance": "Assurance",
+      "Board statement": "Board statement",
+      "CapEx": "CapEx",
+      "Circularity": "Circularity",
+      "Climate": "Climate",
+      "Consumption": "Consumption",
+      "DNSH": "DNSH",
+      "Discharge": "Discharge",
+      "Diversity": "Diversity",
+      "Double materiality": "Double materiality",
+      "Due diligence": "Due diligence",
+      "Economic": "Economic",
+      "Emissions": "Emissions",
+      "Energy": "Energy",
+      "Engagement": "Engagement",
+      "Environment": "Environment",
+      "Environmental": "Environmental",
+      "Environmental (A1–A3)": "Environmental (A1–A3)",
+      "Financed emissions": "Financed emissions",
+      "Financial statements": "Financial statements",
+      "GHG": "GHG",
+      "GHG (stayed)": "GHG (stayed)",
+      "Governance": "Governance",
+      "Grievances": "Grievances",
+      "H&S": "H&S",
+      "Headcount": "Headcount",
+      "IRO mgmt": "IRO mgmt",
+      "Impact metrics": "Impact metrics",
+      "Industry-specific": "Industry-specific",
+      "Inflows": "Inflows",
+      "Marketing": "Marketing",
+      "Metrics": "Metrics",
+      "Metrics & targets": "Metrics & targets",
+      "Mitigation": "Mitigation",
+      "OpEx": "OpEx",
+      "Pay": "Pay",
+      "Payments": "Payments",
+      "Physical": "Physical",
+      "Physical risk": "Physical risk",
+      "Political": "Political",
+      "Privacy": "Privacy",
+      "Products": "Products",
+      "Remediation": "Remediation",
+      "Restoration": "Restoration",
+      "Risk mgmt": "Risk mgmt",
+      "Risks": "Risks",
+      "Safeguards": "Safeguards",
+      "Safety": "Safety",
+      "Scope 1": "Scope 1",
+      "Scope 2": "Scope 2",
+      "Scope 3": "Scope 3",
+      "Severe incidents": "Severe incidents",
+      "Sites": "Sites",
+      "Social": "Social",
+      "Social (B1–B8)": "Social (B1–B8)",
+      "Soil": "Soil",
+      "Species": "Species",
+      "Strategy": "Strategy",
+      "Substances of concern": "Substances of concern",
+      "TCFD alignment": "TCFD alignment",
+      "Targets": "Targets",
+      "Training": "Training",
+      "Transition": "Transition",
+      "Transition plan": "Transition plan",
+      "Turnover": "Turnover",
+      "Universal": "Universal",
+      "Value creation": "Value creation",
+      "Verification": "Verification",
+      "Waste": "Waste",
+      "Water": "Water",
+      "Water stress": "Water stress",
+      "Whistleblower": "Whistleblower",
+      "Withdrawal": "Withdrawal"
+    },
+    "versions": {
+      "2021 · topic standards 2016–2020": "2021 · topic standards 2016–2020",
+      "2024 (trial)": "2024 (trial)",
+      "2024 · Climate (trial)": "2024 · Climate (trial)",
+      "Appendix C2": "Appendix C2",
+      "Reg 2020/852": "Reg 2020/852"
+    }
+  },
+  "notifications": {
+    "heading": "Email notifications",
+    "intro": "Your own email alerts. Changes save as you make them.",
+    "loadFailed": "Couldn't load your notification preferences",
+    "saveFailed": "Couldn't save that change",
+    "assignment": {
+      "label": "Email me when I'm assigned a disclosure",
+      "description": "Sent when an admin assigns you a disclosure to fill in."
+    },
+    "review": {
+      "label": "Email me when a submission needs my review",
+      "description": "Sent when a value is submitted and waiting for you to review or approve."
+    },
+    "anomaly": {
+      "label": "Email me about anomalies in my scope",
+      "description": "Triggered when the anomaly engine flags a value you own."
+    },
+    "digest": "Digest frequency",
+    "digestHint": "How often Nexus rolls your notifications into a single summary email.",
+    "digestAria": "Digest frequency",
+    "digestOptions": {
+      "none": "Off",
+      "daily": "Daily",
+      "weekly": "Weekly"
+    },
+    "saved": "Saved {{time}}",
+    "saving": "Saving…"
+  },
+  "channels": {
+    "title": "Team channels",
+    "description": "Post workflow notifications to DingTalk, Feishu or WeCom group robots. One robot per app; URLs and secrets are stored encrypted and never shown again."
+  },
+  "ai": {
+    "readOnly": "Only workspace admins can change AI settings.",
+    "loadError": "Couldn't load AI settings",
+    "saveFailed": "Couldn't save the AI setting",
+    "audited": "Recorded in the audit log.",
+    "status": {
+      "title": "What's running",
+      "description": "The provider and model this workspace uses for AI drafting, extraction and gap analysis."
+    },
+    "state": {
+      "ready": "Ready",
+      "off": "Off",
+      "notConfigured": "Not configured on server"
+    },
+    "fields": {
+      "provider": "Provider",
+      "model": "Model",
+      "modelUnset": "Not set on server",
+      "reads": "Can read",
+      "pdf": "PDF files",
+      "images": "Images",
+      "unsupported": "{{what}}: not supported"
+    },
+    "deploymentOff": {
+      "title": "AI is switched off for this deployment",
+      "body": "Your Nexus operator has turned AI off on the server, so it can't be enabled here."
+    },
+    "notConfigured": {
+      "title": "{{provider}} is not configured on the server",
+      "body": "The server has no credentials for this provider, so AI features stay unavailable. Ask your Nexus operator to add them, or choose a provider that is configured."
+    },
+    "controls": {
+      "title": "Controls",
+      "description": "Turn AI off entirely, or choose which provider drafts content. Changes apply to everyone in the workspace."
+    },
+    "enabled": {
+      "label": "Use AI in this workspace",
+      "hint": "When off, AI drafting, document extraction and narrative suggestions are hidden for everyone."
+    },
+    "provider": {
+      "label": "Provider",
+      "hint": "Mainland China workspaces should use a mainland provider so prompts and data stay onshore."
+    },
+    "providers": {
+      "auto": {
+        "name": "Automatic",
+        "body": "Follows the market: {{provider}}."
+      },
+      "anthropic": {
+        "name": "Anthropic (global)",
+        "body": "Claude models, hosted outside mainland China."
+      },
+      "openai_compatible": {
+        "name": "Mainland provider",
+        "body": "OpenAI-compatible mainland models such as Qwen or DeepSeek."
+      }
+    },
+    "effective": "In effect: {{provider}}.",
+    "toast": {
+      "on": "AI turned on",
+      "off": "AI turned off for this workspace",
+      "provider": "AI provider set to {{provider}}"
+    }
+  },
+  "security": {
+    "mfaTitle": "Two-factor authentication"
+  },
+  "export": {
+    "heading": "Data export",
+    "body": "Download a portable zip of everything we hold for this workspace — users, facilities, activity data, assignments, data values, workflow tasks, notifications, reports, and the audit log. Password hashes, MFA secrets, and SCIM/API token hashes are never included.",
+    "lastExport": "Last export: {{date}}",
+    "none": "No exports yet.",
+    "building": "Building zip…",
+    "download": "Download data export",
+    "done": "Data export downloaded",
+    "failed": "Couldn't build the data export"
+  },
+  "language": {
+    "title": "Interface language",
+    "description": "Your own choice; it doesn't change anyone else's. Emails and group notifications to you follow it too.",
+    "saved": "Saved",
+    "saveFailed": "Language changed here, but not saved for emails",
+    "saveFailedHint": "Emails and notifications keep your previous language until it saves. Try again later.",
+    "clearedToast": "Language preference cleared",
+    "server": {
+      "title": "Emails and notifications",
+      "description": "What Nexus uses when it writes to you outside the app.",
+      "loadError": "Couldn't load your saved language",
+      "resolved": "Emails and notifications to you are written in {{language}}.",
+      "explicit": "Saved preference: {{language}}.",
+      "following": "No saved preference: following your browser and the workspace market.",
+      "useDefault": "Use workspace default",
+      "sync": "Save {{language}} for emails too"
+    }
+  },
+  "display": {
+    "heading": "Display",
+    "intro": "Tune appearance and information density. Light is paper-clean for daytime; dark is easier on the eyes after hours. Comfortable suits review; Compact lets power users squeeze more rows into a single view.",
+    "appearance": "Appearance",
+    "appearanceHint": "Light is paper-clean for daytime work. Auto follows your OS preference and switches when your system flips between light and dark.",
+    "density": "Density",
+    "densityHint": "Applies instantly across the whole workspace.",
+    "densityAria": "Display density",
+    "comfortable": "Comfortable",
+    "compact": "Compact"
+  },
+  "theme": {
+    "heading": "Theme",
+    "intro": "Switch between the demo flat theme and the legacy Nexus Glass UI."
+  },
+  "themes": {
+    "demoFlat": {
+      "label": "Demo Flat",
+      "description": "Default. Emerald brand, flat paper surfaces, WCAG 2.1 AA."
+    },
+    "glass": {
+      "label": "Glass UI",
+      "description": "Nexus legacy. Soft shadows, blurred surfaces, rounded corners."
+    }
+  }
+}

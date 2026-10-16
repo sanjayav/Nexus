@@ -1,0 +1,10 @@
+{
+  "crumbWork": "Work",
+  "title": "Calendar",
+  "openMyTasks": "Open My Tasks",
+  "description": "Regulatory deadlines and your task due dates in one place.",
+  "tasksTitle": "Your task deadlines",
+  "tasksBody": "Pick a day to see its tasks in My Tasks.",
+  "noTasksTitle": "No tasks with deadlines",
+  "noTasksBody": "Disclosures assigned to you appear on this calendar by due date."
+}

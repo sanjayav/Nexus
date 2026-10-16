@@ -1,0 +1,39 @@
+{
+  "status": {
+    "not_started": "Not started",
+    "in_progress": "In progress",
+    "submitted": "Submitted",
+    "reviewed": "Reviewed",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "draft": "Draft",
+    "pending": "Pending",
+    "signed": "Signed",
+    "withdrawn": "Withdrawn",
+    "overdue": "Overdue",
+    "published": "Published"
+  },
+  "role": {
+    "AUTO": "Auto",
+    "FM": "Facility Manager",
+    "SO": "Sustainability Officer",
+    "TL": "Team Lead",
+    "siteOwner": "Site Owner",
+    "facilityManager": "Facility Manager",
+    "teamLead": "Team Lead",
+    "sustainabilityOfficer": "Sustainability Officer",
+    "auditor": "Auditor",
+    "admin": "Admin"
+  },
+  "deadline": {
+    "none": "No deadline",
+    "overdueDays_one": "Overdue {{count}} day",
+    "overdueDays_other": "Overdue {{count}} days",
+    "today": "Due today",
+    "tomorrow": "Due tomorrow",
+    "inDays_one": "Due in {{count}} day",
+    "inDays_other": "Due in {{count}} days",
+    "inWeeks_one": "Due in {{count}} week",
+    "inWeeks_other": "Due in {{count}} weeks"
+  }
+}

@@ -1,0 +1,185 @@
+{
+  "breadcrumb": {
+    "data": "数据",
+    "current": "排放因子"
+  },
+  "title": "排放因子",
+  "description": {
+    "prefix": "实时排放因子，来源包括 DEFRA 2024、EPA 2024、",
+    "suffix": "IPCC 2006 / AR5 及 IEA 2024，均带版本与地区标记。每项因子的首选行已按贵组织所在市场排序。",
+    "prefixCn": "生态环境部、国家统计局电网排放因子，GB/T 燃料缺省值，DEFRA 2024、EPA 2024、"
+  },
+  "actions": {
+    "export": "导出",
+    "import": "导入",
+    "addFactor": "添加排放因子",
+    "importSoon": "批量导入即将上线，目前请逐条添加。"
+  },
+  "kpi": {
+    "total": "因子总数",
+    "deprecated": "已弃用",
+    "sources": "数据来源",
+    "label": "因子库概览",
+    "preferred": "首选因子",
+    "preferredRegion": "所在区域首选",
+    "preferredHint": "每项活动、每个地区各一条",
+    "cnOfficial": "中国官方因子",
+    "cnOfficialHint": "生态环境部、国家统计局及 GB/T"
+  },
+  "tabs": {
+    "all": "全部因子"
+  },
+  "scope": {
+    "1": "范围一",
+    "2": "范围二",
+    "3": "范围三"
+  },
+  "status": {
+    "active": "有效",
+    "deprecated": "已弃用",
+    "preferred": "首选"
+  },
+  "search": {
+    "placeholder": "搜索名称、类别、来源、地区或单位",
+    "clear": "清除搜索"
+  },
+  "filters": {
+    "allSources": "全部来源",
+    "allCategories": "全部类别",
+    "allRegions": "全部地区",
+    "showDeprecated": "显示已弃用",
+    "preferredOnly": "仅看首选",
+    "resultCount_one": "{{count}} 条因子",
+    "resultCount_other": "{{count}} 条因子"
+  },
+  "loadError": {
+    "unknown": "未知错误",
+    "title": "排放因子加载失败",
+    "body": "为避免显示不完整的列表，此处暂不显示。请重试；如仍失败，请联系管理员运行初始化设置。"
+  },
+  "empty": {
+    "title": "没有匹配的排放因子",
+    "body": "请更换搜索词，或清除筛选条件。",
+    "preferredBody": "没有匹配的首选因子。关闭“仅看首选”可查看全部版本。"
+  },
+  "references": {
+    "ipcc": {
+      "name": "IPCC 2006 指南",
+      "desc": "固定源与移动源燃烧的缺省排放因子，采用 Tier 1 方法。"
+    },
+    "defra": {
+      "name": "DEFRA 2024",
+      "desc": "英国政府温室气体报告换算因子，每年更新。"
+    },
+    "iea": {
+      "name": "IEA 2024",
+      "desc": "国际能源署各国电网排放因子，在无官方国家来源时采用。"
+    },
+    "title": "发布机构",
+    "subtitle": "因子库中排放因子的来源。",
+    "subtitleCn": "境内场所优先采用中国官方来源，其次为 IEA。",
+    "mee": {
+      "name": "生态环境部、国家统计局",
+      "desc": "全国电网平均排放因子、基于市场的剩余排放因子、化石能源电力排放因子及七大区域电网排放因子，仅涵盖二氧化碳。"
+    },
+    "gbt": {
+      "name": "GB/T 32150-2015",
+      "desc": "《工业企业温室气体排放核算和报告通则》燃料缺省参数（低位发热量 × 单位热值含碳量 × 碳氧化率）。"
+    }
+  },
+  "confirmDelete": "引用该因子的历史活动数据将予以保留，但该因子将不再显示在因子库中。",
+  "toast": {
+    "removed": "排放因子已移除",
+    "added": "排放因子已添加",
+    "deleteFailed": "排放因子删除失败",
+    "saveFailed": "排放因子保存失败",
+    "copied": "已复制 {{value}}",
+    "copyFailed": "无法复制到剪贴板",
+    "exported_one": "已导出 {{count}} 条因子",
+    "exported_other": "已导出 {{count}} 条因子"
+  },
+  "modal": {
+    "title": "添加排放因子",
+    "factorName": "因子名称",
+    "factorNamePlaceholder": "例如：天然气（工业）",
+    "category": "类别",
+    "categoryPlaceholder": "例如：stationary_combustion",
+    "scope": "范围",
+    "value": "数值",
+    "unit": "单位",
+    "unitPlaceholder": "例如：kgCO2e/kWh",
+    "source": "来源",
+    "version": "版本",
+    "region": "地区",
+    "validFrom": "生效日期",
+    "submit": "添加排放因子",
+    "description": "新因子将归入对应活动分组，并按贵组织所在市场重新排列首选行。",
+    "regionHint": "CN、CN-EAST、GB、GLOBAL……"
+  },
+  "row": {
+    "copy": "复制数值",
+    "delete": "删除（软删除，保留历史数据）",
+    "value": "数值",
+    "source": "来源",
+    "region": "地区",
+    "validFrom": "有效期",
+    "status": "状态",
+    "deleteShort": "删除",
+    "gases": "分气体",
+    "gasesNone": "仅 CO₂e",
+    "notes": "备注"
+  },
+  "vendor": {
+    "title": "按供应商查找（AI）",
+    "hint": "输入供应商名称，AI 将从因子库中选出最接近的排放因子。",
+    "placeholder": "例如：United Airlines、Office Depot、AWS",
+    "unavailable": "AI 不可用",
+    "suggest": "推荐排放因子",
+    "topMatch": "最佳匹配",
+    "alt": "备选 {{n}}",
+    "vendorLabel": "供应商名称",
+    "regionLabel": "地区",
+    "orgDisabled": "贵组织已关闭 AI 功能，管理员可在设置中开启。",
+    "notConfigured": "当前工作区尚未接入 AI 排放因子匹配。管理员可在“设置 → 集成”中接入 AI 服务。",
+    "china": "中国"
+  },
+  "emptyLibrary": {
+    "title": "因子库为空",
+    "body": "请运行初始化设置导入标准因子包，或添加第一条排放因子。"
+  },
+  "listLabel": "排放因子列表",
+  "scopeTabs": "范围",
+  "cols": {
+    "factor": "排放因子",
+    "scope": "范围",
+    "region": "地区",
+    "value": "数值",
+    "source": "来源",
+    "actions": "操作"
+  },
+  "deleteTitle": "删除“{{name}}”？",
+  "categories": {
+    "stationary_combustion": "固定燃烧",
+    "mobile_combustion": "移动燃烧",
+    "process_emissions": "过程排放",
+    "fugitive": "逸散排放",
+    "electricity": "电力",
+    "purchased_electricity": "外购电力",
+    "purchased_heat": "外购热力",
+    "grid": "电网",
+    "grid_market_based": "电网（基于市场）",
+    "grid_fossil": "电网（仅化石能源）",
+    "gaseous_fuel": "气体燃料",
+    "liquid_fuel": "液体燃料",
+    "solid_fuel": "固体燃料"
+  },
+  "activities": {
+    "grid_electricity": "电网电力",
+    "natural_gas": "天然气",
+    "diesel": "柴油",
+    "diesel_oil": "柴油",
+    "gasoline": "汽油",
+    "fuel_oil": "燃料油",
+    "lpg": "液化石油气"
+  }
+}

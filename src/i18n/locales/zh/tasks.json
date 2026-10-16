@@ -1,0 +1,229 @@
+{
+  "stats": {
+    "total": "合计",
+    "overdue": "已逾期",
+    "open": "未开始",
+    "inProgress": "进行中",
+    "submitted": "已提交",
+    "approved7d": "已批准 · 7 天",
+    "filterAria": "按状态筛选"
+  },
+  "group": {
+    "overdue": "已逾期",
+    "today": "今天到期",
+    "week": "本周",
+    "month": "本月",
+    "later": "以后",
+    "none": "无截止日期",
+    "returned": "已退回修改",
+    "submitted": "已提交 · 待审核",
+    "done": "已批准"
+  },
+  "mode": {
+    "Manual": "手动",
+    "Calculator": "计算器",
+    "Connector": "连接器"
+  },
+  "row": {
+    "aria": "{{code}} {{item}}，实体：{{entity}}，状态：{{status}}",
+    "ariaOverdue": "，已逾期",
+    "unknownEntity": "未知实体",
+    "unknownEntityLower": "未知实体"
+  },
+  "view": {
+    "list": "列表",
+    "board": "看板",
+    "calendar": "日历",
+    "switchAria": "切换视图"
+  },
+  "focus": {
+    "caughtUp": "所有任务均已处理。",
+    "noOpen": "当前没有待处理的披露项。",
+    "approvedThisPeriod_other": "本期已有 <b>{{count}}</b> 项获批准。",
+    "seeApproved": "查看已批准记录",
+    "upNext": "下一项",
+    "skipAria": "暂时跳过此任务",
+    "skip": "暂时跳过",
+    "open": "打开"
+  },
+  "shortcuts": {
+    "title": "键盘快捷键",
+    "next": "下一个任务",
+    "prev": "上一个任务",
+    "open": "打开 / 展开当前任务",
+    "list": "列表视图",
+    "board": "看板视图",
+    "calendar": "日历视图",
+    "overlay": "显示此帮助面板",
+    "close": "关闭面板 / 行内编辑器"
+  },
+  "pill": {
+    "todo": "待办",
+    "draft": "草稿",
+    "submitted": "已提交",
+    "reviewed": "已审核",
+    "approved": "已批准",
+    "rejected": "已驳回"
+  },
+  "answer": {
+    "needEvidence": "提交前请至少附上一份证据。",
+    "question": "问题：",
+    "unit": "单位：{{unit}}",
+    "enterValue": "输入数值",
+    "valuePlaceholder": "例如 12345.67",
+    "select": "请选择…",
+    "computed": "计算结果",
+    "autoPull": "自动获取 · 附回执哈希签名",
+    "pulled": "已获取",
+    "value": "数值：",
+    "pulling": "正在获取…",
+    "pull": "从数据源获取",
+    "commentLabel": "备注（可选）",
+    "commentPlaceholder": "供审核人参考的说明、方法学或注意事项。",
+    "saveDraft": "保存草稿",
+    "submitForReview": "提交审核"
+  },
+  "narrative": {
+    "minLengthAlert_other": "叙述性披露至少需要 {{count}} 个字符才能提交。",
+    "prompt": "披露要求：",
+    "intro": "这是一项<b>叙述性披露</b>（<tip></tip> GRI 2 / GRI 3 管理方法）。请如实描述相关政策、治理架构以及议题的管理方式。可使用纯文本，换行将保留。",
+    "yourResponse_other": "您的回复（{{count}} 个字符）",
+    "placeholder": "描述治理、战略或管理方法，并引用具体的政策、框架或流程。此文本将原样呈现在最终的 GRI 报告中。",
+    "moreNeeded_other": "还需 {{count}} 个字符方可提交。"
+  },
+  "evidence": {
+    "title": "证据",
+    "hint": "请附上审核人所需的原始文件。支持 PDF、XLSX、CSV、PNG。",
+    "drop": "拖放文件或浏览",
+    "addAnother": "继续添加"
+  },
+  "handoff": {
+    "sentTo": "已发送至",
+    "subsidiaryLead": "您的子公司负责人",
+    "with": "当前处理人",
+    "groupSO": "集团可持续发展官",
+    "approved": "已批准 — 已纳入集团汇总",
+    "notify": "审批结果将通知您"
+  },
+  "board": {
+    "dropHere": "将任务拖放到此处",
+    "dragAria": "拖动以更改状态",
+    "unknown": "未知"
+  },
+  "calendar": {
+    "prevMonth": "上个月",
+    "nextMonth": "下个月",
+    "today": "今天",
+    "weekday": {
+      "mon": "周一",
+      "tue": "周二",
+      "wed": "周三",
+      "thu": "周四",
+      "fri": "周五",
+      "sat": "周六",
+      "sun": "周日"
+    },
+    "dayAria_other": "{{date}}，{{count}} 项任务",
+    "more_other": "另有 {{count}} 项"
+  },
+  "page": {
+    "treeLoadFailed": "无法加载问题定义",
+    "treeLoadWarning": "无法加载问题定义 — 数值可能缺少上下文",
+    "crumbWork": "工作",
+    "crumbTasks": "任务",
+    "title": "我的任务",
+    "descriptionEmpty": "指派给您的披露项将显示在此处。",
+    "descriptionStats": "已逾期 {{overdue}} 项 · 本周到期 {{week}} 项 · 共 {{total}} 项",
+    "allSubmitted": "{{name}}，您的所有披露项均已提交，辛苦了。",
+    "openCount_other": "您有 {{count}} 项待处理的披露项，请从最临近截止日期的一项开始。",
+    "browseAll": "浏览全部任务",
+    "startWorking": "开始处理",
+    "filteredTo": "已筛选：",
+    "clear": "清除",
+    "treeWarningBanner": "无法加载问题定义 — 指派数值可能缺少上下文。"
+  },
+  "empty": {
+    "noneTitle": "暂无指派",
+    "nothingInView": "当前视图无内容",
+    "nothingInBucket": "此分类下无内容",
+    "noneBody": "管理员尚未向您指派 GRI 指标项。指派后将立即显示在此处。",
+    "filteredBody": "切换标签页或清除筛选条件以查看其他项目。"
+  },
+  "next": {
+    "aria": "您的下一步",
+    "kicker": "下一步",
+    "pipelineAria": "报告流程",
+    "yourStage": "您负责的阶段",
+    "stageOf": "第 {{n}}/{{total}} 阶段：{{label}}",
+    "kind": {
+      "fix": "已退回修改"
+    },
+    "answerNow": "立即填报",
+    "fixNow": "修改并重新提交",
+    "reason": {
+      "open_other": "您有 {{count}} 个披露项待填报，此项截止日期最近。",
+      "openOverdue_other": "您有 {{count}} 个披露项待填报，其中 {{overdue}} 个已逾期，请先处理逾期最久的一项。"
+    },
+    "errorTitle": "无法加载您的任务",
+    "errorBody": "尚未获取到任务数据，因此暂不显示状态。您已保存的内容不受影响。",
+    "unassigned": {
+      "title": "暂未向您指派披露项",
+      "body": "管理员为您指派本报告期的披露项后，将连同截止日期显示在此处。"
+    },
+    "waiting": {
+      "title_other": "您提交的 {{count}} 个披露项均在审核中",
+      "body": "目前无需您操作。审核人处理后，您会收到通知。",
+      "cta": "查看已提交"
+    },
+    "review": {
+      "title_other": "{{count}} 个提交待您审核",
+      "cta": "打开审核队列",
+      "body": "审核完成后将进入批准环节。"
+    },
+    "approve": {
+      "title_other": "{{count}} 个已审核事项待您批准",
+      "cta": "打开批准队列",
+      "body": "批准后的数据将汇总至集团报告。"
+    },
+    "onboard": {
+      "title": "完成组织架构设置",
+      "cta": "设置组织",
+      "body": "添加工厂并邀请成员，以便指派披露项。"
+    },
+    "assign": {
+      "title": "指派披露项，开始收集数据",
+      "cta": "创建指派",
+      "body": "组织架构已就绪。请将各披露项指派给对应的数据负责人。"
+    },
+    "publish": {
+      "title": "全部已批准，可以发布",
+      "cta": "前往发布",
+      "body": "检查就绪情况后发布报告。"
+    },
+    "thenOpen_other": "之后，您还有 {{count}} 个披露项待填报。"
+  },
+  "toast": {
+    "saveFailed": "无法保存更改",
+    "moved": "{{code}} 已移至“{{status}}”"
+  },
+  "inbox": {
+    "today": "今天",
+    "yesterday": "昨天",
+    "all": "全部",
+    "unreadOnly": "未读（{{count}}）",
+    "allKinds": "全部类型",
+    "filterAria": "筛选通知",
+    "errorTitle": "无法加载收件箱",
+    "errorBody": "无法连接服务器，此处内容尚未确认。",
+    "clearedTitle": "通知已全部读完",
+    "clearedBody": "暂无未读通知，新通知会显示在这里。",
+    "showAll": "显示全部",
+    "filteredTitle": "没有此类型的通知",
+    "filteredBody": "请选择其他类型或清除筛选。",
+    "openTasks": "打开我的任务",
+    "markedAll_other": "已将 {{count}} 条通知标为已读",
+    "markFailed": "无法更新通知",
+    "loadMoreFailed": "无法加载更多通知",
+    "unreadSr": "未读："
+  }
+}

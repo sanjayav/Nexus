@@ -1,6 +1,7 @@
 import { WifiOff, Loader2, Wifi } from 'lucide-react'
 import { useIsInsideRoom, useStatus } from '../lib/liveblocks'
-import { useIntegrationStatus } from '../lib/integrations'
+import { useIntegrationStatus, integrationMissing } from '../lib/integrations'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Compact realtime-status badge for the disclosure editor.
@@ -23,18 +24,19 @@ import { useIntegrationStatus } from '../lib/integrations'
  * state only (Solo mode if unconfigured, otherwise null).
  */
 export function LiveblocksStatus() {
+  const { t } = useTranslation()
   const integrations = useIntegrationStatus()
 
   // Realtime feature not configured server-side — explicit "solo mode" pill
   // so the user understands edits won't sync to teammates.
-  if (!integrations.loading && !integrations.realtime) {
+  if (integrationMissing(integrations, 'realtime')) {
     return (
       <div
-        className="flex items-center gap-1.5 text-[10px] text-[var(--text-tertiary)] px-2 py-1 rounded-[var(--radius-xs)] bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]"
-        title="Realtime collaboration is not configured. Add LIVEBLOCKS_SECRET_KEY on the server to enable multi-user editing."
+        className="flex items-center gap-1.5 text-caption text-[var(--text-tertiary)] px-2 py-1 rounded-[var(--radius-xs)] bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]"
+        title={t('components.live.soloTitle')}
       >
         <WifiOff className="w-3 h-3" />
-        Solo mode
+        {t('components.live.solo')}
       </div>
     )
   }
@@ -51,16 +53,17 @@ function InsideRoomStatus() {
 }
 
 function RoomStatusBadge() {
+  const { t } = useTranslation()
   const status = useStatus()
 
   if (status === 'connecting' || status === 'reconnecting' || status === 'initial') {
     return (
       <div
-        className="flex items-center gap-1.5 text-[10px] text-[var(--status-draft)] px-2 py-1 rounded-[var(--radius-xs)] bg-[var(--accent-amber-light)] border border-[var(--status-draft)]/20"
-        title={status === 'reconnecting' ? 'Reconnecting to the realtime server…' : 'Connecting to the realtime server…'}
+        className="flex items-center gap-1.5 text-caption text-[var(--status-draft)] px-2 py-1 rounded-[var(--radius-xs)] bg-[var(--accent-amber-light)] border border-[var(--status-draft)]/20"
+        title={status === 'reconnecting' ? t('components.live.reconnectingTitle') : t('components.live.connectingTitle')}
       >
         <Loader2 className="w-3 h-3 animate-spin" />
-        {status === 'reconnecting' ? 'Reconnecting…' : 'Connecting…'}
+        {status === 'reconnecting' ? t('components.live.reconnecting') : t('components.live.connecting')}
       </div>
     )
   }
@@ -68,11 +71,11 @@ function RoomStatusBadge() {
   if (status === 'disconnected') {
     return (
       <div
-        className="flex items-center gap-1.5 text-[10px] text-[var(--status-reject)] px-2 py-1 rounded-[var(--radius-xs)] bg-[var(--accent-red-light)] border border-[var(--status-reject)]/20"
-        title="Realtime sync is offline. Your edits are local-only until the connection returns."
+        className="flex items-center gap-1.5 text-caption text-[var(--status-reject)] px-2 py-1 rounded-[var(--radius-xs)] bg-[var(--accent-red-light)] border border-[var(--status-reject)]/20"
+        title={t('components.live.offlineTitle')}
       >
         <WifiOff className="w-3 h-3" />
-        Offline
+        {t('components.live.offline')}
       </div>
     )
   }
@@ -89,13 +92,14 @@ function RoomStatusBadge() {
  * a positive confirmation pill.
  */
 export function LiveblocksConnectedPill() {
+  const { t } = useTranslation()
   return (
     <div
-      className="flex items-center gap-1.5 text-[10px] text-[var(--status-ok)] px-2 py-1 rounded-[var(--radius-xs)] bg-[var(--accent-green-light)] border border-[var(--status-ok)]/20"
-      title="Realtime sync is active — edits propagate to other editors in this room."
+      className="flex items-center gap-1.5 text-caption text-[var(--status-ok)] px-2 py-1 rounded-[var(--radius-xs)] bg-[var(--accent-green-light)] border border-[var(--status-ok)]/20"
+      title={t('components.live.liveTitle')}
     >
       <Wifi className="w-3 h-3" />
-      Live
+      {t('components.live.live')}
     </div>
   )
 }

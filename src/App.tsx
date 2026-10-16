@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { Toaster } from 'sonner'
+import AppToaster from './components/ui/Toaster'
 import AppShell from './components/AppShell'
 import RouteLoader from './components/RouteLoader'
 // Login + MyDay stay eagerly imported: Login is the entry point and we want
@@ -53,6 +53,7 @@ const ScimTokens = lazy(() => import('./pages/ScimTokens'))
 const ApiKeys = lazy(() => import('./pages/ApiKeys'))
 const SystemStatus = lazy(() => import('./pages/SystemStatus'))
 const Connectors = lazy(() => import('./pages/Connectors'))
+const GreenLedger = lazy(() => import('./pages/GreenLedger'))
 const ConnectorDetail = lazy(() => import('./pages/ConnectorDetail'))
 const AuditLog = lazy(() => import('./pages/AuditLog'))
 const WelcomeWizard = lazy(() => import('./pages/WelcomeWizard'))
@@ -223,6 +224,7 @@ function AppRoutes() {
           <Route path="/data/entry/spreadsheet" element={<ProtectedRoute><DataEntrySpreadsheet /></ProtectedRoute>} />
           <Route path="/data/entry/:questionId" element={<ProtectedRoute><DataEntry /></ProtectedRoute>} />
           <Route path="/data" element={<ProtectedRoute><DataIngestion /></ProtectedRoute>} />
+          <Route path="/data/green-ledger" element={<ProtectedRoute><GreenLedger /></ProtectedRoute>} />
           <Route path="/data/*" element={<ProtectedRoute><DataIngestion /></ProtectedRoute>} />
 
           <Route path="/workflow" element={<ProtectedRoute><Workflow /></ProtectedRoute>} />
@@ -304,10 +306,10 @@ export default function App() {
     <ErrorBoundary>
       <BrowserRouter>
         <AppRoutes />
-        {/* Global toast surface — non-blocking, top-right. Sonner mounts a
-            single portal and any caller can `import { showError } from
-            '@/lib/toast'`. Position chosen to clear the AppShell topbar. */}
-        <Toaster richColors position="top-right" closeButton />
+        {/* Global feedback surface, mounted once: sonner toasts (token-styled)
+            plus the host behind useConfirm(). Callers use `components/ui/toast`
+            (notify) or the older `lib/toast` helpers. */}
+        <AppToaster />
       </BrowserRouter>
     </ErrorBoundary>
   )

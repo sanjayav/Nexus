@@ -1,0 +1,170 @@
+{
+  "errors": {
+    "create": "无法创建指派：{{message}}",
+    "remove": "无法移除：{{message}}",
+    "createTitle": "无法创建指派",
+    "loadTitle": "无法加载指派"
+  },
+  "confirmRemove": "确定移除此指派？",
+  "crumbData": "数据",
+  "title": "指派管理",
+  "description": "每项 {{framework}} 披露项都指派给最了解数据的人员，并由 <rbac></rbac> 控制。填报人下次登录时即可在<b>我的任务</b>中看到。",
+  "bulkAssign": "批量指派",
+  "newAssignment": "新建指派",
+  "frameworkDisclosures": "{{framework}} 披露项",
+  "stats": {
+    "total": "合计",
+    "approved": "已批准",
+    "inReview": "审核中",
+    "notStarted": "未开始",
+    "aria": "指派状态",
+    "open": "待填报",
+    "approvedHint": "占全部 {{pct}}%",
+    "overdue": "已逾期"
+  },
+  "searchPlaceholder": "按编号、披露项或填报人搜索…",
+  "allStatuses": "全部状态",
+  "allEntities": "全部实体",
+  "view": {
+    "list": "列表",
+    "kanban": "看板",
+    "tree": "树状",
+    "network": "网络",
+    "aria": "视图"
+  },
+  "empty": {
+    "noneTitle": "暂无指派",
+    "noResults": "没有符合筛选条件的结果",
+    "noneBody": "一步即可将框架章节批量指派给团队，或逐项创建指派。",
+    "noResultsBody": "请清除上方筛选条件，或选择其他框架 / 状态。",
+    "create": "创建指派"
+  },
+  "table": {
+    "lineItem": "编号 · 披露项",
+    "entity": "工厂 / 实体",
+    "assignee": "填报人",
+    "mode": "方式",
+    "due": "截止",
+    "status": "状态",
+    "selectAll": "选择全部可见指派",
+    "selectGroup": "选择 {{name}} 的全部指派",
+    "select": "选择 {{code}}",
+    "groupCount_one": "{{count}} 项指派 · 已批准 {{approved}} 项",
+    "groupCount_other": "{{count}} 项指派 · 已批准 {{approved}} 项"
+  },
+  "mode": {
+    "Manual": "手动",
+    "Calculator": "计算器",
+    "Connector": "连接器",
+    "usedTitle": "用于记录此数值",
+    "allowedTitle": "允许"
+  },
+  "remove": {
+    "oneTitle": "取消 {{name}} 的 {{code}} 指派？",
+    "manyTitle_one": "移除 {{count}} 项指派？",
+    "manyTitle_other": "移除 {{count}} 项指派？",
+    "body_one": "填报人将不再看到此任务。已填报的数值仍保留在审计日志中，但指派无法恢复。",
+    "body_other": "填报人将不再看到这些任务。已填报的数值仍保留在审计日志中，但指派无法恢复。",
+    "confirm_one": "移除指派",
+    "confirm_other": "移除 {{count}} 项指派",
+    "done_one": "已移除指派",
+    "done_other": "已移除 {{count}} 项指派",
+    "failed_one": "{{count}} 项指派未能移除",
+    "failed_other": "{{count}} 项指派未能移除"
+  },
+  "drawer": {
+    "step1": "选择披露项",
+    "step2": "此披露项需要哪种类型的回答？",
+    "numeric": "数值型",
+    "numericDesc": "带单位的数值（例如 tCO₂e、MWh）",
+    "narrative": "叙述型",
+    "narrativeDesc": "长篇文字（GRI 2/3 管理方法）",
+    "step3": "该数据来自哪个工厂 / 实体？",
+    "selectEntity": "选择实体…",
+    "step4": "由谁填报？",
+    "pickEntityFirst": "请先选择实体。",
+    "step5": "可以通过哪些方式填报？",
+    "modesHint": "勾选填报人可使用的所有方式，填报时由其选择其一。",
+    "noCalculator": "无计算器",
+    "tabSwitcher": "填报人将看到标签切换器，可在 {{modes}} 之间选择。",
+    "step6": "截止日期（可选）",
+    "subtitle": "将一项 {{framework}} 披露项指派给最了解数据的人员。",
+    "progress": "已完成 {{done}} / {{total}} 步"
+  },
+  "picker": {
+    "change": "更换问题",
+    "search": "搜索 GRI 代码或指标项…",
+    "noMatches": "无匹配结果",
+    "noMembers": "该实体下暂无成员，请先在<b>入驻设置</b>中添加。",
+    "selectAssignee": "选择填报人…"
+  },
+  "kanban": {
+    "emptyLane": "此列暂无指派"
+  },
+  "counts": {
+    "approved_other": "已批准 {{count}}",
+    "inReview_other": "审核中 {{count}}",
+    "review_other": "审核 {{count}}",
+    "open_other": "未完成 {{count}}",
+    "rejected_other": "已驳回 {{count}}"
+  },
+  "entityType": {
+    "group": "集团",
+    "business_unit": "业务单元",
+    "subsidiary": "子公司",
+    "plant": "工厂",
+    "office": "办公室"
+  },
+  "network": {
+    "empty": "暂无可绘制的实体树。",
+    "nodesLinks": "{{nodes}} 个节点 · {{links}} 条连线",
+    "bu": "业务单元",
+    "orgRoot": "组织根节点",
+    "hoverHint": "将鼠标悬停在节点上以查看详情。"
+  },
+  "bulk": {
+    "pickAssignee": "请选择填报人",
+    "capError": "请缩小筛选范围 — 批量指派上限为 500 项。",
+    "eyebrow": "批量指派",
+    "title": "批量指派问卷条目",
+    "intro": "一键将整个章节指派给一人。已有指派将被跳过（不会覆盖）。每次上限 500 项。",
+    "done": "已完成",
+    "result_other": "已创建 <b>{{count}}</b> 项指派；跳过 {{skipped}} 项已有指派。已向填报人发送汇总通知。",
+    "entity": "实体（可选 — 默认为根节点）",
+    "orgRoot": "— 组织根节点 —",
+    "assignee": "填报人 *",
+    "pickPerson": "— 选择人员 —",
+    "dueDate": "截止日期",
+    "sections_other": "章节（留空则为整个框架 — 共 {{count}} 项）",
+    "noSections": "已加载的问卷中没有章节。",
+    "reviewer": "审核人邮箱（可选）",
+    "approver": "批准人邮箱（可选）",
+    "matched_other": "已匹配 <b>{{count}}</b> 项。",
+    "capHint": "每次上限 500 项 — 请缩小章节筛选范围。",
+    "assign": "指派"
+  },
+  "tree": {
+    "empty": "暂无实体树 — 请先完成入驻设置。"
+  },
+  "toast": {
+    "created": "已将 {{code}} 指派给 {{name}}"
+  },
+  "removeLabel": "移除",
+  "removeAria": "移除指派 {{code}}",
+  "bulkBar": {
+    "aria": "批量操作",
+    "selected_one": "项已选",
+    "selected_other": "项已选",
+    "setDue": "设置截止日期",
+    "dueDate": "新截止日期",
+    "apply": "应用",
+    "remove": "移除",
+    "clear": "取消选择",
+    "dueDone_one": "已更新 {{count}} 项指派的截止日期",
+    "dueDone_other": "已更新 {{count}} 项指派的截止日期",
+    "dueFailed_one": "{{count}} 项指派未能更新",
+    "dueFailed_other": "{{count}} 项指派未能更新"
+  },
+  "showing": "显示 {{shown}} / {{total}} 项。",
+  "clearFilters": "清除筛选"
+}

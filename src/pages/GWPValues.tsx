@@ -1,24 +1,13 @@
-import { useState, useMemo } from 'react'
-import {
-  Search,
-  Plus,
-  X,
-  Beaker,
-  Info,
-  ChevronDown,
-  ChevronRight,
-  Download,
-  Copy,
-  Check,
-  AlertTriangle,
-  Thermometer,
-  Atom,
-  Wind,
-  Flame,
-  Droplets,
-  Leaf,
-} from 'lucide-react'
-import { Card, Badge, Tabs, Button, Input } from '../design-system'
+import { Fragment, useMemo, useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
+import { motion, useInView, useReducedMotion } from 'framer-motion'
+import { Search, Plus, ChevronDown, Download, Copy, Check } from 'lucide-react'
+import { Tabs, Button } from '../design-system'
+import PageHeader from '../components/PageHeader'
+import { useFmt } from '../lib/fmt'
+import { StatLedger, EmptyState, ConfirmSheet, notify } from '../components/ui'
+import { dur, ease } from '../motion/tokens'
+import { CalcField, CalcInput, CalcSelect, Segmented } from '../components/analytics/factors'
 
 /* ═══════════════════════════════════════════
    Types
@@ -36,10 +25,12 @@ interface GWPRecord {
   source: string
   notes?: string
   isCommon: boolean
+  /** Added in this session (not yet in the shared reference table). */
+  custom?: boolean
 }
 
 /* ═══════════════════════════════════════════
-   Demo Data — IPCC AR5 & AR6 GWP values
+   Reference data — IPCC AR5 & AR6 GWP values
    ═══════════════════════════════════════════ */
 const GWP_DATA: GWPRecord[] = [
   // Common GHGs
@@ -84,46 +75,51 @@ const GWP_DATA: GWPRecord[] = [
    ═══════════════════════════════════════════ */
 const CATEGORIES = [...new Set(GWP_DATA.map(g => g.category))].sort()
 
-const CATEGORY_COLORS: Record<string, string> = {
-  'Common GHG': 'var(--accent-teal)',
-  'HFC': 'var(--accent-red)',
-  'PFC': 'var(--accent-purple)',
-  'Fluorinated': 'var(--accent-amber)',
-  'Refrigerant Blend': 'var(--accent-blue)',
-  'Natural Refrigerant': 'var(--accent-green)',
+/** Stable category value → i18n key under `gwp.categories`. */
+const CATEGORY_KEYS: Record<string, string> = {
+  'Common GHG': 'commonGhg',
+  'HFC': 'hfc',
+  'PFC': 'pfc',
+  'Fluorinated': 'fluorinated',
+  'Refrigerant Blend': 'refrigerantBlend',
+  'Natural Refrigerant': 'naturalRefrigerant',
 }
 
-const CATEGORY_ICONS: Record<string, typeof Flame> = {
-  'Common GHG': Wind,
-  'HFC': Thermometer,
-  'PFC': Atom,
-  'Fluorinated': AlertTriangle,
-  'Refrigerant Blend': Droplets,
-  'Natural Refrigerant': Leaf,
+const TAB_CATEGORY: Record<string, string | null> = {
+  all: null,
+  common: 'Common GHG',
+  hfc: 'HFC',
+  pfc: 'PFC',
+  blends: 'Refrigerant Blend',
+  natural: 'Natural Refrigerant',
 }
 
-const TABS_CONFIG = [
-  { id: 'all', label: 'All Gases', count: GWP_DATA.length },
-  { id: 'common', label: 'Common GHGs' },
-  { id: 'hfc', label: 'HFCs' },
-  { id: 'pfc', label: 'PFCs' },
-  { id: 'blends', label: 'Blends' },
-  { id: 'natural', label: 'Natural' },
-]
+type Horizon = 'gwp100' | 'gwp20'
+type Report = 'ar6' | 'ar5'
 
 /* ═══════════════════════════════════════════
-   GWP bar helper — visual comparison
+   GWP magnitude bar — log scale (0.02 … 25,200 spans six orders of magnitude)
    ═══════════════════════════════════════════ */
-function GWPBar({ value, max }: { value: number; max: number }) {
-  const pct = Math.min((value / max) * 100, 100)
-  const color = value > 10000 ? 'var(--accent-red)' : value > 1000 ? 'var(--accent-amber)' : value > 100 ? 'var(--accent-blue)' : 'var(--accent-teal)'
+function GWPBar({ value, max, index }: { value: number; max: number; index: number }) {
+  const f = useFmt()
+  const ref = useRef<HTMLSpanElement>(null)
+  const inView = useInView(ref, { once: true })
+  const reduce = useReducedMotion()
+  const pct = value <= 0 ? 0 : Math.min((Math.log10(value + 1) / Math.log10(max + 1)) * 100, 100)
+  const color = value > 10000 ? 'var(--status-danger)' : value > 1000 ? 'var(--status-warning)' : 'var(--chart-s2)'
   return (
-    <div className="flex items-center gap-2">
-      <span className="font-mono font-bold text-[var(--text-primary)] tabular-nums w-16 text-right">{value.toLocaleString()}</span>
-      <div className="flex-1 h-2 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
-        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
-      </div>
-    </div>
+    <span ref={ref} className="flex items-center gap-3 min-w-[180px]">
+      <span className="font-semibold text-[var(--text-primary)] tabular-nums w-[4.5rem] text-right whitespace-nowrap">{f.number(value, { maxFraction: 3 })}</span>
+      <span className="flex-1 h-1.5 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+        <motion.span
+          className="block h-full rounded-full"
+          style={{ background: color }}
+          initial={reduce ? false : { width: '0%' }}
+          animate={inView || reduce ? { width: `${pct}%` } : { width: '0%' }}
+          transition={{ duration: dur.draw, ease: ease.out, delay: Math.min(index, 8) * 0.03 }}
+        />
+      </span>
+    </span>
   )
 }
 
@@ -131,387 +127,424 @@ function GWPBar({ value, max }: { value: number; max: number }) {
    Component
    ═══════════════════════════════════════════ */
 export default function GWPValues() {
+  const { t } = useTranslation()
+  const f = useFmt()
+  const catLabel = (c: string) => t(`gwp.categories.${CATEGORY_KEYS[c] ?? c}`, { defaultValue: c })
+  const gasName = (g: GWPRecord) => (g.custom ? g.name : t(`gwp.gases.${g.id}`, { defaultValue: g.name }))
+  const lifetimeLabel = (s: string) => {
+    if (s === 'Variable') return t('gwp.lifetime.variable')
+    if (s === 'N/A') return t('gwp.na')
+    if (s === 'Days') return t('gwp.lifetime.days')
+    const m = /^([\d.,]+) (years|days)$/.exec(s)
+    if (m) return t(m[2] === 'years' ? 'gwp.lifetime.years' : 'gwp.lifetime.nDays', { n: m[1] })
+    return s
+  }
+
+  const [custom, setCustom] = useState<GWPRecord[]>([])
+  const data = useMemo(() => [...GWP_DATA, ...custom], [custom])
   const [tab, setTab] = useState('all')
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
-  const [timeHorizon, setTimeHorizon] = useState<'gwp100' | 'gwp20'>('gwp100')
-  const [arVersion, setArVersion] = useState<'ar6' | 'ar5'>('ar6')
-  const [expandedGas, setExpandedGas] = useState<string | null>(null)
+  const [horizon, setHorizon] = useState<Horizon>('gwp100')
+  const [report, setReport] = useState<Report>('ar6')
+  const [expanded, setExpanded] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
-  const [showAddModal, setShowAddModal] = useState(false)
+  const [showAdd, setShowAdd] = useState(false)
+
+  const tabs = useMemo(() => Object.keys(TAB_CATEGORY).map(id => ({
+    id,
+    label: t(`gwp.tabs.${id}`),
+    count: TAB_CATEGORY[id] ? data.filter(g => g.category === TAB_CATEGORY[id]).length : data.length,
+  })), [data, t])
 
   /* Max GWP for bar scaling */
-  const maxGWP = useMemo(() => Math.max(...GWP_DATA.map(g => g.gwp100_ar6)), [])
+  const maxGWP = useMemo(() => Math.max(...data.map(g => Math.max(g.gwp100_ar6, g.gwp20_ar6, g.gwp100_ar5))), [data])
 
-  /* Filtered data */
   const filtered = useMemo(() => {
-    return GWP_DATA.filter(g => {
-      // Tab filters
-      if (tab === 'common' && g.category !== 'Common GHG') return false
-      if (tab === 'hfc' && g.category !== 'HFC') return false
-      if (tab === 'pfc' && g.category !== 'PFC') return false
-      if (tab === 'blends' && g.category !== 'Refrigerant Blend') return false
-      if (tab === 'natural' && g.category !== 'Natural Refrigerant') return false
-      // Category dropdown
+    const q = search.trim().toLowerCase()
+    return data.filter(g => {
+      const tc = TAB_CATEGORY[tab]
+      if (tc && g.category !== tc) return false
       if (categoryFilter !== 'all' && g.category !== categoryFilter) return false
-      // Search
-      if (search) {
-        const q = search.toLowerCase()
+      if (q) {
         return (
           g.name.toLowerCase().includes(q) ||
+          gasName(g).toLowerCase().includes(q) ||
           g.formula.toLowerCase().includes(q) ||
           g.casNumber.toLowerCase().includes(q) ||
-          g.category.toLowerCase().includes(q)
+          g.category.toLowerCase().includes(q) ||
+          catLabel(g.category).toLowerCase().includes(q)
         )
       }
       return true
     })
-  }, [tab, search, categoryFilter])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, tab, search, categoryFilter, t])
 
-  const handleCopy = (id: string, value: number) => {
-    navigator.clipboard.writeText(value.toString())
-    setCopiedId(id)
-    setTimeout(() => setCopiedId(null), 1500)
+  const valueOf = (g: GWPRecord) => (horizon === 'gwp20' ? g.gwp20_ar6 : report === 'ar6' ? g.gwp100_ar6 : g.gwp100_ar5)
+  const columnLabel = horizon === 'gwp100' ? `GWP-100 (${report.toUpperCase()})` : 'GWP-20 (AR6)'
+
+  const handleCopy = async (g: GWPRecord) => {
+    const v = valueOf(g)
+    try {
+      await navigator.clipboard.writeText(String(v))
+      setCopiedId(g.id)
+      setTimeout(() => setCopiedId(null), 1500)
+      notify.success(t('gwp.copied', { name: gasName(g), value: f.number(v, { maxFraction: 3 }), horizon: columnLabel }))
+    } catch {
+      notify.error(t('gwp.copyFailed'))
+    }
   }
 
-  const getGWPValue = (g: GWPRecord) => {
-    if (timeHorizon === 'gwp20') return g.gwp20_ar6
-    return arVersion === 'ar6' ? g.gwp100_ar6 : g.gwp100_ar5
+  const exportCsv = () => {
+    const cols = ['name', 'formula', 'casNumber', 'category', 'gwp100_ar6', 'gwp100_ar5', 'gwp20_ar6', 'lifetime', 'source'] as const
+    const esc = (v: unknown) => {
+      const s = v == null ? '' : String(v)
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+    }
+    const csv = [cols.join(','), ...filtered.map(g => cols.map(c => esc(g[c])).join(','))].join('\n')
+    const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `gwp-values-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    notify.success(t('gwp.exported', { count: filtered.length }))
   }
 
   /* Summary stats */
-  const highGWP = GWP_DATA.filter(g => g.gwp100_ar6 > 1000).length
-  const kigaliCount = GWP_DATA.filter(g => g.category === 'HFC' || g.category === 'Refrigerant Blend').length
+  const highGWP = data.filter(g => g.gwp100_ar6 > 1000).length
+  const kigaliCount = data.filter(g => g.category === 'HFC' || g.category === 'Refrigerant Blend').length
+  const highest = data.reduce((m, g) => (g.gwp100_ar6 > m.gwp100_ar6 ? g : m), data[0])
+
+  const filtersActive = Boolean(search || categoryFilter !== 'all' || tab !== 'all')
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="font-display text-[var(--text-2xl)] font-bold text-[var(--text-primary)] tracking-tight">GWP Values</h1>
-          <p className="mt-1 text-[var(--text-sm)] text-[var(--text-tertiary)]">
-            Global Warming Potential reference table. IPCC AR5 & AR6 values for GHG inventory calculations.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="secondary" size="sm" icon={<Download className="w-3.5 h-3.5" />}>Export CSV</Button>
-          <Button size="sm" icon={<Plus className="w-3.5 h-3.5" />} onClick={() => setShowAddModal(true)}>Add Gas</Button>
-        </div>
-      </div>
+    <div className="page-container">
+      <PageHeader
+        breadcrumbs={[
+          { label: t('gwp.breadcrumbAdmin') },
+          { label: t('gwp.title') },
+        ]}
+        title={t('gwp.title')}
+        description={t('gwp.subtitle')}
+        actions={
+          <>
+            <Button variant="secondary" size="lg" icon={<Download className="w-4 h-4" />} onClick={exportCsv} disabled={filtered.length === 0}>
+              {t('gwp.actions.exportCsv')}
+            </Button>
+            <Button size="lg" icon={<Plus className="w-4 h-4" />} onClick={() => setShowAdd(true)}>{t('gwp.actions.addGas')}</Button>
+          </>
+        }
+      />
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-5 gap-4">
-        {[
-          { label: 'Total Gases', value: GWP_DATA.length.toString(), icon: Atom, accent: 'var(--accent-teal)' },
-          { label: 'High GWP (>1000)', value: highGWP.toString(), icon: AlertTriangle, accent: 'var(--accent-red)' },
-          { label: 'Kigali Regulated', value: kigaliCount.toString(), icon: Thermometer, accent: 'var(--accent-amber)' },
-          { label: 'Categories', value: CATEGORIES.length.toString(), icon: Beaker, accent: 'var(--accent-blue)' },
-          { label: 'Highest GWP', value: maxGWP.toLocaleString(), icon: Flame, accent: 'var(--accent-purple)' },
-        ].map(kpi => {
-          const Icon = kpi.icon
-          return (
-            <Card key={kpi.label} padding="sm">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-semibold">{kpi.label}</p>
-                  <p className="text-[var(--text-2xl)] font-bold text-[var(--text-primary)] mt-1 tabular-nums">{kpi.value}</p>
-                </div>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: `color-mix(in srgb, ${kpi.accent} 12%, transparent)` }}>
-                  <Icon className="w-5 h-5" style={{ color: kpi.accent }} />
-                </div>
+      <div className="space-y-6">
+        <StatLedger
+          aria-label={t('gwp.kpi.label')}
+          items={[
+            { id: 'total', label: t('gwp.kpi.totalGases'), value: data.length, tone: 'neutral' },
+            { id: 'high', label: t('gwp.kpi.highGwp'), value: highGWP, tone: 'warning', hint: t('gwp.kpi.highGwpHint') },
+            { id: 'kigali', label: t('gwp.kpi.kigali'), value: kigaliCount, tone: 'info', hint: t('gwp.kpi.kigaliHint') },
+            { id: 'cats', label: t('gwp.kpi.categories'), value: CATEGORIES.length, tone: 'neutral' },
+            { id: 'max', label: t('gwp.kpi.highestGwp'), value: highest.gwp100_ar6, format: 'number', tone: 'danger', hint: gasName(highest) },
+          ]}
+        />
+
+        <section className="surface-paper overflow-hidden" aria-label={t('gwp.tableLabel')}>
+          <div className="px-4 sm:px-5 pt-4 pb-3 space-y-3 border-b border-[var(--border-subtle)]">
+            <div className="overflow-x-auto -mx-1 px-1">
+              <Tabs tabs={tabs} activeTab={tab} onChange={setTab} aria-label={t('gwp.tabsLabel')} className="w-max" />
+            </div>
+            <div className="flex flex-col lg:flex-row lg:items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" aria-hidden />
+                <input
+                  type="search"
+                  placeholder={t('gwp.searchPlaceholder')}
+                  aria-label={t('gwp.searchPlaceholder')}
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="w-full h-10 pl-9 pr-3 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-body text-[var(--text-primary)] placeholder:text-[var(--text-quaternary)] outline-none hover:border-[var(--border-strong)] focus:border-[var(--border-focus)] focus:shadow-[0_0_0_3px_var(--color-brand-soft)] transition-[border-color,box-shadow] duration-micro [&::-webkit-search-cancel-button]:hidden"
+                />
               </div>
-            </Card>
-          )
-        })}
-      </div>
+              <div className="lg:w-[200px]">
+                <CalcSelect value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} aria-label={t('gwp.allCategories')}>
+                  <option value="all">{t('gwp.allCategories')}</option>
+                  {CATEGORIES.map(c => <option key={c} value={c}>{catLabel(c)}</option>)}
+                </CalcSelect>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Segmented<Horizon>
+                  label={t('gwp.horizonLabel')}
+                  value={horizon}
+                  onChange={setHorizon}
+                  options={[{ value: 'gwp100', label: 'GWP-100' }, { value: 'gwp20', label: 'GWP-20' }]}
+                />
+                {horizon === 'gwp100' && (
+                  <Segmented<Report>
+                    label={t('gwp.reportLabel')}
+                    value={report}
+                    onChange={setReport}
+                    options={[{ value: 'ar6', label: 'AR6' }, { value: 'ar5', label: 'AR5' }]}
+                  />
+                )}
+              </div>
+            </div>
+            <p className="text-caption text-[var(--text-tertiary)]" role="status">
+              {t('gwp.showing', { shown: filtered.length, total: data.length, horizon: columnLabel })}
+            </p>
+          </div>
 
-      {/* Tabs */}
-      <Tabs tabs={TABS_CONFIG} activeTab={tab} onChange={setTab} />
-
-      {/* Filter & Toggle Bar */}
-      <Card padding="sm">
-        <div className="flex items-center gap-3">
-          {/* Search */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-tertiary)]" />
-            <input
-              type="text"
-              placeholder="Search by name, formula, or CAS number..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full h-9 pl-10 pr-4 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-sm)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)]/30 focus:border-[var(--accent-teal)]"
+          {filtered.length === 0 ? (
+            <EmptyState
+              variant="filtered"
+              density="compact"
+              title={t('gwp.empty')}
+              onClearFilters={filtersActive ? () => { setSearch(''); setCategoryFilter('all'); setTab('all') } : undefined}
             />
-          </div>
-          {/* Category filter */}
-          <select
-            value={categoryFilter}
-            onChange={e => setCategoryFilter(e.target.value)}
-            className="h-9 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 text-[var(--text-xs)] text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)]/30 cursor-pointer"
-          >
-            <option value="all">All Categories</option>
-            {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-          {/* Time horizon toggle */}
-          <div className="flex rounded-lg border border-[var(--border-default)] overflow-hidden">
-            <button
-              onClick={() => setTimeHorizon('gwp100')}
-              className={`px-3 py-1.5 text-[var(--text-xs)] font-medium transition-colors cursor-pointer ${
-                timeHorizon === 'gwp100'
-                  ? 'bg-[var(--accent-teal-light)] text-[var(--accent-teal)]'
-                  : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
-              }`}
-            >
-              GWP-100
-            </button>
-            <button
-              onClick={() => setTimeHorizon('gwp20')}
-              className={`px-3 py-1.5 text-[var(--text-xs)] font-medium transition-colors cursor-pointer ${
-                timeHorizon === 'gwp20'
-                  ? 'bg-[var(--accent-teal-light)] text-[var(--accent-teal)]'
-                  : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
-              }`}
-            >
-              GWP-20
-            </button>
-          </div>
-          {/* AR version toggle */}
-          {timeHorizon === 'gwp100' && (
-            <div className="flex rounded-lg border border-[var(--border-default)] overflow-hidden">
-              <button
-                onClick={() => setArVersion('ar6')}
-                className={`px-3 py-1.5 text-[var(--text-xs)] font-medium transition-colors cursor-pointer ${
-                  arVersion === 'ar6'
-                    ? 'bg-[var(--accent-blue-light,var(--accent-teal-light))] text-[var(--accent-blue)]'
-                    : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
-                }`}
-              >
-                AR6
-              </button>
-              <button
-                onClick={() => setArVersion('ar5')}
-                className={`px-3 py-1.5 text-[var(--text-xs)] font-medium transition-colors cursor-pointer ${
-                  arVersion === 'ar5'
-                    ? 'bg-[var(--accent-blue-light,var(--accent-teal-light))] text-[var(--accent-blue)]'
-                    : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
-                }`}
-              >
-                AR5
-              </button>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>{t('gwp.table.substance')}</th>
+                    <th className="hidden sm:table-cell">{t('gwp.table.formula')}</th>
+                    <th className="hidden xl:table-cell">{t('gwp.table.cas')}</th>
+                    <th className="hidden md:table-cell">{t('gwp.table.category')}</th>
+                    <th className="min-w-[220px]"><span className="normal-case">{columnLabel}</span></th>
+                    <th className="hidden lg:table-cell">{t('gwp.table.lifetime')}</th>
+                    <th className="w-[88px]"><span className="sr-only">{t('common.actions')}</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((g, i) => {
+                    const open = expanded === g.id
+                    const v = valueOf(g)
+                    const detailId = `gwp-${g.id}`
+                    const change = g.gwp100_ar5 > 0 ? ((g.gwp100_ar6 - g.gwp100_ar5) / g.gwp100_ar5) * 100 : null
+                    return (
+                      <Fragment key={g.id}>
+                        <tr className="cursor-pointer" onClick={() => setExpanded(open ? null : g.id)}>
+                          <td>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-[var(--text-primary)]">{gasName(g)}</span>
+                              {g.isCommon && <span className="nx-pill" data-tone="neutral" data-size="sm">{t('gwp.commonBadge')}</span>}
+                              {g.custom && <span className="nx-pill" data-tone="info" data-size="sm">{t('gwp.sessionBadge')}</span>}
+                            </div>
+                            <div className="sm:hidden text-caption text-[var(--text-tertiary)] font-mono mt-0.5">{g.formula}</div>
+                          </td>
+                          <td className="hidden sm:table-cell font-mono text-[var(--text-secondary)] whitespace-nowrap">{g.formula}</td>
+                          <td className="hidden xl:table-cell font-mono text-[var(--text-tertiary)] whitespace-nowrap">{g.casNumber === 'Blend' ? t('gwp.blend') : g.casNumber}</td>
+                          <td className="hidden md:table-cell"><span className="nx-pill" data-tone="neutral" data-size="sm">{catLabel(g.category)}</span></td>
+                          <td><GWPBar value={v} max={maxGWP} index={i} /></td>
+                          <td className="hidden lg:table-cell text-[var(--text-tertiary)] whitespace-nowrap">{lifetimeLabel(g.lifetime)}</td>
+                          <td className="text-right">
+                            <span className="inline-flex items-center gap-0.5">
+                              <button
+                                type="button"
+                                onClick={e => { e.stopPropagation(); void handleCopy(g) }}
+                                className="w-9 h-9 inline-flex items-center justify-center rounded-[var(--radius-md)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+                                aria-label={t('gwp.copyGwp')}
+                                title={t('gwp.copyGwp')}
+                              >
+                                {copiedId === g.id ? <Check className="w-4 h-4 text-[var(--status-success)]" /> : <Copy className="w-4 h-4" />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={e => { e.stopPropagation(); setExpanded(open ? null : g.id) }}
+                                aria-expanded={open}
+                                aria-controls={detailId}
+                                aria-label={open ? t('gwp.collapse') : t('gwp.expand')}
+                                className="w-9 h-9 inline-flex items-center justify-center rounded-[var(--radius-md)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+                              >
+                                <ChevronDown className={`w-4 h-4 transition-transform duration-fast ${open ? 'rotate-180' : ''}`} />
+                              </button>
+                            </span>
+                          </td>
+                        </tr>
+                        {open && (
+                          <tr id={detailId} className="hover:bg-transparent">
+                            <td colSpan={7} className="!py-0">
+                              <div className="py-4">
+                                <dl className="grid grid-cols-2 md:grid-cols-5 gap-x-6 gap-y-3 rounded-[var(--radius-md)] bg-[var(--bg-subtle)] px-4 py-3.5">
+                                  <Compare label="GWP-100 (AR6)" value={f.number(g.gwp100_ar6, { maxFraction: 3 })} />
+                                  <Compare label="GWP-100 (AR5)" value={f.number(g.gwp100_ar5, { maxFraction: 3 })} />
+                                  <Compare label="GWP-20 (AR6)" value={f.number(g.gwp20_ar6, { maxFraction: 3 })} />
+                                  <div>
+                                    <dt className="text-caption text-[var(--text-tertiary)]">{t('gwp.ar5ToAr6Change')}</dt>
+                                    <dd className="mt-1">
+                                      {change == null ? (
+                                        <span className="text-small text-[var(--text-tertiary)]">{t('gwp.na')}</span>
+                                      ) : (
+                                        <span className="nx-pill" data-tone={change > 0 ? 'warning' : change < 0 ? 'success' : 'neutral'} data-size="sm">
+                                          {f.delta(change, { percent: true })}
+                                        </span>
+                                      )}
+                                    </dd>
+                                  </div>
+                                  <Compare label={t('gwp.source')} value={g.source} plain />
+                                  <div className="md:hidden col-span-2 grid grid-cols-2 gap-x-6 gap-y-3">
+                                    <Compare label={t('gwp.table.category')} value={catLabel(g.category)} plain />
+                                    <Compare label={t('gwp.table.lifetime')} value={lifetimeLabel(g.lifetime)} plain />
+                                  </div>
+                                  <div className="xl:hidden col-span-2 md:col-span-5">
+                                    <Compare label={t('gwp.table.cas')} value={g.casNumber === 'Blend' ? t('gwp.blend') : g.casNumber} plain />
+                                  </div>
+                                  {g.notes && (
+                                    <div className="col-span-2 md:col-span-5">
+                                      <dt className="text-caption text-[var(--text-tertiary)]">{t('gwp.notesLabel')}</dt>
+                                      <dd className="mt-0.5 text-small text-[var(--text-secondary)]">{g.custom ? g.notes : t(`gwp.notes.${g.id}`, { defaultValue: g.notes })}</dd>
+                                    </div>
+                                  )}
+                                </dl>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
-        </div>
-      </Card>
+        </section>
 
-      {/* Results count */}
-      <div className="flex items-center justify-between">
-        <p className="text-[var(--text-xs)] text-[var(--text-tertiary)]">
-          Showing <span className="font-semibold text-[var(--text-secondary)]">{filtered.length}</span> of {GWP_DATA.length} gases
-          {timeHorizon === 'gwp100' ? ` (GWP-100, ${arVersion.toUpperCase()})` : ' (GWP-20, AR6)'}
-        </p>
+        <section className="surface-paper overflow-hidden" aria-labelledby="gwp-ref">
+          <h2 id="gwp-ref" className="type-h3 text-[var(--text-primary)] px-5 pt-4 pb-2">{t('gwp.reference.title')}</h2>
+          <dl className="grid md:grid-cols-3 md:divide-x divide-y md:divide-y-0 divide-[var(--border-subtle)] border-t border-[var(--border-subtle)]">
+            {(['horizon', 'ar', 'kigali'] as const).map(id => (
+              <div key={id} className="px-5 py-4">
+                <dt className="text-small font-semibold text-[var(--text-primary)]">{t(`gwp.reference.${id}Title`)}</dt>
+                <dd className="mt-1 text-small text-[var(--text-secondary)]">{t(`gwp.reference.${id}Desc`)}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
       </div>
 
-      {/* GWP Table */}
-      <Card padding="none">
-        <div className="overflow-x-auto">
-          <table className="w-full text-[var(--text-xs)]">
-            <thead>
-              <tr className="border-b border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                <th className="text-left py-3 px-4 font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">Substance</th>
-                <th className="text-left py-3 px-4 font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">Formula</th>
-                <th className="text-left py-3 px-4 font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">CAS No.</th>
-                <th className="text-left py-3 px-4 font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">Category</th>
-                <th className="text-left py-3 px-4 font-semibold text-[var(--text-tertiary)] uppercase tracking-wider min-w-[260px]">
-                  {timeHorizon === 'gwp100'
-                    ? `GWP-100 (${arVersion.toUpperCase()})`
-                    : 'GWP-20 (AR6)'}
-                </th>
-                <th className="text-left py-3 px-4 font-semibold text-[var(--text-tertiary)] uppercase tracking-wider">Lifetime</th>
-                <th className="text-center py-3 px-4 font-semibold text-[var(--text-tertiary)] uppercase tracking-wider w-[80px]">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((g, i) => {
-                const isExpanded = expandedGas === g.id
-                const catColor = CATEGORY_COLORS[g.category] || 'var(--accent-teal)'
-                const CatIcon = CATEGORY_ICONS[g.category] || Atom
-                const gwpVal = getGWPValue(g)
-                return (
-                  <>
-                    <tr
-                      key={g.id}
-                      className={`${i % 2 === 0 ? 'bg-[var(--bg-primary)]' : 'bg-[var(--bg-secondary)]'} hover:bg-[var(--bg-hover)] transition-colors cursor-pointer`}
-                      onClick={() => setExpandedGas(isExpanded ? null : g.id)}
-                    >
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `color-mix(in srgb, ${catColor} 10%, transparent)` }}>
-                            <CatIcon className="w-3.5 h-3.5" style={{ color: catColor }} />
-                          </div>
-                          <div>
-                            <span className="font-semibold text-[var(--text-primary)]">{g.name}</span>
-                            {g.isCommon && (
-                              <span className="ml-1.5 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]">Common</span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 font-mono font-medium text-[var(--text-secondary)]">{g.formula}</td>
-                      <td className="py-3 px-4 font-mono text-[var(--text-tertiary)]">{g.casNumber}</td>
-                      <td className="py-3 px-4">
-                        <Badge variant={
-                          g.category === 'Common GHG' ? 'teal' :
-                          g.category === 'HFC' ? 'red' :
-                          g.category === 'PFC' ? 'purple' :
-                          g.category === 'Fluorinated' ? 'amber' :
-                          g.category === 'Natural Refrigerant' ? 'green' : 'blue'
-                        }>{g.category}</Badge>
-                      </td>
-                      <td className="py-3 px-4">
-                        <GWPBar value={gwpVal} max={maxGWP} />
-                      </td>
-                      <td className="py-3 px-4 font-mono text-[var(--text-tertiary)]">{g.lifetime}</td>
-                      <td className="py-3 px-4 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            onClick={e => { e.stopPropagation(); handleCopy(g.id, gwpVal) }}
-                            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] cursor-pointer"
-                            title="Copy GWP"
-                          >
-                            {copiedId === g.id ? <Check className="w-3.5 h-3.5 text-[var(--accent-teal)]" /> : <Copy className="w-3.5 h-3.5" />}
-                          </button>
-                          <button
-                            onClick={e => { e.stopPropagation(); setExpandedGas(isExpanded ? null : g.id) }}
-                            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] cursor-pointer"
-                          >
-                            {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                    {/* Expanded */}
-                    {isExpanded && (
-                      <tr key={`${g.id}-detail`}>
-                        <td colSpan={7} className="bg-[var(--bg-secondary)] border-y border-[var(--border-subtle)]">
-                          <div className="px-6 py-4">
-                            <div className="grid grid-cols-5 gap-4 mb-3">
-                              <CompareCell label="GWP-100 (AR6)" value={g.gwp100_ar6} />
-                              <CompareCell label="GWP-100 (AR5)" value={g.gwp100_ar5} />
-                              <CompareCell label="GWP-20 (AR6)" value={g.gwp20_ar6} />
-                              <div>
-                                <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-semibold">AR5 → AR6 Change</p>
-                                {g.gwp100_ar5 > 0 ? (
-                                  <p className={`text-[var(--text-sm)] font-bold mt-0.5 tabular-nums ${
-                                    g.gwp100_ar6 > g.gwp100_ar5 ? 'text-[var(--accent-red)]' : 'text-[var(--accent-teal)]'
-                                  }`}>
-                                    {g.gwp100_ar6 > g.gwp100_ar5 ? '+' : ''}
-                                    {(((g.gwp100_ar6 - g.gwp100_ar5) / g.gwp100_ar5) * 100).toFixed(1)}%
-                                  </p>
-                                ) : (
-                                  <p className="text-[var(--text-sm)] text-[var(--text-tertiary)] mt-0.5">N/A</p>
-                                )}
-                              </div>
-                              <div>
-                                <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-semibold">Source</p>
-                                <p className="text-[var(--text-xs)] text-[var(--text-primary)] font-medium mt-0.5">{g.source}</p>
-                              </div>
-                            </div>
-                            {g.notes && (
-                              <div className="flex items-start gap-2 rounded-lg p-3 border" style={{ backgroundColor: 'color-mix(in srgb, var(--accent-blue) 6%, transparent)', borderColor: 'color-mix(in srgb, var(--accent-blue) 15%, transparent)' }}>
-                                <Info className="w-3.5 h-3.5 text-[var(--accent-blue)] mt-0.5 flex-shrink-0" />
-                                <p className="text-[var(--text-xs)] text-[var(--text-secondary)]">{g.notes}</p>
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+      <AddGasSheet
+        open={showAdd}
+        onOpenChange={setShowAdd}
+        categories={CATEGORIES}
+        catLabel={catLabel}
+        onAdd={g => {
+          setCustom(c => [...c, g])
+          notify.success(t('gwp.added', { name: g.name }), { description: t('gwp.addedSession') })
+        }}
+      />
+    </div>
+  )
+}
 
-        {filtered.length === 0 && (
-          <div className="text-center py-12">
-            <Atom className="w-10 h-10 text-[var(--text-tertiary)] mx-auto mb-3 opacity-40" />
-            <p className="text-[var(--text-sm)] text-[var(--text-secondary)]">No gases match your search.</p>
-          </div>
-        )}
-      </Card>
-
-      {/* Reference notes */}
-      <Card padding="md">
-        <div className="flex items-start gap-3">
-          <Info className="w-5 h-5 text-[var(--accent-teal)] flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mb-1">GWP Reference Notes</h3>
-            <div className="grid grid-cols-3 gap-4 mt-3">
-              {[
-                { title: 'GWP-100 vs GWP-20', desc: 'GWP-100 is the standard for GHG inventories (GHG Protocol, CDP). GWP-20 shows short-term warming impact — methane is 82.5x CO₂ over 20 years vs 29.8x over 100 years.' },
-                { title: 'AR5 vs AR6', desc: 'IPCC AR6 (2021) updated GWP values. Most frameworks still accept AR5, but CDP 2025+ and CSRD/ESRS require AR6. Check framework guidance.' },
-                { title: 'Kigali Amendment', desc: 'HFCs are being phased down under the Kigali Amendment to the Montreal Protocol. Report HFC usage for compliance tracking and transition planning.' },
-              ].map(note => (
-                <div key={note.title} className="text-[var(--text-xs)] text-[var(--text-secondary)] leading-relaxed">
-                  <p className="font-semibold text-[var(--text-primary)] mb-1">{note.title}</p>
-                  <p>{note.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Add Gas Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fade-in">
-          <div className="bg-[var(--bg-primary)] rounded-2xl border border-[var(--border-default)] shadow-xl w-full max-w-lg mx-4">
-            <div className="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
-              <h2 className="font-display text-[var(--text-lg)] font-semibold text-[var(--text-primary)]">Add Greenhouse Gas</h2>
-              <button onClick={() => setShowAddModal(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer">
-                <X className="w-4 h-4 text-[var(--text-tertiary)]" />
-              </button>
-            </div>
-            <div className="p-5 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <Input label="Gas Name" placeholder="e.g. HFC-32" />
-                <Input label="Chemical Formula" placeholder="e.g. CH₂F₂" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Input label="CAS Number" placeholder="e.g. 75-10-5" />
-                <div>
-                  <label className="block text-[var(--text-xs)] font-medium text-[var(--text-secondary)] mb-1.5">Category</label>
-                  <select className="w-full h-9 rounded-lg border border-[var(--border-default)] bg-[var(--bg-secondary)] px-3 text-[var(--text-xs)] text-[var(--text-secondary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-teal)]/30 cursor-pointer">
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <Input label="GWP-100 (AR6)" type="number" placeholder="0" />
-                <Input label="GWP-100 (AR5)" type="number" placeholder="0" />
-                <Input label="GWP-20 (AR6)" type="number" placeholder="0" />
-              </div>
-              <Input label="Atmospheric Lifetime" placeholder="e.g. 11.8 years" />
-            </div>
-            <div className="flex items-center justify-end gap-2 p-5 border-t border-[var(--border-subtle)]">
-              <Button variant="secondary" onClick={() => setShowAddModal(false)}>Cancel</Button>
-              <Button onClick={() => setShowAddModal(false)}>Add Gas</Button>
-            </div>
-          </div>
-        </div>
-      )}
+function Compare({ label, value, plain }: { label: string; value: string; plain?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-caption text-[var(--text-tertiary)] normal-case">{label}</dt>
+      <dd className={`mt-0.5 text-small break-words ${plain ? 'text-[var(--text-secondary)]' : 'font-semibold tabular-nums text-[var(--text-primary)]'}`}>{value}</dd>
     </div>
   )
 }
 
 /* ═══════════════════════════════════════════
-   Compare cell helper
+   Add gas — inline-validated sheet. Adds to this session's table only; the
+   reference table itself is maintained centrally.
    ═══════════════════════════════════════════ */
-function CompareCell({ label, value }: { label: string; value: number }) {
+function AddGasSheet({
+  open, onOpenChange, onAdd, categories, catLabel,
+}: {
+  open: boolean
+  onOpenChange: (o: boolean) => void
+  onAdd: (g: GWPRecord) => void
+  categories: string[]
+  catLabel: (c: string) => string
+}) {
+  const { t } = useTranslation()
+  const empty = { name: '', formula: '', cas: '', category: categories[0] ?? 'HFC', ar6: '', ar5: '', gwp20: '', lifetime: '' }
+  const [form, setForm] = useState(empty)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const set = (k: keyof typeof empty, v: string) => {
+    setForm(p => ({ ...p, [k]: v }))
+    if (errors[k]) setErrors(e => { const n = { ...e }; delete n[k]; return n })
+  }
+
+  const submit = () => {
+    const errs: Record<string, string> = {}
+    const req = t('calculators.form.requiredError')
+    if (!form.name.trim()) errs.name = req
+    if (!form.formula.trim()) errs.formula = req
+    for (const k of ['ar6', 'ar5', 'gwp20'] as const) {
+      const raw = form[k].trim()
+      if (k === 'ar6' && raw === '') { errs[k] = req; continue }
+      if (raw !== '' && (!Number.isFinite(Number(raw)) || Number(raw) < 0)) errs[k] = t('calculators.form.number')
+    }
+    setErrors(errs)
+    if (Object.keys(errs).length) throw new Error(t('calculators.form.fixFields'))
+    const ar6 = Number(form.ar6)
+    onAdd({
+      id: `custom-${Date.now()}`,
+      name: form.name.trim(),
+      formula: form.formula.trim(),
+      casNumber: form.cas.trim() || '—',
+      category: form.category,
+      gwp100_ar6: ar6,
+      gwp100_ar5: form.ar5.trim() === '' ? 0 : Number(form.ar5),
+      gwp20_ar6: form.gwp20.trim() === '' ? ar6 : Number(form.gwp20),
+      lifetime: form.lifetime.trim() || 'N/A',
+      source: t('gwp.customSource'),
+      isCommon: false,
+      custom: true,
+    })
+    setForm(empty)
+  }
+
   return (
-    <div>
-      <p className="text-[10px] text-[var(--text-tertiary)] uppercase tracking-wider font-semibold">{label}</p>
-      <p className="text-[var(--text-sm)] font-bold text-[var(--text-primary)] mt-0.5 tabular-nums">{value.toLocaleString()}</p>
-    </div>
+    <ConfirmSheet
+      open={open}
+      onOpenChange={o => { onOpenChange(o); if (!o) setErrors({}) }}
+      size="lg"
+      title={t('gwp.modal.title')}
+      description={t('gwp.modal.description')}
+      confirmLabel={t('gwp.modal.submit')}
+      onConfirm={submit}
+    >
+      <div className="space-y-4">
+        <div className="grid sm:grid-cols-2 gap-4">
+          <CalcField label={t('gwp.modal.gasName')} required error={errors.name}>
+            {p => <CalcInput {...p} value={form.name} onChange={e => set('name', e.target.value)} placeholder={t('gwp.modal.gasNamePlaceholder')} />}
+          </CalcField>
+          <CalcField label={t('gwp.modal.formula')} required error={errors.formula}>
+            {p => <CalcInput {...p} value={form.formula} onChange={e => set('formula', e.target.value)} placeholder={t('gwp.modal.formulaPlaceholder')} />}
+          </CalcField>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <CalcField label={t('gwp.modal.cas')}>
+            {p => <CalcInput {...p} value={form.cas} onChange={e => set('cas', e.target.value)} placeholder={t('gwp.modal.casPlaceholder')} />}
+          </CalcField>
+          <CalcField label={t('gwp.modal.category')}>
+            {p => (
+              <CalcSelect {...p} value={form.category} onChange={e => set('category', e.target.value)}>
+                {categories.map(c => <option key={c} value={c}>{catLabel(c)}</option>)}
+              </CalcSelect>
+            )}
+          </CalcField>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <CalcField label="GWP-100 (AR6)" required error={errors.ar6}>
+            {p => <CalcInput {...p} type="number" min={0} step="any" value={form.ar6} onChange={e => set('ar6', e.target.value)} placeholder="0" />}
+          </CalcField>
+          <CalcField label="GWP-100 (AR5)" error={errors.ar5}>
+            {p => <CalcInput {...p} type="number" min={0} step="any" value={form.ar5} onChange={e => set('ar5', e.target.value)} placeholder="0" />}
+          </CalcField>
+          <CalcField label="GWP-20 (AR6)" error={errors.gwp20}>
+            {p => <CalcInput {...p} type="number" min={0} step="any" value={form.gwp20} onChange={e => set('gwp20', e.target.value)} placeholder="0" />}
+          </CalcField>
+        </div>
+        <CalcField label={t('gwp.modal.lifetime')}>
+          {p => <CalcInput {...p} value={form.lifetime} onChange={e => set('lifetime', e.target.value)} placeholder={t('gwp.modal.lifetimePlaceholder')} />}
+        </CalcField>
+      </div>
+    </ConfirmSheet>
   )
 }
+

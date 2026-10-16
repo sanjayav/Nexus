@@ -1,6 +1,13 @@
 import '@testing-library/jest-dom/vitest'
 import { afterAll, afterEach, beforeAll, vi } from 'vitest'
 import { server } from './server'
+// Components translate their copy with react-i18next; start it in English so
+// component tests assert against the source strings.
+import i18n from '../i18n'
+
+beforeAll(async () => {
+  await i18n.changeLanguage('en')
+})
 
 // Ensure crypto is available for jose / api/_crypto.ts.
 // jsdom in vitest already provides it, but be explicit.

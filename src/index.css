@@ -2,416 +2,386 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ═══════════════════════════════════════════════════════════
- * Premium visual system — restrained Big-4-grade tokens.
+/* ═══════════════════════════════════════════════════════════════════════
+ * Nexus design system — tokens
  *
- * Layered ON TOP of the existing Nexus design system below.
- * Legacy variables (--color-brand, --accent-teal, --bg-inverse,
- * etc.) are preserved further down and aliased to this emerald
- * scale at the very end of :root, so no page breaks.
- * ═══════════════════════════════════════════════════════════ */
+ * One file, three layers:
+ *   1. Fonts (self-hosted, Latin subset; Hanzi always use the system face)
+ *   2. Tokens — :root is light; [data-color-mode='dark'] overrides
+ *   3. Primitives (surfaces, type, controls) + CJK safety + motion
+ *
+ * Rules of the system
+ *   · One type ramp: display-xl 56 → caption 12. `micro` (11, uppercase) is
+ *     Latin-only; under zh-CN it renders 12/500 with no case transform.
+ *   · Emerald is the single brand accent. Status colours are semantic only.
+ *   · Three elevations: card (resting), raised (hero / active), overlay
+ *     (popover, sheet, dialog). Nothing else casts a shadow.
+ *   · Primary buttons read --btn-primary-*; never "white on brand".
+ *   · The sidebar is ink in both modes.
+ * ═══════════════════════════════════════════════════════════════════════ */
 
-:root {
-  /* Display — used for h1 on landing/marketing-feel surfaces */
-  --font-display-premium: 'Inter Display', 'Inter', 'Instrument Sans', system-ui, -apple-system, sans-serif;
-  --font-sans-premium:    'Inter', 'DM Sans', system-ui, -apple-system, sans-serif;
-  --font-mono-premium:    'JetBrains Mono', ui-monospace, monospace;
-
-  /* Premium type ramp — modular 1.250 ratio.
-     NOTE: we intentionally namespace these (text-premium-*) to avoid
-     clobbering the legacy --text-xs..--text-4xl token below. */
-  --text-premium-xs:   0.75rem;    /* 12 */
-  --text-premium-sm:   0.875rem;   /* 14 */
-  --text-premium-base: 1rem;       /* 16 — body default */
-  --text-premium-md:   1.125rem;   /* 18 */
-  --text-premium-lg:   1.25rem;    /* 20 */
-  --text-premium-xl:   1.5rem;     /* 24 — page subtitle */
-  --text-premium-2xl:  1.875rem;   /* 30 */
-  --text-premium-3xl:  2.25rem;    /* 36 — page h1 */
-  --text-premium-4xl:  3rem;       /* 48 — landing h1 */
-  --text-premium-5xl:  3.75rem;    /* 60 — login hero */
-  --text-premium-6xl:  4.5rem;     /* 72 */
-
-  /* Weight — restrained scale */
-  --weight-regular:  400;
-  --weight-medium:   500;
-  --weight-semibold: 600;
-  --weight-bold:     700;
-  --weight-black:    800;
-
-  /* Line height — generous for premium feel */
-  --leading-tight:   1.2;
-  --leading-snug:    1.4;
-  --leading-normal:  1.6;
-  --leading-relaxed: 1.75;
-
-  /* Letter spacing */
-  --tracking-tight:  -0.02em;
-  --tracking-normal: 0;
-  --tracking-wide:   0.04em;
-  --tracking-wider:  0.08em;
-  --tracking-widest: 0.15em;
-
-  /* Emerald — sole brand accent for the premium layer */
-  --accent-50:  #ECFDF5;
-  --accent-100: #D1FAE5;
-  --accent-300: #6EE7B7;
-  --accent-400: #34D399;
-  --accent-500: #10B981;
-  --accent-600: #059669;
-  --accent-700: #047857;
-  --accent-strong: var(--accent-600);
-
-  /* Premium neutrals (used by card-premium, btn-* on dark surfaces) */
-  --bg-canvas:        #030712;
-  --bg-surface:       #0B0F16;
-  --bg-card-premium:  rgba(255, 255, 255, 0.025);
-  --bg-card-premium-hover: rgba(255, 255, 255, 0.045);
-  --border-card-premium:   rgba(255, 255, 255, 0.06);
-
-  /* Status — semantic, used sparingly */
-  --status-success: var(--accent-500);
-  --status-warning: #F59E0B;
-  --status-danger:  #EF4444;
-  --status-info:    #3B82F6;
-
-  /* Premium motion (parallel to legacy --dur-*, --ease-out-*) */
-  --ease-premium-out:    cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-premium-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --dur-premium-instant: 100ms;
-  --dur-premium-fast:    180ms;
-  --dur-premium-base:    250ms;
-  --dur-premium-slow:    400ms;
-  --dur-premium-slower:  600ms;
+/* ── 1. Fonts ───────────────────────────────────────────────────────────
+ * Inter 4.1 variable (opsz + wght) and JetBrains Mono 2.304 variable, both
+ * SIL OFL 1.1 (licences in /public/fonts). Subset to Latin + punctuation +
+ * sub/superscripts + arrows/math, so CJK characters never request them. */
+@font-face {
+  font-family: 'InterVariable';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/InterVariable-latin.woff2') format('woff2');
+  unicode-range: U+0000-017F, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0300-0308, U+0394, U+03A3, U+03BC,
+    U+2000-206F, U+2070-209F, U+20A0-20CF, U+2100-214F, U+2190-21FF, U+2212, U+2215, U+2219, U+221E,
+    U+2248, U+2260-2265, U+25A0-25FF, U+2713, U+2715, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url('/fonts/JetBrainsMono-latin.woff2') format('woff2');
+  unicode-range: U+0000-017F, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0300-0308, U+0394, U+03A3, U+03BC,
+    U+2000-206F, U+2070-209F, U+20A0-20CF, U+2100-214F, U+2190-21FF, U+2212, U+2215, U+2219, U+221E,
+    U+2248, U+2260-2265, U+25A0-25FF, U+2713, U+2715, U+FEFF, U+FFFD;
 }
 
-/* ═══════════════════════════════════════════════════════════
- * Nexus design system — restrained, enterprise-grade.
- *
- * Themes:
- *   :root, :root[data-theme='light']  (default)
- *   :root[data-theme='dark']          (layered dark, not pure black)
- *
- * Principles
- *   · 4-pt spacing grid, nothing off-grid
- *   · 5-step type ramp (xs / sm / base / lg / xl) + display for heroes
- *   · One card surface, one hover surface, one active surface
- *   · 1px borders, never shadows, except the single subtle elevation
- *   · 12px radius default, 8px for controls, 999 for pills
- *   · Motion: 120/160/200ms ease-out. prefers-reduced-motion respected.
- * ═══════════════════════════════════════════════════════════ */
-
+/* ── 2. Tokens (light) ─────────────────────────────────────────────────── */
 :root,
 :root[data-theme='demo-flat'],
-:root[data-theme='light'] {
-  /* ── Brand ─────────────────────────────────────── */
-  --color-brand:         #1B6B7B;
-  --color-brand-strong:  #134E5A;
-  --color-brand-muted:   #3B8A9B;
-  --color-brand-soft:    #EAF4F7;
+:root[data-color-mode='light'] {
+  /* Fonts — Latin is always Inter; Hanzi fall through to the platform face
+     (PingFang on Apple, YaHei on Windows, Noto/Source Han on Linux). */
+  --font-cjk-fallback: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC";
+  --font-sans:    "InterVariable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", "Source Han Sans SC", system-ui, sans-serif;
+  --font-display: var(--font-sans);
+  --font-body:    var(--font-sans);
+  --font-mono:    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", monospace;
+  /* legacy names */
+  --font-display-premium: var(--font-sans);
+  --font-sans-premium:    var(--font-sans);
+  --font-mono-premium:    var(--font-mono);
 
-  /* ── Surfaces (layered) ────────────────────────── */
-  --bg-app:         #F7F8FA;   /* app background */
-  --bg-primary:     #FFFFFF;   /* card surface */
-  --bg-secondary:   #F4F6F9;   /* tonal panel, hover */
-  --bg-tertiary:    #EDEFF3;   /* secondary hover, input */
-  --bg-hover:       #F0F2F5;   /* row hover */
-  --bg-subtle:      #FAFBFC;   /* very quiet panel */
-  --bg-elevated:    #FFFFFF;
-  --bg-inverse:     #0F1F24;   /* sidebar, tooltip */
-  --bg-inverse-soft:#162A31;
-  --bg-inverse-hover:#1D363F;
+  /* Type ramp — size / line-height / weight / tracking */
+  --fs-display-xl: 56px;  --lh-display-xl: 60px;  --fw-display-xl: 650; --ls-display-xl: -0.03em;
+  --fs-display:    40px;  --lh-display:    44px;  --fw-display:    650; --ls-display:    -0.025em;
+  --fs-h1:         28px;  --lh-h1:         34px;  --fw-h1:         600; --ls-h1:         -0.02em;
+  --fs-h2:         20px;  --lh-h2:         28px;  --fw-h2:         600; --ls-h2:         -0.012em;
+  --fs-h3:         16px;  --lh-h3:         24px;  --fw-h3:         600; --ls-h3:         -0.006em;
+  --fs-body:       14px;  --lh-body:       22px;
+  --fs-small:      13px;  --lh-small:      20px;
+  --fs-caption:    12px;  --lh-caption:    16px;
+  --fs-micro:      11px;  --lh-micro:      14px;  --fw-micro:      600; --ls-micro:      0.06em;
 
-  /* ── Text ──────────────────────────────────────── */
-  --text-primary:    #0B1220;
-  --text-secondary:  #414B5C;
-  --text-tertiary:   #6B7280;
-  --text-quaternary: #A0A7B5;
+  /* Legacy ramps → the one ramp */
+  --text-xs:   var(--fs-caption);
+  --text-sm:   var(--fs-small);
+  --text-base: var(--fs-body);
+  --text-lg:   var(--fs-h3);
+  --text-xl:   var(--fs-h2);
+  --text-2xl:  24px;
+  --text-3xl:  var(--fs-h1);
+  --text-4xl:  var(--fs-display);
+  --text-premium-xs:   12px;
+  --text-premium-sm:   14px;
+  --text-premium-base: 16px;
+  --text-premium-md:   18px;
+  --text-premium-lg:   20px;
+  --text-premium-xl:   24px;
+  --text-premium-2xl:  28px;
+  --text-premium-3xl:  40px;
+  --text-premium-4xl:  48px;
+  --text-premium-5xl:  56px;
+  --text-premium-6xl:  72px;
+
+  --weight-regular: 400; --weight-medium: 500; --weight-semibold: 600; --weight-bold: 700; --weight-black: 800;
+  --leading-tight: 1.2; --leading-snug: 1.4; --leading-normal: 1.6; --leading-relaxed: 1.75;
+  --tracking-tight: -0.02em; --tracking-normal: 0; --tracking-wide: 0.04em; --tracking-wider: 0.08em; --tracking-widest: 0.15em;
+
+  /* Emerald — the brand scale */
+  --accent-50:  #ECFDF5;
+  --accent-100: #D1FAE5;
+  --accent-200: #A7F3D0;
+  --accent-300: #6EE7B7;
+  --accent-400: #34D399;
+  --accent-500: #059669; /* deepened on light for AA as text */
+  --accent-600: #059669;
+  --accent-700: #047857;
+  --accent-800: #065F46;
+  --accent-900: #064E3B;
+  --accent-strong: var(--accent-700);
+
+  --color-brand:        var(--accent-700);
+  --color-brand-strong: var(--accent-800);
+  --color-brand-muted:  var(--accent-600);
+  --color-brand-soft:   var(--accent-50);
+  --color-brand-hover:  var(--accent-800);
+  --accent:             var(--color-brand);
+  --accent-teal:        var(--accent-700);
+  --accent-teal-subtle: var(--accent-50);
+  --accent-teal-light:  var(--accent-100);
+  --accent-teal-strong: var(--accent-800);
+  --gradient-brand-soft: linear-gradient(135deg, var(--accent-50), var(--accent-100));
+
+  /* Primary action — per mode so contrast always holds (light 5.5:1) */
+  --btn-primary-bg:       #047857;
+  --btn-primary-bg-hover: #065F46;
+  --btn-primary-fg:       #FFFFFF;
+  --btn-primary-shadow:   inset 0 1px 0 rgba(255,255,255,0.14), 0 1px 2px rgba(6,78,59,0.24);
+  --btn-danger-bg:        #B91C1C;
+  --btn-danger-bg-hover:  #991B1B;
+  --btn-danger-fg:        #FFFFFF;
+
+  /* Surfaces */
+  --bg-app:       #F8FAF9;
+  --bg-canvas:    var(--bg-app);
+  --bg-page:      var(--bg-app);
+  --bg-primary:   #FFFFFF;
+  --bg-surface:   var(--bg-primary);
+  --bg-elevated:  #FFFFFF;
+  /* Modal / sheet scrim behind overlays */
+  --bg-overlay:   rgba(4, 12, 10, 0.48);
+  --bg-secondary: #F3F5F4;
+  --bg-tertiary:  #EAEDEC;
+  --bg-hover:     #F1F4F3;
+  --bg-subtle:    #FAFBFB;
+  --surface-2:    var(--bg-secondary);
+  --bg-card:              var(--bg-primary);
+  --bg-card-hover:        var(--bg-hover);
+  --bg-card-premium:      var(--bg-primary);
+  --bg-card-premium-hover:var(--bg-hover);
+  --border-card-premium:  var(--border-default);
+
+  /* Ink — sidebar, tooltips. Emerald-tinted, never the canvas colour. */
+  --bg-inverse:       #0A1A17;
+  --bg-inverse-soft:  #10241F;
+  --bg-inverse-hover: #15302A;
+  --sidebar-fg:          rgba(255, 255, 255, 0.94);
+  --sidebar-fg-muted:    rgba(220, 240, 232, 0.62);
+  --sidebar-fg-subtle:   rgba(220, 240, 232, 0.38);
+  --sidebar-accent:      #34D399;
+  --sidebar-active-bg:   rgba(52, 211, 153, 0.10);
+  --sidebar-hover-bg:    rgba(255, 255, 255, 0.045);
+  --sidebar-divider:     rgba(255, 255, 255, 0.06);
+  --sidebar-edge:        rgba(52, 211, 153, 0.08);
+  --sidebar-badge-bg:    rgba(52, 211, 153, 0.16);
+  --sidebar-badge-fg:    #6EE7B7;
+  --sidebar-warn:        #FBBF24;
+  --sidebar-warn-bg:     rgba(251, 191, 36, 0.18);
+
+  /* Text */
+  --text-primary:    #0C1714;
+  --text-secondary:  #3E4B47;
+  --text-tertiary:   #66716D;
+  --text-quaternary: #9AA4A0;
   --text-inverse:    #FFFFFF;
-  --text-link:       #1B6B7B;
+  --text-link:       var(--accent-700);
 
-  /* ── Borders ───────────────────────────────────── */
-  --border-default:  #E5E7EB;
-  --border-strong:   #C7CED7;
-  --border-subtle:   #EEF0F3;
-  --border-focus:    #1B6B7B;
+  /* Borders */
+  --border-subtle:  rgba(12, 23, 20, 0.06);
+  --border-default: rgba(12, 23, 20, 0.11);
+  --border-strong:  rgba(12, 23, 20, 0.20);
+  --border-focus:   var(--accent-700);
 
-  /* ── Semantic accents (single, muted) ──────────── */
-  --accent-teal:         #1B6B7B;
-  --accent-teal-subtle:  #EAF4F7;
-  --accent-teal-light:   #D5E8F0;
-  --accent-teal-strong:  #134E5A;
-  --accent-blue:         #1565C0;
-  --accent-blue-light:   #E3F2FD;
-  --accent-purple:       #5E35B1;
-  --accent-purple-light: #EDE7F6;
-  --accent-amber:        #D97706;
-  --accent-amber-light:  #FEF3C7;
-  --accent-red:          #C62828;
-  --accent-red-light:    #FFEBEE;
-  --accent-green:        #2E7D32;
-  --accent-green-light:  #E8F5E9;
+  /* Status — text-safe on white and on their soft fills */
+  --status-success: #047857;  --status-success-soft: #ECFDF5;  --status-success-line: rgba(4, 120, 87, 0.22);
+  --status-warning: #B45309;  --status-warning-soft: #FFFBEB;  --status-warning-line: rgba(180, 83, 9, 0.22);
+  --status-danger:  #B91C1C;  --status-danger-soft:  #FEF2F2;  --status-danger-line:  rgba(185, 28, 28, 0.20);
+  --status-info:    #1D4ED8;  --status-info-soft:    #EFF6FF;  --status-info-line:    rgba(29, 78, 216, 0.20);
+  --status-neutral: #4B5563;  --status-neutral-soft: #F3F4F6;  --status-neutral-line: rgba(75, 85, 99, 0.18);
+  --status-ok: var(--status-success);
+  --status-draft: var(--status-warning);
+  --status-pending: var(--status-info);
+  --status-reject: var(--status-danger);
 
-  /* ── Status ────────────────────────────────────── */
-  --status-draft:   #D97706;
-  --status-pending: #1565C0;
-  --status-ok:      #2E7D32;
-  --status-reject:  #C62828;
+  /* Legacy semantic accents (pages still read these) */
+  --accent-blue: #1D4ED8;   --accent-blue-light: #EFF6FF;
+  --accent-purple: #5B21B6; --accent-purple-light: #F5F3FF;
+  --accent-amber: #B45309;  --accent-amber-light: #FFFBEB;
+  --accent-red: #B91C1C;    --accent-red-light: #FEF2F2;
+  --accent-green: #047857;  --accent-green-light: #ECFDF5;
 
-  /* ── 4-pt spacing grid ─────────────────────────── */
-  --space-0: 0px;
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-10: 40px;
-  --space-12: 48px;
-  --space-16: 64px;
-  --space-20: 80px;
-  --space-24: 96px;
+  /* Charts — scopes are an ordinal emerald scale; ink for actuals */
+  --chart-s1: #065F46;
+  --chart-s2: #10B981;
+  --chart-s3: #6EE7B7;
+  --chart-ink: var(--text-primary);
+  --chart-target: #059669;
+  --chart-risk: var(--status-danger);
+  --chart-band: rgba(185, 28, 28, 0.10);
+  --chart-c4: #0EA5E9;
+  --chart-c5: #6366F1;
+  --chart-c6: #F59E0B;
+  --chart-c7: #64748B;
+  --chart-grid: rgba(12, 23, 20, 0.07);
+  --chart-axis: var(--text-tertiary);
 
-  /* ── Radii ─────────────────────────────────────── */
-  --radius-xs:   4px;
-  --radius-sm:   6px;
-  --radius-md:   8px;
-  --radius-lg:   10px;
-  --radius-xl:   12px;
-  --radius-2xl:  16px;
-  --radius-full: 9999px;
+  /* Illustration + contour motif */
+  --ill-stroke: var(--accent-600);
+  --ill-fill:   var(--accent-50);
+  --ill-ink:    #0A1A17;
+  --contour-ink: var(--accent-700);
+  --contour-opacity: 0.10;
+  --hero-wash: radial-gradient(120% 90% at 0% 0%, rgba(16, 185, 129, 0.09), transparent 60%);
 
-  /* ── Shadows — ONE elevation, one focus ring ───── */
-  --shadow-xs:   0 1px 2px rgba(11,18,32,0.04);
-  --shadow-sm:   0 1px 2px rgba(11,18,32,0.05);
-  --shadow-card: 0 1px 2px rgba(11,18,32,0.04);          /* the default */
-  --shadow-pop:  0 8px 24px rgba(11,18,32,0.08);          /* popovers, drawers */
-  --shadow-modal:0 24px 48px rgba(11,18,32,0.12), 0 2px 8px rgba(11,18,32,0.08);
-  --shadow-focus:0 0 0 3px rgba(27,107,123,0.15);
-  --shadow-card-hover: var(--shadow-card);                /* intentionally same — hover uses bg, not shadow */
+  /* Elevation — three levels */
+  --shadow-card:    0 1px 0 rgba(12, 23, 20, 0.03), 0 1px 2px -1px rgba(12, 23, 20, 0.06);
+  --shadow-raised:  0 1px 2px rgba(12, 23, 20, 0.06), 0 8px 24px -8px rgba(12, 23, 20, 0.14);
+  --shadow-overlay: 0 2px 8px rgba(12, 23, 20, 0.06), 0 24px 56px -12px rgba(12, 23, 20, 0.22);
+  /* legacy aliases */
+  --shadow-xs: var(--shadow-card);
+  --shadow-sm: var(--shadow-card);
+  --shadow-md: var(--shadow-raised);
+  --shadow-lg: var(--shadow-overlay);
+  --shadow-pop: var(--shadow-overlay);
+  --shadow-modal: var(--shadow-overlay);
+  --shadow-card-hover: var(--shadow-raised);
+  --shadow-glow-teal: var(--shadow-raised);
+  --shadow-focus: 0 0 0 3px rgba(4, 120, 87, 0.20);
 
-  /* ── Typography ────────────────────────────────── */
-  --font-display: "Instrument Sans", "DM Sans", system-ui, sans-serif;
-  --font-body:    "DM Sans", system-ui, sans-serif;
-  --font-mono:    "JetBrains Mono", ui-monospace, monospace;
+  /* Spacing (4-pt) */
+  --space-0: 0px; --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px;
+  --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px; --space-16: 64px; --space-20: 80px; --space-24: 96px;
 
-  /* 5-step ramp. Meta numbers below are point sizes. */
-  --text-xs:   11px;   /* meta, kickers */
-  --text-sm:   12.5px; /* body small, table cells */
-  --text-base: 13.5px; /* body */
-  --text-lg:   15px;   /* card titles */
-  --text-xl:   18px;   /* section headers */
-  --text-2xl:  22px;   /* hero headlines, secondary */
-  --text-3xl:  28px;   /* page titles */
-  --text-4xl:  34px;   /* hero display */
+  /* Radii */
+  --radius-xs: 4px; --radius-sm: 6px; --radius-md: 8px; --radius-lg: 10px; --radius-xl: 12px; --radius-2xl: 16px; --radius-full: 9999px;
 
-  /* ── Motion ────────────────────────────────────── */
+  /* Motion (mirrors src/motion/tokens.ts) */
+  --ease-out:          cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out:       cubic-bezier(0.65, 0, 0.35, 1);
   --ease-out-expo:     cubic-bezier(0.16, 1, 0.3, 1);
   --ease-out-quart:    cubic-bezier(0.25, 1, 0.5, 1);
   --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
-  --dur-fast:   120ms;
+  --ease-premium-out:    var(--ease-out);
+  --ease-premium-in-out: var(--ease-in-out);
+  --dur-micro: 120ms; --dur-fast: 180ms; --dur-base: 240ms; --dur-slow: 400ms; --dur-draw: 600ms;
   --dur-normal: 160ms;
-  --dur-slow:   200ms;
-  --transition-fast:   120ms var(--ease-out-expo);
-  --transition-normal: 160ms var(--ease-out-expo);
-  --transition-slow:   200ms var(--ease-out-expo);
+  --dur-premium-instant: 100ms; --dur-premium-fast: 180ms; --dur-premium-base: 240ms; --dur-premium-slow: 400ms; --dur-premium-slower: 600ms;
+  --transition-fast:   120ms var(--ease-out);
+  --transition-normal: 160ms var(--ease-out);
+  --transition-slow:   240ms var(--ease-out);
   --transition-canvas: 400ms var(--ease-out-quart);
 
+  /* Skeleton */
+  --skeleton-base:  var(--bg-tertiary);
+  --skeleton-shine: rgba(255, 255, 255, 0.7);
+
   --effect-glass: 0;
-
-  /* ── Premium emerald aliases (soft reset) ───────────────────
-   * The Nexus brand becomes emerald. Legacy token names continue
-   * to resolve so existing pages render without modification.
-   * ─────────────────────────────────────────────────────────── */
-  --color-brand:         var(--accent-500);
-  --color-brand-strong:  var(--accent-600);
-  --color-brand-muted:   var(--accent-400);
-  --color-brand-soft:    var(--accent-50);
-
-  --accent-teal:         var(--accent-500);
-  --accent-teal-subtle:  var(--accent-50);
-  --accent-teal-light:   var(--accent-100);
-  --accent-teal-strong:  var(--accent-700);
-
-  --text-link:           var(--accent-600);
-  --border-focus:        var(--accent-500);
-  --shadow-focus:        0 0 0 3px rgba(16, 185, 129, 0.18);
-}
-
-/* ═══════════════════════════════════════════════════════════
- * Light theme overlay — Big-4-grade, restrained, AA-grade.
- *
- * Triggered when the user explicitly picks "Light" (or "Auto"
- * resolves to light). Layers a slightly cooler/cleaner surface
- * palette on top of the default tokens, plus a deeper emerald
- * accent so AA contrast holds against white.
- *
- * The Sidebar stays dark (var(--bg-inverse) is a true dark token)
- * — premium navigation chrome on a white document, à la Linear,
- * Vercel, Stripe Dashboard.
- * ═══════════════════════════════════════════════════════════ */
-:root[data-color-mode='light'] {
-  /* Surfaces */
-  --bg-canvas:        #FAFBFC;
-  --bg-surface:       #FFFFFF;
-  --bg-card:          rgba(15, 23, 42, 0.025);
-  --bg-card-hover:    rgba(15, 23, 42, 0.045);
-  --bg-card-premium:  rgba(15, 23, 42, 0.025);
-  --bg-card-premium-hover: rgba(15, 23, 42, 0.045);
-  --border-card-premium:   rgba(15, 23, 42, 0.06);
-  /* Bring legacy surface aliases in line with the canvas / surface pair so
-     pages that still read --bg-app / --bg-primary look just as polished. */
-  --bg-app:        #FAFBFC;
-  --bg-primary:    #FFFFFF;
-  --bg-secondary:  #F4F6F9;
-  --bg-tertiary:   #EDEFF3;
-  --bg-hover:      #F0F2F5;
-  --bg-subtle:     #FAFBFC;
-  --bg-elevated:   #FFFFFF;
-
-  /* Text — softened black for premium document feel */
-  --text-primary:    rgba(15, 23, 42, 0.95);
-  --text-secondary:  rgba(15, 23, 42, 0.70);
-  --text-tertiary:   rgba(15, 23, 42, 0.55);
-  --text-quaternary: rgba(15, 23, 42, 0.40);
-
-  /* Borders */
-  --border-subtle:  rgba(15, 23, 42, 0.06);
-  --border-default: rgba(15, 23, 42, 0.12);
-  --border-strong:  rgba(15, 23, 42, 0.20);
-
-  /* Accent — deeper emerald on light for AA contrast */
-  --accent-500:      #059669;
-  --accent-strong:   #047857;
-  --color-brand:         #047857;
-  --color-brand-strong:  #065F46;
-  --color-brand-muted:   #059669;
-  --color-brand-soft:    #ECFDF5;
-  --accent-teal:         #047857;
-  --accent-teal-subtle:  #ECFDF5;
-  --accent-teal-light:   #D1FAE5;
-  --accent-teal-strong:  #065F46;
-  --text-link:           #047857;
-  --border-focus:        #047857;
-  --shadow-focus:        0 0 0 3px rgba(4, 120, 87, 0.18);
-
-  /* Status — deeper for AA on white */
-  --status-success: #047857;
-  --status-warning: #B45309;
-  --status-danger:  #B91C1C;
-  --status-info:    #1D4ED8;
-  --status-ok:      #047857;
-  --status-draft:   #B45309;
-  --status-pending: #1D4ED8;
-  --status-reject:  #B91C1C;
-
   color-scheme: light;
 }
 
-/* ── Dark mode (layered, not pure black) ───────── */
+/* ── Tokens (dark) — layered graphite, mint actions ─────────────────── */
 :root[data-theme='dark'],
 :root[data-color-mode='dark'] {
-  --bg-app:         #0B0E13;
-  --bg-primary:     #111520;
-  --bg-secondary:   #161B27;
-  --bg-tertiary:    #1D2330;
-  --bg-hover:       #1A202C;
-  --bg-subtle:      #10141C;
-  --bg-elevated:    #141925;
-  --bg-inverse:     #0B0E13;
-  --bg-inverse-soft:#111520;
-  --bg-inverse-hover:#161B27;
+  --accent-500: #10B981;
+  --accent-strong: var(--accent-400);
+
+  --color-brand:        var(--accent-400);
+  --color-brand-strong: var(--accent-300);
+  --color-brand-muted:  var(--accent-500);
+  --color-brand-soft:   rgba(16, 185, 129, 0.12);
+  --color-brand-hover:  var(--accent-300);
+  --accent-teal:        var(--accent-400);
+  --accent-teal-subtle: rgba(16, 185, 129, 0.10);
+  --accent-teal-light:  rgba(16, 185, 129, 0.18);
+  --accent-teal-strong: var(--accent-300);
+  --gradient-brand-soft: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(16, 185, 129, 0.06));
+
+  /* Luminous mint button with dark ink (≈10:1) */
+  --btn-primary-bg:       #34D399;
+  --btn-primary-bg-hover: #6EE7B7;
+  --btn-primary-fg:       #03241A;
+  --btn-primary-shadow:   inset 0 1px 0 rgba(255,255,255,0.32), 0 6px 16px -8px rgba(52,211,153,0.55);
+  --btn-danger-bg:        #F87171;
+  --btn-danger-bg-hover:  #FCA5A5;
+  --btn-danger-fg:        #2A0707;
+
+  --bg-app:       #0B0E13;
+  --bg-primary:   #111520;
+  --bg-elevated:  #141925;
+  --bg-overlay:   rgba(2, 4, 8, 0.66);
+  --bg-secondary: #161B27;
+  --bg-tertiary:  #1D2330;
+  --bg-hover:     #1A202C;
+  --bg-subtle:    #10141C;
+
+  --bg-inverse:       #070B0A;
+  --bg-inverse-soft:  #0C1311;
+  --bg-inverse-hover: #111B18;
+  --sidebar-edge:     rgba(52, 211, 153, 0.10);
 
   --text-primary:    #F3F5F8;
   --text-secondary:  #B7BEC9;
   --text-tertiary:   #8A93A3;
   --text-quaternary: #5A6272;
   --text-inverse:    #0B0E13;
-  --text-link:       #6FC4D1;
+  --text-link:       var(--accent-300);
 
-  --border-default:  #242B38;
-  --border-strong:   #384153;
-  --border-subtle:   #1B2130;
-  --border-focus:    #6FC4D1;
+  --border-subtle:  #1B2130;
+  --border-default: #242B38;
+  --border-strong:  #384153;
+  --border-focus:   var(--accent-400);
 
-  --color-brand:         #6FC4D1;
-  --color-brand-strong:  #9BDDE7;
-  --color-brand-muted:   #4A96A3;
-  --color-brand-soft:    rgba(111,196,209,0.12);
+  --status-success: #34D399;  --status-success-soft: rgba(52, 211, 153, 0.12);  --status-success-line: rgba(52, 211, 153, 0.28);
+  --status-warning: #FBBF24;  --status-warning-soft: rgba(251, 191, 36, 0.12);  --status-warning-line: rgba(251, 191, 36, 0.28);
+  --status-danger:  #F87171;  --status-danger-soft:  rgba(248, 113, 113, 0.12); --status-danger-line:  rgba(248, 113, 113, 0.28);
+  --status-info:    #60A5FA;  --status-info-soft:    rgba(96, 165, 250, 0.12);  --status-info-line:    rgba(96, 165, 250, 0.28);
+  --status-neutral: #A3ACBA;  --status-neutral-soft: rgba(163, 172, 186, 0.12); --status-neutral-line: rgba(163, 172, 186, 0.24);
 
-  --accent-teal:         #6FC4D1;
-  --accent-teal-subtle:  rgba(111,196,209,0.10);
-  --accent-teal-light:   rgba(111,196,209,0.18);
-  --accent-teal-strong:  #9BDDE7;
+  --accent-blue: #60A5FA;   --accent-blue-light: rgba(96, 165, 250, 0.14);
+  --accent-purple: #A78BFA; --accent-purple-light: rgba(167, 139, 250, 0.14);
+  --accent-amber: #FBBF24;  --accent-amber-light: rgba(251, 191, 36, 0.14);
+  --accent-red: #F87171;    --accent-red-light: rgba(248, 113, 113, 0.14);
+  --accent-green: #34D399;  --accent-green-light: rgba(52, 211, 153, 0.14);
 
-  --accent-blue-light:   rgba(21,101,192,0.15);
-  --accent-purple-light: rgba(94,53,177,0.15);
-  --accent-amber:        #F59E0B;
-  --accent-amber-light:  rgba(217,119,6,0.15);
-  --accent-red-light:    rgba(198,40,40,0.15);
-  --accent-green-light:  rgba(46,125,50,0.15);
-  --accent-green:        #5FCB61;
-  --accent-red:          #F87171;
+  --chart-s1: #10B981;
+  --chart-s2: #34D399;
+  --chart-s3: #A7F3D0;
+  --chart-target: #34D399;
+  --chart-band: rgba(248, 113, 113, 0.12);
+  --chart-c4: #38BDF8;
+  --chart-c5: #818CF8;
+  --chart-c6: #FBBF24;
+  --chart-c7: #94A3B8;
+  --chart-grid: rgba(255, 255, 255, 0.06);
 
-  --status-draft:   #F59E0B;
-  --status-pending: #60A5FA;
-  --status-ok:      #5FCB61;
-  --status-reject:  #F87171;
+  --ill-stroke: var(--accent-300);
+  --ill-fill:   rgba(16, 185, 129, 0.08);
+  --ill-ink:    #ECFDF5;
+  --contour-ink: var(--accent-400);
+  --contour-opacity: 0.09;
+  --hero-wash: radial-gradient(120% 90% at 0% 0%, rgba(16, 185, 129, 0.12), transparent 60%);
 
-  --shadow-xs:   0 1px 2px rgba(0,0,0,0.25);
-  --shadow-sm:   0 1px 2px rgba(0,0,0,0.30);
-  --shadow-card: 0 0 0 1px rgba(255,255,255,0.02);
-  --shadow-pop:  0 8px 24px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.30);
-  --shadow-modal:0 24px 48px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.40);
-  --shadow-focus:0 0 0 3px rgba(111,196,209,0.25);
+  --shadow-card:    inset 0 1px 0 rgba(255, 255, 255, 0.025), 0 1px 0 rgba(0, 0, 0, 0.35);
+  --shadow-raised:  inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 0 0 1px rgba(255, 255, 255, 0.06), 0 12px 32px -12px rgba(0, 0, 0, 0.6);
+  --shadow-overlay: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 0 0 1px rgba(255, 255, 255, 0.07), 0 24px 56px -12px rgba(0, 0, 0, 0.72);
+  --shadow-focus:   0 0 0 3px rgba(52, 211, 153, 0.28);
 
-  /* Premium emerald aliases — dark mode variant */
-  --color-brand:         var(--accent-400);
-  --color-brand-strong:  var(--accent-300);
-  --color-brand-muted:   var(--accent-500);
-  --color-brand-soft:    rgba(16, 185, 129, 0.12);
-
-  --accent-teal:         var(--accent-400);
-  --accent-teal-subtle:  rgba(16, 185, 129, 0.10);
-  --accent-teal-light:   rgba(16, 185, 129, 0.18);
-  --accent-teal-strong:  var(--accent-300);
-
-  --text-link:           var(--accent-300);
-  --border-focus:        var(--accent-400);
-  --shadow-focus:        0 0 0 3px rgba(52, 211, 153, 0.25);
+  --skeleton-shine: rgba(255, 255, 255, 0.06);
 
   color-scheme: dark;
 }
 
-/* ── Topbar surface — adapts to theme automatically.
-       Using rgba with the app-bg color keeps the saturate+blur magic
-       working in both light and dark modes. ─────────────────────── */
+/* ── Top bar — translucent over the canvas ──────────────────────────── */
 .topbar-surface {
-  background: rgba(247, 248, 250, 0.85);
+  background: color-mix(in srgb, var(--bg-app) 86%, transparent);
   backdrop-filter: saturate(160%) blur(12px);
   -webkit-backdrop-filter: saturate(160%) blur(12px);
   border-bottom: 1px solid var(--border-subtle);
 }
-:root[data-color-mode='dark'] .topbar-surface,
-:root[data-theme='dark']      .topbar-surface {
-  background: rgba(11, 14, 19, 0.78);
-}
 
-/* ── Base ───────────────────────────────────────── */
-html, body {
-  background-color: var(--bg-app);
-}
+/* ── Base ───────────────────────────────────────────────────────────── */
+html, body { background-color: var(--bg-app); }
 body {
   margin: 0;
   font-family: var(--font-body);
-  font-size: var(--text-base);
+  font-size: var(--fs-body);
+  line-height: 1.571;
   color: var(--text-primary);
+  letter-spacing: -0.006em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  line-height: 1.5;
-  letter-spacing: -0.006em;
-  font-feature-settings: "ss01", "cv01";
+  font-optical-sizing: auto;
+  text-rendering: optimizeLegibility;
 }
 * { box-sizing: border-box; }
 
@@ -420,22 +390,20 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.018em;
   line-height: 1.2;
   color: var(--text-primary);
+  text-wrap: balance;
 }
 
-/* ── Scrollbar ──────────────────────────────────── */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: var(--radius-full); }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
 
-/* ── Focus ring ─────────────────────────────────── */
 *:focus-visible {
   outline: none;
   box-shadow: var(--shadow-focus);
   border-radius: var(--radius-sm);
 }
 
-/* ── Reduced motion ─────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
@@ -445,87 +413,126 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-/* ─────────────────────────────────────────────────
- * Surface primitives — drop-in classes
- * ───────────────────────────────────────────────── */
-
+/* ── 3. Primitives ──────────────────────────────────────────────────── */
 @layer components {
-  /* Default card surface. Border-only, one subtle shadow. No multi-layer. */
+  /* Type ramp — use these (or Tailwind text-h1 / text-caption …) */
+  .type-display-xl { font-family: var(--font-display); font-size: clamp(36px, 3.2vw + 14px, var(--fs-display-xl)); line-height: 1.07; font-weight: var(--fw-display-xl); letter-spacing: var(--ls-display-xl); }
+  .type-display    { font-family: var(--font-display); font-size: clamp(30px, 2vw + 14px, var(--fs-display)); line-height: 1.1; font-weight: var(--fw-display); letter-spacing: var(--ls-display); }
+  .type-h1         { font-family: var(--font-display); font-size: clamp(24px, 1vw + 14px, var(--fs-h1)); line-height: 1.214; font-weight: var(--fw-h1); letter-spacing: var(--ls-h1); }
+  .type-h2         { font-family: var(--font-display); font-size: var(--fs-h2); line-height: var(--lh-h2); font-weight: var(--fw-h2); letter-spacing: var(--ls-h2); }
+  .type-h3         { font-family: var(--font-display); font-size: var(--fs-h3); line-height: var(--lh-h3); font-weight: var(--fw-h3); letter-spacing: var(--ls-h3); }
+  .type-body       { font-size: var(--fs-body); line-height: var(--lh-body); }
+  .type-small      { font-size: var(--fs-small); line-height: var(--lh-small); }
+  .type-caption    { font-size: var(--fs-caption); line-height: var(--lh-caption); }
+  .type-micro      { font-size: var(--fs-micro); line-height: var(--lh-micro); font-weight: var(--fw-micro); letter-spacing: var(--ls-micro); text-transform: uppercase; }
+  /* Display figure — KPI numbers and hero values */
+  .type-figure     { font-family: var(--font-display); font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; font-feature-settings: "tnum", "ss01"; }
+
+  /* Card surface — border + resting elevation */
   .surface-paper {
     background: var(--bg-primary);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-card);
   }
-
-  /* Quiet panel — no border, just a tonal background. Use for nested sections. */
+  .surface-raised {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-raised);
+  }
   .surface-muted {
     background: var(--bg-secondary);
     border-radius: var(--radius-xl);
   }
-
-  /* Outlined ghost — dashed border for empty states. */
   .surface-outlined {
     background: transparent;
     border: 1px dashed var(--border-strong);
     border-radius: var(--radius-xl);
   }
-
-  /* Hero surface — soft gradient wash on a paper card. Use rarely. */
+  /* Hero — emerald wash + contour motif. One per page. */
   .surface-hero {
     position: relative;
-    background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-subtle) 100%);
+    isolation: isolate;
+    background: var(--hero-wash), var(--bg-primary);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-2xl);
-    box-shadow: var(--shadow-card);
+    box-shadow: var(--shadow-raised);
     overflow: hidden;
   }
+  .surface-hero::before,
+  .backdrop-mesh::before,
+  .contour-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: var(--contour-ink);
+    opacity: var(--contour-opacity);
+    -webkit-mask: url('/illustrations/contour.svg') no-repeat right top / max(960px, 100%) auto;
+            mask: url('/illustrations/contour.svg') no-repeat right top / max(960px, 100%) auto;
+  }
+  /* Page-header hero variant (no card chrome) */
+  .backdrop-mesh {
+    position: relative;
+    isolation: isolate;
+    background: var(--hero-wash);
+  }
+  .contour-bg { position: relative; isolation: isolate; }
 
-  /* Brand-filled surface — inverse navy, used sparingly for CTAs in empty states. */
   .surface-brand {
-    background: var(--color-brand-strong);
-    color: var(--text-inverse);
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-fg);
     border-radius: var(--radius-2xl);
-    box-shadow: var(--shadow-pop);
+    box-shadow: var(--shadow-raised);
   }
 
-  /* Chip — small inline filter / status pill */
+  /* Legacy card — retired; renders as the paper surface. */
+  .card-premium {
+    padding: 2rem;
+    border-radius: var(--radius-2xl);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-default);
+    box-shadow: var(--shadow-card);
+    transition: border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+  }
+  .card-premium:hover { border-color: var(--border-strong); }
+
   .chip {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     height: 24px;
     padding: 0 10px;
-    font-size: var(--text-xs);
+    font-size: var(--fs-caption);
     font-weight: 500;
     color: var(--text-secondary);
     background: var(--bg-secondary);
     border: 1px solid var(--border-default);
     border-radius: var(--radius-full);
-    transition: all var(--transition-fast);
+    transition: color var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast);
     white-space: nowrap;
+    word-break: keep-all;
   }
-  .chip:hover {
-    border-color: var(--border-strong);
-    color: var(--text-primary);
-  }
+  .chip:hover { border-color: var(--border-strong); color: var(--text-primary); }
   .chip.chip-active {
-    background: var(--accent-teal-subtle);
+    background: var(--color-brand-soft);
     border-color: var(--color-brand);
     color: var(--color-brand-strong);
   }
 
-  /* Kicker — small uppercase label above a headline */
+  /* Kicker — the one named eyebrow */
   .kicker {
     display: inline-block;
-    font-size: var(--text-xs);
+    font-size: var(--fs-micro);
+    line-height: var(--lh-micro);
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: var(--ls-micro);
     text-transform: uppercase;
     color: var(--text-tertiary);
   }
 
-  /* Keyboard key */
   .kbd {
     display: inline-flex;
     align-items: center;
@@ -544,87 +551,131 @@ h1, h2, h3, h4, h5, h6 {
     line-height: 1;
   }
 
-  /* Skeleton shimmer */
+  /* Skeleton — shimmer sweeps across --bg-tertiary */
   .skeleton {
-    position: relative;
-    background: var(--bg-tertiary);
+    display: block;
+    background-color: var(--skeleton-base);
+    background-image: linear-gradient(90deg, transparent 0%, var(--skeleton-shine) 50%, transparent 100%);
+    background-size: 50% 100%;
+    background-repeat: no-repeat;
+    background-position: -150% 0;
     border-radius: var(--radius-sm);
-    overflow: hidden;
-  }
-  .skeleton::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(255,255,255,0.4) 50%,
-      transparent 100%
-    );
-    animation: shimmer 1.4s infinite;
+    animation: nx-shimmer 1.5s var(--ease-in-out) infinite;
   }
 
-  /* Signal dot */
-  .signal-dot {
-    position: relative;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--accent-green);
-  }
-  .signal-dot.amber { background: var(--accent-amber); }
-  .signal-dot.red   { background: var(--accent-red); }
+  .signal-dot { position: relative; width: 6px; height: 6px; border-radius: 50%; background: var(--status-success); }
+  .signal-dot.amber { background: var(--status-warning); }
+  .signal-dot.red   { background: var(--status-danger); }
 
-  /* Hairline divider */
-  .hairline {
-    height: 1px;
-    background: var(--border-subtle);
-  }
+  .hairline { height: 1px; background: var(--border-subtle); }
 
-  /* Data table — row height 40px, number alignment, hover */
-  .data-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: var(--text-sm);
-    color: var(--text-primary);
-  }
+  .data-table { width: 100%; border-collapse: collapse; font-size: var(--fs-small); color: var(--text-primary); }
   .data-table thead th {
     padding: 10px 12px;
     text-align: left;
     font-weight: 600;
-    font-size: var(--text-xs);
+    font-size: var(--fs-micro);
     color: var(--text-tertiary);
-    letter-spacing: 0.04em;
+    letter-spacing: var(--ls-micro);
     text-transform: uppercase;
     background: var(--bg-subtle);
     border-bottom: 1px solid var(--border-default);
     white-space: nowrap;
   }
-  .data-table tbody td {
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--border-subtle);
-    color: var(--text-secondary);
-    vertical-align: middle;
+  .data-table tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary); vertical-align: middle; }
+  .data-table tbody tr { transition: background-color var(--transition-fast); }
+  .data-table tbody tr:hover { background: var(--bg-hover); }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table .num, .data-table td.num, .data-table th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  /* Buttons (CSS flavour of the DS <Button>) */
+  .btn-primary {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    height: 2.5rem; padding-inline: 1.125rem; border-radius: var(--radius-md);
+    background: var(--btn-primary-bg); color: var(--btn-primary-fg);
+    font-weight: 600; font-size: var(--fs-small);
+    box-shadow: var(--btn-primary-shadow);
+    transition: background-color var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+    cursor: pointer; white-space: nowrap;
   }
-  .data-table tbody tr {
-    transition: background-color var(--transition-fast);
+  .btn-primary:hover { background: var(--btn-primary-bg-hover); }
+  .btn-primary:active { transform: translateY(0.5px); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-secondary {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    height: 2.5rem; padding-inline: 1.125rem; border-radius: var(--radius-md);
+    background: var(--bg-primary); color: var(--text-primary);
+    border: 1px solid var(--border-default);
+    font-weight: 500; font-size: var(--fs-small);
+    transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
+    cursor: pointer; white-space: nowrap;
   }
-  .data-table tbody tr:hover {
-    background: var(--bg-hover);
-  }
-  .data-table tbody tr:last-child td {
-    border-bottom: none;
-  }
-  .data-table .num,
-  .data-table td.num,
-  .data-table th.num {
-    text-align: right;
+  .btn-secondary:hover { background: var(--bg-secondary); border-color: var(--border-strong); }
+  .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Illustrations read their colours from here */
+  .nx-illustration { color: var(--ill-stroke); overflow: hidden; }
+  .nx-contour-field { color: var(--contour-ink); opacity: calc(var(--contour-opacity) * 1.6); }
+
+  /* Status pill (see components/ui/StatusPill) */
+  .nx-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 22px; padding: 0 8px;
+    font-size: var(--fs-caption); line-height: 1; font-weight: 550;
+    border-radius: var(--radius-full);
+    white-space: nowrap; word-break: keep-all;
+    border: 1px solid var(--pill-line, transparent);
+    background: var(--pill-bg, var(--bg-secondary));
+    color: var(--pill-fg, var(--text-secondary));
     font-variant-numeric: tabular-nums;
-    white-space: nowrap;
   }
+  .nx-pill[data-size='sm'] { height: 20px; padding: 0 7px; gap: 5px; }
+  .nx-pill-dot { width: 6px; height: 6px; border-radius: 9999px; background: currentColor; flex-shrink: 0; }
+  [data-tone='success'] { --pill-fg: var(--status-success); --pill-bg: var(--status-success-soft); --pill-line: var(--status-success-line); }
+  [data-tone='warning'] { --pill-fg: var(--status-warning); --pill-bg: var(--status-warning-soft); --pill-line: var(--status-warning-line); }
+  [data-tone='danger']  { --pill-fg: var(--status-danger);  --pill-bg: var(--status-danger-soft);  --pill-line: var(--status-danger-line); }
+  [data-tone='info']    { --pill-fg: var(--status-info);    --pill-bg: var(--status-info-soft);    --pill-line: var(--status-info-line); }
+  [data-tone='neutral'] { --pill-fg: var(--status-neutral); --pill-bg: var(--status-neutral-soft); --pill-line: var(--status-neutral-line); }
+  [data-tone='brand']   { --pill-fg: var(--color-brand-strong); --pill-bg: var(--color-brand-soft); --pill-line: var(--status-success-line); }
+
+  /* Toasts (sonner) */
+  .nx-toast {
+    font-family: var(--font-body) !important;
+    background: var(--bg-elevated) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-default) !important;
+    border-radius: var(--radius-xl) !important;
+    box-shadow: var(--shadow-overlay) !important;
+    padding: 12px 14px !important;
+    gap: 10px !important;
+  }
+  .nx-toast [data-title] { font-size: var(--fs-small); font-weight: 600; line-height: var(--lh-small); }
+  .nx-toast [data-description] { font-size: var(--fs-caption); line-height: var(--lh-caption); color: var(--text-tertiary) !important; }
+  .nx-toast [data-icon] { color: var(--status-success); }
+  .nx-toast[data-type='error'] [data-icon] { color: var(--status-danger); }
+  .nx-toast[data-type='warning'] [data-icon] { color: var(--status-warning); }
+  .nx-toast[data-type='info'] [data-icon] { color: var(--status-info); }
+  .nx-toast [data-button] {
+    background: var(--btn-primary-bg) !important; color: var(--btn-primary-fg) !important;
+    border-radius: var(--radius-sm) !important; font-weight: 600 !important; font-size: var(--fs-caption) !important; height: 26px !important;
+  }
+  .nx-toast [data-cancel] { background: var(--bg-secondary) !important; color: var(--text-secondary) !important; }
+  .nx-toast [data-close-button] { background: var(--bg-elevated) !important; border-color: var(--border-default) !important; color: var(--text-tertiary) !important; }
 }
 
-/* ── Keyframes (kept minimal, functional only) ── */
+/* Legacy face-only display utility (callers set their own size) */
+.text-display {
+  font-family: var(--font-display);
+  font-weight: 650;
+  letter-spacing: -0.022em;
+  line-height: 1.15;
+}
+
+/* ── Keyframes ──────────────────────────────────────────────────────── */
+@keyframes nx-shimmer {
+  0%   { background-position: -150% 0; }
+  100% { background-position: 250% 0; }
+}
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
@@ -633,10 +684,15 @@ h1, h2, h3, h4, h5, h6 {
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.page-enter { animation: pageEnter var(--dur-slow) var(--ease-out-expo) both; }
+.page-enter { animation: pageEnter 160ms var(--ease-out) both; }
 
-/* ── Small utilities ───────────────────────────── */
-.tabular-nums { font-variant-numeric: tabular-nums; }
+/* ── Small utilities ────────────────────────────────────────────────── */
+.tabular-nums, .num { font-variant-numeric: tabular-nums; }
+.num { font-feature-settings: "tnum", "ss01"; }
+/* Dates, codes and figures never break mid-token (2026-10-/10). Scoped to
+   inline figures — paragraphs and mono blocks (hashes) still wrap. */
+time, .num, span.tabular-nums, td.tabular-nums, td > span.inline-flex { white-space: nowrap; }
+
 .link-underline {
   background-image: linear-gradient(to right, currentColor 0, currentColor 100%);
   background-size: 100% 1px;
@@ -645,12 +701,91 @@ h1, h2, h3, h4, h5, h6 {
   padding-bottom: 1px;
   transition: background-size var(--transition-normal);
 }
-.link-underline:hover {
-  background-size: 0 1px;
-  background-position: 100% 100%;
+.link-underline:hover { background-size: 0 1px; background-position: 100% 100%; }
+
+/* ── CJK safety (zh-CN) ─────────────────────────────────────────────────
+ * i18n sets <html lang="zh-CN">. Hanzi below 12px are illegible on Windows
+ * (YaHei hinting), have no case, and break anywhere — so:
+ *   1. 12px floor for every small size (ramp tokens and legacy arbitrary px)
+ *   2. no uppercase / tracking (it also corrupts units: "TCO2E")
+ *   3. pills, badges, chips and dates never break mid-word (进行/中) */
+html:lang(zh-CN) body { letter-spacing: 0; line-height: 1.6; }
+html:lang(zh-CN) :is(h1, h2, h3, h4, h5, h6) { letter-spacing: 0; line-height: 1.35; }
+html:lang(zh-CN) :is(p, li, dd, td, blockquote, textarea, .body, .body-sm, .type-body, .type-small) { line-height: 1.6; }
+html:lang(zh-CN) :is(
+  .uppercase, .kicker, .label, .type-micro, .data-table thead th,
+  .tracking-wide, .tracking-wider, .tracking-widest,
+  [class*="tracking-[0."], [class*="tracking-[.1"], [class*="tracking-[.2"]
+) {
+  letter-spacing: 0;
+  text-transform: none;
+}
+html:lang(zh-CN) :is(
+  .text-micro, .text-caption, .text-xs, .type-micro, .type-caption, .kicker, .kbd,
+  [class*="text-[8"], [class*="text-[9"], [class*="text-[10"], [class*="text-[11"]
+) {
+  font-size: 12px;
+}
+html:lang(zh-CN) :is(.text-micro, .type-micro, .kicker) { line-height: 16px; font-weight: 500; }
+html:lang(zh-CN) :is(.h-display, .h-page, .type-display-xl, .type-display, .type-h1, .text-display) { letter-spacing: 0; }
+html:lang(zh-CN) :is(
+  .chip, .nx-pill, .kbd, button, [role="tab"],
+  .rounded-full.inline-flex, .rounded-full.inline-block,
+  [class*="rounded-full"][class*="whitespace-nowrap"]
+) {
+  word-break: keep-all;
+}
+html:lang(zh-CN) :is(.chip, .nx-pill, .rounded-full.inline-flex:is(.text-micro, .text-caption, .text-xs)) {
+  white-space: nowrap;
 }
 
-/* ── Print (GRI Content Index PDF export) ──────── */
+/* Pills and badges — small, padded, rounded labels — never wrap in any
+   language (进行/中, IN / PROGRESS). Sentences don't carry px-* + rounded. */
+span[class*="px-"][class*="rounded"]:is(.text-micro, .text-caption, .text-xs, [class*="text-[12px]"]) {
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+/* ── Legacy premium type & layout helpers ───────────────────────────── */
+.h-display {
+  font-family: var(--font-display);
+  font-weight: var(--fw-display);
+  font-size: clamp(30px, 2vw + 14px, var(--fs-display));
+  line-height: 1.1;
+  letter-spacing: var(--ls-display);
+}
+.h-page {
+  font-family: var(--font-display);
+  font-weight: var(--fw-h1);
+  font-size: var(--fs-h1);
+  line-height: var(--lh-h1);
+  letter-spacing: var(--ls-h1);
+}
+.h-section {
+  font-weight: var(--fw-h2);
+  font-size: var(--fs-h2);
+  line-height: var(--lh-h2);
+  letter-spacing: var(--ls-h2);
+}
+.body    { font-size: var(--text-premium-base); line-height: var(--leading-normal); }
+.body-sm { font-size: var(--text-premium-sm);   line-height: var(--leading-normal); }
+.label   {
+  font-size: var(--fs-caption);
+  font-weight: var(--weight-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-micro);
+}
+
+.page-container {
+  max-width: var(--page-max, 1280px);
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 3rem);
+  padding-block:  clamp(2rem, 5vh, 4rem);
+}
+.page-container.page-narrow { --page-max: 960px; }
+.page-container.page-prose  { --page-max: 760px; }
+
+/* ── Print ──────────────────────────────────────────────────────────── */
 @media print {
   @page { margin: 16mm 14mm; }
   .no-print, aside, header[role='banner'] { display: none !important; }
@@ -661,142 +796,12 @@ h1, h2, h3, h4, h5, h6 {
   tr    { page-break-inside: avoid; page-break-after: auto; }
 }
 
-/* ═══════════════════════════════════════════════════════════
- * Premium type & layout utilities — opt-in.
- *
- * Pages adopt these by switching their wrapper classes, e.g.
- *   <h1 className="h-display">…</h1>
- *   <main className="page-container">…</main>
- *   <div className="card-premium">…</div>
- *   <button className="btn-primary">…</button>
- * ═══════════════════════════════════════════════════════════ */
-
-/* Hero-grade page title */
-.h-display {
-  font-family: var(--font-display-premium);
-  font-weight: var(--weight-black);
-  font-size: var(--text-premium-3xl);
-  line-height: var(--leading-tight);
-  letter-spacing: var(--tracking-tight);
-}
-
-.h-page {
-  font-family: var(--font-display-premium);
-  font-weight: var(--weight-bold);
-  font-size: var(--text-premium-2xl);
-  line-height: var(--leading-tight);
-  letter-spacing: var(--tracking-tight);
-}
-
-.h-section {
-  font-weight: var(--weight-semibold);
-  font-size: var(--text-premium-lg);
-  line-height: var(--leading-snug);
-}
-
-.body    { font-size: var(--text-premium-base); line-height: var(--leading-normal); }
-.body-sm { font-size: var(--text-premium-sm);   line-height: var(--leading-normal); }
-.label   {
-  font-size: var(--text-premium-xs);
-  font-weight: var(--weight-medium);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-widest);
-}
-
-/* Page container — generous responsive gutters */
-.page-container {
-  max-width: var(--page-max, 1280px);
-  margin-inline: auto;
-  padding-inline: clamp(1rem, 4vw, 3rem);
-  padding-block:  clamp(2rem, 5vh, 4rem);
-}
-.page-container.page-narrow { --page-max: 960px; }
-.page-container.page-prose  { --page-max: 760px; }
-
-@layer components {
-  /* Premium card — quiet, restrained, single hover accent */
-  .card-premium {
-    padding: 2rem;
-    border-radius: 16px;
-    background: var(--bg-card-premium);
-    border: 1px solid var(--border-card-premium);
-    transition: border-color var(--dur-premium-base) var(--ease-premium-out);
-  }
-  .card-premium:hover {
-    border-color: rgba(16, 185, 129, 0.2);
-  }
-
-  /* Primary action */
-  .btn-primary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    height: 2.5rem;
-    padding-inline: 1.25rem;
-    border-radius: 10px;
-    background: linear-gradient(135deg, var(--accent-500), var(--accent-600));
-    color: white;
-    font-weight: 600;
-    font-size: 0.875rem;
-    box-shadow:
-      0 1px 2px rgba(0, 0, 0, 0.2),
-      0 0 0 1px rgba(16, 185, 129, 0.4) inset;
-    transition: all var(--dur-premium-base) var(--ease-premium-out);
-    cursor: pointer;
-  }
-  .btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-  }
-  .btn-primary:active   { transform: translateY(0); }
-  .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
-
-  /* Secondary action */
-  .btn-secondary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    height: 2.5rem;
-    padding-inline: 1.25rem;
-    border-radius: 10px;
-    background: var(--bg-card-premium);
-    color: var(--text-primary);
-    border: 1px solid var(--border-card-premium);
-    font-weight: 500;
-    font-size: 0.875rem;
-    transition: all var(--dur-premium-base) var(--ease-premium-out);
-    cursor: pointer;
-  }
-  .btn-secondary:hover {
-    background: var(--bg-card-premium-hover);
-    border-color: var(--border-default);
-  }
-  .btn-secondary:disabled { opacity: 0.55; cursor: not-allowed; }
-}
-
-/* ═══════════════════════════════════════════════════════════
- * Disclosure editor — reading mode + print
- * ═══════════════════════════════════════════════════════════ */
-
-/* Reading mode tints status pills more passively. */
-.disclosure-document[data-reading-mode="true"] .no-print-status {
-  opacity: 0.7;
-}
-
-/* Save / print-as-PDF friendly. Removes chrome, lets the document breathe. */
+/* ── Disclosure editor — reading mode + print ───────────────────────── */
+.disclosure-document[data-reading-mode="true"] .no-print-status { opacity: 0.7; }
 @media print {
   .no-print { display: none !important; }
-  .disclosure-document {
-    overflow: visible !important;
-    height: auto !important;
-  }
-  .disclosure-document[data-reading-mode="true"] {
-    color: #000;
-    background: #fff;
-  }
-  /* Hide status pills entirely when printing for the cleanest paper look. */
+  .disclosure-document { overflow: visible !important; height: auto !important; }
+  .disclosure-document[data-reading-mode="true"] { color: #000; background: #fff; }
   .disclosure-document .no-print-status { display: none !important; }
   body, html { background: #fff !important; }
 }

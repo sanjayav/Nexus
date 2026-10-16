@@ -1,0 +1,71 @@
+{
+  "breadcrumbAdmin": "Admin",
+  "breadcrumb": "API keys",
+  "eyebrow": "Admin · Integrations",
+  "title": "API keys",
+  "subtitle": "Issue programmatic tokens for CI pipelines, BI tools and ERP push connectors. Scopes follow the same permission model as user roles.",
+  "generateKey": "Generate key",
+  "errors": {
+    "load": "Failed to load API keys",
+    "loadTitle": "API keys didn't load",
+    "loadBody": "We couldn't reach the server, so this list isn't confirmed. No keys were changed.",
+    "refresh": "Couldn't refresh the key list",
+    "nameRequired": "Give the key a name so you can recognise it later.",
+    "pickScope": "Pick at least one scope.",
+    "create": "Failed to create API key",
+    "revoke": "Couldn't revoke the key. It is still active."
+  },
+  "confirmRevoke": "Any client using this key loses access immediately. This can't be undone.",
+  "revokeSheet": {
+    "title": "Revoke “{{name}}”?",
+    "confirm": "Revoke key"
+  },
+  "toast": {
+    "created": "Key “{{name}}” generated",
+    "revoked": "Key “{{name}}” revoked"
+  },
+  "reveal": {
+    "title": "Copy your new key “{{name}}” now",
+    "warning": "You won't see this token again. We store only a SHA-256 hash, so if it's lost you'll need to generate a new key.",
+    "tokenLabel": "Secret token",
+    "dismiss": "I've stored it safely",
+    "copied": "Copied",
+    "copy": "Copy token",
+    "copyFailed": "Couldn't copy. Select the token and copy it manually.",
+    "scopes": "Scopes: {{scopes}}",
+    "scopesLabel": "Scopes"
+  },
+  "table": {
+    "heading": "Keys",
+    "count": "{{active}} active of {{total}}",
+    "emptyTitle": "No API keys yet",
+    "emptyBody": "Generate a key to push data programmatically. Give each key only the scopes it needs.",
+    "name": "Name",
+    "prefix": "Prefix",
+    "scopes": "Scopes",
+    "expires": "Expires",
+    "lastUsed": "Last used",
+    "status": "Status",
+    "actions": "Actions",
+    "never": "Never used",
+    "noExpiry": "No expiry",
+    "active": "Active",
+    "expired": "Expired",
+    "revoked": "Revoked",
+    "revoke": "Revoke",
+    "revokeNamed": "Revoke key {{name}}"
+  },
+  "modal": {
+    "title": "Generate API key",
+    "intro": "The token is shown once, right after you generate it.",
+    "close": "Close",
+    "name": "Name",
+    "namePlaceholder": "e.g. CI pipeline push",
+    "scopes": "Scopes",
+    "scopesHint": "Grant only what this integration needs.",
+    "expiresIn": "Expires in (days)",
+    "expiresPlaceholder": "Blank means no expiry",
+    "cancel": "Cancel",
+    "generate": "Generate key"
+  }
+}

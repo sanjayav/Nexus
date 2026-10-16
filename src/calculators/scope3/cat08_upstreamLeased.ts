@@ -1,4 +1,5 @@
-import { Scope3Calculator, toNum } from './index'
+import type { Scope3Calculator } from './types'
+import { toNum } from './constants'
 
 export const cat08: Scope3Calculator = {
   id: 'scope3_cat08',

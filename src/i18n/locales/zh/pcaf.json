@@ -1,0 +1,500 @@
+{
+  "page": {
+    "title": "PCAF 投资组合",
+    "titleWithYear": "PCAF 投资组合——FY{{year}} 融资排放",
+    "lockedDescription": "面向金融机构的融资排放追踪。",
+    "lockedBefore": "您需要 ",
+    "lockedAfter": " 权限才能查看或更新 PCAF 资产。请联系平台管理员为您分配相应角色。",
+    "breadcrumbData": "数据",
+    "breadcrumbCalculators": "计算器",
+    "eyebrow": "PCAF · 范围三类别 15",
+    "description": "追踪投资组合中的范围三类别 15 排放。按资产计算归因因子 × 交易对手排放，并给出 PCAF 数据质量评分（1–5）。",
+    "fyOption": "FY {{year}}",
+    "refresh": "刷新",
+    "addAsset": "添加资产",
+    "loadFailed": "投资组合加载失败",
+    "loadingPortfolio": "正在加载投资组合…",
+    "lockedTitle": "您没有 PCAF 资产的访问权限",
+    "reportingYear": "报告年度",
+    "emptyTitle": "FY{{year}} 暂无 PCAF 资产",
+    "emptyBody": "添加上市股权、贷款、债券等持仓，开始核算投融资排放。",
+    "refreshFailed": "投资组合刷新失败，当前显示上次加载的数据"
+  },
+  "kpi": {
+    "totalFinanced": "融资排放总量",
+    "totalFinancedSubtle": "范围三类别 15",
+    "weightedDq": "加权 PCAF 数据质量评分",
+    "weightedDqSubtle": "1（最佳）– 5（最差）",
+    "coverage": "已报告排放覆盖率",
+    "coverageSubtle": "占未偿余额",
+    "outstanding": "投资组合未偿余额",
+    "assetCount_one": "{{count}} 项资产",
+    "assetCount_other": "{{count}} 项资产",
+    "label": "投资组合概览"
+  },
+  "charts": {
+    "byAssetClass": "按资产类别划分的融资排放",
+    "contribution": "各资产类别贡献（tCO₂e）",
+    "empty": "本报告年度尚无资产。",
+    "unit": "tCO₂e，融资排放",
+    "financed": "融资排放"
+  },
+  "summaryTable": {
+    "assetClass": "资产类别",
+    "assets": "资产数",
+    "outstanding": "未偿余额",
+    "financedEmissions": "融资排放",
+    "weightedDq": "加权数据质量评分",
+    "title": "按资产类别"
+  },
+  "sync": {
+    "title": "同步至范围三",
+    "description": "为 FY{{year}} 写入一条 activity_data 草稿记录（类别 15——投资），并流转至 ESRS E1-6 / GRI 305-3 / TCFD / SEC 披露。",
+    "noFacilities": "暂无设施",
+    "button": "同步至范围三",
+    "pickFacility": "请选择要关联范围三记录的设施",
+    "failed": "同步失败",
+    "success": "已同步 {{total}} CO₂e（加权数据质量评分 {{dq}}）——activity_data ID {{id}}…",
+    "facility": "设施",
+    "toast": "已将 {{total}} 同步至范围三类别 15",
+    "disabledHint": "请先添加资产再同步。"
+  },
+  "drawer": {
+    "title": "添加 PCAF 资产",
+    "pickDifferent": "← 选择其他资产类别",
+    "close": "关闭",
+    "saved": "资产已保存",
+    "intro": "请选择与持仓相符的 PCAF 资产类别，各类别采用不同的归因规则。"
+  },
+  "grid": {
+    "searchPlaceholder": "搜索交易对手…",
+    "allAssetClasses": "全部资产类别",
+    "countSummary_one": "{{shown}} / {{count}} 项资产",
+    "countSummary_other": "{{shown}} / {{count}} 项资产",
+    "counterparty": "交易对手",
+    "assetClass": "资产类别",
+    "outstanding": "未偿余额",
+    "attribution": "归因因子",
+    "financed": "融资排放",
+    "dq": "数据质量",
+    "emptyBefore": "没有符合筛选条件的资产。点击「",
+    "emptyAction": "添加资产",
+    "emptyAfter": "」添加第一项资产。",
+    "confirm": "确认",
+    "cancel": "取消",
+    "delete": "删除",
+    "title": "投资组合",
+    "deleteTitle": "删除 {{name}}？",
+    "deleteBody": "该资产及其融资排放将从本报告年度移除，已同步的范围三记录不受影响。",
+    "deleted": "已删除 {{name}}",
+    "deleteFailed": "资产删除失败",
+    "emptyTitle": "暂无资产",
+    "emptyBody": "添加第一项持仓后，可在此查看其归因因子与数据质量。",
+    "actions": "操作",
+    "dqTitle": "PCAF 数据质量评分（1 最佳 – 5）",
+    "deleteAria": "删除 {{name}}"
+  },
+  "calculator": {
+    "methodology": "PCAF 方法学",
+    "warnings": "警告",
+    "verifyServer": "验证服务器计算",
+    "saved": "已保存",
+    "saving": "正在保存",
+    "saveAsset": "保存资产",
+    "yes": "是",
+    "serverComputeFailed": "服务器计算失败",
+    "saveFailed": "保存失败",
+    "counterpartyRequired": "交易对手／借款人名称为必填项",
+    "outstandingRequired": "未偿金额必须大于 0",
+    "result": {
+      "attributionFactor": "归因因子",
+      "financedS1": "融资排放（范围一）",
+      "financedS2": "融资排放（范围二）",
+      "financedS3": "融资排放（范围三）",
+      "totalFinanced": "融资排放合计",
+      "dataQuality": "数据质量评分",
+      "dqValue": "DQ {{score}} / 5",
+      "rationale": "计算依据"
+    },
+    "verified": "服务器计算结果一致",
+    "serverVerified": "已经服务器验证",
+    "choose": "请选择……"
+  },
+  "assetClasses": {
+    "listed_equity": {
+      "label": "上市股权",
+      "name": "上市股权与公司债券",
+      "description": "PCAF 标准 A。归因因子 = 未偿投资价值 / 公司 EVIC。优先使用已报告排放；无数据时以行业强度 × 收入代理值估算。",
+      "inputs": {
+        "counterpartyName": {
+          "label": "交易对手（发行人）"
+        },
+        "counterpartySector": {
+          "label": "GICS 行业"
+        },
+        "outstandingAmount": {
+          "label": "未偿投资价值"
+        },
+        "evic": {
+          "label": "交易对手 EVIC",
+          "help": "含现金企业价值（EVIC）。留空则进行估算（数据质量较低）。"
+        },
+        "reportedEmissions": {
+          "label": "已报告范围一+范围二排放"
+        },
+        "reportedScope3": {
+          "label": "已报告范围三排放"
+        },
+        "verifiedByThirdParty": {
+          "label": "排放是否经独立验证？"
+        }
+      }
+    },
+    "corporate_bond": {
+      "label": "公司债券",
+      "name": "公司债券",
+      "description": "PCAF 标准 A。采用与上市股权相同的基于 EVIC 的归因方法，适用于所持债券面值。",
+      "inputs": {
+        "counterpartyName": {
+          "label": "发行人"
+        },
+        "counterpartySector": {
+          "label": "GICS 行业"
+        },
+        "outstandingAmount": {
+          "label": "债券持有价值"
+        },
+        "evic": {
+          "label": "发行人 EVIC",
+          "help": "发行人的含现金企业价值（EVIC）。"
+        },
+        "reportedEmissions": {
+          "label": "已报告范围一+范围二排放"
+        },
+        "reportedScope3": {
+          "label": "已报告范围三排放"
+        },
+        "verifiedByThirdParty": {
+          "label": "排放是否经独立验证？"
+        }
+      }
+    },
+    "business_loan": {
+      "label": "商业贷款",
+      "name": "商业贷款",
+      "description": "PCAF 标准 B。归因因子 = 未偿贷款 /（借款人权益 + 债务）。优先使用已报告排放；否则以行业强度 × 收入估算。",
+      "inputs": {
+        "counterpartyName": {
+          "label": "借款人"
+        },
+        "counterpartySector": {
+          "label": "GICS 行业"
+        },
+        "outstandingAmount": {
+          "label": "未偿贷款金额"
+        },
+        "borrowerEquity": {
+          "label": "借款人权益"
+        },
+        "borrowerDebt": {
+          "label": "借款人债务总额"
+        },
+        "reportedEmissions": {
+          "label": "已报告范围一+范围二排放"
+        },
+        "reportedScope3": {
+          "label": "已报告范围三排放"
+        },
+        "verifiedByThirdParty": {
+          "label": "排放是否经独立验证？"
+        }
+      }
+    },
+    "unlisted_equity": {
+      "label": "非上市股权",
+      "name": "非上市／私募股权",
+      "description": "PCAF 标准 B。归因因子 = 投资额 /（被投企业权益 + 债务）。优先使用已报告排放；否则以行业强度估算。",
+      "inputs": {
+        "counterpartyName": {
+          "label": "被投企业"
+        },
+        "counterpartySector": {
+          "label": "GICS 行业"
+        },
+        "outstandingAmount": {
+          "label": "投资价值"
+        },
+        "investeeEquity": {
+          "label": "被投企业权益"
+        },
+        "investeeDebt": {
+          "label": "被投企业债务总额"
+        },
+        "reportedEmissions": {
+          "label": "已报告范围一+范围二排放"
+        },
+        "reportedScope3": {
+          "label": "已报告范围三排放"
+        },
+        "verifiedByThirdParty": {
+          "label": "排放是否经独立验证？"
+        }
+      }
+    },
+    "project_finance": {
+      "label": "项目融资",
+      "name": "项目融资",
+      "description": "PCAF 标准 C。归因因子 = 贷款金额 /（项目权益 + 项目债务）。优先使用项目层面的年度排放。",
+      "inputs": {
+        "counterpartyName": {
+          "label": "项目名称"
+        },
+        "projectType": {
+          "label": "项目类型"
+        },
+        "outstandingAmount": {
+          "label": "未偿贷款金额"
+        },
+        "projectEquity": {
+          "label": "项目权益"
+        },
+        "projectDebt": {
+          "label": "项目债务总额"
+        },
+        "reportedEmissions": {
+          "label": "项目年度排放"
+        },
+        "verifiedByThirdParty": {
+          "label": "排放是否经独立验证？"
+        }
+      }
+    },
+    "commercial_real_estate": {
+      "label": "商业地产",
+      "name": "商业地产",
+      "description": "PCAF 标准 D。融资排放 = 建筑年度排放 ×（贷款 / 物业价值）。优先使用实测能耗；其次为能效证书，再次为建筑面积 × 类型强度。",
+      "inputs": {
+        "counterpartyName": {
+          "label": "建筑／借款人"
+        },
+        "buildingType": {
+          "label": "建筑类型"
+        },
+        "outstandingAmount": {
+          "label": "未偿贷款"
+        },
+        "propertyValue": {
+          "label": "物业价值"
+        },
+        "floorAreaM2": {
+          "label": "建筑面积"
+        },
+        "measuredAnnualEmissions": {
+          "label": "实测年度排放",
+          "help": "来自水电燃气账单或能效证书（DQ ≤ 2）。"
+        },
+        "verifiedByThirdParty": {
+          "label": "能耗数据是否经独立验证？"
+        }
+      }
+    },
+    "mortgage": {
+      "label": "住房抵押贷款",
+      "name": "住房抵押贷款",
+      "description": "PCAF 标准 E。融资排放 =（建筑面积 × 国家住宅排放强度）×（贷款 / 物业价值）。",
+      "inputs": {
+        "counterpartyName": {
+          "label": "借款人／物业编号"
+        },
+        "counterpartyCountry": {
+          "label": "国家／地区"
+        },
+        "outstandingAmount": {
+          "label": "未偿抵押贷款余额"
+        },
+        "propertyValue": {
+          "label": "物业评估价值"
+        },
+        "floorAreaM2": {
+          "label": "物业建筑面积"
+        },
+        "measuredAnnualEmissions": {
+          "label": "实测家庭排放",
+          "help": "如有，取自水电燃气账单（DQ ≤ 2）。"
+        },
+        "verifiedByThirdParty": {
+          "label": "能耗／物业数据是否经独立验证？"
+        }
+      }
+    },
+    "motor_vehicle_loan": {
+      "label": "机动车贷款",
+      "name": "机动车贷款",
+      "description": "PCAF 标准 F。融资排放 = 车辆年度排放 ×（贷款 / 车辆价值）。优先使用实测里程 × 排放因子；否则采用车队平均值。",
+      "inputs": {
+        "counterpartyName": {
+          "label": "借款人／车辆编号"
+        },
+        "vehicleType": {
+          "label": "车辆类型／动力系统"
+        },
+        "outstandingAmount": {
+          "label": "未偿贷款"
+        },
+        "vehicleValue": {
+          "label": "车辆价值"
+        },
+        "measuredAnnualEmissions": {
+          "label": "实测年度排放",
+          "help": "由里程表读数 × 车辆专属排放因子计算（DQ ≤ 2）。"
+        },
+        "annualDistanceKm": {
+          "label": "年行驶里程",
+          "help": "无实测值时用于计算排放。"
+        },
+        "verifiedByThirdParty": {
+          "label": "里程／排放因子是否经独立验证？"
+        }
+      }
+    },
+    "sovereign_debt": {
+      "label": "主权债务",
+      "name": "主权债务",
+      "description": "PCAF 标准 G。融资排放 = 国家排放 ×（投资额 / 国家 GDP-PPP）。",
+      "inputs": {
+        "counterpartyName": {
+          "label": "发行人（国家）"
+        },
+        "counterpartyCountry": {
+          "label": "国家代码"
+        },
+        "outstandingAmount": {
+          "label": "投资价值"
+        },
+        "gdpPppMillions": {
+          "label": "国家 GDP-PPP",
+          "help": "按购买力平价计算的 GDP（百万美元），用作分母。"
+        },
+        "reportedCountryEmissionsMt": {
+          "label": "国家年度排放",
+          "help": "如有，取自 NDC 清单；否则使用单位 GDP 国家排放表。"
+        },
+        "verifiedByThirdParty": {
+          "label": "国家排放是否来自官方清单？"
+        }
+      }
+    }
+  },
+  "options": {
+    "counterpartySector": {
+      "Energy": "能源",
+      "Materials": "原材料",
+      "Industrials": "工业",
+      "Utilities": "公用事业",
+      "Real Estate": "房地产",
+      "Financials": "金融",
+      "IT": "信息技术",
+      "Healthcare": "医疗保健",
+      "Consumer Staples": "日常消费品",
+      "Consumer Discretionary": "非日常消费品",
+      "Communication": "通信服务"
+    },
+    "buildingType": {
+      "Office": "办公",
+      "Retail": "零售",
+      "Industrial": "工业",
+      "Warehouse": "仓储",
+      "Hotel": "酒店",
+      "Healthcare": "医疗",
+      "Mixed": "综合用途"
+    },
+    "counterpartyCountry": {
+      "US": "美国（US）",
+      "UK": "英国（UK）",
+      "EU": "欧盟（EU）",
+      "CN": "中国（CN）",
+      "IN": "印度（IN）",
+      "JP": "日本（JP）",
+      "DE": "德国（DE）",
+      "FR": "法国（FR）",
+      "AU": "澳大利亚（AU）",
+      "CA": "加拿大（CA）",
+      "GLOBAL": "全球（GLOBAL）"
+    },
+    "vehicleType": {
+      "car_petrol": "汽油车",
+      "car_diesel": "柴油车",
+      "car_hybrid": "混合动力车",
+      "car_ev": "纯电动车",
+      "motorcycle": "摩托车",
+      "van": "厢式货车",
+      "truck": "卡车",
+      "unknown": "未知"
+    },
+    "projectType": {
+      "renewable_power": "可再生能源发电",
+      "fossil_power": "化石能源发电",
+      "transmission": "输电",
+      "transport_infrastructure": "交通基础设施",
+      "oil_gas_upstream": "油气上游",
+      "oil_gas_midstream": "油气中游",
+      "mining": "采矿",
+      "industrial_plant": "工业厂房",
+      "other": "其他"
+    }
+  },
+  "warnings": {
+    "evicEstimatedIssuer": "EVIC 为估算值——请提供发行人 EVIC 以提高数据质量",
+    "evicEstimated": "EVIC 为估算值——请提供实际 EVIC 以提高数据质量",
+    "sectorIssuer": "排放按行业强度估算——请替换为发行人披露数据以达到 DQ ≤3",
+    "sectorBorrower": "排放按行业强度估算——请向借款人索取披露数据以达到 DQ ≤3",
+    "sectorCounterparty": "排放按行业强度估算——请替换为交易对手披露数据以达到 DQ ≤3",
+    "sectorEstimate": "排放按行业强度估算",
+    "borrowerValueUnknown": "借款人权益 + 债务未知——采用贷款 × 8 作为代理值。请提供实际资产负债表数据以达到 DQ ≤3。",
+    "investeeValueUnknown": "被投企业权益 + 债务未知——采用投资额 × 8 作为代理值",
+    "creValueMissing": "缺少物业价值——采用贷款 × 1.4 作为代理值（假设 LTV 约 70%）",
+    "creFloorArea": "按建筑面积强度估算——请提供实测能耗数据以达到 DQ ≤2",
+    "creNoData": "请提供实测排放，或建筑面积 + 建筑类型",
+    "totalValueMissing": "总价值缺失或为零——归因因子设为 0；请提供企业价值或物业价值",
+    "attrCapped": "归因因子 {{value}} 超过 1.5，已按上限 1.5 处理——未偿金额可能超过总价值",
+    "attrNegative": "归因因子为负——未偿金额／总价值必须 ≥0",
+    "vehicleValueMissing": "缺少车辆价值——采用贷款 × 1.15 作为代理值",
+    "distanceUnknown": "年行驶里程未知——采用该动力系统的车队平均值",
+    "projectStackUnknown": "项目资本结构未知——采用贷款 × 1.3 作为代理值",
+    "projectTypeEstimate": "项目排放按项目类型强度估算",
+    "mortgageValueMissing": "缺少物业价值——采用贷款 × 1.25 作为代理值（LTV 约 80%）",
+    "householdEstimate": "家庭排放按国家住宅排放强度估算",
+    "floorAreaMissing": "缺少建筑面积——采用典型 100 m² 住户",
+    "gdpMissing": "缺少 GDP-PPP——以未偿金额作为分母（归因因子约为 1，数据质量评分预计较低）",
+    "countryEstimate": "国家排放按单位 GDP 强度表估算——请替换为 NDC 清单数据"
+  },
+  "rationale": {
+    "awaitingInputs": "等待输入",
+    "reported": "已报告排放 × 归因因子（{{attr}}）",
+    "measuredAnnual": "实测年度排放 × 归因因子（{{attr}}）",
+    "measuredHousehold": "实测家庭排放 × 归因因子（{{attr}}）",
+    "projectAnnual": "项目年度排放 × 归因因子（{{attr}}）",
+    "sectorEstRevenue": "行业强度（{{intensity}} kgCO2e/USD 收入，{{sector}}）× 估算收入 × 归因因子",
+    "sectorEstRevenueNoSector": "行业强度（{{intensity}} kgCO2e/USD 收入）× 估算收入 × 归因因子",
+    "sectorRevenueProxy": "行业强度（{{intensity}} kgCO2e/USD，{{sector}}）× 收入代理值 × 归因因子",
+    "floorArea": "建筑面积 {{area}} m² × {{intensity}} kgCO2e/m²（{{type}}）× 归因因子",
+    "noData": "无实测排放且无建筑面积——无法计算建筑排放",
+    "typicalHousehold": "典型 100 m² × {{intensity}} kgCO2e/m²（{{type}}）× 归因因子",
+    "distance": "{{km}} km × {{ef}} kgCO2e/km（{{type}}）× 归因因子",
+    "fleetAverage": "车队平均 {{tons}} tCO2e/年（{{type}}）× 归因因子",
+    "projectType": "项目类型强度（{{intensity}} kgCO2e/USD，{{type}}）× 项目价值 × 归因因子",
+    "reportedCountry": "已报告国家排放 {{mt}} MtCO2e × 归因因子（{{attr}}）",
+    "countryEf": "国家排放因子 {{rate}} tCO2e/USDm（{{type}}）× GDP-PPP × 归因因子"
+  },
+  "dq": {
+    "title": "数据质量分布",
+    "subtitle": "按 PCAF 评分划分的未偿余额占比",
+    "level": "DQ {{n}}",
+    "desc1": "经核验的报告排放",
+    "desc2": "未经核验的报告排放",
+    "desc3": "基于实物活动的估算",
+    "desc4": "基于营业收入的估算",
+    "desc5": "基于资产的估算",
+    "footnote": "PCAF 评分从 1（最佳）到 5，应逐步提高 DQ 1–2 的未偿余额占比。"
+  }
+}

@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { z } from 'zod'
 import { getDb } from './_db.js'
 import { cors, verifyToken, requirePermission } from './_auth.js'
+import { loadOwnedDataValue, stampDataValueOrg } from './_tenancy.js'
 
 const OverrideBody = z.object({
   action: z.literal('override').optional(),
@@ -36,7 +37,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const rows = await sql`
           SELECT cm.id, cm.concept_key, cm.framework_id, cm.questionnaire_item_id,
                  cm.unit_conversion,
-                 qi.gri_code, qi.line_item, qi.unit, qi.section
+                 qi.gri_code, qi.line_item, qi.unit, qi.section,
+                 to_jsonb(qi) ->> 'line_item_zh' AS line_item_zh
           FROM concept_mappings cm
           LEFT JOIN questionnaire_item qi ON qi.id = cm.questionnaire_item_id
           WHERE cm.concept_key = ${concept_key}
@@ -59,7 +61,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const peers = await sql`
           SELECT cm.id, cm.concept_key, cm.framework_id, cm.questionnaire_item_id,
                  cm.unit_conversion,
-                 qi.gri_code, qi.line_item, qi.unit, qi.section
+                 qi.gri_code, qi.line_item, qi.unit, qi.section,
+                 to_jsonb(qi) ->> 'line_item_zh' AS line_item_zh
           FROM concept_mappings cm
           LEFT JOIN questionnaire_item qi ON qi.id = cm.questionnaire_item_id
           WHERE cm.concept_key = ${ck}
@@ -104,13 +107,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data_value_id } = parsed.data
 
     try {
+      // Tenant-scoped (api/_tenancy.ts): another org's value is a 404 and
+      // is never touched.
+      const owned = await loadOwnedDataValue(sql, token.org, data_value_id)
+      if (!owned) return res.status(404).json({ error: 'data_value not found' })
       const updated = await sql`
         UPDATE data_value
         SET is_overridden = true
-        WHERE id = ${data_value_id}
+        WHERE id = ${owned.id}
         RETURNING id, is_overridden, derived_from
       ` as Array<{ id: string; is_overridden: boolean; derived_from: string | null }>
       if (updated.length === 0) return res.status(404).json({ error: 'data_value not found' })
+      await stampDataValueOrg(sql, owned.id, token.org)
       return res.status(200).json({ ok: true, ...updated[0] })
     } catch (err: unknown) {
       return res.status(500).json({ error: err instanceof Error ? err.message : 'Unknown error' })

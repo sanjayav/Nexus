@@ -1,16 +1,15 @@
 import { motion, useReducedMotion, type MotionProps } from 'framer-motion'
 import type { ReactNode } from 'react'
-import { transitions } from '../lib/motion'
+import { STAGGER, transition } from '../motion/tokens'
 
 /**
- * Premium motion primitives — shared, restrained, reduced-motion aware.
+ * Motion primitives — built on `src/motion/tokens.ts`.
  *
- * <FadeIn>           — single element fade + 8px rise
- * <Stagger>          — orchestrates children, 40ms apart
- * <StaggerItem>      — the children rendered inside <Stagger>
+ * <FadeIn>       single element: fade + 6 px rise
+ * <Stagger>      orchestrates children 30 ms apart
+ * <StaggerItem>  a child of <Stagger>
  *
- * All three short-circuit to their static children when the user has
- * `prefers-reduced-motion: reduce`, so accessibility is preserved.
+ * All three render static children under reduced motion.
  */
 
 type FadeInProps = { children: ReactNode; delay?: number } & Omit<MotionProps, 'children'>
@@ -20,9 +19,9 @@ export function FadeIn({ children, delay = 0, ...rest }: FadeInProps) {
   if (reduce) return <>{children}</>
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ ...transitions.fade, delay }}
+      transition={{ ...transition.base, delay }}
       {...rest}
     >
       {children}
@@ -32,16 +31,16 @@ export function FadeIn({ children, delay = 0, ...rest }: FadeInProps) {
 
 export function Stagger({
   children,
-  staggerMs = 40,
+  staggerMs = STAGGER * 1000,
   className,
 }: {
   children: ReactNode
-  /** Per-child stagger delay in milliseconds (default 40). */
+  /** Per-child stagger delay in milliseconds (default 30). */
   staggerMs?: number
   className?: string
 }) {
   const reduce = useReducedMotion()
-  if (reduce) return <>{children}</>
+  if (reduce) return <div className={className}>{children}</div>
   return (
     <motion.div
       className={className}
@@ -60,8 +59,8 @@ export function StaggerItem({ children, ...rest }: StaggerItemProps) {
   return (
     <motion.div
       variants={{
-        hidden:  { opacity: 0, y: 8 },
-        visible: { opacity: 1, y: 0 },
+        hidden: { opacity: 0, y: 6 },
+        visible: { opacity: 1, y: 0, transition: transition.base },
       }}
       {...rest}
     >

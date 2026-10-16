@@ -1,0 +1,86 @@
+{
+  "nav": {
+    "features": "Features",
+    "pricing": "Pricing",
+    "howItWorks": "How it works",
+    "compare": "Compare",
+    "about": "About",
+    "contact": "Contact",
+    "signIn": "Sign in",
+    "getStarted": "Get started",
+    "openMenu": "Open menu",
+    "homeAria": "Nexus — home",
+    "navAria": "Marketing navigation",
+    "skip": "Skip to content",
+    "closeMenu": "Close menu"
+  },
+  "footer": {
+    "tagline": "The sustainability intelligence platform — every framework, one dataset, auditor-ready.",
+    "product": "Product",
+    "company": "Company",
+    "legal": "Legal",
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "dpa": "DPA",
+    "subprocessors": "Subprocessors",
+    "copyright": "© 2026 Aeiforo Ltd · All rights reserved",
+    "languages": "Available in English and 简体中文."
+  },
+  "cta": {
+    "startFree": "Start free",
+    "startFreeTrial": "Start free trial",
+    "contactSales": "Contact sales",
+    "seeHowItWorks": "See how it works",
+    "watchDemo": "Watch demo"
+  },
+  "plans": {
+    "starter": "Starter",
+    "team": "Team",
+    "enterprise": "Enterprise",
+    "custom": "Custom",
+    "perMonth": "/mo"
+  },
+  "comparison": {
+    "feature": "Feature",
+    "ariaYes": "yes",
+    "ariaNo": "no",
+    "ariaPartial": "partial",
+    "supported": "Supported",
+    "notSupported": "Not supported",
+    "partial": "Partial"
+  },
+  "faq": {
+    "heading": "Frequently asked questions"
+  },
+  "pricingTable": {
+    "mostPopular": "Most popular",
+    "disclaimer": "Prices shown are illustrative for v1 launch — final pricing confirmed during onboarding."
+  },
+  "timeline": {
+    "signUp": {
+      "when": "HOUR 1",
+      "title": "Sign up",
+      "body": "Self-serve. No sales call. Land in the workspace with one click."
+    },
+    "firstFacility": {
+      "when": "HOUR 4",
+      "title": "First facility",
+      "body": "Add an entity, pick frameworks (24 pre-loaded), invite teammates."
+    },
+    "valuesEntered": {
+      "when": "HOUR 24",
+      "title": "Values entered",
+      "body": "Upload evidence, let AI extract figures, approve the numbers."
+    },
+    "draftDisclosure": {
+      "when": "HOUR 48",
+      "title": "Draft disclosure",
+      "body": "CSRD-ready draft, auditor-trail, blockchain anchor, ready to publish."
+    },
+    "closing": "All without a sales call. All without an implementation consultant. All published pricing.",
+    "closingStrong": "£500/month Team tier."
+  },
+  "language": {
+    "label": "Language"
+  }
+}

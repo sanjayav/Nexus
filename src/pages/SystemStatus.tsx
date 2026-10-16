@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
-import {
-  Activity, CheckCircle2, XCircle, AlertTriangle, Database, Mail,
-  Shield, Sparkles, Bug, Globe2,
-} from 'lucide-react'
+import { Mail, Shield, Sparkles, Bug, Globe2, RotateCw, CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import PageHeader from '../components/PageHeader'
-import { SkeletonCard } from '../components/Skeleton'
-import { Card, Badge } from '../design-system'
+import { StatLedger, StatusPill, StateBoundary, SkeletonLedger, Skeleton } from '../components/ui'
 import { system, type HealthResponse } from '../lib/api'
+import { useFmt } from '../lib/fmt'
+import { dur, ease } from '../motion/tokens'
 
-interface IntegrationCardProps {
+/** Above this the database is reachable but slow — shown as a warning, not a failure. */
+const SLOW_DB_MS = 250
+
+interface IntegrationRowProps {
   name: string
   icon: React.ComponentType<{ className?: string }>
   configured: boolean
@@ -16,57 +19,57 @@ interface IntegrationCardProps {
   setupGuide: string
 }
 
-function IntegrationCard({ name, icon: Icon, configured, provider, setupGuide }: IntegrationCardProps) {
+function IntegrationRow({ name, icon: Icon, configured, provider, setupGuide }: IntegrationRowProps) {
+  const { t } = useTranslation()
   return (
-    <Card variant="paper" className="h-full">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <div className={`w-9 h-9 rounded-md flex items-center justify-center ${
-            configured ? 'bg-[var(--accent-green-light)]' : 'bg-[var(--bg-tertiary)]'
-          }`}>
-            <Icon className={`w-4 h-4 ${configured ? 'text-[var(--accent-green)]' : 'text-[var(--text-tertiary)]'}`} />
-          </div>
-          <div>
-            <div className="text-[13.5px] font-semibold text-[var(--text-primary)]">{name}</div>
-            <div className="text-[12px] text-[var(--text-secondary)] mt-0.5">
-              {configured ? (provider ?? 'configured') : 'not configured'}
-            </div>
-          </div>
+    <li className="flex items-center gap-3 px-5 py-3.5 min-h-[68px] bg-[var(--bg-primary)]">
+      <span className="w-9 h-9 rounded-[var(--radius-md)] flex items-center justify-center flex-shrink-0 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-[var(--text-secondary)]" aria-hidden>
+        <Icon className="w-4 h-4" />
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="text-body font-medium text-[var(--text-primary)] truncate">{name}</div>
+        {(!configured || provider) && (
+        <div className="text-caption text-[var(--text-tertiary)] mt-0.5 truncate">
+          {configured
+            ? <span className="font-mono">{provider}</span>
+            : (
+              <a href={setupGuide} className="inline-flex items-center gap-1 text-[var(--text-link)] hover:underline underline-offset-2">
+                {t('systemStatus.integration.setupGuide')} <ArrowRight className="w-3 h-3" aria-hidden />
+              </a>
+            )}
         </div>
-        {configured
-          ? <Badge variant="green">ready</Badge>
-          : <Badge variant="gray">missing</Badge>}
+        )}
       </div>
-      {!configured && (
-        <a
-          href={setupGuide}
-          className="mt-3 inline-flex items-center gap-1 text-[12px] text-[var(--accent-blue)] hover:underline"
-        >
-          Setup guide →
-        </a>
-      )}
-    </Card>
+      {configured
+        ? <StatusPill tone="success" dot>{t('systemStatus.integration.configured')}</StatusPill>
+        : <StatusPill tone="neutral">{t('systemStatus.integration.notConfigured')}</StatusPill>}
+    </li>
   )
 }
 
 export default function SystemStatus() {
+  const { t, i18n } = useTranslation()
+  const f = useFmt()
   const [health, setHealth] = useState<HealthResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [checking, setChecking] = useState(false)
   const [lastPolled, setLastPolled] = useState<Date | null>(null)
 
   const poll = useCallback(async () => {
+    setChecking(true)
     try {
       const data = await system.health()
       setHealth(data)
       setError(null)
       setLastPolled(new Date())
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to reach /api/health')
+      setError(e instanceof Error ? e.message : i18n.t('systemStatus.errors.unreachable'))
     } finally {
       setLoading(false)
+      setChecking(false)
     }
-  }, [])
+  }, [i18n])
 
   useEffect(() => {
     void poll()
@@ -74,153 +77,157 @@ export default function SystemStatus() {
     return () => window.clearInterval(id)
   }, [poll])
 
-  const allOk = health?.ok && health.db.ok
+  const retry = () => {
+    setLoading(true)
+    void poll()
+  }
+
+  const allOk = Boolean(health?.ok && health.db.ok)
+  const time = (d: Date) => d.toLocaleTimeString(f.localeFor(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+
+  const integrations = health
+    ? [
+        { key: 'email', name: t('systemStatus.integrations.email'), icon: Mail, configured: health.integrations.email.configured, provider: health.integrations.email.provider, setupGuide: '#setup/email' },
+        { key: 'sso', name: t('systemStatus.integrations.sso'), icon: Shield, configured: health.integrations.sso.configured, provider: health.integrations.sso.provider, setupGuide: '#setup/sso' },
+        { key: 'ai', name: t('systemStatus.integrations.ai'), icon: Sparkles, configured: health.integrations.ai.configured, provider: health.integrations.ai.provider, setupGuide: '#setup/ai' },
+        { key: 'sentry', name: t('systemStatus.integrations.sentry'), icon: Bug, configured: health.integrations.sentry.configured, setupGuide: '#setup/sentry' },
+        { key: 'eu', name: t('systemStatus.integrations.euRegion'), icon: Globe2, configured: health.integrations.euRegion.configured, setupGuide: '#setup/eu-region' },
+        { key: 'apac', name: t('systemStatus.integrations.apacRegion'), icon: Globe2, configured: health.integrations.apacRegion.configured, setupGuide: '#setup/apac-region' },
+      ]
+    : []
+  const configuredCount = integrations.filter(i => i.configured).length
+  const latency = health?.db.latencyMs
 
   return (
-    <div className="page-container">
+    <div className="page-container space-y-6">
       <PageHeader
-        breadcrumbs={[
-          { label: 'Admin' },
-          { label: 'System status' },
-        ]}
-        eyebrow="Admin · System"
-        title="System status"
-        subtitle="Live health of the deployment and which integrations are wired up. Polls every 30s."
+        title={t('systemStatus.title')}
+        subtitle={t('systemStatus.subtitle')}
+        actions={
+          health ? (
+            <button type="button" onClick={() => void poll()} disabled={checking} className="btn-secondary">
+              <RotateCw className={`w-4 h-4 ${checking ? 'animate-spin' : ''}`} aria-hidden />
+              {checking ? t('systemStatus.checking') : t('systemStatus.checkNow')}
+            </button>
+          ) : undefined
+        }
       />
 
-      {loading && !health ? (
-        <div className="space-y-3">
-          <SkeletonCard />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <SkeletonCard /><SkeletonCard /><SkeletonCard />
+      <StateBoundary
+        loading={loading}
+        hasData={!!health}
+        error={health ? null : error}
+        onRetry={retry}
+        errorState={{ title: t('systemStatus.errors.title'), body: t('systemStatus.errors.body') }}
+        skeleton={
+          <div className="space-y-6">
+            <Skeleton className="h-[76px] w-full" rounded="lg" />
+            <SkeletonLedger items={4} />
+            <Skeleton className="h-[320px] w-full" rounded="lg" />
           </div>
-        </div>
-      ) : error && !health ? (
-        <Card variant="outlined" className="border-[var(--accent-red-light)]">
-          <div className="flex items-start gap-3 text-[13px] text-[var(--accent-red)]">
-            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <div>{error}</div>
-          </div>
-        </Card>
-      ) : health ? (
-        <>
-          {/* Top banner */}
-          <Card
-            variant="outlined"
-            className={`mb-5 ${allOk
-              ? 'border-[var(--accent-green-light)] bg-[var(--accent-green-light)]/30'
-              : 'border-[var(--accent-red-light)] bg-[var(--accent-red-light)]/30'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              {allOk
-                ? <CheckCircle2 className="w-6 h-6 text-[var(--accent-green)] flex-shrink-0" />
-                : <XCircle className="w-6 h-6 text-[var(--accent-red)] flex-shrink-0" />}
-              <div className="flex-1">
-                <div className={`text-[15px] font-semibold ${
-                  allOk ? 'text-[var(--accent-green)]' : 'text-[var(--accent-red)]'
-                }`}>
-                  {allOk ? 'All systems operational' : 'Degraded'}
-                </div>
-                <div className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">
-                  {lastPolled
-                    ? `Last checked ${lastPolled.toLocaleTimeString()}`
-                    : 'Probing…'}
-                </div>
+        }
+      >
+        {health && (
+          <>
+            {/* Overall banner */}
+            <motion.section
+              key={allOk ? 'ok' : 'degraded'}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: dur.base, ease: ease.out }}
+              role="status"
+              aria-live="polite"
+              className="flex items-center gap-4 px-5 py-4 rounded-[var(--radius-xl)] border"
+              style={{
+                background: allOk ? 'var(--status-success-soft)' : 'var(--status-danger-soft)',
+                borderColor: allOk ? 'var(--status-success-line)' : 'var(--status-danger-line)',
+              }}
+            >
+              <span className="relative flex w-10 h-10 items-center justify-center flex-shrink-0" aria-hidden>
+                {allOk && (
+                  <span className="absolute inset-1 rounded-full animate-ping opacity-20 motion-reduce:hidden" style={{ background: 'var(--status-success)' }} />
+                )}
+                {allOk
+                  ? <CheckCircle2 className="relative w-7 h-7" style={{ color: 'var(--status-success)' }} />
+                  : <AlertTriangle className="relative w-7 h-7" style={{ color: 'var(--status-danger)' }} />}
+              </span>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-h3 text-[var(--text-primary)]">
+                  {allOk ? t('systemStatus.banner.allOk') : t('systemStatus.banner.degraded')}
+                </h2>
+                <p className="text-small text-[var(--text-secondary)] mt-0.5">
+                  {allOk ? t('systemStatus.banner.allOkBody') : t('systemStatus.banner.degradedBody')}
+                </p>
               </div>
-              <Activity className="w-5 h-5 text-[var(--text-tertiary)]" />
-            </div>
-          </Card>
+              <div className="hidden sm:block text-right text-caption text-[var(--text-tertiary)] whitespace-nowrap tabular-nums">
+                {lastPolled ? t('systemStatus.banner.lastChecked', { time: time(lastPolled) }) : t('systemStatus.banner.probing')}
+              </div>
+            </motion.section>
 
-          {/* DB latency */}
-          <div className="mb-5">
-            <Card variant="paper">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-md flex items-center justify-center ${
-                    health.db.ok ? 'bg-[var(--accent-green-light)]' : 'bg-[var(--accent-red-light)]'
-                  }`}>
-                    <Database className={`w-5 h-5 ${
-                      health.db.ok ? 'text-[var(--accent-green)]' : 'text-[var(--accent-red)]'
-                    }`} />
-                  </div>
-                  <div>
-                    <div className="text-[14px] font-semibold text-[var(--text-primary)]">
-                      Database (Neon Postgres)
-                    </div>
-                    <div className="text-[12.5px] text-[var(--text-secondary)] mt-0.5">
-                      {health.db.ok
-                        ? `SELECT 1 returned in ${health.db.latencyMs ?? '?'}ms`
-                        : health.db.error ?? 'unavailable'}
-                    </div>
-                  </div>
-                </div>
-                {health.db.ok
-                  ? <Badge variant="green">healthy</Badge>
-                  : <Badge variant="red">down</Badge>}
-              </div>
-            </Card>
-          </div>
+            {error && (
+              <p role="alert" className="flex items-center gap-2 text-small text-[var(--status-warning)]">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" aria-hidden />
+                {t('systemStatus.errors.stale', { time: lastPolled ? time(lastPolled) : '—' })}
+              </p>
+            )}
 
-          {/* Integration grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-5">
-            <IntegrationCard
-              name="Transactional email"
-              icon={Mail}
-              configured={health.integrations.email.configured}
-              provider={health.integrations.email.provider}
-              setupGuide="#setup/email"
+            {/* Key figures */}
+            <StatLedger
+              aria-label={t('systemStatus.ledger.label')}
+              items={[
+                {
+                  id: 'db',
+                  label: t('systemStatus.db.title'),
+                  value: health.db.ok ? t('systemStatus.db.healthy') : t('systemStatus.db.down'),
+                  tone: health.db.ok ? 'success' : 'danger',
+                  hint: health.db.ok ? t('systemStatus.db.engine') : (health.db.error ?? t('systemStatus.db.unavailable')),
+                },
+                {
+                  id: 'latency',
+                  label: t('systemStatus.db.latencyLabel'),
+                  value: health.db.ok && typeof latency === 'number' ? latency : '—',
+                  unit: health.db.ok && typeof latency === 'number' ? t('systemStatus.db.ms') : undefined,
+                  tone: !health.db.ok || typeof latency !== 'number' ? 'neutral' : latency > SLOW_DB_MS ? 'warning' : 'success',
+                  hint: t('systemStatus.db.latencyHint'),
+                },
+                {
+                  id: 'integrations',
+                  label: t('systemStatus.ledger.integrations'),
+                  value: `${f.number(configuredCount)} / ${f.number(integrations.length)}`,
+                  tone: configuredCount === integrations.length ? 'success' : 'neutral',
+                  hint: t('systemStatus.ledger.integrationsHint'),
+                },
+                {
+                  id: 'region',
+                  label: t('systemStatus.footer.region'),
+                  value: health.region,
+                  tone: 'neutral',
+                  hint: t('systemStatus.ledger.version', { version: health.version }),
+                },
+              ]}
             />
-            <IntegrationCard
-              name="Single sign-on (SAML)"
-              icon={Shield}
-              configured={health.integrations.sso.configured}
-              provider={health.integrations.sso.provider}
-              setupGuide="#setup/sso"
-            />
-            <IntegrationCard
-              name="AI drafting"
-              icon={Sparkles}
-              configured={health.integrations.ai.configured}
-              provider={health.integrations.ai.provider}
-              setupGuide="#setup/ai"
-            />
-            <IntegrationCard
-              name="Error monitoring"
-              icon={Bug}
-              configured={health.integrations.sentry.configured}
-              setupGuide="#setup/sentry"
-            />
-            <IntegrationCard
-              name="EU data residency"
-              icon={Globe2}
-              configured={health.integrations.euRegion.configured}
-              setupGuide="#setup/eu-region"
-            />
-            <IntegrationCard
-              name="APAC data residency"
-              icon={Globe2}
-              configured={health.integrations.apacRegion.configured}
-              setupGuide="#setup/apac-region"
-            />
-          </div>
 
-          {/* Footer */}
-          <Card variant="paper">
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px] text-[var(--text-tertiary)]">
-              <div>
-                Version <span className="font-mono text-[var(--text-secondary)]">{health.version}</span>
-              </div>
-              <div>
-                Region <span className="font-mono text-[var(--text-secondary)]">{health.region}</span>
-              </div>
-              <div>
-                Probed at <span className="font-mono text-[var(--text-secondary)]">{new Date(health.timestamp).toLocaleString()}</span>
-              </div>
-            </div>
-          </Card>
-        </>
-      ) : null}
+            {/* Integrations */}
+            <section className="surface-paper overflow-hidden" aria-labelledby="integrations-heading">
+              <header className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-[var(--border-subtle)]">
+                <h2 id="integrations-heading" className="text-h3 text-[var(--text-primary)]">{t('systemStatus.ledger.integrations')}</h2>
+                <span className="text-caption text-[var(--text-tertiary)] tabular-nums whitespace-nowrap">
+                  {t('systemStatus.integration.count', { configured: f.number(configuredCount), total: f.number(integrations.length) })}
+                </span>
+              </header>
+              <ul className="grid md:grid-cols-2 gap-px bg-[var(--border-subtle)]">
+                {integrations.map(({ key, ...rest }) => <IntegrationRow key={key} {...rest} />)}
+              </ul>
+            </section>
+
+            <p className="text-caption text-[var(--text-tertiary)] tabular-nums">
+              {t('systemStatus.footer.version')} <span className="font-mono text-[var(--text-secondary)]">{health.version}</span>
+              <span className="mx-2" aria-hidden>·</span>
+              {t('systemStatus.footer.probedAt')} <span className="text-[var(--text-secondary)] whitespace-nowrap">{f.dateTime(health.timestamp, { seconds: true })}</span>
+            </p>
+          </>
+        )}
+      </StateBoundary>
     </div>
   )
 }

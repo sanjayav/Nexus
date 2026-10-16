@@ -1,36 +1,45 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { FileText, ArrowRight, Paperclip, Info } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
+import { FileText, ArrowRight, Info, X } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
 import { SkeletonTable } from '../components/Skeleton'
-import EmptyState from '../components/EmptyState'
-import { EmptyEvidenceIllustration } from '../data/illustrations'
+import { StateBoundary, StatusPill } from '../components/ui'
 import { useAuth } from '../auth/AuthContext'
 import { orgStore, type QuestionAssignment } from '../lib/orgStore'
+import { itemLabel } from '../lib/itemLabel'
+import { useFmt } from '../lib/fmt'
+import { transition } from '../motion/tokens'
 
 /**
- * EvidenceLibrary — a top-level browsable list of every file attached to
- * the org's disclosures. v1 derives the list from assignments whose
- * `evidence_ids` are populated; no dedicated endpoint yet.
+ * EvidenceLibrary — every disclosure that has evidence attached. v1 derives
+ * the list from assignments whose `evidence_ids` are populated (no dedicated
+ * endpoint yet). Rows open the shared entry page for that assignment.
  */
 export default function EvidenceLibrary() {
+  const { t, i18n } = useTranslation()
+  const f = useFmt()
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [items, setItems] = useState<QuestionAssignment[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [showUploadPrompt, setShowUploadPrompt] = useState(false)
 
-  useEffect(() => {
-    if (!user) return
-    let cancelled = false
-    void orgStore.listAssignments()
-      .then(rows => { if (!cancelled) setItems(rows) })
-      .catch(() => { if (!cancelled) setItems([]) })
-    return () => { cancelled = true }
-  }, [user])
+  const load = useCallback(async () => {
+    setError(null)
+    setItems(null)
+    try {
+      setItems(await orgStore.listAssignments())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    }
+  }, [])
 
-  // "+ New evidence" handoff: surface the upload guidance banner and clear
-  // the query param so a reload doesn't re-trigger it.
+  useEffect(() => { if (user) void load() }, [user, load])
+
+  // "+ New evidence" handoff: show the upload guidance and clear the param.
   useEffect(() => {
     if (searchParams.get('upload') === '1') {
       setShowUploadPrompt(true)
@@ -40,117 +49,132 @@ export default function EvidenceLibrary() {
     }
   }, [searchParams, setSearchParams])
 
-  const evidenced = useMemo(() => {
-    if (!items) return []
-    return items.filter(a => (a.evidence_ids?.length ?? 0) > 0)
-  }, [items])
+  const evidenced = useMemo(() => (items ?? []).filter(a => (a.evidence_ids?.length ?? 0) > 0), [items])
+  const totalFiles = useMemo(() => evidenced.reduce((s, a) => s + (a.evidence_ids?.length ?? 0), 0), [evidenced])
 
-  const totalFiles = useMemo(
-    () => evidenced.reduce((s, a) => s + (a.evidence_ids?.length ?? 0), 0),
-    [evidenced]
-  )
+  const description = error
+    ? undefined
+    : items === null
+      ? t('evidence.description.loading')
+      : evidenced.length === 0
+        ? t('evidence.description.empty')
+        : t('evidence.description.summary', {
+            files: t('evidence.description.fileCount', { count: totalFiles }),
+            disclosures: t('evidence.description.disclosureCount', { count: evidenced.length }),
+          })
+
+  const openRow = (a: QuestionAssignment) => navigate(`/data/entry/${encodeURIComponent(a.questionId)}?assignment=${encodeURIComponent(a.id)}`)
 
   return (
     <div className="page-container space-y-6">
-      <PageHeader
-        breadcrumbs={[
-          { label: 'Data', to: '/data' },
-          { label: 'Evidence' },
-        ]}
-        title="Evidence"
-        description={
-          items === null
-            ? 'Listing every file attached to disclosures across this org.'
-            : evidenced.length === 0
-              ? 'No evidence uploaded yet. Attach files to disclosures from the data-entry page.'
-              : `${totalFiles} file${totalFiles === 1 ? '' : 's'} attached across ${evidenced.length} disclosure${evidenced.length === 1 ? '' : 's'}.`
-        }
-      />
+      <PageHeader title={t('evidence.title')} description={description} />
 
-      {showUploadPrompt && (
-        <div
-          role="status"
-          className="flex items-start gap-3 rounded-[12px] border border-[var(--color-brand)]/30 bg-[var(--color-brand-soft)] px-4 py-3 text-[13px]"
-        >
-          <Info className="w-4 h-4 mt-0.5 text-[var(--color-brand)] flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <div className="font-semibold text-[var(--text-primary)]">Attach evidence to a disclosure</div>
-            <p className="text-[var(--text-secondary)] mt-0.5">
-              Evidence is anchored to a specific value. Open a disclosure from My Tasks and use the right-rail "Attach evidence" button to upload a file.
-            </p>
-          </div>
-          <button
-            onClick={() => navigate('/my-tasks')}
-            className="text-[12.5px] font-semibold text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] inline-flex items-center gap-1"
+      <AnimatePresence initial={false}>
+        {showUploadPrompt && (
+          <motion.div
+            role="status"
+            initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }} transition={transition.base}
+            className="flex items-start gap-3 rounded-[var(--radius-lg)] border border-[var(--status-info-line)] bg-[var(--status-info-soft)] px-4 py-3"
           >
-            Open My Tasks <ArrowRight className="w-3 h-3" />
-          </button>
-          <button
-            onClick={() => setShowUploadPrompt(false)}
-            aria-label="Dismiss"
-            className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] text-[16px] leading-none px-1"
-          >
-            ×
-          </button>
-        </div>
-      )}
+            <Info className="w-4 h-4 mt-0.5 text-[var(--status-info)] flex-shrink-0" aria-hidden />
+            <div className="flex-1 min-w-0">
+              <div className="text-small font-semibold text-[var(--text-primary)]">{t('evidence.uploadPrompt.title')}</div>
+              <p className="text-small text-[var(--text-secondary)] mt-0.5">{t('evidence.uploadPrompt.body')}</p>
+              <Link to="/my-tasks" className="mt-1.5 inline-flex items-center gap-1 h-8 text-small font-semibold text-[var(--color-brand-strong)] hover:underline underline-offset-2">
+                {t('evidence.uploadPrompt.openMyTasks')} <ArrowRight className="w-3.5 h-3.5" aria-hidden />
+              </Link>
+            </div>
+            <button
+              onClick={() => setShowUploadPrompt(false)}
+              aria-label={t('evidence.uploadPrompt.dismiss')}
+              className="w-9 h-9 -mr-1 -mt-1 rounded-[var(--radius-sm)] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
+            >
+              <X className="w-4 h-4" aria-hidden />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {items === null ? (
-        <SkeletonTable rows={5} cols={4} />
-      ) : evidenced.length === 0 ? (
-        <div className="rounded-[12px] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)]">
-          <EmptyState
-            illustration={EmptyEvidenceIllustration}
-            icon={Paperclip}
-            title="No evidence yet"
-            body="Open any disclosure in My Tasks and attach a supporting file. Once evidence is uploaded it will appear here, fully searchable."
-            cta={{ label: 'Open My Tasks', onClick: () => navigate('/my-tasks') }}
-          />
-        </div>
-      ) : (
-        <div className="rounded-[12px] border border-[var(--border-subtle)] overflow-hidden bg-[var(--bg-primary)]">
-          <table className="w-full text-[13px]">
-            <thead className="bg-[var(--bg-secondary)] text-[11px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)]">
+      <StateBoundary
+        loading={items === null && !error}
+        error={error}
+        onRetry={() => void load()}
+        errorState={{ title: t('evidence.error.title') }}
+        empty={items !== null && evidenced.length === 0}
+        emptyState={{
+          art: 'upload',
+          title: t('evidence.empty.title'),
+          body: t('evidence.empty.body'),
+          cta: { label: t('evidence.empty.cta'), onClick: () => navigate('/my-tasks') },
+          framed: true,
+        }}
+        skeleton={<SkeletonTable rows={5} cols={4} />}
+      >
+        <div className="surface-paper overflow-hidden">
+          {/* Desktop table */}
+          <table className="hidden md:table w-full text-small">
+            <thead className="bg-[var(--bg-secondary)] text-caption font-semibold text-[var(--text-secondary)]">
               <tr>
-                <th className="text-left px-4 py-3">Disclosure</th>
-                <th className="text-left px-4 py-3">Files</th>
-                <th className="text-left px-4 py-3">Assignee</th>
-                <th className="text-left px-4 py-3">Last updated</th>
-                <th className="w-10" />
+                <th className="text-left px-4 py-3">{t('evidence.columns.disclosure')}</th>
+                <th className="text-left px-4 py-3">{t('evidence.columns.files')}</th>
+                <th className="text-left px-4 py-3">{t('evidence.columns.status')}</th>
+                <th className="text-left px-4 py-3">{t('evidence.columns.assignee')}</th>
+                <th className="text-left px-4 py-3">{t('evidence.columns.lastUpdated')}</th>
+                <th className="w-12"><span className="sr-only">{t('evidence.openDisclosure')}</span></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-subtle)]">
               {evidenced.map(a => (
-                <tr key={a.id} className="hover:bg-[var(--bg-hover)]">
-                  <td className="px-4 py-3">
-                    <div className="font-mono text-[11px] text-[var(--text-tertiary)]">{a.gri_code}</div>
-                    <div className="text-[var(--text-primary)] font-medium truncate max-w-[420px]">{a.line_item}</div>
+                <tr key={a.id} className="group hover:bg-[var(--bg-secondary)] cursor-pointer" onClick={() => openRow(a)}>
+                  <td className="px-4 py-3 max-w-[460px]">
+                    <div className="font-mono text-caption text-[var(--text-tertiary)]">{a.gri_code}</div>
+                    <div className="text-[var(--text-primary)] font-medium truncate">{itemLabel(a, i18n.language)}</div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1.5 text-[var(--text-secondary)]">
-                      <FileText className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
+                    <span className="inline-flex items-center gap-1.5 text-[var(--text-secondary)] tabular-nums">
+                      <FileText className="w-3.5 h-3.5 text-[var(--text-tertiary)]" aria-hidden />
                       {a.evidence_ids?.length ?? 0}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-[var(--text-secondary)] truncate max-w-[200px]">{a.assigneeName ?? '—'}</td>
-                  <td className="px-4 py-3 text-[var(--text-tertiary)]">
-                    {a.last_updated ? new Date(a.last_updated).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3"><StatusPill status={a.status} size="sm" /></td>
+                  <td className="px-4 py-3 text-[var(--text-secondary)] truncate max-w-[200px]">{a.assigneeName || '—'}</td>
+                  <td className="px-4 py-3 text-[var(--text-tertiary)] whitespace-nowrap tabular-nums">{a.last_updated ? f.date(a.last_updated) : '—'}</td>
+                  <td className="px-2 py-3 text-right">
                     <button
-                      onClick={() => navigate(`/data/entry/${a.questionId}`)}
-                      className="text-[var(--color-brand)] hover:text-[var(--color-brand-strong)] inline-flex items-center"
-                      aria-label="Open disclosure"
+                      onClick={e => { e.stopPropagation(); openRow(a) }}
+                      className="w-9 h-9 rounded-[var(--radius-sm)] inline-flex items-center justify-center text-[var(--color-brand-strong)] hover:bg-[var(--color-brand-soft)]"
+                      aria-label={`${t('evidence.openDisclosure')} ${a.gri_code}`}
                     >
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
                     </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+
+          {/* Mobile list */}
+          <ul className="md:hidden divide-y divide-[var(--border-subtle)]">
+            {evidenced.map(a => (
+              <li key={a.id}>
+                <button type="button" onClick={() => openRow(a)} className="w-full text-left px-4 py-3 flex items-start gap-3 hover:bg-[var(--bg-secondary)]">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-caption text-[var(--text-tertiary)]">{a.gri_code}</span>
+                      <StatusPill status={a.status} size="sm" />
+                    </div>
+                    <div className="text-small font-medium text-[var(--text-primary)] mt-0.5">{itemLabel(a, i18n.language)}</div>
+                    <div className="text-caption text-[var(--text-tertiary)] mt-0.5 tabular-nums">
+                      {t('evidence.description.fileCount', { count: a.evidence_ids?.length ?? 0 })}{a.assigneeName ? ` · ${a.assigneeName}` : ''}{a.last_updated ? ` · ${f.date(a.last_updated)}` : ''}
+                    </div>
+                  </div>
+                  <ArrowRight className="w-4 h-4 mt-1 text-[var(--text-tertiary)] flex-shrink-0" aria-hidden />
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
-      )}
+      </StateBoundary>
     </div>
   )
 }

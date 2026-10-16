@@ -1,4 +1,5 @@
 import type { Sql } from './_db.js'
+import { stampDataValueOrg } from './_tenancy.js'
 
 // ═══════════════════════════════════════════════════════════════════
 // Linked-data propagation engine.
@@ -20,6 +21,12 @@ import type { Sql } from './_db.js'
 //     never duplicates — UPDATE/INSERT branches keyed by lookup row.
 //   • Same scope_key + facility_id + reporting_year_id are preserved across
 //     peers so multi-facility, multi-scope data still maps 1:1.
+//   • Tenancy (see api/_tenancy.ts): the source must belong to `orgId` AND
+//     sit in one of `orgId`'s own reporting years; peer rows are only looked
+//     up / updated within `orgId`; every row written is stamped org_id=orgId.
+//     A legacy value that lives in another org's reporting year (the old
+//     hard-coded client year) is not propagated: a derived row has no
+//     entering user, so it would fall back to that year's org.
 // ═══════════════════════════════════════════════════════════════════
 
 export interface PropagationResult {
@@ -52,15 +59,21 @@ interface ConceptPeer {
 export async function propagateApprovedValue(
   sql: Sql,
   approvedValueId: string,
+  orgId: string,
 ): Promise<PropagationResult> {
   const result: PropagationResult = { inserted: 0, updated: 0, skipped: 0, conceptKey: null }
 
-  // 1. Look up the approved row.
+  // 1. Look up the approved row — only if it is the caller org's value in
+  //    one of the caller org's own reporting years.
   const sourceRows = await sql`
-    SELECT id, questionnaire_item_id, reporting_year_id, facility_id,
-           scope_key, value, unit
-    FROM data_value
-    WHERE id = ${approvedValueId}
+    SELECT dv.id, dv.questionnaire_item_id, dv.reporting_year_id, dv.facility_id,
+           dv.scope_key, dv.value, dv.unit
+    FROM data_value dv
+    LEFT JOIN users eu ON eu.id = dv.entered_by
+    LEFT JOIN reporting_year ry ON ry.id = dv.reporting_year_id
+    WHERE dv.id = ${approvedValueId}
+      AND COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${orgId}
+      AND ry.organisation_id = ${orgId}
     LIMIT 1
   ` as SourceRow[]
   if (sourceRows.length === 0) return result
@@ -96,15 +109,20 @@ export async function propagateApprovedValue(
     const sourceValue = Number(source.value)
     const peerValue = sourceValue * (peerUnitConv / sourceUnitConv)
 
-    // Look up existing peer row. Match on (questionnaire_item, year, facility,
-    // scope_key) — facility/scope_key are nullable so we use IS NOT DISTINCT FROM.
+    // Look up the caller org's existing peer row. Match on (questionnaire_item,
+    // year, facility, scope_key) — facility/scope_key are nullable so we use
+    // IS NOT DISTINCT FROM. Without the owner predicate a shared reporting
+    // year would match — and overwrite — another tenant's value.
     const existing = await sql`
-      SELECT id, is_overridden
-      FROM data_value
-      WHERE questionnaire_item_id = ${peer.questionnaire_item_id}
-        AND reporting_year_id    = ${source.reporting_year_id}
-        AND facility_id IS NOT DISTINCT FROM ${source.facility_id}
-        AND scope_key   IS NOT DISTINCT FROM ${source.scope_key}
+      SELECT dv.id, dv.is_overridden
+      FROM data_value dv
+      LEFT JOIN users eu ON eu.id = dv.entered_by
+      LEFT JOIN reporting_year ry ON ry.id = dv.reporting_year_id
+      WHERE dv.questionnaire_item_id = ${peer.questionnaire_item_id}
+        AND dv.reporting_year_id    = ${source.reporting_year_id}
+        AND dv.facility_id IS NOT DISTINCT FROM ${source.facility_id}
+        AND dv.scope_key   IS NOT DISTINCT FROM ${source.scope_key}
+        AND COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${orgId}
       LIMIT 1
     ` as Array<{ id: string; is_overridden: boolean | null }>
 
@@ -125,10 +143,11 @@ export async function propagateApprovedValue(
             entered_at    = COALESCE(entered_at, now())
         WHERE id = ${existing[0].id}
       `
+      await stampDataValueOrg(sql, existing[0].id, orgId)
       result.updated++
     } else {
       // Insert a new approved derived row.
-      await sql`
+      const inserted = await sql`
         INSERT INTO data_value
           (questionnaire_item_id, reporting_year_id, facility_id, scope_key,
            value, unit, entry_mode, status,
@@ -140,7 +159,9 @@ export async function propagateApprovedValue(
            ${peerValue}, ${source.unit}, 'Manual', 'approved',
            now(), now(),
            ${source.id}, false)
-      `
+        RETURNING id
+      ` as Array<{ id: string }>
+      if (inserted[0]) await stampDataValueOrg(sql, inserted[0].id, orgId)
       result.inserted++
     }
   }

@@ -1,3 +1,13 @@
+/** Mainland-China system CJK faces (no CJK web font is downloaded). */
+const CJK_FALLBACK = ['"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', '"Noto Sans SC"', '"Source Han Sans SC"']
+
+/**
+ * Latin is always self-hosted Inter (public/fonts, see index.css @font-face);
+ * Hanzi fall through to the platform face.
+ */
+const SANS = ['InterVariable', 'Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', ...CJK_FALLBACK, 'system-ui', 'sans-serif']
+const MONO = ['"JetBrains Mono"', 'ui-monospace', '"SF Mono"', 'Menlo', 'Consolas', ...CJK_FALLBACK, 'monospace']
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -7,80 +17,102 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Neutrals
+        // Neutrals — resolve through the CSS tokens so they follow light/dark.
         surface: {
-          primary: '#FFFFFF',
-          secondary: '#F7F7F5',
-          tertiary: '#EEEDE8',
-          inverse: '#1A1A1A',
-          'inverse-soft': '#2C2C2A',
+          primary: 'var(--bg-primary)',
+          secondary: 'var(--bg-secondary)',
+          tertiary: 'var(--bg-tertiary)',
+          inverse: 'var(--bg-inverse)',
+          'inverse-soft': 'var(--bg-inverse-soft)',
         },
         content: {
-          primary: '#1A1A1A',
-          secondary: '#6B6B67',
-          tertiary: '#9C9A92',
-          inverse: '#FFFFFF',
+          primary: 'var(--text-primary)',
+          secondary: 'var(--text-secondary)',
+          tertiary: 'var(--text-tertiary)',
+          inverse: 'var(--text-inverse)',
         },
         border: {
-          DEFAULT: '#E5E4DF',
-          strong: '#D3D1C7',
-          subtle: '#F0EFE9',
+          DEFAULT: 'var(--border-default)',
+          strong: 'var(--border-strong)',
+          subtle: 'var(--border-subtle)',
         },
-        // Semantic accents
-        teal: {
-          DEFAULT: '#0F7B6F',
-          light: '#E1F5EE',
+        brand: {
+          DEFAULT: 'var(--color-brand)',
+          strong: 'var(--color-brand-strong)',
+          soft: 'var(--color-brand-soft)',
         },
-        blue: {
-          DEFAULT: '#1E5FA5',
-          light: '#E6F1FB',
-        },
-        purple: {
-          DEFAULT: '#534AB7',
-          light: '#EEEDFE',
-        },
-        amber: {
-          DEFAULT: '#BA7517',
-          light: '#FAEEDA',
-        },
-        red: {
-          DEFAULT: '#A32D2D',
-          light: '#FCEBEB',
-        },
+        // Semantic accents (legacy DEFAULT/light pairs; the Tailwind numeric
+        // scales are still merged in for now — the pages lint guard is wave 2).
+        teal: { DEFAULT: '#0F7B6F', light: '#E1F5EE' },
+        blue: { DEFAULT: '#1E5FA5', light: '#E6F1FB' },
+        purple: { DEFAULT: '#534AB7', light: '#EEEDFE' },
+        amber: { DEFAULT: '#BA7517', light: '#FAEEDA' },
+        red: { DEFAULT: '#A32D2D', light: '#FCEBEB' },
         coral: '#D85A30',
-        green: {
-          DEFAULT: '#3B6D11',
-          light: '#EAF3DE',
-        },
+        green: { DEFAULT: '#3B6D11', light: '#EAF3DE' },
       },
       fontFamily: {
-        display: ['"Instrument Sans"', '"DM Sans"', 'sans-serif'],
-        body: ['"DM Sans"', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'monospace'],
+        display: SANS,
+        body: SANS,
+        sans: SANS,
+        mono: MONO,
       },
+      // One ramp. Legacy keys (xs…5xl) map onto it; the named steps are the
+      // vocabulary for new work. `display-lg` is the 40/44 "display" step —
+      // named so it doesn't collide with the legacy `.text-display` face class.
       fontSize: {
-        'xs': '11px',
-        'sm': '13px',
-        'base': '15px',
-        'lg': '17px',
-        'xl': '20px',
-        '2xl': '24px',
-        '3xl': '30px',
-        '4xl': '40px',
-        '5xl': '56px',
+        'micro':      ['11px', { lineHeight: '14px' }],
+        'caption':    ['12px', { lineHeight: '16px' }],
+        'small':      ['13px', { lineHeight: '20px' }],
+        'body':       ['14px', { lineHeight: '22px' }],
+        'h3':         ['16px', { lineHeight: '24px', letterSpacing: '-0.006em', fontWeight: '600' }],
+        'h2':         ['20px', { lineHeight: '28px', letterSpacing: '-0.012em', fontWeight: '600' }],
+        'h1':         ['28px', { lineHeight: '34px', letterSpacing: '-0.02em', fontWeight: '600' }],
+        'display-lg': ['40px', { lineHeight: '44px', letterSpacing: '-0.025em', fontWeight: '650' }],
+        'display-xl': ['56px', { lineHeight: '60px', letterSpacing: '-0.03em', fontWeight: '650' }],
+        'xs':   ['12px', { lineHeight: '16px' }],
+        'sm':   ['13px', { lineHeight: '20px' }],
+        'base': ['14px', { lineHeight: '22px' }],
+        'lg':   ['16px', { lineHeight: '24px' }],
+        'xl':   ['20px', { lineHeight: '28px' }],
+        '2xl':  ['24px', { lineHeight: '30px' }],
+        '3xl':  ['28px', { lineHeight: '34px' }],
+        '4xl':  ['40px', { lineHeight: '44px' }],
+        '5xl':  ['56px', { lineHeight: '60px' }],
       },
       borderRadius: {
         'sm': '6px',
-        'md': '10px',
-        'lg': '14px',
-        'xl': '20px',
+        'md': '8px',
+        'lg': '12px',
+        'xl': '16px',
+        '2xl': '20px',
         'full': '9999px',
       },
+      // Three elevations only — every Tailwind shadow resolves to one of them.
       boxShadow: {
-        'sm': '0 1px 2px rgba(0,0,0,0.04)',
-        'md': '0 2px 8px rgba(0,0,0,0.06)',
-        'lg': '0 4px 16px rgba(0,0,0,0.08)',
-        'card': '0 1px 3px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.02)',
+        'sm': 'var(--shadow-card)',
+        'DEFAULT': 'var(--shadow-card)',
+        'card': 'var(--shadow-card)',
+        'md': 'var(--shadow-raised)',
+        'lg': 'var(--shadow-raised)',
+        'raised': 'var(--shadow-raised)',
+        'xl': 'var(--shadow-overlay)',
+        '2xl': 'var(--shadow-overlay)',
+        'overlay': 'var(--shadow-overlay)',
+      },
+      transitionDuration: {
+        '120': '120ms',
+        '180': '180ms',
+        '240': '240ms',
+        '250': '250ms',
+        'micro': '120ms',
+        'fast': '180ms',
+        'base': '240ms',
+        'slow': '400ms',
+      },
+      transitionTimingFunction: {
+        'out': 'cubic-bezier(0.22, 1, 0.36, 1)',
+        'in-out': 'cubic-bezier(0.65, 0, 0.35, 1)',
       },
       spacing: {
         '1': '4px',
@@ -93,7 +125,6 @@ export default {
         '10': '40px',
         '12': '48px',
         '16': '64px',
-        // Premium spacing — responsive page gutters and card rhythm
         'page-x':  'clamp(1rem, 4vw, 3rem)',
         'page-y':  'clamp(2rem, 5vh, 4rem)',
         'section': '4rem',

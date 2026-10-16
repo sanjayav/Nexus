@@ -1,0 +1,38 @@
+{
+  "title": "Regulatory calendar",
+  "subtitle": "Filing deadlines for your markets",
+  "fullCalendar": "Full calendar",
+  "appliesToYou": "Applies to you",
+  "otherDeadlines": "Other deadlines",
+  "showMore_one": "Show {{count}} more",
+  "showMore_other": "Show {{count}} more",
+  "showLess": "Show less",
+  "perMeeNotice": "Per MEE annual notice",
+  "perNotice": "Set by annual notice",
+  "dueToday": "Due today",
+  "dueIn_one": "in {{count}} day",
+  "dueIn_other": "in {{count}} days",
+  "overdue_one": "{{count}} day overdue",
+  "overdue_other": "{{count}} days overdue",
+  "region": {
+    "CN": "Mainland China",
+    "HK": "Hong Kong",
+    "EU": "EU",
+    "GLOBAL": "Global"
+  },
+  "kind": {
+    "mandatory": "Mandatory",
+    "voluntary": "Voluntary"
+  },
+  "openFramework": "Open {{name}}",
+  "empty": {
+    "title": "No deadlines for your markets",
+    "body": "Deadlines appear here once your market and frameworks are set in Settings."
+  },
+  "error": {
+    "title": "Couldn't load the regulatory calendar",
+    "body": "Deadlines aren't shown until they load, so don't read this as nothing due."
+  },
+  "regionFilter": "Filter by region",
+  "allRegions": "All regions"
+}

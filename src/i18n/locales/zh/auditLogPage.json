@@ -1,0 +1,123 @@
+{
+  "title": "审计日志",
+  "description": "不可篡改地记录登录、角色、指派及配置变更事件。可筛选缩小范围，并将结果导出为 CSV，用于鉴证证据包。",
+  "exportCsv": "导出 CSV",
+  "exporting": "正在导出…",
+  "errors": {
+    "load": "审计日志加载失败",
+    "export": "导出失败",
+    "loadTitle": "审计日志未能加载",
+    "loadBody": "暂时无法连接服务器，以下事件尚未确认。所有数据均未更改。"
+  },
+  "filters": {
+    "title": "筛选条件",
+    "from": "开始时间",
+    "to": "结束时间",
+    "actor": "操作人",
+    "anyone": "任何人",
+    "results": "结果",
+    "loading": "加载中…",
+    "events_one": "{{formattedCount}} 条事件",
+    "events_other": "{{formattedCount}} 条事件",
+    "actionType": "操作类型",
+    "resourceType": "资源类型",
+    "clearAll": "清除所有筛选条件"
+  },
+  "table": {
+    "timestamp": "时间戳",
+    "actor": "操作人",
+    "action": "操作",
+    "resource": "资源",
+    "target": "对象",
+    "ip": "IP",
+    "details": "详情",
+    "system": "系统",
+    "hide": "收起",
+    "show": "展开"
+  },
+  "empty": {
+    "title": "没有匹配的审计事件",
+    "body": "请尝试扩大日期范围或清除筛选条件。工作区内的每一项变更都会记录于此，以供鉴证使用。",
+    "noneTitle": "暂无审计事件",
+    "noneBody": "工作区内的每一次登录、角色变更和编辑都会记录于此，以供鉴证使用。"
+  },
+  "pagination": {
+    "pageOf": "第 {{page}} 页，共 {{total}} 页",
+    "prev": "上一页",
+    "next": "下一页",
+    "range": "第 {{start}}–{{end}} 条，共 {{total}} 条"
+  },
+  "events": "事件",
+  "exportNothing": "没有可导出的事件",
+  "exported_one": "已导出 {{formattedCount}} 条事件",
+  "exported_other": "已导出 {{formattedCount}} 条事件",
+  "actions": {
+    "auth": {
+      "login": "登录",
+      "logout": "退出登录"
+    },
+    "user": {
+      "create": "新增用户",
+      "update": "更新用户",
+      "roles_change": "变更角色"
+    },
+    "role": {
+      "update": "更新角色权限"
+    },
+    "assignment": {
+      "create": "创建指派",
+      "created": "创建指派",
+      "submitted": "提交审核",
+      "reviewed": "已审核",
+      "approved": "已批准",
+      "rejected": "退回修改"
+    },
+    "period": {
+      "activated": "开启报告周期"
+    },
+    "evidence": {
+      "uploaded": "上传证据"
+    },
+    "report": {
+      "share_link_created": "创建报告分享链接"
+    },
+    "materiality": {
+      "finalized": "确定重要性评估"
+    },
+    "anomaly": {
+      "status_change": "变更异常状态"
+    },
+    "org_settings": {
+      "update": "更新工作区设置"
+    },
+    "org_webhook": {
+      "upsert": "保存 Webhook",
+      "update": "更新 Webhook",
+      "test": "测试 Webhook",
+      "delete": "删除 Webhook"
+    },
+    "emission_factor": {
+      "delete": "删除排放因子"
+    },
+    "carbon_credit": {
+      "create": "新增碳信用",
+      "update": "更新碳信用",
+      "delete": "删除碳信用"
+    },
+    "green_certificate": {
+      "create": "新增绿证",
+      "update": "更新绿证",
+      "delete": "删除绿证"
+    }
+  },
+  "resources": {
+    "user": "用户",
+    "role": "角色",
+    "assignment": "指派",
+    "organisation": "组织",
+    "report": "报告",
+    "reporting_period": "报告周期",
+    "evidence": "证据",
+    "period": "报告周期"
+  }
+}

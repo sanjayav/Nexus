@@ -1,0 +1,12 @@
+{
+  "none": {
+    "title": "No open reporting year",
+    "body": "Your organisation doesn't have an open reporting year yet, so values can't be saved. Set one up under Reporting cycles, then come back here.",
+    "inlineBody": "Your organisation has no open reporting year yet. Edits are kept on the assignment, but they won't reach the workflow, audit trail or reports until a reporting year is set up.",
+    "cta": "Go to Reporting cycles",
+    "retry": "Check again"
+  },
+  "error": {
+    "title": "Couldn't load the reporting year"
+  }
+}

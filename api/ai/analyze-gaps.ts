@@ -10,8 +10,9 @@
  *   2. Pull all data_value rows for this org + reportingYear matching those items.
  *   3. Compute coverage totals + per-item filled/missing/value snapshot.
  *   4. Call Claude with structured tool output (submit_gap_analysis).
- *   5. Persist to ai_gap_analyses so a repeat call within 1h returns the
- *      cached row (unless ?force=1 or regenerate:true).
+ *   5. Persist to ai_gap_analyses so a repeat call within 1h in the same
+ *      locale returns the cached row (unless regenerate:true). Cache key:
+ *      (org, framework, year, locale); NULL locale on old rows = 'en'.
  *
  * Rate limit: 10/60s per org. Gated `analytics.view`.
  */
@@ -21,8 +22,8 @@ import { cors, requirePermission } from '../_auth.js'
 import { checkRateLimit } from '../_rateLimit.js'
 import { analyseGaps, type GapAnalysisContext, type GapAnalysisDisclosure, type GapAnalysisResult } from '../_claude.js'
 import { getDb } from '../_db.js'
+import { aiGate, aiLabel } from '../_llm.js'
 
-const MODEL = 'claude-sonnet-4-6'
 const CACHE_TTL_MINUTES = 60
 
 const schema = z.object({
@@ -66,12 +67,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return res.status(503).json({ error: 'ANTHROPIC_API_KEY not configured' })
-  }
-
   const t = await requirePermission(req, res, 'analytics.view')
   if (!t) return
+
+  const gate = await aiGate(getDb(), req, t)
+  if (!gate.ok) return res.status(gate.status).json(gate.body)
+  const locale = gate.locale
 
   const allowed = await checkRateLimit(req, res, {
     key: `ai-gaps:${t.org}`,
@@ -98,14 +99,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // spend. `regenerate: true` bypasses.
   if (!regenerate) {
     const cached = (await sql`
-      SELECT id, summary, missing_count, raw_response, model,
-             tokens_in, tokens_out, cached_tokens, created_at
-      FROM ai_gap_analyses
-      WHERE org_id = ${t.org}
-        AND framework_id = ${frameworkId}
-        AND reporting_year = ${reportingYear}
-        AND created_at > now() - (${CACHE_TTL_MINUTES}::int * INTERVAL '1 minute')
-      ORDER BY created_at DESC
+      SELECT g.id, g.summary, g.missing_count, g.raw_response, g.model,
+             g.tokens_in, g.tokens_out, g.cached_tokens, g.created_at
+      FROM ai_gap_analyses g
+      WHERE g.org_id = ${t.org}
+        AND g.framework_id = ${frameworkId}
+        AND g.reporting_year = ${reportingYear}
+        AND COALESCE(to_jsonb(g) ->> 'locale', 'en') = ${locale}
+        AND g.created_at > now() - (${CACHE_TTL_MINUTES}::int * INTERVAL '1 minute')
+      ORDER BY g.created_at DESC
       LIMIT 1
     `) as CachedRow[]
     if (cached.length > 0 && cached[0].raw_response) {
@@ -118,6 +120,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           tokensOut: cached[0].tokens_out ?? 0,
           cached: cached[0].cached_tokens ?? 0,
         },
+        ...aiLabel(locale, { model: cached[0].model ?? undefined }),
       })
     }
   }
@@ -151,7 +154,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
              (SELECT COUNT(*) FROM evidence ev WHERE ev.data_value_id = dv.id) AS evidence_count
       FROM data_value dv
       JOIN reporting_year ry ON ry.id = dv.reporting_year_id
-      WHERE ry.organisation_id = ${t.org}
+      LEFT JOIN users eu ON eu.id = dv.entered_by
+      -- Owner predicate (api/_tenancy.ts DATA_VALUE_OWNER_EXPR).
+      WHERE COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${t.org}
         AND ry.year = ${reportingYear}
         AND dv.questionnaire_item_id = ANY(${qiRows.map(r => r.id)}::uuid[])
     `) as DvRow[]
@@ -219,27 +224,47 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // ── Call Claude ─────────────────────────────────────────────
-  const result = await analyseGaps(ctx)
+  const result = await analyseGaps(ctx, { provider: gate.provider, locale })
   if (!result.ok || !result.result) {
     return res.status(502).json({ error: result.error ?? 'AI gap analysis failed' })
   }
 
   // ── Persist ─────────────────────────────────────────────────
   let savedId: string | null = null
+  const model = result.model ?? gate.provider.model
+  const createdBy = t.sub && !t.sub.startsWith('apikey:') ? t.sub : null
   try {
-    const inserted = (await sql`
-      INSERT INTO ai_gap_analyses
-        (org_id, framework_id, reporting_year, question,
-         summary, missing_count, raw_response, model,
-         tokens_in, tokens_out, cached_tokens, created_by)
-      VALUES
-        (${t.org}, ${frameworkId}, ${reportingYear}, ${question},
-         ${result.result.summary}, ${result.result.missingCount},
-         ${JSON.stringify(result.result)}::jsonb, ${MODEL},
-         ${result.tokensIn ?? 0}, ${result.tokensOut ?? 0},
-         ${result.cached ?? 0}, ${t.sub ?? null})
-      RETURNING id
-    `) as Array<{ id: string }>
+    let inserted: Array<{ id: string }>
+    try {
+      inserted = (await sql`
+        INSERT INTO ai_gap_analyses
+          (org_id, framework_id, reporting_year, question,
+           summary, missing_count, raw_response, model,
+           tokens_in, tokens_out, cached_tokens, created_by, locale, provider)
+        VALUES
+          (${t.org}, ${frameworkId}, ${reportingYear}, ${question},
+           ${result.result.summary}, ${result.result.missingCount},
+           ${JSON.stringify(result.result)}::jsonb, ${model},
+           ${result.tokensIn ?? 0}, ${result.tokensOut ?? 0},
+           ${result.cached ?? 0}, ${createdBy}, ${locale}, ${gate.provider.id})
+        RETURNING id
+      `) as Array<{ id: string }>
+    } catch {
+      // locale/provider columns not migrated yet (api/_cnSchema.ts).
+      inserted = (await sql`
+        INSERT INTO ai_gap_analyses
+          (org_id, framework_id, reporting_year, question,
+           summary, missing_count, raw_response, model,
+           tokens_in, tokens_out, cached_tokens, created_by)
+        VALUES
+          (${t.org}, ${frameworkId}, ${reportingYear}, ${question},
+           ${result.result.summary}, ${result.result.missingCount},
+           ${JSON.stringify(result.result)}::jsonb, ${model},
+           ${result.tokensIn ?? 0}, ${result.tokensOut ?? 0},
+           ${result.cached ?? 0}, ${createdBy})
+        RETURNING id
+      `) as Array<{ id: string }>
+    }
     savedId = inserted[0]?.id ?? null
   } catch (err) {
     // Persistence failure is non-fatal — return the inference anyway.
@@ -258,5 +283,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       tokensOut: result.tokensOut ?? 0,
       cached: result.cached ?? 0,
     },
+    ...aiLabel(locale, result),
   })
 }

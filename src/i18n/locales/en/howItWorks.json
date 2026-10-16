@@ -1,0 +1,80 @@
+{
+  "eyebrow": "How it works",
+  "title": "From zero to CSRD-ready in 48 hours",
+  "intro": "Most ESG platforms quote 4-month implementations. Nexus takes 2 days. Here's how.",
+  "why": {
+    "eyebrow": "Why so fast?",
+    "heading": "Four design choices that compress months into days.",
+    "frameworks": {
+      "title": "Frameworks pre-loaded",
+      "body": "{{count}} framework packs and {{items}} disclosure items are ready on day one — CSRD, ISSB, GRI, TCFD, CDP, SEC, EU Taxonomy, China's exchange guidelines and more. No template buildouts, no consultant-led configuration."
+    },
+    "ai": {
+      "title": "AI does the heavy lifting",
+      "body": "AI evidence extraction reads supplier PDFs and invoices, draft generators write the narrative, and a vendor-to-emission-factor matcher handles the spend-based maths — Claude by default, or a mainland provider per organisation."
+    },
+    "linked": {
+      "title": "Linked data, set once",
+      "body": "Change a single value — say, your London facility electricity figure — and every framework, every disclosure, every chart referencing it updates in lockstep."
+    },
+    "onboarding": {
+      "title": "Self-serve onboarding",
+      "body": "The welcome wizard walks first-time admins through entity setup, framework selection, and team invites. No implementation consultant required, no professional services fees."
+    }
+  },
+  "compare": {
+    "eyebrow": "Side-by-side",
+    "heading": "Legacy ESG platforms vs Nexus.",
+    "intro": "The honest summary across eight dimensions — without naming names. For a head-to-head against Workiva specifically, see <compareLink>/compare</compareLink>.",
+    "dimension": "Dimension",
+    "legacyPlatforms": "Legacy ESG platforms",
+    "legacy": "Legacy",
+    "nexus": "Nexus",
+    "seeWorkiva": "See the head-to-head vs Workiva",
+    "rows": {
+      "time": {
+        "dimension": "Time to first disclosure",
+        "legacy": "~4–6 months",
+        "nexus": "~48 hours"
+      },
+      "cost": {
+        "dimension": "Implementation cost",
+        "legacy": "$50K–$200K services",
+        "nexus": "No setup fee"
+      },
+      "pricing": {
+        "dimension": "Pricing transparency"
+      },
+      "learning": {
+        "dimension": "Learning curve",
+        "legacy": "Steep · training",
+        "nexus": "Hours, self-serve"
+      },
+      "native": {
+        "dimension": "Native ESG focus",
+        "legacy": "Bolted-on module",
+        "nexus": "ESG-first architecture"
+      },
+      "reuse": {
+        "dimension": "Multi-framework reuse",
+        "legacy": "Per-framework setup",
+        "nexus": "One dataset, all frameworks"
+      },
+      "ai": {
+        "dimension": "AI integration",
+        "legacy": "Add-on / partial",
+        "nexus": "Native Claude pipeline"
+      },
+      "audit": {
+        "dimension": "Audit trail",
+        "legacy": "Database logs",
+        "nexus": "Blockchain-anchored"
+      }
+    }
+  },
+  "cta": {
+    "heading": "Stop quoting six months. Start in two days.",
+    "primary": "Start free trial",
+    "secondary": "See pricing"
+  }
+}

@@ -1,0 +1,187 @@
+{
+  "header": {
+    "eyebrow": "Analytics",
+    "title": "Signals across your data",
+    "subtitle": "Data quality, variance, target gap, plant performance, materiality coverage — computed live from your approved figures and the historical baseline."
+  },
+  "dqi": {
+    "kicker": "Quality",
+    "title": "Data Quality Index",
+    "subtitle": "Weighted composite score (0–100) across completeness, timeliness, evidence, rework, and variance.",
+    "emptyTitle": "DQI is empty",
+    "emptyBody": "Your Data Quality Index lights up once approved assignments start coming in. Head to My tasks to file the first one.",
+    "emptyCta": "Open my tasks",
+    "ring": {
+      "strong": "Strong",
+      "improving": "Improving",
+      "needsWork": "Needs work",
+      "composite": "composite · 0–100",
+      "aria": "Data quality index {{score}} of 100 — {{label}}"
+    },
+    "components": {
+      "completeness": {
+        "label": "Completeness",
+        "hint": "{{approved}}/{{total}} approved"
+      },
+      "timeliness": {
+        "label": "On-time",
+        "hint": "{{onTime}}/{{dueEligible}} met deadline"
+      },
+      "evidence": {
+        "label": "Evidence",
+        "hint": "{{withEvidence}}/{{needsEvidence}} attached"
+      },
+      "rework": {
+        "label": "Low rework",
+        "hint": "{{rejected}} rejected"
+      },
+      "variance": {
+        "label": "Variance pass",
+        "hint": "{{variancePass}}/{{approvedNum}} within ±20% YoY"
+      }
+    },
+    "weight": "Weight {{pct}}%"
+  },
+  "pathway": {
+    "kicker": "Pathway",
+    "title": "Climate target & emissions decomposition",
+    "subtitle": "Where you are vs. where you committed to be, and which plants drive the total."
+  },
+  "variance": {
+    "kicker": "Variance",
+    "title": "Year-over-year investigator",
+    "subtitle": "Approved numeric figures vs. most recent historical baseline — sorted by absolute change.",
+    "empty": "No approved numeric assignments to compare yet.",
+    "columns": {
+      "disclosure": "Disclosure",
+      "prior": "Prior",
+      "current": "Current",
+      "delta": "Change vs prior",
+      "assessment": "Assessment"
+    },
+    "fy": "FY{{year}}",
+    "flags": {
+      "ok": "In range",
+      "watch": "Watch",
+      "warn": "Investigate",
+      "noBaseline": "No prior year"
+    }
+  },
+  "performance": {
+    "kicker": "Performance",
+    "title": "Plant scorecards & topic coverage",
+    "subtitle": "Who's leading, where gaps sit, and whether your material topics are being reported."
+  },
+  "target": {
+    "emptyTitle": "Target gap analysis",
+    "emptyBody": "No climate target set. Commit to an SBTi target in Settings to see gap-to-pathway analysis here.",
+    "title": "Target gap",
+    "onPathway": "On pathway",
+    "behindPathway": "Behind pathway",
+    "series": {
+      "pathway": "Pathway",
+      "actual": "Actual",
+      "target": "Target"
+    },
+    "stats": {
+      "currentGap": "Current gap",
+      "requiredAbatement": "Required annual abatement",
+      "yearsToTarget": "Years to target"
+    },
+    "perYear": "{{unit}}/yr",
+    "behindWarning": "Currently {{gap}} above the linear pathway. Need to abate {{abatement}} {{unit}} per year to close the gap.",
+    "manageLink": "Manage targets",
+    "allScopes": "All scopes",
+    "noActuals": "Awaiting actuals",
+    "perYearSuffix": " per year"
+  },
+  "emissions": {
+    "title": "Emissions by plant × scope",
+    "empty": "No approved GRI 305 figures yet. Once plants submit and you approve Scope 1/2/3 data, this decomposition populates.",
+    "scope1": "Scope 1",
+    "scope2": "Scope 2",
+    "scope3": "Scope 3",
+    "subtitle": "Approved GRI 305 figures, tCO₂e",
+    "footnote": "Stacked from approved Scope 1, 2 and 3 values for each plant and office."
+  },
+  "plant": {
+    "title": "Plant scorecard",
+    "rollup": "Group roll-up",
+    "empty": "No plants yet. Add them via Onboarding.",
+    "columns": {
+      "plant": "Plant",
+      "score": "Score",
+      "complete": "Complete",
+      "reject": "Reject",
+      "overdue": "Overdue",
+      "days": "Avg. cycle"
+    },
+    "daysValue": "{{days}}d",
+    "complete": "{{pct}}% approved"
+  },
+  "materiality": {
+    "title": "Material topic coverage",
+    "manage": "Manage topics",
+    "empty": "No material topics declared yet. Run a GRI 3 materiality assessment.",
+    "unassigned_one": "{{count}} GRI code not yet assigned",
+    "unassigned_other": "{{count}} GRI codes not yet assigned",
+    "approvedOf": "{{approved}}/{{total}} approved"
+  },
+  "error": {
+    "title": "Analytics couldn't load",
+    "body": "We couldn't fetch your organisation's data. Nothing has been lost — try again."
+  },
+  "ledger": {
+    "aria": "Analytics summary",
+    "dqi": "Data quality index",
+    "approved": "Approved figures",
+    "ofTotal": "of {{total}} assignments",
+    "gap": "Gap to pathway",
+    "noTarget": "No target set",
+    "abovePathway": "Above pathway — behind",
+    "belowPathway": "Below pathway — on track",
+    "variance": "Variance flags",
+    "varianceHint_one": "> ±20% of {{count}} figure",
+    "varianceHint_other": "> ±20% of {{count}} figures",
+    "topics": "Material topics covered",
+    "topicsHint": "Fully assigned",
+    "noData": "Awaiting approved data"
+  },
+  "unlock": {
+    "title": "Unlock more analytics",
+    "body": "Each step lights up a panel on this page with your own data.",
+    "progress": "{{done}} of {{total}} unlocked",
+    "unlocked": "Unlocked",
+    "items": {
+      "target": {
+        "title": "Set a climate target",
+        "body": "Adds the target-gap pathway."
+      },
+      "emissions": {
+        "title": "Approve Scope 1–3 figures",
+        "body": "Adds emissions by plant and scope."
+      },
+      "variance": {
+        "title": "Approve numeric figures",
+        "body": "Adds the year-over-year investigator."
+      },
+      "materiality": {
+        "title": "Run a materiality assessment",
+        "body": "Adds material topic coverage."
+      }
+    }
+  },
+  "targetChart": {
+    "actual": "Actual",
+    "pathway": "Pathway",
+    "target": "Target {{year}}",
+    "above": "+{{value}} {{unit}} above pathway",
+    "below": "{{value}} {{unit}} below pathway",
+    "fy": "FY{{year}}"
+  },
+  "scopes": {
+    "s1": "Scope 1",
+    "s2": "Scope 2",
+    "s3": "Scope 3"
+  }
+}

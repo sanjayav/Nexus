@@ -2,11 +2,14 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { z } from 'zod'
 import { cors, requirePermission } from '../_auth.js'
 import { checkRateLimit } from '../_rateLimit.js'
-import { draftNarrative } from '../_claude.js'
+import { draftNarrative, DRAFT_FRAMEWORKS } from '../_claude.js'
 import { getDb } from '../_db.js'
+import { aiGate, aiLabel } from '../_llm.js'
 
+// Framework ids: legacy short ids plus the China pack ('cn-sse', 'cn-csds',
+// 'hkex-esg', 'cass-esg').
 const schema = z.object({
-  framework: z.enum(['gri', 'csrd', 'tcfd', 'cdp', 'issb']),
+  framework: z.enum(DRAFT_FRAMEWORKS),
   section: z.string().min(1).max(200),
   tone: z.enum(['formal', 'narrative', 'concise']).optional(),
 })
@@ -16,14 +19,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  // Gracefully short-circuit when the LLM provider isn't configured — keeps the
-  // route alive in environments (preview, demo) where the secret isn't set.
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return res.status(503).json({ error: 'ANTHROPIC_API_KEY not configured' })
-  }
-
   const t = await requirePermission(req, res, 'reports.create')
   if (!t) return
+  const sql = getDb()
+
+  // Org AI switch + provider selection + caller locale. Returns 403 when AI is
+  // disabled for the org and 503 "<VAR> not configured" when the org's
+  // provider has no credentials (keeps preview/demo environments alive).
+  const gate = await aiGate(sql, req, t)
+  if (!gate.ok) return res.status(gate.status).json(gate.body)
 
   // Cap Claude spend per org — 20 drafts/min is plenty for interactive use.
   const allowed = await checkRateLimit(req, res, {
@@ -41,7 +45,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const { framework, section, tone } = req.body as z.infer<typeof schema>
-  const sql = getDb()
 
   // Pull org context for grounding.
   let orgContext: { name: string; industry?: string; country?: string } = { name: 'Unknown' }
@@ -64,7 +67,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       FROM data_value dv
       JOIN questionnaire_item qi ON qi.id = dv.questionnaire_item_id
       JOIN reporting_year ry ON ry.id = dv.reporting_year_id
-      WHERE ry.organisation_id = ${t.org}
+      LEFT JOIN users eu ON eu.id = dv.entered_by
+      -- Owner predicate (api/_tenancy.ts DATA_VALUE_OWNER_EXPR): a shared
+      -- reporting year must not leak other tenants' values into prompts.
+      WHERE COALESCE((to_jsonb(dv) ->> 'org_id')::uuid, eu.org_id, ry.organisation_id) = ${t.org}
         AND dv.status = 'approved'
         AND qi.section ILIKE ${'%' + section + '%'}
       LIMIT 200
@@ -79,11 +85,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     tone,
     data: { values: dataRows },
     orgContext,
-  })
+  }, { provider: gate.provider, locale: gate.locale })
 
   if (!result.ok) return res.status(502).json({ error: result.error })
   return res.status(200).json({
     text: result.text,
     usage: { tokensIn: result.tokensIn, tokensOut: result.tokensOut, cached: result.cached },
+    ...aiLabel(gate.locale, result),
   })
 }

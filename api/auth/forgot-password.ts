@@ -3,7 +3,9 @@ import crypto from 'crypto'
 import { z } from 'zod'
 import { getDb } from '../_db.js'
 import { cors } from '../_auth.js'
-import { sendEmail } from '../_email.js'
+import { sendEmail, renderPasswordResetEmail } from '../_email.js'
+import { resolveLocale } from '../_i18n.js'
+import { loadOrgSettings } from '../_orgSettings.js'
 
 const forgotSchema = z.object({
   email: z.string().email().max(320),
@@ -34,11 +36,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const users = (await sql`
-      SELECT id, name, email, password_hash, is_active
+      SELECT id, org_id, name, email, password_hash, is_active,
+             to_jsonb(users) ->> 'locale' AS locale
       FROM users
       WHERE email = ${email}
       LIMIT 1
-    `) as Array<{ id: string; name: string; email: string; password_hash: string | null; is_active: boolean }>
+    `) as Array<{ id: string; org_id: string | null; name: string; email: string; password_hash: string | null; is_active: boolean; locale: string | null }>
 
     // Generic OK response — never reveal whether the email is registered.
     const okResponse = () => res.status(200).json({ ok: true })
@@ -87,22 +90,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       )
     }
 
+    // Recipient's language: users.locale → Accept-Language → org market → en.
+    const market = user.org_id ? (await loadOrgSettings(sql, user.org_id)).market : 'global'
+    const locale = resolveLocale({ userLocale: user.locale, acceptLanguage: req.headers['accept-language'], market })
     void sendEmail({
       to: user.email,
-      subject: 'Reset your Nexus password',
-      html: `
-        <div style="font-family:system-ui,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#0f1419">
-          <h2 style="color:#0F7B6F;margin:0 0 12px">Reset your password</h2>
-          <p>Hi ${user.name},</p>
-          <p>We received a request to reset your Nexus password. Click the button below to choose a new one. The link expires in 30 minutes.</p>
-          <p style="margin:24px 0">
-            <a href="${resetUrl}" style="display:inline-block;background:#0F7B6F;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600">Reset password</a>
-          </p>
-          <p style="font-size:12px;color:#666">If you didn't request this, you can safely ignore this email — your password won't change.</p>
-          <p style="font-size:12px;color:#666;word-break:break-all">Direct link: ${resetUrl}</p>
-        </div>
-      `,
-      text: `Reset your Nexus password: ${resetUrl}\n\nThe link expires in 30 minutes. If you didn't request this, ignore this email.`,
+      ...renderPasswordResetEmail(locale, { name: user.name, resetUrl }),
     }).catch((err: unknown) => {
       // eslint-disable-next-line no-console
       console.error('[forgot-password] email send failed:', err instanceof Error ? err.message : err)

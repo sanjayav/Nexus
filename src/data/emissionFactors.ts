@@ -26,6 +26,15 @@ export const STATIONARY_FUELS: EmissionFactor[] = [
   { id: 'petrol',           name: 'Petrol / Gasoline',     co2: 2.31,    ch4: 0.00025, n2o: 0.00008,  unit: 'litre' },
   { id: 'naphtha',          name: 'Naphtha',               co2: 2.12,    ch4: 0.00013, n2o: 0.00004,  unit: 'litre' },
   { id: 'ethane',           name: 'Ethane',                co2: 1.53,    ch4: 0.00006, n2o: 0.000004, unit: 'kg' },
+  // ── Mainland China defaults — GB/T 32150-2015 / MEE industry GHG accounting
+  //    guidelines (NCV × carbon content × oxidation × 44/12). CO2 only per the
+  //    MEE method, hence ch4/n2o = 0. Appended last so name-matching for
+  //    existing fuels is unchanged.
+  { id: 'cn-natural-gas',   name: 'Natural Gas (China — GB/T 32150-2015 default)', co2: 2.1622, ch4: 0, n2o: 0, unit: 'm³' },
+  { id: 'cn-diesel',        name: 'Diesel (China — GB/T 32150-2015 default)',      co2: 3.0959, ch4: 0, n2o: 0, unit: 'kg' },
+  { id: 'cn-gasoline',      name: 'Gasoline (China — GB/T 32150-2015 default)',    co2: 2.9251, ch4: 0, n2o: 0, unit: 'kg' },
+  { id: 'cn-fuel-oil',      name: 'Fuel Oil (China — GB/T 32150-2015 default)',    co2: 3.1705, ch4: 0, n2o: 0, unit: 'kg' },
+  { id: 'cn-lpg',           name: 'LPG (China — GB/T 32150-2015 default)',         co2: 3.1013, ch4: 0, n2o: 0, unit: 'kg' },
 ]
 
 /* ── Mobile combustion fuels (kg per litre) ── */
@@ -82,6 +91,8 @@ export const GRID_FACTORS: GridFactor[] = [
   { id: 'in',        name: 'India — National Grid',      region: 'IN', ef: 0.7082 },
   { id: 'au',        name: 'Australia — NEM Average',    region: 'AU', ef: 0.6800 },
   { id: 'sg',        name: 'Singapore — Grid',           region: 'SG', ef: 0.4085 },
+  // MEE 环办气候函〔2023〕43号 — national grid average, 2022 data year (0.5703 tCO2/MWh, CO2 only).
+  { id: 'cn-national-mee', name: 'China — National Grid Average (MEE, 2022 data)', region: 'CN', ef: 0.5703 },
 ]
 
 /* ── Heat / Steam emission factors (kg CO₂e per kWh thermal) ── */

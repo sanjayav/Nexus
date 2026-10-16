@@ -1,9 +1,5 @@
-import {
-  Scope3Calculator,
-  EEIO_FACTORS,
-  ILLUSTRATIVE_NOTE,
-  toNum,
-} from './index'
+import type { Scope3Calculator } from './types'
+import { EEIO_FACTORS, ILLUSTRATIVE_NOTE, toNum } from './constants'
 
 const MODE_EF: Record<string, number> = {
   road_lcv: 0.700,

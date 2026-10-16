@@ -1,3 +1,5 @@
+import { t, intlTag, type Locale } from './_i18n.js'
+
 // Thin Resend wrapper. Logs + returns soft error when key not set, so callers
 // can still record the attempt without crashing the request.
 
@@ -29,5 +31,33 @@ export async function sendEmail(payload: EmailPayload): Promise<{ ok: boolean; e
     return { ok: true }
   } catch (err: unknown) {
     return { ok: false, error: err instanceof Error ? err.message : 'send failed' }
+  }
+}
+
+// ─── Localised templates ────────────────────────────────────────────────
+
+
+function esc(s: string): string {
+  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
+}
+
+/** Password-reset email in the user's language (api/auth/forgot-password.ts). */
+export function renderPasswordResetEmail(locale: Locale, args: { name: string; resetUrl: string }): Omit<EmailPayload, 'to'> {
+  const url = esc(args.resetUrl)
+  return {
+    subject: t(locale, 'email.password_reset.subject'),
+    html: `
+        <div lang="${intlTag(locale)}" style="font-family:system-ui,'PingFang SC','Microsoft YaHei',sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#0f1419">
+          <h2 style="color:#0F7B6F;margin:0 0 12px">${esc(t(locale, 'email.password_reset.heading'))}</h2>
+          <p>${esc(t(locale, 'email.password_reset.greeting', { name: args.name }))}</p>
+          <p>${esc(t(locale, 'email.password_reset.intro'))}</p>
+          <p style="margin:24px 0">
+            <a href="${url}" style="display:inline-block;background:#0F7B6F;color:#fff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600">${esc(t(locale, 'email.password_reset.cta'))}</a>
+          </p>
+          <p style="font-size:12px;color:#666">${esc(t(locale, 'email.password_reset.ignore'))}</p>
+          <p style="font-size:12px;color:#666;word-break:break-all">${esc(t(locale, 'email.password_reset.direct_link', { url: args.resetUrl }))}</p>
+        </div>
+      `,
+    text: t(locale, 'email.password_reset.text', { url: args.resetUrl }),
   }
 }

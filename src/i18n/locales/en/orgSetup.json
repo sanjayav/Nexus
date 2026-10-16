@@ -1,0 +1,157 @@
+{
+  "title": "Organisation setup",
+  "subtitle": "Configure your tenant, boundary, frameworks, and organisational hierarchy in {{count}} steps.",
+  "progress": "Progress",
+  "stepLabel": "Step {{number}}",
+  "complete": "Complete",
+  "autoSaved": "Changes are saved automatically",
+  "markComplete": "Mark complete and continue",
+  "steps": {
+    "tenant": {
+      "title": "Tenant configuration",
+      "desc": "Company identity, fiscal year, base year, reporting currency"
+    },
+    "boundary": {
+      "title": "Organisational boundary approach",
+      "desc": "Choose between operational control, financial control, or equity share"
+    },
+    "frameworks": {
+      "title": "Framework selection",
+      "desc": "Select applicable reporting frameworks — GRI, CSRD, ISSB, TCFD, CDP"
+    },
+    "groups": {
+      "title": "Business groups",
+      "desc": "Define top-level organisational groups for multi-entity consolidation"
+    },
+    "subdivisions": {
+      "title": "Subdivision registration",
+      "desc": "Register facilities, offices, and operational sites within each group"
+    },
+    "sources": {
+      "title": "Source registration and calculator routing",
+      "desc": "Register emission sources and auto-assign GHG Protocol calculator modules"
+    },
+    "grid": {
+      "title": "Grid subregion mapping",
+      "desc": "Map facilities to electricity grid subregions for Scope 2 emission factors"
+    }
+  },
+  "done": {
+    "title": "Organisation setup complete",
+    "body": "Your tenant, hierarchy, and frameworks are configured. You can now proceed to data collection.",
+    "steps": "{{done}} / {{total}} steps",
+    "frameworks": "{{n}} frameworks",
+    "groups": "{{n}} groups"
+  },
+  "tenant": {
+    "companyName": "Company name",
+    "tradingName": "Trading name",
+    "fiscalYearStart": "Fiscal year start",
+    "months": {
+      "jan": "January",
+      "apr": "April",
+      "jul": "July",
+      "oct": "October"
+    },
+    "baseYear": "Base year",
+    "reportingCurrency": "Reporting currency",
+    "currencies": {
+      "THB": "THB — Thai Baht",
+      "USD": "USD — US Dollar",
+      "EUR": "EUR — Euro"
+    },
+    "registeredCountry": "Registered country",
+    "registeredCountryDefault": "Thailand",
+    "industrySector": "Industry sector",
+    "industrySectorDefault": "Petrochemicals & Refining",
+    "infoStrong": "Base year",
+    "infoBody": " is used for SBTi target calculations and trend comparisons. Choose the earliest year with reliable GHG inventory data."
+  },
+  "boundary": {
+    "recommended": "Recommended",
+    "operational": {
+      "title": "Operational control",
+      "desc": "Account for 100% of emissions from operations over which you have operational control. Most common approach."
+    },
+    "financial": {
+      "title": "Financial control",
+      "desc": "Account for 100% of emissions from operations over which you have financial control."
+    },
+    "equity": {
+      "title": "Equity share",
+      "desc": "Account for emissions proportional to your equity share in each operation."
+    }
+  },
+  "frameworks": {
+    "labels": {
+      "gri": "GRI Standards",
+      "csrd": "CSRD / ESRS",
+      "issb": "ISSB (IFRS S1/S2)",
+      "tcfd": "TCFD",
+      "cdp": "CDP Climate"
+    },
+    "active": "Active",
+    "setupPending": "Setup pending",
+    "selected_one": "{{count}} framework selected. Questionnaire modules will be generated based on your selection.",
+    "selected_other": "{{count}} frameworks selected. Questionnaire modules will be generated based on your selection."
+  },
+  "groups": {
+    "defined": "{{n}} business groups defined",
+    "add": "Add group",
+    "summary": "{{subsidiaries}} subsidiaries · {{subdivisions}} subdivisions",
+    "sites": "{{n}} sites",
+    "names": {
+      "chemicals": "Demo Co — Chemicals",
+      "polymers": "Demo Co — Polymers",
+      "greenChemicals": "Demo Co — Green Chemicals"
+    },
+    "remove": "Remove {{name}}"
+  },
+  "subdivisions": {
+    "registered": "{{n}} subdivisions registered across all groups",
+    "add": "Add subdivision",
+    "cols": {
+      "facility": "Facility",
+      "group": "Group",
+      "country": "Country",
+      "type": "Type",
+      "sources": "Sources"
+    },
+    "groupNames": {
+      "chemicals": "Chemicals",
+      "polymers": "Polymers",
+      "greenChemicals": "Green Chemicals"
+    },
+    "types": {
+      "manufacturing": "Manufacturing",
+      "refinery": "Refinery",
+      "jointVenture": "Joint venture",
+      "office": "Office"
+    }
+  },
+  "sources": {
+    "intro": "Emission sources are auto-routed to the correct GHG Protocol calculator module based on type.",
+    "count": "{{n}} sources",
+    "types": {
+      "stationary": "Stationary combustion",
+      "mobile": "Mobile combustion",
+      "process": "Process emissions",
+      "electricity": "Purchased electricity",
+      "heat": "Purchased heat and steam"
+    },
+    "scope1": "Scope 1",
+    "scope2": "Scope 2",
+    "scope3": "Scope 3"
+  },
+  "grid": {
+    "intro": "Map each facility to its electricity grid subregion for location-based Scope 2 emission factors.",
+    "cols": {
+      "facility": "Facility",
+      "gridSubregion": "Grid subregion",
+      "ef": "EF",
+      "unit": "Unit"
+    },
+    "noteStrong": "Grid subregion EFs",
+    "noteBody": " are sourced from IEA/IPCC databases and updated annually. Market-based EFs from supplier contracts are managed separately."
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "eyebrow": "数据",
+  "title": "数据采集",
+  "subtitle": "在进入审核前，上传、校验并分类来自各类来源的活动数据与排放数据。",
+  "back": "数据采集",
+  "breadcrumbAria": "页面路径",
+  "flowTitle": "数据在 Nexus 中的流转",
+  "modulesTitle": "采集模块",
+  "modulesHint": "每个模块均有独立地址",
+  "status": {
+    "live": "已上线",
+    "ready": "就绪",
+    "beta": "测试版"
+  },
+  "pipeline": {
+    "ingest": {
+      "label": "导入",
+      "desc": "文件、连接器与手动录入"
+    },
+    "validate": {
+      "label": "校验",
+      "desc": "结构与完整性检查"
+    },
+    "classify": {
+      "label": "分类",
+      "desc": "范围标记与排放因子匹配"
+    },
+    "route": {
+      "label": "路由",
+      "desc": "直接或混合计算路径"
+    },
+    "store": {
+      "label": "存储",
+      "desc": "统一、可审计的排放数据库"
+    }
+  },
+  "modules": {
+    "org-setup": {
+      "title": "组织设置",
+      "subtitle": "租户、边界与框架",
+      "desc": "配置组织边界、报告框架（GRI、CSRD、ISSB、上交所指引）、业务板块、设施及排放源登记。"
+    },
+    "raw-supplier": {
+      "title": "原始数据上传",
+      "subtitle": "Excel／CSV 导入与列映射",
+      "desc": "上传任意格式的温室气体活动数据。系统识别表头，将电子表格映射至标准排放数据模型后再进行校验。"
+    },
+    "measured": {
+      "title": "实测数据",
+      "subtitle": "CEMS、计量表、实验室与核证数据",
+      "desc": "连续排放监测、公用事业计量读数、实验室检测结果及第三方核证总量，按数据质量分级。"
+    },
+    "entities": {
+      "title": "实体填报",
+      "subtitle": "关联公司、子公司与供应商数据",
+      "desc": "以标准模板收集各事业部、子公司及供应商的数据，跟踪每份填报并在上传时校验。"
+    }
+  },
+  "stats": {
+    "steps": "步骤",
+    "frameworks": "框架",
+    "formats": "格式",
+    "fields": "字段",
+    "sources": "数据源",
+    "quality": "完整性",
+    "entities": "实体",
+    "templates": "模板"
+  },
+  "shared": {
+    "chooseFile": "选择文件",
+    "or": "或",
+    "browse": "浏览本地文件"
+  }
+}

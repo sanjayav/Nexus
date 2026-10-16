@@ -1,0 +1,159 @@
+{
+  "openFullPage": "在完整页面中打开",
+  "listSep": "；",
+  "rel": {
+    "justNow": "刚刚",
+    "seconds_other": "{{count}} 秒前",
+    "minutes_other": "{{count}} 分钟前",
+    "hours_other": "{{count}} 小时前",
+    "days_other": "{{count}} 天前"
+  },
+  "save": {
+    "saving": "正在保存…",
+    "unsaved": "有未保存的更改",
+    "failed": "保存失败",
+    "savedAgo": "已保存 · {{time}}",
+    "retry": "重试"
+  },
+  "ai": {
+    "label": "本内容由人工智能生成，使用前请审核",
+    "disabledTitle": "本组织已关闭人工智能功能",
+    "disabledBody": "管理员可在“设置”中开启人工智能功能。您仍可手动填报数值。",
+    "extractedNote": "数值由人工智能从 {{file}} 中读取",
+    "extractedPeriod": "（{{period}}）"
+  },
+  "aiExtract": {
+    "title": "从该文件读取数值",
+    "extract": "提取数值",
+    "extractFrom": "从 {{file}} 中提取数值",
+    "unavailable": "人工智能不可用",
+    "notConfigured": "本工作区尚未配置人工智能提取。",
+    "notConfiguredHint": "请联系管理员接入人工智能服务。您仍可手动输入数值。",
+    "reading": "正在读取文件…",
+    "failed": "未能从该文件中读取数值",
+    "tryAgain": "重试",
+    "high": "高",
+    "medium": "中",
+    "low": "低",
+    "confidence": "置信度{{level}} · {{pct}}%",
+    "period": "期间",
+    "supplier": "供应商",
+    "reasoning": "依据：",
+    "useValue": "使用该数值",
+    "reExtract": "重新提取"
+  },
+  "mode": {
+    "aria": "数值填报方式",
+    "Manual": "手动",
+    "Calculator": "计算器",
+    "Connector": "连接器"
+  },
+  "value": {
+    "label": "数值",
+    "labelYear": "FY{{year}} 数值",
+    "placeholder": "输入数字",
+    "required": "提交前请填写数值。",
+    "invalid": "这不是有效的数字。请输入数字，可带小数点。",
+    "reads": "识别为 {{value}}",
+    "hint": "可使用千位分隔符和全角数字。"
+  },
+  "calc": {
+    "select": "请选择…",
+    "result": "计算结果",
+    "incomplete": "请填写所有输入项，计算器才能得出数值。",
+    "methodology": "方法：{{notes}}"
+  },
+  "connector": {
+    "hint": "从源系统拉取最新数值，并附带签名回执。",
+    "pull": "拉取数值",
+    "pullAgain": "重新拉取",
+    "pulling": "正在拉取…",
+    "pulled": "已拉取",
+    "receipt": "回执 {{hash}}",
+    "failed": "连接器未返回数值。"
+  },
+  "narrative": {
+    "label": "您的回答",
+    "count": "{{count}} / {{min}} 字",
+    "intro": "请用平实的语言描述政策、流程或成果。审核人将按报告中的呈现方式阅读此内容。",
+    "placeholder": "撰写披露内容…",
+    "moreNeeded_other": "还需 {{count}} 字才能提交。",
+    "ready": "字数已满足提交要求。"
+  },
+  "comment": {
+    "label": "给审核人的备注",
+    "optional": "（选填）",
+    "placeholder": "数据来源、假设或审核人需要了解的信息"
+  },
+  "evidence": {
+    "title": "证据",
+    "requiredTag": "提交前必须上传",
+    "connectorExempt": "连接器回执可作为证据",
+    "drop": "将文件拖到此处，或选择文件",
+    "addAnother": "再添加一个文件",
+    "uploading": "正在上传…",
+    "formats": "PDF、Excel、CSV、PNG 或 JPG · 每个不超过 5 MB",
+    "hint": "请附上该数值所依据的发票、仪表读数或报告。",
+    "required": "提交前请至少上传一份证据文件。",
+    "stale": "这些文件支持的是 {{value}}。数值已更改，请为新数值上传对应文件。",
+    "needValue": "请先填写数值——证据需关联到具体数值。",
+    "badType": "不支持 {{type}} 文件。请使用 PDF、Excel、CSV、PNG 或 JPG。",
+    "tooLarge": "该文件为 {{size}} MB，上限为 5 MB。",
+    "uploadFailed": "上传失败",
+    "removeFailed": "无法移除该文件",
+    "open": "打开",
+    "remove": "移除 {{file}}",
+    "receipt": "连接器回执",
+    "onRecord": "已存档",
+    "none": "未附证据。"
+  },
+  "year": {
+    "noneShort": "尚无开放的报告年度，数值暂无法锚定。",
+    "noneEvidence": "证据文件需关联到报告年度，目前尚无开放的报告年度。",
+    "cta": "前往报告周期"
+  },
+  "reference": {
+    "unavailable": "该指标项暂无历史数据。",
+    "none": "该指标项尚无往年填报记录。",
+    "lastFiled": "FY{{year}} 填报值",
+    "lastFiledNone": "上次填报",
+    "use": "使用该数值",
+    "avg_other": "近 {{count}} 年平均",
+    "change": "较上年变化",
+    "unusual": "提交前请核实",
+    "peers": "同类站点",
+    "peerCount_other": "{{count}} 个站点",
+    "noPeers": "暂无同类站点数据",
+    "unitNote": "单位：{{unit}}"
+  },
+  "banner": {
+    "sentBack": "已退回修改",
+    "sentBackBody": "请更新数值或证据后重新提交。审核人的意见见讨论区。",
+    "withReviewer": "{{name}} 正在审核",
+    "withReviewerGeneric": "子公司负责人正在审核",
+    "withApprover": "{{name}} 正在审批",
+    "withApproverGeneric": "集团可持续发展负责人正在审批",
+    "approved": "已批准",
+    "locked": "审核期间已锁定。如被退回修改，可再次编辑。",
+    "lockedApproved": "该数值已作为本报告年度的最终值。"
+  },
+  "actions": {
+    "saveDraft": "保存草稿",
+    "submit": "提交审核",
+    "submitting": "正在提交…",
+    "viewQueue": "在审核队列中查看"
+  },
+  "submit": {
+    "failed": "提交失败",
+    "needsEvidence": "上传证据后即可提交"
+  },
+  "toast": {
+    "draftSaved": "草稿已保存",
+    "saveFailed": "草稿保存失败",
+    "evidenceAdded_other": "已上传 {{count}} 个文件",
+    "pulled": "已从 {{connector}} 拉取数值",
+    "submitted": "已提交审核",
+    "submittedTo": "已提交给 {{name}} 审核",
+    "submittedBody": "审核完成前，该数值将保持锁定。"
+  }
+}

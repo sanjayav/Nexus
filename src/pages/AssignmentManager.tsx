@@ -1,14 +1,15 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { Trans, useTranslation } from 'react-i18next'
+import { itemLabel } from '../lib/itemLabel'
+import { capitalLabelKey, subsectionLabelKey } from '../reports/spdTemplate'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  ClipboardList, Search, Plus, Trash2, Calendar, Factory,
-  PencilLine, Calculator as CalcIcon, Plug, AlertCircle, Loader2, Filter, FileText,
-  List, Columns, GitBranch, ChevronDown, Network as NetworkIcon, Users,
+  Search, Plus, Trash2, Calendar, Factory,
+  PencilLine, Calculator as CalcIcon, Plug, AlertCircle, Loader2, FileText,
+  List, Columns, GitBranch, Network as NetworkIcon, Users, X, Check, ChevronDown,
 } from 'lucide-react'
 import { orgStore, type OrgEntity, type OrgMember, type QuestionAssignment, type ResponseType } from '../lib/orgStore'
-import EmptyState from '../components/EmptyState'
-import { EmptyReportsIllustration } from '../data/illustrations'
 import JargonTooltip from '../components/JargonTooltip'
 import { nexus, type NexusQuestionnaireItem } from '../lib/api'
 import { findCalculator } from '../calculators/registry'
@@ -18,51 +19,60 @@ import { FrameworkBadge } from '../components/FrameworkBadge'
 import { useFramework } from '../lib/frameworks'
 import SavedViewsBar from '../components/SavedViewsBar'
 import PageHeader from '../components/PageHeader'
-import { SkeletonTable } from '../components/Skeleton'
+import { StateBoundary, StatLedger, StatusPill, notify, useConfirm, SkeletonLedger, SkeletonTable } from '../components/ui'
+import { useFmt } from '../lib/fmt'
+import { dur, ease, spring } from '../motion/tokens'
+import SideSheet from '../components/settings/SideSheet'
 
 const MODES = ['Manual', 'Calculator', 'Connector'] as const
 type Mode = typeof MODES[number]
+type Status = QuestionAssignment['status']
+const STATUSES: Status[] = ['not_started', 'in_progress', 'submitted', 'reviewed', 'approved', 'rejected']
+const MODE_ICON = { Manual: PencilLine, Calculator: CalcIcon, Connector: Plug } as const
 
-const STATUS_META: Record<QuestionAssignment['status'], { label: string; bg: string; fg: string }> = {
-  not_started: { label: 'Not started', bg: 'var(--bg-tertiary)', fg: 'var(--text-tertiary)' },
-  in_progress: { label: 'In progress', bg: 'var(--accent-amber-light)', fg: 'var(--status-draft)' },
-  submitted:   { label: 'Submitted',   bg: 'var(--accent-blue-light)', fg: 'var(--status-pending)' },
-  reviewed:    { label: 'Reviewed',    bg: 'var(--accent-blue-light)', fg: 'var(--status-pending)' },
-  approved:    { label: 'Approved',    bg: 'var(--accent-green-light)', fg: 'var(--status-ok)' },
-  rejected:    { label: 'Rejected',    bg: 'var(--accent-red-light)', fg: 'var(--status-reject)' },
+/** Table rows can't animate height; they fade in and slide out to the right. */
+const rowMotion = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1, transition: { duration: dur.fast, ease: ease.out } },
+  exit: { opacity: 0, x: 24, transition: { duration: dur.base, ease: ease.out } },
+}
+
+const fieldCls =
+  'h-10 w-full rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] px-3 text-small text-[var(--text-primary)] ' +
+  'focus:outline-none focus-visible:border-[var(--color-brand)] focus-visible:ring-2 focus-visible:ring-[var(--status-success-line)] disabled:opacity-50'
+
+function isOverdue(a: QuestionAssignment): boolean {
+  if (typeof a.is_overdue === 'boolean') return a.is_overdue
+  if (!a.due_date || a.status === 'approved' || a.status === 'reviewed' || a.status === 'submitted') return false
+  return new Date(a.due_date + 'T23:59:59').getTime() < Date.now()
 }
 
 export default function AssignmentManager() {
+  const { t, i18n } = useTranslation()
+  const f = useFmt()
   const { user } = useAuth()
+  const confirm = useConfirm()
   const { active: framework } = useFramework()
   const [questions, setQuestions] = useState<NexusQuestionnaireItem[]>([])
   const [entities, setEntities] = useState<OrgEntity[]>([])
   const [members, setMembers] = useState<OrgMember[]>([])
   const [assignments, setAssignments] = useState<QuestionAssignment[]>([])
   const [loading, setLoading] = useState(true)
+  const [loaded, setLoaded] = useState(false)
+  const [loadError, setLoadError] = useState<unknown>(null)
   const [query, setQuery] = useState('')
-  const [filterStatus, setFilterStatus] = useState<QuestionAssignment['status'] | 'all'>('all')
+  const [filterStatus, setFilterStatus] = useState<Status | 'all' | 'overdue'>('all')
   const [filterEntity, setFilterEntity] = useState<string>('all')
-  const [view, setView] = useState<'list' | 'kanban' | 'tree' | 'network'>(() => (localStorage.getItem('aeiforo_assignment_view') as any) || 'list')
-  useEffect(() => { localStorage.setItem('aeiforo_assignment_view', view) }, [view])
+  const [view, setView] = useState<'list' | 'kanban' | 'tree' | 'network'>(() => {
+    try { return (localStorage.getItem('aeiforo_assignment_view') as 'list' | 'kanban' | 'tree' | 'network') || 'list' } catch { return 'list' }
+  })
+  useEffect(() => { try { localStorage.setItem('aeiforo_assignment_view', view) } catch { /* private mode */ } }, [view])
+  const [selected, setSelected] = useState<Set<string>>(new Set())
 
-  // bulk-assign modal
+  // bulk-assign sheet
   const [bulkOpen, setBulkOpen] = useState(false)
 
-  // "+ New assignment" handoff from TopBar — open the bulk-assign modal
-  // when ?action=bulk-assign is present, then clear the param so a reload
-  // doesn't re-trigger it.
-  const [searchParams, setSearchParams] = useSearchParams()
-  useEffect(() => {
-    if (searchParams.get('action') === 'bulk-assign') {
-      setBulkOpen(true)
-      const next = new URLSearchParams(searchParams)
-      next.delete('action')
-      setSearchParams(next, { replace: true })
-    }
-  }, [searchParams, setSearchParams])
-
-  // new-assignment drawer
+  // new-assignment sheet
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [pickedQuestion, setPickedQuestion] = useState<NexusQuestionnaireItem | null>(null)
   const [pickedEntity, setPickedEntity] = useState<string>('')
@@ -70,8 +80,10 @@ export default function AssignmentManager() {
   const [pickedModes, setPickedModes] = useState<Mode[]>(['Manual'])
   const [pickedResponseType, setPickedResponseType] = useState<ResponseType>('numeric')
   const [pickedDue, setPickedDue] = useState<string>('')
+  const [saving, setSaving] = useState(false)
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
+    setLoadError(null)
     try {
       const [tree, ents, mems, asgs] = await Promise.all([
         nexus.tree(framework.id).catch(() => [] as NexusQuestionnaireItem[]),
@@ -83,50 +95,25 @@ export default function AssignmentManager() {
       setEntities(ents)
       setMembers(mems)
       setAssignments(asgs.filter(a => a.framework_id === framework.id))
-    } catch { /* silent */ }
-  }
-
-  useEffect(() => {
-    ;(async () => {
-      setLoading(true)
-      await refresh()
-      setLoading(false)
-    })()
-  // Safe: `refresh` is a closure declared in component scope; we only want to
-  // re-fetch when the active framework changes, not on every render.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+      setLoaded(true)
+    } catch (e) {
+      setLoadError(e)
+    }
   }, [framework.id])
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    await refresh()
+    setLoading(false)
+  }, [refresh])
+
+  useEffect(() => { void load() }, [load])
 
   const entityById = useMemo(() => new Map(entities.map(e => [e.id, e])), [entities])
   const memberById = useMemo(() => new Map(members.map(m => [m.id, m])), [members])
-
   const plants = useMemo(() => entities.filter(e => e.type === 'plant' || e.type === 'office'), [entities])
 
-  const filtered = useMemo(() => {
-    const q = query.toLowerCase()
-    return assignments.filter(a => {
-      if (filterStatus !== 'all' && a.status !== filterStatus) return false
-      if (filterEntity !== 'all' && a.entityId !== filterEntity) return false
-      if (!q) return true
-      return (
-        a.gri_code.toLowerCase().includes(q) ||
-        a.line_item.toLowerCase().includes(q) ||
-        a.assigneeName.toLowerCase().includes(q) ||
-        a.assigneeEmail.toLowerCase().includes(q)
-      )
-    })
-  }, [assignments, query, filterStatus, filterEntity])
-
-  const stats = useMemo(() => {
-    return {
-      total: assignments.length,
-      approved: assignments.filter(a => a.status === 'approved').length,
-      inFlight: assignments.filter(a => a.status === 'submitted' || a.status === 'reviewed').length,
-      notStarted: assignments.filter(a => a.status === 'not_started' || a.status === 'in_progress').length,
-    }
-  }, [assignments])
-
-  const openDrawer = () => {
+  const openDrawer = useCallback(() => {
     setPickedQuestion(null)
     setPickedEntity(plants[0]?.id || '')
     setPickedMember('')
@@ -134,7 +121,58 @@ export default function AssignmentManager() {
     setPickedResponseType('numeric')
     setPickedDue('')
     setDrawerOpen(true)
-  }
+  }, [plants])
+
+  // Deep links: ?action=bulk-assign (top bar "New"), ?bulk=1 and ?new=1 (command
+  // palette). Open the matching sheet once, then clear the param so a reload
+  // doesn't re-trigger it.
+  const [searchParams, setSearchParams] = useSearchParams()
+  useEffect(() => {
+    const wantsBulk = searchParams.get('action') === 'bulk-assign' || searchParams.get('bulk') === '1'
+    const wantsNew = searchParams.get('new') === '1'
+    if (!wantsBulk && !wantsNew) return
+    if (wantsNew && !loaded) return // wait for entities so the sheet can preselect one
+    if (wantsBulk) setBulkOpen(true)
+    if (wantsNew) openDrawer()
+    const next = new URLSearchParams(searchParams)
+    next.delete('action'); next.delete('bulk'); next.delete('new')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams, loaded, openDrawer])
+
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase()
+    return assignments.filter(a => {
+      if (filterStatus === 'overdue') { if (!isOverdue(a)) return false }
+      else if (filterStatus !== 'all' && a.status !== filterStatus) return false
+      if (filterEntity !== 'all' && a.entityId !== filterEntity) return false
+      if (!q) return true
+      return (
+        a.gri_code.toLowerCase().includes(q) ||
+        a.line_item.toLowerCase().includes(q) ||
+        itemLabel(a, i18n.language).toLowerCase().includes(q) ||
+        a.assigneeName.toLowerCase().includes(q) ||
+        a.assigneeEmail.toLowerCase().includes(q)
+      )
+    })
+  }, [assignments, query, filterStatus, filterEntity, i18n.language])
+
+  // Drop selections that are no longer visible.
+  useEffect(() => {
+    setSelected(prev => {
+      if (prev.size === 0) return prev
+      const visible = new Set(filtered.map(a => a.id))
+      const next = new Set([...prev].filter(id => visible.has(id)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [filtered])
+
+  const stats = useMemo(() => ({
+    total: assignments.length,
+    approved: assignments.filter(a => a.status === 'approved').length,
+    inFlight: assignments.filter(a => a.status === 'submitted' || a.status === 'reviewed').length,
+    open: assignments.filter(a => a.status === 'not_started' || a.status === 'in_progress' || a.status === 'rejected').length,
+    overdue: assignments.filter(isOverdue).length,
+  }), [assignments])
 
   const toggleMode = (m: Mode) => {
     setPickedModes(prev => {
@@ -150,6 +188,7 @@ export default function AssignmentManager() {
     if (!pickedQuestion || !pickedEntity || !pickedMember || pickedModes.length === 0) return
     const m = memberById.get(pickedMember)
     if (!m) return
+    setSaving(true)
     try {
       const created = await orgStore.addAssignment({
         framework_id: framework.id,
@@ -168,59 +207,175 @@ export default function AssignmentManager() {
       })
       setAssignments(a => [created, ...a])
       setDrawerOpen(false)
+      notify.success(t('assignments.toast.created', { code: created.gri_code, name: m.name }))
     } catch (e) {
-      alert(`Could not create assignment: ${e instanceof Error ? e.message : e}`)
+      notify.error(t('assignments.errors.createTitle'), { description: e instanceof Error ? e.message : String(e) })
+    } finally {
+      setSaving(false)
     }
   }
 
-  const removeAssignment = async (id: string) => {
-    if (!confirm('Remove this assignment?')) return
-    try {
-      await orgStore.removeAssignment(id)
-      setAssignments(a => a.filter(x => x.id !== id))
-    } catch (e) {
-      alert(`Could not remove: ${e instanceof Error ? e.message : e}`)
-    }
+  const removeMany = async (ids: string[]) => {
+    if (ids.length === 0) return
+    const one = ids.length === 1 ? assignments.find(a => a.id === ids[0]) : null
+    const ok = await confirm({
+      title: one
+        ? t('assignments.remove.oneTitle', { code: one.gri_code, name: one.assigneeName })
+        : t('assignments.remove.manyTitle', { count: ids.length }),
+      description: t('assignments.remove.body', { count: ids.length }),
+      confirmLabel: t('assignments.remove.confirm', { count: ids.length }),
+      tone: 'destructive',
+    })
+    if (!ok) return
+    const results = await Promise.allSettled(ids.map(id => orgStore.removeAssignment(id)))
+    const removed = ids.filter((_, i) => results[i].status === 'fulfilled')
+    const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected')
+    setAssignments(a => a.filter(x => !removed.includes(x.id)))
+    setSelected(new Set())
+    if (removed.length) notify.success(t('assignments.remove.done', { count: removed.length }))
+    if (failed) notify.error(t('assignments.remove.failed', { count: ids.length - removed.length }), { description: failed.reason instanceof Error ? failed.reason.message : String(failed.reason) })
   }
+
+  const setDueMany = async (ids: string[], due: string | null) => {
+    const results = await Promise.allSettled(ids.map(id => orgStore.updateAssignment(id, { due_date: due })))
+    const okIds = ids.filter((_, i) => results[i].status === 'fulfilled')
+    const failed = results.find((r): r is PromiseRejectedResult => r.status === 'rejected')
+    setAssignments(a => a.map(x => (okIds.includes(x.id) ? { ...x, due_date: due, is_overdue: undefined } : x)))
+    if (okIds.length) notify.success(t('assignments.bulkBar.dueDone', { count: okIds.length }))
+    if (failed) notify.error(t('assignments.bulkBar.dueFailed', { count: ids.length - okIds.length }), { description: failed.reason instanceof Error ? failed.reason.message : String(failed.reason) })
+    setSelected(new Set())
+  }
+
+  const removeAssignment = (id: string) => void removeMany([id])
+  const filtersOn = query !== '' || filterStatus !== 'all' || filterEntity !== 'all'
+  const clearFilters = () => { setQuery(''); setFilterStatus('all'); setFilterEntity('all') }
 
   return (
-    <div className="page-container animate-fade-in">
+    <div className="mx-auto max-w-[1280px]">
       <PageHeader
-        breadcrumbs={[
-          { label: 'Data', to: '/data' },
-          { label: 'Values' },
-        ]}
-        title="Values"
+        title={t('assignments.title')}
         description={
-          <>
-            Each {framework.code} disclosure goes to the person closest to the data — controlled by <JargonTooltip term="RBAC" />.
-            Assignees see it in <strong>Tasks</strong> next time they sign in.
-          </>
+          <Trans
+            i18nKey="assignments.description"
+            values={{ framework: framework.code }}
+            components={{ rbac: <JargonTooltip term="RBAC" />, b: <strong /> }}
+          />
         }
         actions={
           <>
             <button onClick={() => setBulkOpen(true)} className="btn-secondary">
-              <Users className="w-4 h-4" /> Bulk assign
+              <Users className="w-4 h-4" aria-hidden /> {t('assignments.bulkAssign')}
             </button>
             <button onClick={openDrawer} className="btn-primary">
-              <Plus className="w-4 h-4" /> New assignment
+              <Plus className="w-4 h-4" aria-hidden /> {t('assignments.newAssignment')}
             </button>
           </>
         }
       />
-      <div className="mb-4">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <JourneyBar variant="compact" highlight="assign" />
+        <FrameworkBadge size="md" />
       </div>
-      <header className="flex items-start justify-between mb-5">
-        <div>
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.15em] font-semibold text-[var(--color-brand)]">
-            <ClipboardList className="w-3 h-3" /> {framework.code} disclosures
-          </div>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <FrameworkBadge size="md" />
-          </div>
-        </div>
-      </header>
+
+      <StateBoundary
+        loading={loading}
+        error={loadError}
+        hasData={loaded}
+        onRetry={load}
+        errorState={{ title: t('assignments.errors.loadTitle') }}
+        skeleton={<div className="space-y-5"><SkeletonLedger items={5} /><SkeletonTable rows={6} cols={6} /></div>}
+      >
+        {() => (
+          <>
+            <StatLedger
+              className="mb-5"
+              aria-label={t('assignments.stats.aria')}
+              items={[
+                { id: 'total', label: t('assignments.stats.total'), value: stats.total, tone: 'neutral', onClick: () => setFilterStatus('all') },
+                { id: 'open', label: t('assignments.stats.open'), value: stats.open, tone: 'warning', onClick: () => setFilterStatus('in_progress') },
+                { id: 'review', label: t('assignments.stats.inReview'), value: stats.inFlight, tone: 'info', onClick: () => setFilterStatus('submitted') },
+                { id: 'approved', label: t('assignments.stats.approved'), value: stats.approved, tone: 'success', onClick: () => setFilterStatus('approved'),
+                  hint: stats.total ? t('assignments.stats.approvedHint', { pct: f.number((stats.approved / stats.total) * 100, { maxFraction: 0 }) }) : undefined },
+                { id: 'overdue', label: t('assignments.stats.overdue'), value: stats.overdue, tone: stats.overdue ? 'danger' : 'neutral', onClick: () => setFilterStatus('overdue') },
+              ]}
+            />
+
+            <SavedViewsBar
+              page="assignment-manager"
+              filters={{ query, filterStatus, filterEntity }}
+              onApply={(fv: { query?: string; filterStatus?: Status | 'all' | 'overdue'; filterEntity?: string }) => {
+                if (typeof fv.query === 'string') setQuery(fv.query)
+                if (fv.filterStatus) setFilterStatus(fv.filterStatus)
+                if (fv.filterEntity) setFilterEntity(fv.filterEntity)
+              }}
+              className="mb-3"
+            />
+
+            {/* Toolbar */}
+            <div className="mb-4 flex flex-col gap-2 lg:flex-row lg:items-center">
+              <div className="relative flex-1 min-w-0">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-tertiary)]" aria-hidden />
+                <input
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder={t('assignments.searchPlaceholder')}
+                  aria-label={t('assignments.searchPlaceholder')}
+                  className={`${fieldCls} pl-9`}
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as Status | 'all' | 'overdue')} aria-label={t('assignments.allStatuses')} className={`${fieldCls} w-auto min-w-[150px] flex-1 sm:flex-none`}>
+                  <option value="all">{t('assignments.allStatuses')}</option>
+                  <option value="overdue">{t('assignments.stats.overdue')}</option>
+                  {STATUSES.map(s => <option key={s} value={s}>{t(`workflowStatus.status.${s}`)}</option>)}
+                </select>
+                <select value={filterEntity} onChange={e => setFilterEntity(e.target.value)} aria-label={t('assignments.allEntities')} className={`${fieldCls} w-auto min-w-[150px] max-w-[240px] flex-1 sm:flex-none`}>
+                  <option value="all">{t('assignments.allEntities')}</option>
+                  {plants.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+                <ViewSwitch value={view} onChange={setView} />
+              </div>
+            </div>
+
+            {filtered.length === 0 ? (
+              <StateBoundary
+                empty
+                emptyState={assignments.length === 0
+                  ? { art: 'setup', title: t('assignments.empty.noneTitle'), body: t('assignments.empty.noneBody'), cta: { label: t('assignments.bulkAssign'), onClick: () => setBulkOpen(true) }, secondaryCta: { label: t('assignments.empty.create'), onClick: openDrawer }, framed: true }
+                  : { variant: 'filtered', title: t('assignments.empty.noResults'), body: t('assignments.empty.noResultsBody'), onClearFilters: clearFilters, framed: true }}
+              >{null}</StateBoundary>
+            ) : view === 'kanban' ? (
+              <KanbanView assignments={filtered} entityById={entityById} onRemove={removeAssignment} />
+            ) : view === 'tree' ? (
+              <TreeView assignments={filtered} entities={entities} onRemove={removeAssignment} />
+            ) : view === 'network' ? (
+              <NetworkView assignments={filtered} entities={entities} />
+            ) : (
+              <AssignmentTable
+                rows={filtered}
+                entityById={entityById}
+                selected={selected}
+                setSelected={setSelected}
+                onRemove={removeAssignment}
+                grouped={filterEntity === 'all'}
+              />
+            )}
+            {filtersOn && filtered.length > 0 && (
+              <p className="mt-3 text-caption text-[var(--text-tertiary)]">
+                {t('assignments.showing', { shown: filtered.length, total: assignments.length })}{' '}
+                <button type="button" onClick={clearFilters} className="font-medium text-[var(--color-brand)] hover:underline underline-offset-2">{t('assignments.clearFilters')}</button>
+              </p>
+            )}
+          </>
+        )}
+      </StateBoundary>
+
+      <BulkActionBar
+        count={selected.size}
+        onClear={() => setSelected(new Set())}
+        onRemove={() => removeMany([...selected])}
+        onSetDue={(d) => setDueMany([...selected], d)}
+      />
 
       {bulkOpen && (
         <BulkAssignModal
@@ -233,370 +388,425 @@ export default function AssignmentManager() {
         />
       )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-        <Stat label="Total" value={stats.total} tone="neutral" />
-        <Stat label="Approved" value={stats.approved} tone="ok" />
-        <Stat label="In review" value={stats.inFlight} tone="pending" />
-        <Stat label="Not started" value={stats.notStarted} tone="draft" />
-      </div>
-
-      {/* Saved views */}
-      <SavedViewsBar
-        page="assignment-manager"
-        filters={{ query, filterStatus, filterEntity }}
-        onApply={(f: { query?: string; filterStatus?: QuestionAssignment['status'] | 'all'; filterEntity?: string }) => {
-          if (typeof f.query === 'string') setQuery(f.query)
-          if (f.filterStatus) setFilterStatus(f.filterStatus)
-          if (f.filterEntity) setFilterEntity(f.filterEntity)
-        }}
-        className="mb-3"
-      />
-
-      {/* Filters */}
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <div className="flex-1 relative min-w-[280px]">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
-          <input
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Search by GRI code, line item, or assignee…"
-            className="w-full pl-9 pr-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+      {/* New assignment sheet */}
+      <SideSheet
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        busy={saving}
+        width={540}
+        title={t('assignments.newAssignment')}
+        description={t('assignments.drawer.subtitle', { framework: framework.code })}
+        footer={
+          <>
+            <button onClick={() => setDrawerOpen(false)} className="btn-secondary h-10" disabled={saving}>{t('common.cancel')}</button>
+            <button onClick={saveAssignment} disabled={saving || !pickedQuestion || !pickedEntity || !pickedMember} className="btn-primary h-10">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
+              {t('assignments.empty.create')}
+            </button>
+          </>
+        }
+      >
+        <DrawerProgress
+          steps={[!!pickedQuestion, !!pickedQuestion, !!pickedEntity, !!pickedMember, pickedModes.length > 0, !!pickedDue]}
+        />
+        <Step num={1} title={t('assignments.drawer.step1')} done={!!pickedQuestion}>
+          <QuestionPicker
+            questions={questions}
+            selected={pickedQuestion}
+            onSelect={q => {
+              setPickedQuestion(q)
+              if (!q) { setPickedModes(['Manual']); return }
+              const defaultMode = q.entry_mode_default as Mode
+              const hasCalc = findCalculator(q)
+              const modes: Mode[] = ['Manual']
+              if (hasCalc) modes.push('Calculator')
+              if (defaultMode === 'Connector') modes.push('Connector')
+              setPickedModes(modes)
+            }}
           />
-        </div>
-        <div className="relative">
-          <Filter className="w-3 h-3 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
-          <select
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value as any)}
-            className="pl-7 pr-7 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)] appearance-none"
-          >
-            <option value="all">All statuses</option>
-            {Object.entries(STATUS_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+        </Step>
+
+        <Step num={2} title={t('assignments.drawer.step2')} disabled={!pickedQuestion} done={!!pickedQuestion}>
+          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t('assignments.drawer.step2')}>
+            {([
+              { key: 'numeric',   label: t('assignments.drawer.numeric'),   desc: t('assignments.drawer.numericDesc'), icon: CalcIcon },
+              { key: 'narrative', label: t('assignments.drawer.narrative'), desc: t('assignments.drawer.narrativeDesc'), icon: FileText },
+            ] as Array<{ key: ResponseType; label: string; desc: string; icon: typeof CalcIcon }>).map(opt => {
+              const active = pickedResponseType === opt.key
+              const Icon = opt.icon
+              return (
+                <button key={opt.key} type="button" role="radio" aria-checked={active} onClick={() => setPickedResponseType(opt.key)}
+                  className={`text-left p-3 rounded-[var(--radius-md)] border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)] ${active ? 'border-[var(--color-brand)] bg-[var(--color-brand-soft)]' : 'border-[var(--border-default)] hover:bg-[var(--bg-secondary)]'}`}>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Icon className={`h-4 w-4 ${active ? 'text-[var(--color-brand-strong)]' : 'text-[var(--text-secondary)]'}`} aria-hidden />
+                    <span className={`text-small font-semibold ${active ? 'text-[var(--color-brand-strong)]' : 'text-[var(--text-primary)]'}`}>{opt.label}</span>
+                  </div>
+                  <div className="text-caption text-[var(--text-tertiary)]">{opt.desc}</div>
+                </button>
+              )
+            })}
+          </div>
+        </Step>
+
+        <Step num={3} title={t('assignments.drawer.step3')} disabled={!pickedQuestion} done={!!pickedEntity}>
+          <select value={pickedEntity} onChange={e => setPickedEntity(e.target.value)} disabled={!pickedQuestion} aria-label={t('assignments.drawer.step3')} className={fieldCls}>
+            <option value="">{t('assignments.drawer.selectEntity')}</option>
+            {entities
+              .filter(e => e.type === 'plant' || e.type === 'office' || e.type === 'subsidiary')
+              .map(e => {
+                const path = orgStore.pathOf(entities, e.id).slice(0, -1).map(p => p.name).join(' › ')
+                return <option key={e.id} value={e.id}>{path ? `${path} › ` : ''}{e.name}</option>
+              })}
           </select>
-        </div>
-        <div className="inline-flex items-center gap-0.5 p-0.5 rounded-[8px] bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-          {([
-            { k: 'list',    icon: List,        label: 'List' },
-            { k: 'kanban',  icon: Columns,     label: 'Kanban' },
-            { k: 'tree',    icon: GitBranch,   label: 'Tree' },
-            { k: 'network', icon: NetworkIcon, label: 'Network' },
-          ] as const).map(({ k, icon: Icon, label }) => {
-            const active = view === k
+        </Step>
+
+        <Step num={4} title={t('assignments.drawer.step4')} disabled={!pickedEntity} done={!!pickedMember}>
+          {pickedEntity ? (
+            <AssigneePicker entityId={pickedEntity} members={members} entities={entities} value={pickedMember} onChange={setPickedMember} />
+          ) : (
+            <div className="text-small text-[var(--text-tertiary)]">{t('assignments.drawer.pickEntityFirst')}</div>
+          )}
+        </Step>
+
+        <Step num={5} title={t('assignments.drawer.step5')} disabled={!pickedQuestion || pickedResponseType === 'narrative'} done={!!pickedQuestion && pickedModes.length > 0}>
+          <p className="text-caption text-[var(--text-tertiary)] mb-2">{t('assignments.drawer.modesHint')}</p>
+          <div className="grid grid-cols-3 gap-2">
+            {MODES.map(m => {
+              const Icon = MODE_ICON[m]
+              const hasCalc = pickedQuestion ? findCalculator(pickedQuestion) : null
+              const disabled = m === 'Calculator' && !hasCalc
+              const active = pickedModes.includes(m)
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  aria-pressed={active}
+                  disabled={disabled}
+                  onClick={() => toggleMode(m)}
+                  className={`relative px-3 py-3 rounded-[var(--radius-md)] border text-small font-semibold flex flex-col items-center gap-1 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)] ${
+                    active ? 'border-[var(--color-brand)] bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)]'
+                           : 'border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
+                  } disabled:opacity-40 disabled:cursor-not-allowed`}
+                >
+                  {active && (
+                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)]" aria-hidden>
+                      <Check className="h-2.5 w-2.5" strokeWidth={3} />
+                    </span>
+                  )}
+                  <Icon className="w-4 h-4" aria-hidden />
+                  {t(`assignments.mode.${m}`)}
+                  {disabled && <span className="text-caption font-normal text-[var(--text-tertiary)]">{t('assignments.drawer.noCalculator')}</span>}
+                </button>
+              )
+            })}
+          </div>
+          {pickedModes.length > 1 && (
+            <p className="text-caption text-[var(--color-brand)] mt-2">
+              {t('assignments.drawer.tabSwitcher', { modes: pickedModes.map(m => t(`assignments.mode.${m}`)).join(' · ') })}
+            </p>
+          )}
+        </Step>
+
+        <Step num={6} title={t('assignments.drawer.step6')} done={!!pickedDue} last>
+          <input type="date" value={pickedDue} onChange={e => setPickedDue(e.target.value)} aria-label={t('assignments.drawer.step6')} className={fieldCls} />
+        </Step>
+      </SideSheet>
+    </div>
+  )
+}
+
+/* ── View switcher (sliding paper pill) ──────────────────────────────── */
+
+function ViewSwitch({ value, onChange }: { value: 'list' | 'kanban' | 'tree' | 'network'; onChange: (v: 'list' | 'kanban' | 'tree' | 'network') => void }) {
+  const { t } = useTranslation()
+  return (
+    <div role="radiogroup" aria-label={t('assignments.view.aria')} className="inline-flex items-center gap-0.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)] p-1">
+      {([
+        { k: 'list',    icon: List },
+        { k: 'kanban',  icon: Columns },
+        { k: 'tree',    icon: GitBranch },
+        { k: 'network', icon: NetworkIcon },
+      ] as const).map(({ k, icon: Icon }) => {
+        const active = value === k
+        return (
+          <button
+            key={k}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => onChange(k)}
+            title={t(`assignments.view.${k}`)}
+            className={`relative inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-sm)] px-2.5 text-small font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)] ${active ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'}`}
+          >
+            {active && <motion.span layoutId="assignment-view-pill" transition={spring.snappy} aria-hidden className="absolute inset-0 rounded-[var(--radius-sm)] bg-[var(--bg-primary)] shadow-[var(--shadow-card)] ring-1 ring-[var(--border-subtle)]" />}
+            <Icon className="relative h-4 w-4" aria-hidden />
+            <span className="relative hidden xl:inline">{t(`assignments.view.${k}`)}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/* ── List view: grouped by entity, sticky headers, selection ─────────── */
+
+function AssignmentTable({
+  rows, entityById, selected, setSelected, onRemove, grouped,
+}: {
+  rows: QuestionAssignment[]
+  entityById: Map<string, OrgEntity>
+  selected: Set<string>
+  setSelected: (s: Set<string>) => void
+  onRemove: (id: string) => void
+  grouped: boolean
+}) {
+  const { t, i18n } = useTranslation()
+  const f = useFmt()
+  const headerRef = useRef<HTMLInputElement>(null)
+
+  const groups = useMemo(() => {
+    if (!grouped) return [{ id: 'all', name: '', rows }]
+    const m = new Map<string, QuestionAssignment[]>()
+    for (const a of rows) {
+      const list = m.get(a.entityId) ?? []
+      list.push(a)
+      m.set(a.entityId, list)
+    }
+    return [...m.entries()]
+      .map(([id, list]) => ({ id, name: entityById.get(id)?.name ?? '—', rows: list }))
+      .sort((a, b) => a.name.localeCompare(b.name, i18n.language))
+  }, [rows, grouped, entityById, i18n.language])
+
+  const allIds = rows.map(r => r.id)
+  const allOn = allIds.length > 0 && allIds.every(id => selected.has(id))
+  const someOn = !allOn && allIds.some(id => selected.has(id))
+  useEffect(() => { if (headerRef.current) headerRef.current.indeterminate = someOn }, [someOn])
+
+  const toggle = (ids: string[], on: boolean) => {
+    const next = new Set(selected)
+    for (const id of ids) on ? next.add(id) : next.delete(id)
+    setSelected(next)
+  }
+
+  return (
+    <div className="surface-paper overflow-hidden">
+      <div className="max-h-[min(72vh,900px)] overflow-auto">
+        <table className="data-table min-w-[920px]">
+          <thead>
+            <tr>
+              <th className="sticky top-0 z-[3] w-11 !pr-0">
+                <label className="-m-2 flex h-10 w-10 cursor-pointer items-center justify-center">
+                  <input
+                    ref={headerRef}
+                    type="checkbox"
+                    checked={allOn}
+                    onChange={e => toggle(allIds, e.target.checked)}
+                    aria-label={t('assignments.table.selectAll')}
+                    className="h-4 w-4 accent-[var(--color-brand)]"
+                  />
+                </label>
+              </th>
+              <th className="sticky top-0 z-[2]">{t('assignments.table.lineItem')}</th>
+              {!grouped && <th className="sticky top-0 z-[2]">{t('assignments.table.entity')}</th>}
+              <th className="sticky top-0 z-[2]">{t('assignments.table.assignee')}</th>
+              <th className="sticky top-0 z-[2]">{t('assignments.table.mode')}</th>
+              <th className="sticky top-0 z-[2]">{t('assignments.table.due')}</th>
+              <th className="sticky top-0 z-[2]">{t('assignments.table.status')}</th>
+              <th className="sticky top-0 z-[2] w-14"><span className="sr-only">{t('common.actions')}</span></th>
+            </tr>
+          </thead>
+          {groups.map(g => {
+            const ids = g.rows.map(r => r.id)
+            const gAll = ids.every(id => selected.has(id))
+            const approved = g.rows.filter(r => r.status === 'approved').length
             return (
-              <button
-                key={k}
-                onClick={() => setView(k)}
-                className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-[6px] text-[11.5px] font-semibold transition-all ${
-                  active ? 'bg-[var(--bg-primary)] text-[var(--color-brand-strong)] shadow-[0_1px_2px_rgba(11,18,32,0.06)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {label}
-              </button>
+              <tbody key={g.id}>
+                {grouped && (
+                  <tr className="hover:!bg-transparent">
+                    <th colSpan={7} scope="rowgroup" className="sticky top-[38px] z-[1] !normal-case !tracking-normal border-y border-[var(--border-subtle)] bg-[var(--bg-secondary)] !py-2 text-left">
+                      <div className="flex items-center gap-3">
+                        <span className="-ml-2 -mr-1 flex h-6 w-10 flex-shrink-0 items-center justify-center">
+                          <input
+                            type="checkbox"
+                            checked={gAll}
+                            onChange={e => toggle(ids, e.target.checked)}
+                            aria-label={t('assignments.table.selectGroup', { name: g.name })}
+                            className="h-4 w-4 accent-[var(--color-brand)]"
+                          />
+                        </span>
+                        <Factory className="h-3.5 w-3.5 text-[var(--text-tertiary)]" aria-hidden />
+                        <span className="text-small font-semibold text-[var(--text-primary)]">{g.name}</span>
+                        <span className="text-caption font-normal text-[var(--text-tertiary)]">
+                          {t('assignments.table.groupCount', { count: g.rows.length, approved })}
+                        </span>
+                        <span className="ml-auto mr-1 hidden h-1.5 w-24 overflow-hidden rounded-full bg-[var(--bg-tertiary)] sm:block" aria-hidden>
+                          <span className="block h-full rounded-full bg-[var(--status-success)]" style={{ width: `${(approved / g.rows.length) * 100}%` }} />
+                        </span>
+                      </div>
+                    </th>
+                  </tr>
+                )}
+                <AnimatePresence initial={false}>
+                  {g.rows.map(a => {
+                    const modes = a.entry_modes ?? ['Manual']
+                    const overdue = isOverdue(a)
+                    const on = selected.has(a.id)
+                    return (
+                      <motion.tr key={a.id} layout="position" {...rowMotion} className={`group ${on ? '!bg-[var(--color-brand-soft)]' : ''}`} aria-selected={on}>
+                        <td className="!pr-0">
+                          <label className="-m-2 flex h-10 w-10 cursor-pointer items-center justify-center">
+                            <input type="checkbox" checked={on} onChange={e => toggle([a.id], e.target.checked)} aria-label={t('assignments.table.select', { code: a.gri_code })} className="h-4 w-4 accent-[var(--color-brand)]" />
+                          </label>
+                        </td>
+                        <td>
+                          <div className="font-mono text-caption font-semibold text-[var(--color-brand)] whitespace-nowrap">{a.gri_code}</div>
+                          <div className="max-w-[340px] truncate text-small font-medium text-[var(--text-primary)]" title={itemLabel(a, i18n.language)}>{itemLabel(a, i18n.language)}</div>
+                        </td>
+                        {!grouped && <td className="whitespace-nowrap text-[var(--text-primary)]">{entityById.get(a.entityId)?.name ?? '—'}</td>}
+                        <td>
+                          <div className="flex items-center gap-2" title={a.assigneeEmail}>
+                            <span aria-hidden className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-[var(--bg-inverse)] text-caption font-semibold text-[var(--sidebar-accent)]">
+                              {a.assigneeName.slice(0, 1).toUpperCase()}
+                            </span>
+                            <span className="truncate text-small font-medium text-[var(--text-primary)] max-w-[160px]">{a.assigneeName}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="flex items-center gap-1">
+                            {modes.map(m => {
+                              const Icon = MODE_ICON[m as Mode] ?? PencilLine
+                              const used = a.used_mode === m
+                              return (
+                                <span key={m}
+                                  className={`inline-flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] ${used ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)]' : 'bg-[var(--bg-secondary)] text-[var(--text-tertiary)]'}`}
+                                  title={`${t(`assignments.mode.${m}`, { defaultValue: m })} · ${used ? t('assignments.mode.usedTitle') : t('assignments.mode.allowedTitle')}`}
+                                >
+                                  <Icon className="h-3.5 w-3.5" aria-hidden />
+                                  <span className="sr-only">{t(`assignments.mode.${m}`, { defaultValue: m })}</span>
+                                </span>
+                              )
+                            })}
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap">
+                          {a.due_date ? (
+                            <span className={`inline-flex items-center gap-1.5 tabular-nums ${overdue ? 'font-medium text-[var(--status-danger)]' : 'text-[var(--text-secondary)]'}`}>
+                              <Calendar className="h-3.5 w-3.5" aria-hidden />
+                              {f.date(a.due_date, { style: 'short' })}
+                              {overdue && <span className="sr-only">{t('assignments.stats.overdue')}</span>}
+                            </span>
+                          ) : <span className="text-[var(--text-quaternary)]">—</span>}
+                        </td>
+                        <td><StatusPill status={a.status} /></td>
+                        <td className="text-right">
+                          <button
+                            onClick={() => onRemove(a.id)}
+                            aria-label={t('assignments.removeAria', { code: a.gri_code })}
+                            title={t('assignments.removeLabel')}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] text-[var(--text-tertiary)] opacity-0 transition-opacity hover:bg-[var(--status-danger-soft)] hover:text-[var(--status-danger)] focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand)] group-hover:opacity-100 [@media(hover:none)]:opacity-100"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </motion.tr>
+                    )
+                  })}
+                </AnimatePresence>
+              </tbody>
             )
           })}
-        </div>
-        <select
-          value={filterEntity}
-          onChange={e => setFilterEntity(e.target.value)}
-          className="px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-xs)] max-w-[220px]"
+        </table>
+      </div>
+    </div>
+  )
+}
+
+/* ── Bulk action bar (slides up while rows are selected) ─────────────── */
+
+function BulkActionBar({ count, onClear, onRemove, onSetDue }: { count: number; onClear: () => void; onRemove: () => void; onSetDue: (d: string | null) => Promise<void> }) {
+  const { t } = useTranslation()
+  const [dueOpen, setDueOpen] = useState(false)
+  const [due, setDue] = useState('')
+  const [busy, setBusy] = useState(false)
+  useEffect(() => { if (count === 0) { setDueOpen(false); setDue('') } }, [count])
+
+  return (
+    <AnimatePresence>
+      {count > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 24 }}
+          transition={spring.gentle}
+          className="fixed inset-x-3 bottom-4 z-40 mx-auto max-w-[760px]"
+          role="region"
+          aria-label={t('assignments.bulkBar.aria')}
         >
-          <option value="all">All entities</option>
-          {plants.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
-      </div>
-
-      {/* Table */}
-      {loading ? (
-        <SkeletonTable rows={6} cols={6} />
-      ) : filtered.length === 0 ? (
-        <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)]">
-          <EmptyState
-            illustration={assignments.length === 0 ? EmptyReportsIllustration : undefined}
-            icon={ClipboardList}
-            title={assignments.length === 0 ? 'No assignments yet' : 'No results match these filters'}
-            body={assignments.length === 0
-              ? 'Click "Bulk assign" to distribute disclosures to your team, or create them one at a time.'
-              : 'Clear filters above or pick a different framework / status.'}
-            cta={assignments.length === 0
-              ? { label: 'Create assignment', onClick: openDrawer }
-              : undefined}
-          />
-        </div>
-      ) : view === 'kanban' ? (
-        <KanbanView
-          assignments={filtered}
-          entityById={entityById}
-          onRemove={removeAssignment}
-        />
-      ) : view === 'tree' ? (
-        <TreeView
-          assignments={filtered}
-          entities={entities}
-          onRemove={removeAssignment}
-        />
-      ) : view === 'network' ? (
-        <NetworkView
-          assignments={filtered}
-          entities={entities}
-        />
-      ) : (
-        <div className="rounded-[var(--radius-lg)] border border-[var(--border-default)] bg-[var(--bg-primary)] overflow-hidden">
-          <div className="overflow-x-auto">
-          <table className="w-full text-[var(--text-sm)] min-w-[900px]">
-            <thead>
-              <tr className="text-[10px] uppercase tracking-wider text-[var(--text-tertiary)] bg-[var(--bg-secondary)]">
-                <th scope="col" className="text-left px-4 py-2.5 font-semibold sticky left-0 bg-[var(--bg-secondary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">GRI · Line item</th>
-                <th scope="col" className="text-left px-4 py-2.5 font-semibold">Plant / entity</th>
-                <th scope="col" className="text-left px-4 py-2.5 font-semibold">Assignee</th>
-                <th scope="col" className="text-left px-3 py-2.5 font-semibold">Mode</th>
-                <th scope="col" className="text-left px-3 py-2.5 font-semibold">Due</th>
-                <th scope="col" className="text-left px-3 py-2.5 font-semibold">Status</th>
-                <th scope="col" className="px-3 py-2.5"><span className="sr-only">Actions</span></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border-subtle)]">
-              {filtered.map((a, idx) => {
-                const entity = entityById.get(a.entityId)
-                const status = STATUS_META[a.status]
-                const modes = a.entry_modes ?? ['Manual']
-                return (
-                  <motion.tr
-                    key={a.id}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.18, delay: Math.min(idx, 12) * 0.025 }}
-                    className="group/arow hover:bg-[var(--bg-secondary)]">
-                    <td className="px-4 py-3 sticky left-0 bg-[var(--bg-primary)] group-hover/arow:bg-[var(--bg-secondary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">
-                      <div className="text-[10px] font-semibold text-[var(--color-brand)]">{a.gri_code}</div>
-                      <div className="text-[var(--text-sm)] text-[var(--text-primary)] font-medium truncate max-w-[320px]">{a.line_item}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5 text-[var(--text-xs)]">
-                        <Factory className="w-3 h-3 text-[var(--text-tertiary)]" />
-                        <span className="text-[var(--text-primary)] font-medium truncate max-w-[180px]">{entity?.name ?? '—'}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-[var(--color-brand)] text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0">
-                          {a.assigneeName.slice(0, 2).toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-[var(--text-xs)] font-semibold text-[var(--text-primary)] truncate">{a.assigneeName}</div>
-                          <div className="text-[10px] text-[var(--text-tertiary)] truncate">{a.assigneeEmail}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 text-[var(--text-xs)]">
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {modes.map(m => {
-                          const Icon = m === 'Manual' ? PencilLine : m === 'Calculator' ? CalcIcon : Plug
-                          const isUsed = a.used_mode === m
-                          return (
-                            <span key={m} className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                              isUsed
-                                ? 'bg-[var(--color-brand)] text-white'
-                                : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
-                            }`} title={isUsed ? 'Used to record this value' : 'Allowed'}>
-                              <Icon className="w-3 h-3" /> {m}
-                            </span>
-                          )
-                        })}
-                      </div>
-                    </td>
-                    <td className="px-3 py-3 text-[var(--text-xs)]">
-                      {a.due_date ? (
-                        <span className="inline-flex items-center gap-1 text-[var(--text-secondary)]">
-                          <Calendar className="w-3 h-3" /> {a.due_date}
-                        </span>
-                      ) : <span className="text-[var(--text-tertiary)]">—</span>}
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className="inline-block px-2 py-0.5 rounded-[var(--radius-sm)] text-[10px] font-semibold uppercase tracking-wider"
-                            style={{ background: status.bg, color: status.fg }}>
-                        {status.label}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3 text-right">
-                      <button onClick={() => removeAssignment(a.id)} className="w-7 h-7 rounded text-[var(--text-tertiary)] hover:text-[var(--status-reject)] hover:bg-[var(--accent-red-light)] inline-flex items-center justify-center" title="Remove">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </motion.tr>
-                )
-              })}
-            </tbody>
-          </table>
-          </div>
-        </div>
-      )}
-
-      {/* Drawer */}
-      {drawerOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/40 animate-fade-in" onClick={() => setDrawerOpen(false)}>
-          <div className="w-full sm:w-[520px] sm:max-w-[90vw] h-full bg-[var(--bg-primary)] shadow-2xl p-4 sm:p-6 overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="font-display text-[var(--text-xl)] font-bold text-[var(--text-primary)]">New assignment</h2>
-              <button onClick={() => setDrawerOpen(false)} className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)]">✕</button>
+          <div className="flex flex-col gap-2 rounded-[var(--radius-xl)] bg-[var(--bg-inverse)] px-3 py-2.5 text-[var(--sidebar-fg)] shadow-[var(--shadow-overlay)] sm:flex-row sm:items-center">
+            <div className="flex items-center gap-2 px-1">
+              <span className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-full bg-[var(--sidebar-accent)] px-1.5 text-caption font-semibold tabular-nums text-[var(--bg-inverse)]">{count}</span>
+              <span className="text-small font-medium">{t('assignments.bulkBar.selected', { count })}</span>
             </div>
-
-            <Step num={1} title="Pick a GRI question">
-              <QuestionPicker
-                questions={questions}
-                selected={pickedQuestion}
-                onSelect={q => {
-                  setPickedQuestion(q)
-                  if (!q) { setPickedModes(['Manual']); return }
-                  const defaultMode = q.entry_mode_default as Mode
-                  const hasCalc = findCalculator(q)
-                  const modes: Mode[] = ['Manual']
-                  if (hasCalc) modes.push('Calculator')
-                  if (defaultMode === 'Connector') modes.push('Connector')
-                  setPickedModes(modes)
-                }}
-              />
-            </Step>
-
-            <Step num={2} title="What kind of answer does this disclosure need?" disabled={!pickedQuestion}>
-              <div className="grid grid-cols-2 gap-2">
-                {([
-                  { key: 'numeric',   label: 'Numeric',   desc: 'A value with a unit (e.g. tCO₂e, MWh)', icon: CalcIcon },
-                  { key: 'narrative', label: 'Narrative', desc: 'Long-form text (GRI 2/3 management approach)', icon: FileText },
-                ] as Array<{ key: ResponseType; label: string; desc: string; icon: typeof CalcIcon }>).map(opt => {
-                  const active = pickedResponseType === opt.key
-                  const Icon = opt.icon
-                  return (
-                    <button key={opt.key} type="button" onClick={() => setPickedResponseType(opt.key)}
-                      className={`text-left p-3 rounded-[var(--radius-md)] border ${active ? 'border-[var(--color-brand)] bg-[var(--color-brand-soft)]' : 'border-[var(--border-default)] hover:bg-[var(--bg-secondary)]'}`}>
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <Icon className="w-3.5 h-3.5" style={{ color: active ? 'var(--color-brand-strong)' : 'var(--text-secondary)' }} />
-                        <span className={`text-[var(--text-xs)] font-semibold ${active ? 'text-[var(--color-brand-strong)]' : 'text-[var(--text-primary)]'}`}>{opt.label}</span>
-                      </div>
-                      <div className="text-[10px] text-[var(--text-tertiary)]">{opt.desc}</div>
-                    </button>
-                  )
-                })}
-              </div>
-            </Step>
-
-            <Step num={3} title="Which plant / entity does this data come from?" disabled={!pickedQuestion}>
-              <select
-                value={pickedEntity}
-                onChange={e => setPickedEntity(e.target.value)}
-                disabled={!pickedQuestion}
-                className="w-full px-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)] disabled:opacity-50"
-              >
-                <option value="">Select entity…</option>
-                {entities
-                  .filter(e => e.type === 'plant' || e.type === 'office' || e.type === 'subsidiary')
-                  .map(e => {
-                    const path = orgStore.pathOf(entities, e.id).slice(0, -1).map(p => p.name).join(' › ')
-                    return <option key={e.id} value={e.id}>{path ? `${path} › ` : ''}{e.name}</option>
-                  })}
-              </select>
-            </Step>
-
-            <Step num={4} title="Who should answer it?" disabled={!pickedEntity}>
-              {pickedEntity ? (
-                <AssigneePicker
-                  entityId={pickedEntity}
-                  members={members}
-                  entities={entities}
-                  value={pickedMember}
-                  onChange={setPickedMember}
-                />
+            <div className="flex flex-1 flex-wrap items-center justify-end gap-1.5">
+              {dueOpen ? (
+                <form
+                  className="flex items-center gap-1.5"
+                  onSubmit={async e => { e.preventDefault(); if (!due) return; setBusy(true); await onSetDue(due); setBusy(false) }}
+                >
+                  <input type="date" value={due} onChange={e => setDue(e.target.value)} aria-label={t('assignments.bulkBar.dueDate')} autoFocus
+                    className="h-9 rounded-[var(--radius-md)] border border-[var(--sidebar-divider)] bg-transparent px-2 text-small text-[var(--sidebar-fg)] [color-scheme:dark]" />
+                  <button type="submit" disabled={!due || busy} className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-md)] bg-[var(--sidebar-accent)] px-3 text-small font-semibold text-[var(--bg-inverse)] disabled:opacity-50">
+                    {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
+                    {t('assignments.bulkBar.apply')}
+                  </button>
+                </form>
               ) : (
-                <div className="text-[var(--text-xs)] text-[var(--text-tertiary)] italic">Pick an entity first.</div>
+                <button type="button" onClick={() => setDueOpen(true)} className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-md)] px-3 text-small font-medium hover:bg-[var(--sidebar-hover-bg)]">
+                  <Calendar className="h-4 w-4" aria-hidden /> {t('assignments.bulkBar.setDue')}
+                </button>
               )}
-            </Step>
-
-            <Step num={5} title="How can they answer it?" disabled={!pickedQuestion || pickedResponseType === 'narrative'}>
-              <p className="text-[10px] text-[var(--text-tertiary)] mb-2">
-                Tick every method the assignee is allowed to use. They pick one at answer time.
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {MODES.map(m => {
-                  const Icon = m === 'Manual' ? PencilLine : m === 'Calculator' ? CalcIcon : Plug
-                  const hasCalc = pickedQuestion ? findCalculator(pickedQuestion) : null
-                  const disabled = m === 'Calculator' && !hasCalc
-                  const active = pickedModes.includes(m)
-                  return (
-                    <button
-                      key={m}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => toggleMode(m)}
-                      className={`relative px-3 py-3 rounded-[var(--radius-md)] border text-[var(--text-xs)] font-semibold flex flex-col items-center gap-1 transition-colors ${
-                        active ? 'border-[var(--color-brand)] bg-[var(--color-brand-soft)] text-[var(--color-brand-strong)]'
-                               : 'border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
-                      } disabled:opacity-40 disabled:cursor-not-allowed`}
-                    >
-                      {active && (
-                        <span className="absolute top-1 right-1 w-3.5 h-3.5 rounded-full bg-[var(--color-brand)] text-white flex items-center justify-center text-[9px]">✓</span>
-                      )}
-                      <Icon className="w-4 h-4" />
-                      {m}
-                      {disabled && <span className="text-[9px] font-normal text-[var(--text-tertiary)]">no calculator</span>}
-                    </button>
-                  )
-                })}
-              </div>
-              {pickedModes.length > 1 && (
-                <p className="text-[10px] text-[var(--color-brand)] mt-2">
-                  Assignee will see a tab switcher to choose between {pickedModes.join(' · ')}.
-                </p>
-              )}
-            </Step>
-
-            <Step num={6} title="Deadline (optional)">
-              <input
-                type="date"
-                value={pickedDue}
-                onChange={e => setPickedDue(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
-              />
-            </Step>
-
-            <div className="flex gap-2 mt-6 pt-4 border-t border-[var(--border-subtle)]">
-              <button
-                onClick={saveAssignment}
-                disabled={!pickedQuestion || !pickedEntity || !pickedMember}
-                className="flex-1 px-4 py-2.5 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold disabled:opacity-50 hover:bg-[var(--color-brand-strong)] transition-colors"
-              >
-                Create assignment
+              <button type="button" onClick={onRemove} className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-md)] px-3 text-small font-medium text-[var(--sidebar-warn)] hover:bg-[var(--sidebar-hover-bg)]">
+                <Trash2 className="h-4 w-4" aria-hidden /> {t('assignments.bulkBar.remove')}
               </button>
-              <button onClick={() => setDrawerOpen(false)} className="px-4 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] text-[var(--text-sm)] font-semibold text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">
-                Cancel
+              <button type="button" onClick={onClear} aria-label={t('assignments.bulkBar.clear')} title={t('assignments.bulkBar.clear')} className="inline-flex h-9 w-9 items-center justify-center rounded-[var(--radius-md)] hover:bg-[var(--sidebar-hover-bg)]">
+                <X className="h-4 w-4" />
               </button>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
-    </div>
+    </AnimatePresence>
   )
 }
 
-function Stat({ label, value, tone }: { label: string; value: number; tone: 'neutral' | 'ok' | 'pending' | 'draft' }) {
-  const bg = tone === 'ok' ? 'var(--accent-green-light)' : tone === 'pending' ? 'var(--accent-blue-light)' : tone === 'draft' ? 'var(--accent-amber-light)' : 'var(--bg-primary)'
-  const fg = tone === 'ok' ? 'var(--status-ok)' : tone === 'pending' ? 'var(--status-pending)' : tone === 'draft' ? 'var(--status-draft)' : 'var(--text-primary)'
+function DrawerProgress({ steps }: { steps: boolean[] }) {
+  const { t } = useTranslation()
+  const done = steps.filter(Boolean).length
   return (
-    <div className="rounded-[var(--radius-md)] border border-[var(--border-default)] p-4" style={{ background: bg }}>
-      <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: fg, opacity: 0.8 }}>{label}</div>
-      <div className="text-[22px] font-bold tabular-nums mt-1" style={{ color: fg }}>{value}</div>
-    </div>
-  )
-}
-
-function Step({ num, title, disabled, children }: { num: number; title: string; disabled?: boolean; children: React.ReactNode }) {
-  return (
-    <div className={`mb-5 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
-      <div className="flex items-center gap-2 mb-2">
-        <span className="w-5 h-5 rounded-full bg-[var(--color-brand)] text-white text-[10px] font-bold flex items-center justify-center">{num}</span>
-        <h3 className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)]">{title}</h3>
+    <div className="mb-5">
+      <div className="flex items-center justify-between text-caption text-[var(--text-tertiary)]">
+        <span>{t('assignments.drawer.progress', { done, total: steps.length })}</span>
       </div>
-      {children}
+      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-[var(--bg-tertiary)]">
+        <motion.div className="h-full rounded-full bg-[var(--color-brand)]" initial={false} animate={{ width: `${(done / steps.length) * 100}%` }} transition={spring.gentle} />
+      </div>
     </div>
+  )
+}
+
+function Step({ num, title, disabled, done, last, children }: { num: number; title: string; disabled?: boolean; done?: boolean; last?: boolean; children: React.ReactNode }) {
+  return (
+    <section className={`relative pl-9 ${last ? '' : 'pb-5'} ${disabled ? 'opacity-50 pointer-events-none' : ''}`} aria-disabled={disabled || undefined}>
+      {!last && <span aria-hidden className="absolute left-[11px] top-7 bottom-1 w-px bg-[var(--border-default)]" />}
+      <span
+        aria-hidden
+        className={`absolute left-0 top-0 flex h-6 w-6 items-center justify-center rounded-full text-caption font-semibold transition-colors ${done ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-fg)]' : 'border border-[var(--border-strong)] bg-[var(--bg-primary)] text-[var(--text-secondary)]'}`}
+      >
+        {done ? <Check className="h-3.5 w-3.5" strokeWidth={3} /> : num}
+      </span>
+      <h3 className="mb-2 pt-0.5 text-small font-semibold text-[var(--text-primary)]">{title}</h3>
+      {children}
+    </section>
   )
 }
 
@@ -605,6 +815,7 @@ function QuestionPicker({ questions, selected, onSelect }: {
   selected: NexusQuestionnaireItem | null
   onSelect: (q: NexusQuestionnaireItem) => void
 }) {
+  const { t, i18n } = useTranslation()
   const [q, setQ] = useState('')
 
   // The seed keeps one `questionnaire_item` row per (year × entity × breakdown),
@@ -628,29 +839,30 @@ function QuestionPicker({ questions, selected, onSelect }: {
     return uniqueQuestions.filter(x =>
       x.gri_code.toLowerCase().includes(s) ||
       x.line_item.toLowerCase().includes(s) ||
+      itemLabel(x, i18n.language).toLowerCase().includes(s) ||
       x.section.toLowerCase().includes(s)
     ).slice(0, 50)
-  }, [q, uniqueQuestions])
+  }, [q, uniqueQuestions, i18n.language])
 
   return (
     <div>
       {selected ? (
         <div className="p-3 rounded-[var(--radius-md)] border border-[var(--color-brand)] bg-[var(--color-brand-soft)]/40">
-          <div className="text-[10px] font-semibold text-[var(--color-brand-strong)] uppercase tracking-wider">{selected.gri_code}</div>
-          <div className="text-[var(--text-sm)] font-semibold text-[var(--text-primary)] mt-0.5">{selected.line_item}</div>
-          <div className="text-[10px] text-[var(--text-tertiary)] mt-0.5">{selected.section} · {selected.subsection}</div>
-          <button onClick={() => onSelect(null as any)} className="mt-2 text-[var(--text-xs)] text-[var(--color-brand)] hover:underline">Change question</button>
+          <div className="font-mono text-caption font-semibold text-[var(--color-brand-strong)]">{selected.gri_code}</div>
+          <div className="text-small font-semibold text-[var(--text-primary)] mt-0.5">{itemLabel(selected, i18n.language)}</div>
+          <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{t(capitalLabelKey(selected.section), { defaultValue: selected.section })} · {t(subsectionLabelKey(selected.subsection), { defaultValue: selected.subsection })}</div>
+          <button type="button" onClick={() => onSelect(null as unknown as NexusQuestionnaireItem)} className="mt-2 inline-flex h-8 items-center text-small font-medium text-[var(--color-brand)] hover:underline underline-offset-2">{t('assignments.picker.change')}</button>
         </div>
       ) : (
         <>
           <div className="relative mb-2">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" />
+            <Search className="pointer-events-none w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]" aria-hidden />
             <input
               value={q}
               onChange={e => setQ(e.target.value)}
-              autoFocus
-              placeholder="Search GRI code or line item…"
-              className="w-full pl-9 pr-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+              placeholder={t('assignments.picker.search')}
+              aria-label={t('assignments.picker.search')}
+              className={`${fieldCls} pl-9`}
             />
           </div>
           <div className="max-h-[240px] overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)]">
@@ -659,13 +871,13 @@ function QuestionPicker({ questions, selected, onSelect }: {
                 key={x.id}
                 type="button"
                 onClick={() => onSelect(x)}
-                className="w-full px-3 py-2 text-left hover:bg-[var(--bg-primary)] border-b border-[var(--border-subtle)] last:border-b-0"
+                className="w-full px-3 py-2 text-left hover:bg-[var(--bg-primary)] focus-visible:bg-[var(--bg-primary)] focus-visible:outline-none border-b border-[var(--border-subtle)] last:border-b-0"
               >
-                <div className="text-[9px] font-semibold text-[var(--color-brand)]">{x.gri_code}</div>
-                <div className="text-[var(--text-xs)] font-medium text-[var(--text-primary)] truncate">{x.line_item}</div>
+                <div className="font-mono text-caption font-semibold text-[var(--color-brand)]">{x.gri_code}</div>
+                <div className="text-small font-medium text-[var(--text-primary)] truncate">{itemLabel(x, i18n.language)}</div>
               </button>
             ))}
-            {filtered.length === 0 && <div className="p-4 text-center text-[var(--text-xs)] text-[var(--text-tertiary)]">No matches</div>}
+            {filtered.length === 0 && <div className="p-4 text-center text-small text-[var(--text-tertiary)]">{t('assignments.picker.noMatches')}</div>}
           </div>
         </>
       )}
@@ -680,6 +892,7 @@ function AssigneePicker({ entityId, members, entities, value, onChange }: {
   value: string
   onChange: (id: string) => void
 }) {
+  const { t } = useTranslation()
   const inScope = useMemo(() => {
     const ids = new Set(orgStore.descendantIds(entities, entityId))
     const path = new Set(orgStore.pathOf(entities, entityId).map(p => p.id))
@@ -688,9 +901,9 @@ function AssigneePicker({ entityId, members, entities, value, onChange }: {
 
   if (inScope.length === 0) {
     return (
-      <div className="p-3 rounded-[var(--radius-md)] border border-dashed border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-xs)] text-[var(--text-tertiary)]">
+      <div className="p-3 rounded-[var(--radius-md)] border border-dashed border-[var(--border-default)] bg-[var(--bg-secondary)] text-small text-[var(--text-secondary)]">
         <AlertCircle className="w-3.5 h-3.5 inline -mt-0.5 mr-1" />
-        No members on this entity yet. Add one in <strong>Onboarding</strong> first.
+        <Trans i18nKey="assignments.picker.noMembers" components={{ b: <strong /> }} />
       </div>
     )
   }
@@ -699,9 +912,10 @@ function AssigneePicker({ entityId, members, entities, value, onChange }: {
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
-      className="w-full px-3 py-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
+      aria-label={t('assignments.picker.selectAssignee')}
+      className={fieldCls}
     >
-      <option value="">Select assignee…</option>
+      <option value="">{t('assignments.picker.selectAssignee')}</option>
       {inScope.map(m => <option key={m.id} value={m.id}>{m.name} ({m.email})</option>)}
     </select>
   )
@@ -711,13 +925,14 @@ function AssigneePicker({ entityId, members, entities, value, onChange }: {
 
 // ─── Kanban view ────────────────────────────────────────────
 
-const KANBAN_COLS: Array<{ status: QuestionAssignment['status']; label: string; color: string; bg: string }> = [
-  { status: 'not_started', label: 'Not started', color: 'var(--text-tertiary)', bg: 'var(--bg-tertiary)' },
-  { status: 'in_progress', label: 'In progress', color: 'var(--status-draft)',  bg: 'var(--accent-amber-light)' },
-  { status: 'submitted',   label: 'Submitted',   color: 'var(--status-pending)', bg: 'var(--accent-blue-light)' },
-  { status: 'reviewed',    label: 'Reviewed',    color: 'var(--accent-purple)',  bg: 'var(--accent-purple-light)' },
-  { status: 'approved',    label: 'Approved',    color: 'var(--status-ok)',     bg: 'var(--accent-green-light)' },
-  { status: 'rejected',    label: 'Rejected',    color: 'var(--status-reject)', bg: 'var(--accent-red-light)' },
+/** `label` is an i18n key. */
+const KANBAN_COLS: Array<{ status: QuestionAssignment['status']; label: string; color: string }> = [
+  { status: 'not_started', label: 'workflowStatus.status.not_started', color: 'var(--status-neutral)' },
+  { status: 'in_progress', label: 'workflowStatus.status.in_progress', color: 'var(--status-warning)' },
+  { status: 'submitted',   label: 'workflowStatus.status.submitted',   color: 'var(--status-info)' },
+  { status: 'reviewed',    label: 'workflowStatus.status.reviewed',    color: 'var(--status-info)' },
+  { status: 'approved',    label: 'workflowStatus.status.approved',    color: 'var(--status-success)' },
+  { status: 'rejected',    label: 'workflowStatus.status.rejected',    color: 'var(--status-danger)' },
 ]
 
 function KanbanView({
@@ -727,6 +942,7 @@ function KanbanView({
   entityById: Map<string, OrgEntity>
   onRemove: (id: string) => void
 }) {
+  const { t } = useTranslation()
   const grouped = useMemo(() => {
     const m = new Map<QuestionAssignment['status'], QuestionAssignment[]>()
     for (const c of KANBAN_COLS) m.set(c.status, [])
@@ -744,16 +960,16 @@ function KanbanView({
             initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: ci * 0.03 }}
             className="flex-shrink-0 w-[300px] surface-paper overflow-hidden flex flex-col max-h-[calc(100vh-280px)]"
           >
-            <header className="px-4 py-3 border-b border-[var(--border-subtle)] flex items-center gap-2 flex-shrink-0" style={{ background: col.bg }}>
-              <span className="w-2 h-2 rounded-full" style={{ background: col.color }} />
-              <span className="text-[11.5px] font-bold uppercase tracking-[0.1em]" style={{ color: col.color }}>{col.label}</span>
-              <span className="ml-auto text-[11px] font-bold tabular-nums px-1.5 py-0.5 rounded-full bg-white/70" style={{ color: col.color }}>{cards.length}</span>
+            <header className="px-4 py-3 border-b border-[var(--border-subtle)] flex items-center gap-2 flex-shrink-0 bg-[var(--bg-secondary)]">
+              <span className="w-2 h-2 rounded-full" style={{ background: col.color }} aria-hidden />
+              <span className="text-small font-semibold text-[var(--text-primary)]">{t(col.label)}</span>
+              <span className="ml-auto text-caption font-semibold tabular-nums px-1.5 py-0.5 rounded-full bg-[var(--bg-primary)] text-[var(--text-secondary)]">{cards.length}</span>
             </header>
             <div className="flex-1 overflow-y-auto p-2 space-y-2">
               {cards.length === 0 ? (
-                <div className="py-6 text-center text-[11px] text-[var(--text-tertiary)] italic">No assignments in this lane</div>
+                <div className="py-6 text-center text-caption text-[var(--text-tertiary)]">{t('assignments.kanban.emptyLane')}</div>
               ) : (
-                cards.map((a, i) => <KanbanCard key={a.id} a={a} entity={entityById.get(a.entityId)} index={i} onRemove={() => onRemove(a.id)} accent={col.color} />)
+                cards.map((a, i) => <KanbanCard key={a.id} a={a} entity={entityById.get(a.entityId)} index={i} onRemove={() => onRemove(a.id)} />)
               )}
             </div>
           </motion.div>
@@ -763,61 +979,60 @@ function KanbanView({
   )
 }
 
-function KanbanCard({ a, entity, index, onRemove, accent }: {
+function KanbanCard({ a, entity, index, onRemove }: {
   a: QuestionAssignment
   entity: OrgEntity | undefined
   index: number
   onRemove: () => void
-  accent: string
 }) {
+  const { t, i18n } = useTranslation()
+  const { date: fmtDate } = useFmt()
   const modes = a.entry_modes ?? ['Manual']
-  const now = Date.now()
-  const overdue = a.due_date && new Date(a.due_date).getTime() < now && a.status !== 'approved'
+  const overdue = isOverdue(a)
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.015 }}
       className="rounded-[8px] bg-[var(--bg-primary)] border border-[var(--border-subtle)] p-3 hover:shadow-[var(--shadow-sm)] hover:border-[var(--border-strong)] transition-all group cursor-pointer relative"
     >
-      <span className="absolute left-0 top-2 bottom-2 w-[2px] rounded-r-full" style={{ background: accent }} />
       <div className="flex items-start justify-between gap-2 mb-1.5">
-        <span className="font-mono text-[10px] font-bold text-[var(--color-brand)] tracking-[0.02em]">{a.gri_code}</span>
-        <button onClick={(e) => { e.stopPropagation(); onRemove() }} className="w-5 h-5 rounded text-[var(--text-tertiary)] hover:text-[var(--accent-red)] hover:bg-[var(--accent-red-light)] opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center">
-          <Trash2 className="w-3 h-3" />
+        <span className="font-mono text-caption font-semibold text-[var(--color-brand)]">{a.gri_code}</span>
+        <button onClick={(e) => { e.stopPropagation(); onRemove() }} aria-label={t('assignments.removeAria', { code: a.gri_code })} className="-m-1.5 w-8 h-8 rounded-[var(--radius-sm)] text-[var(--text-tertiary)] hover:text-[var(--status-danger)] hover:bg-[var(--status-danger-soft)] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity inline-flex items-center justify-center">
+          <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>
-      <div className="text-[12.5px] font-semibold text-[var(--text-primary)] leading-snug line-clamp-2 tracking-[-0.005em]">{a.line_item}</div>
+      <div className="text-small font-semibold text-[var(--text-primary)] leading-snug line-clamp-2">{itemLabel(a, i18n.language)}</div>
       <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
         {entity && (
-          <span className="inline-flex items-center gap-1 text-[10.5px] text-[var(--text-tertiary)] bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded">
+          <span className="inline-flex items-center gap-1 text-caption text-[var(--text-tertiary)] bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded">
             <Factory className="w-2.5 h-2.5" />{entity.name}
           </span>
         )}
         {a.response_type === 'narrative' && (
-          <span className="inline-flex items-center gap-1 text-[10.5px] text-[var(--accent-purple)] bg-[var(--accent-purple-light)] px-1.5 py-0.5 rounded font-semibold">
-            <FileText className="w-2.5 h-2.5" />Narrative
+          <span className="inline-flex items-center gap-1 text-caption text-[var(--status-info)] bg-[var(--status-info-soft)] px-1.5 py-0.5 rounded font-semibold">
+            <FileText className="w-2.5 h-2.5" />{t('assignments.drawer.narrative')}
           </span>
         )}
         {modes.length > 0 && modes[0] && (() => {
           const Icon = modes[0] === 'Manual' ? PencilLine : modes[0] === 'Calculator' ? CalcIcon : Plug
           return (
-            <span className="inline-flex items-center gap-0.5 text-[10.5px] text-[var(--text-tertiary)] bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded">
-              <Icon className="w-2.5 h-2.5" />{modes[0]}
+            <span className="inline-flex items-center gap-0.5 text-caption text-[var(--text-tertiary)] bg-[var(--bg-secondary)] px-1.5 py-0.5 rounded">
+              <Icon className="w-2.5 h-2.5" />{t(`assignments.mode.${modes[0]}`, { defaultValue: modes[0] })}
             </span>
           )
         })()}
       </div>
       <div className="mt-2.5 flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
-          <div className="w-5 h-5 rounded-full flex items-center justify-center text-[8.5px] font-bold text-white flex-shrink-0" style={{ background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-strong))' }}>
-            {a.assigneeName.slice(0, 2).toUpperCase()}
+          <div className="w-6 h-6 rounded-full flex items-center justify-center text-caption font-semibold flex-shrink-0 bg-[var(--bg-inverse)] text-[var(--sidebar-accent)]" aria-hidden>
+            {a.assigneeName.slice(0, 1).toUpperCase()}
           </div>
-          <span className="text-[10.5px] text-[var(--text-secondary)] truncate font-medium">{a.assigneeName}</span>
+          <span className="text-caption text-[var(--text-secondary)] truncate font-medium">{a.assigneeName}</span>
         </div>
         {a.due_date && (
-          <span className={`inline-flex items-center gap-0.5 text-[10px] tabular-nums flex-shrink-0 font-semibold ${overdue ? 'text-[var(--accent-red)]' : 'text-[var(--text-tertiary)]'}`}>
-            <Calendar className="w-2.5 h-2.5" />
-            {new Date(a.due_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+          <span className={`inline-flex items-center gap-1 text-caption tabular-nums whitespace-nowrap flex-shrink-0 font-medium ${overdue ? 'text-[var(--status-danger)]' : 'text-[var(--text-tertiary)]'}`}>
+            <Calendar className="w-3 h-3" aria-hidden />
+            {fmtDate(a.due_date, { style: 'short' })}
           </span>
         )}
       </div>
@@ -836,6 +1051,7 @@ function TreeView({
   entities: OrgEntity[]
   onRemove: (id: string) => void
 }) {
+  const { t } = useTranslation()
   const rootIds = entities.filter(e => !e.parentId).map(e => e.id)
   const byParent = useMemo(() => {
     const m = new Map<string | null, OrgEntity[]>()
@@ -862,7 +1078,7 @@ function TreeView({
     return (
       <div className="rounded-[var(--radius-lg)] border border-dashed border-[var(--border-default)] bg-[var(--bg-primary)] py-14 text-center">
         <GitBranch className="w-10 h-10 mx-auto text-[var(--text-tertiary)] mb-2" />
-        <div className="text-[14px] text-[var(--text-tertiary)]">No entity tree yet — run Onboarding first.</div>
+        <div className="text-body text-[var(--text-tertiary)]">{t('assignments.tree.empty')}</div>
       </div>
     )
   }
@@ -871,7 +1087,7 @@ function TreeView({
     <div className="surface-paper p-4 relative overflow-hidden">
       {/* ambient top-right wash */}
       <div aria-hidden className="pointer-events-none absolute -top-20 -right-24 w-[360px] h-[360px] rounded-full"
-        style={{ background: 'radial-gradient(circle, rgba(27,107,123,0.06), transparent 60%)' }} />
+        style={{ background: 'radial-gradient(circle, rgba(4, 120, 87,0.06), transparent 60%)' }} />
       <div className="relative space-y-1">
         {rootIds.map((id, i) => (
           <TreeNode key={id} entityId={id} depth={0} byParent={byParent} byEntity={byEntity} entities={entities} onRemove={onRemove} index={i} />
@@ -883,17 +1099,14 @@ function TreeView({
 
 /** Entity icon painted into a filled rounded square with tint matching the type. */
 function EntityGlyph({ type }: { type: string }) {
-  const style = {
-    group:         { fg: '#1B6B7B', bg: 'rgba(27,107,123,0.12)',  label: 'GROUP' },
-    business_unit: { fg: '#5E35B1', bg: 'rgba(94,53,177,0.12)',   label: 'BU' },
-    subsidiary:    { fg: '#1565C0', bg: 'rgba(21,101,192,0.12)',  label: 'SUB' },
-    plant:         { fg: '#2E7D32', bg: 'rgba(46,125,50,0.12)',   label: 'PLANT' },
-    office:        { fg: '#E6A817', bg: 'rgba(230,168,23,0.12)',  label: 'OFFICE' },
-  }[type as string] ?? { fg: '#1B6B7B', bg: 'rgba(27,107,123,0.1)', label: '—' }
+  // Monochrome by design: hierarchy is carried by position, not by hue.
+  const style = type === 'group'
+    ? { fg: 'var(--sidebar-accent)', bg: 'var(--bg-inverse)' }
+    : { fg: 'var(--text-secondary)', bg: 'var(--bg-tertiary)' }
 
   return (
     <div
-      className="w-8 h-8 rounded-[9px] flex items-center justify-center flex-shrink-0 relative"
+      className="w-8 h-8 rounded-[var(--radius-md)] flex items-center justify-center flex-shrink-0 relative" aria-hidden
       style={{ background: style.bg, color: style.fg }}
     >
       <Factory className="w-[15px] h-[15px]" />
@@ -905,16 +1118,17 @@ function EntityGlyph({ type }: { type: string }) {
 function DistributionBar({
   approved, inReview, open, rejected, total,
 }: { approved: number; inReview: number; open: number; rejected: number; total: number }) {
+  const { t } = useTranslation()
   if (total === 0) {
     return (
       <div className="w-[160px] h-[6px] rounded-full bg-[var(--bg-tertiary)]/60 overflow-hidden" />
     )
   }
   const segs = [
-    { pct: (approved / total) * 100,  color: '#2E7D32', title: `${approved} approved` },
-    { pct: (inReview / total) * 100,  color: '#1565C0', title: `${inReview} in review` },
-    { pct: (open / total) * 100,      color: '#E6A817', title: `${open} open` },
-    { pct: (rejected / total) * 100,  color: '#C62828', title: `${rejected} rejected` },
+    { pct: (approved / total) * 100,  color: 'var(--status-success)', title: t('assignments.counts.approved', { count: approved }) },
+    { pct: (inReview / total) * 100,  color: 'var(--status-info)', title: t('assignments.counts.inReview', { count: inReview }) },
+    { pct: (open / total) * 100,      color: 'var(--status-warning)', title: t('assignments.counts.open', { count: open }) },
+    { pct: (rejected / total) * 100,  color: 'var(--status-danger)', title: t('assignments.counts.rejected', { count: rejected }) },
   ].filter(s => s.pct > 0)
   return (
     <div className="w-[160px] h-[6px] rounded-full bg-[var(--bg-tertiary)]/40 overflow-hidden flex" title={segs.map(s => s.title).join(' · ')}>
@@ -941,6 +1155,7 @@ function TreeNode({
   onRemove: (id: string) => void
   index: number
 }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(depth < 2)
   const entity = entities.find(e => e.id === entityId)
   if (!entity) return null
@@ -997,27 +1212,26 @@ function TreeNode({
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[13.5px] font-semibold text-[var(--text-primary)] truncate tracking-[-0.005em]">
+            <span className="text-small font-semibold text-[var(--text-primary)] truncate">
               {entity.name}
             </span>
             <span
-              className="text-[9.5px] font-bold uppercase tracking-[0.1em] px-1.5 py-0.5 rounded-[5px]"
-              style={{ background: 'var(--bg-tertiary)', color: 'var(--text-tertiary)' }}
+              className="text-caption font-medium px-1.5 py-0.5 rounded-[var(--radius-xs)] bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] whitespace-nowrap"
             >
-              {entity.type.replace('_', ' ')}
+              {t(`assignments.entityType.${entity.type}`, { defaultValue: entity.type.replace('_', ' ') })}
             </span>
             {entity.country && (
-              <span className="text-[9.5px] font-medium uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+              <span className="text-caption text-[var(--text-tertiary)]">
                 · {entity.country}
               </span>
             )}
           </div>
           {bucket.total > 0 && (
-            <div className="mt-1 flex items-center gap-2 text-[10.5px] text-[var(--text-tertiary)]">
-              {bucket.approved > 0 && <span className="text-[var(--status-ok)] font-semibold">{bucket.approved} approved</span>}
-              {bucket.inReview > 0 && <span className="text-[var(--status-pending)] font-semibold">{bucket.inReview} in review</span>}
-              {bucket.open > 0     && <span className="text-[var(--status-draft)]  font-semibold">{bucket.open} open</span>}
-              {bucket.rejected > 0 && <span className="text-[var(--status-reject)] font-semibold">{bucket.rejected} rejected</span>}
+            <div className="mt-1 flex items-center gap-2 text-caption text-[var(--text-tertiary)]">
+              {bucket.approved > 0 && <span className="text-[var(--status-success)] font-semibold">{t('assignments.counts.approved', { count: bucket.approved })}</span>}
+              {bucket.inReview > 0 && <span className="text-[var(--status-info)] font-semibold">{t('assignments.counts.inReview', { count: bucket.inReview })}</span>}
+              {bucket.open > 0     && <span className="text-[var(--status-warning)] font-semibold">{t('assignments.counts.open', { count: bucket.open })}</span>}
+              {bucket.rejected > 0 && <span className="text-[var(--status-danger)] font-semibold">{t('assignments.counts.rejected', { count: bucket.rejected })}</span>}
             </div>
           )}
         </div>
@@ -1026,12 +1240,12 @@ function TreeNode({
         <div className="flex items-center gap-3 flex-shrink-0">
           <DistributionBar approved={bucket.approved} inReview={bucket.inReview} open={bucket.open} rejected={bucket.rejected} total={bucket.total} />
           <span
-            className="text-[13px] font-bold tabular-nums tracking-[-0.01em] w-10 text-right"
-            style={{ color: pct === 100 ? 'var(--status-ok)' : pct >= 50 ? 'var(--color-brand)' : pct > 0 ? 'var(--status-draft)' : 'var(--text-quaternary)' }}
+            className="text-small font-semibold tabular-nums w-10 text-right"
+            style={{ color: pct === 100 ? 'var(--status-success)' : pct > 0 ? 'var(--text-primary)' : 'var(--text-quaternary)' }}
           >
             {pct}%
           </span>
-          <span className="text-[10.5px] tabular-nums text-[var(--text-tertiary)] font-medium w-[62px] text-right">
+          <span className="text-caption tabular-nums text-[var(--text-tertiary)] font-medium w-[62px] text-right">
             {bucket.approved}<span className="text-[var(--text-quaternary)]">/{bucket.total}</span>
           </span>
         </div>
@@ -1069,15 +1283,11 @@ function TreeAssignmentRow({ a, depth, onRemove, index }: {
   onRemove: () => void
   index: number
 }) {
-  const status = STATUS_META[a.status]
+  const { t, i18n } = useTranslation()
+  const { date: fmtDate } = useFmt()
   const modes = a.entry_modes ?? ['Manual']
-  const ModeIcon = modes[0] === 'Manual' ? PencilLine : modes[0] === 'Calculator' ? CalcIcon : Plug
-  const now = Date.now()
-  const overdue = a.due_date && new Date(a.due_date).getTime() < now && a.status !== 'approved'
-
-  // Deterministic gradient per assignee name
-  const hue = (a.assigneeName.charCodeAt(0) * 7 + a.assigneeName.length * 13) % 360
-  const avatarGrad = `linear-gradient(135deg, hsl(${hue},55%,55%), hsl(${(hue + 40) % 360},50%,42%))`
+  const ModeIcon = MODE_ICON[modes[0] as Mode] ?? PencilLine
+  const overdue = isOverdue(a)
 
   return (
     <motion.div
@@ -1088,79 +1298,50 @@ function TreeAssignmentRow({ a, depth, onRemove, index }: {
       className="relative"
     >
       {/* indent guide */}
-      <span
-        aria-hidden
-        className="absolute left-[10px] top-0 bottom-0 w-px"
-        style={{ background: 'var(--border-subtle)' }}
-      />
+      <span aria-hidden className="absolute left-[10px] top-0 bottom-0 w-px bg-[var(--border-subtle)]" />
 
-      <motion.div
-        whileHover={{ x: 1 }}
-        className="group relative flex items-center gap-3 pl-3 pr-2.5 py-2 rounded-[8px] transition-colors hover:bg-[var(--bg-secondary)]"
-      >
-        {/* status dot with soft glow */}
-        <span
-          className="w-[9px] h-[9px] rounded-full flex-shrink-0 relative"
-          style={{ background: status.fg, boxShadow: `0 0 0 3px ${status.bg}` }}
-        >
-          {a.status === 'approved' && (
-            <span className="absolute inset-0 rounded-full animate-pulse-soft" style={{ background: status.fg, opacity: 0.6 }} />
-          )}
-        </span>
-
+      <div className="group relative flex items-center gap-3 pl-3 pr-2.5 py-2 rounded-[var(--radius-md)] transition-colors hover:bg-[var(--bg-secondary)]">
         {/* code + line-item */}
         <div className="min-w-0 flex-1 grid grid-cols-[auto_1fr] gap-x-2.5 items-center">
-          <span className="font-mono text-[10.5px] font-bold text-[var(--color-brand)] tracking-[0.02em]">{a.gri_code}</span>
-          <span className="text-[12.5px] text-[var(--text-primary)] truncate font-medium">{a.line_item}</span>
+          <span className="font-mono text-caption font-semibold text-[var(--color-brand)]">{a.gri_code}</span>
+          <span className="text-small text-[var(--text-primary)] truncate font-medium">{itemLabel(a, i18n.language)}</span>
         </div>
 
         {/* mode chip */}
-        <span className="hidden md:inline-flex items-center gap-1 px-1.5 h-5 rounded-[5px] bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-[10px] text-[var(--text-tertiary)] font-medium flex-shrink-0">
-          <ModeIcon className="w-2.5 h-2.5" />
-          {modes[0]}
+        <span className="hidden md:inline-flex items-center gap-1 px-1.5 h-6 rounded-[var(--radius-sm)] bg-[var(--bg-secondary)] border border-[var(--border-subtle)] text-caption text-[var(--text-tertiary)] font-medium flex-shrink-0 whitespace-nowrap">
+          <ModeIcon className="w-3 h-3" aria-hidden />
+          {t(`assignments.mode.${modes[0]}`, { defaultValue: modes[0] })}
         </span>
 
         {/* assignee */}
-        <div className="inline-flex items-center gap-1.5 flex-shrink-0">
-          <div
-            className="w-5 h-5 rounded-full flex items-center justify-center text-[8.5px] font-bold text-white"
-            style={{ background: avatarGrad, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.18), 0 1px 2px rgba(11,18,32,0.15)' }}
-          >
-            {a.assigneeName.slice(0, 2).toUpperCase()}
-          </div>
-          <span className="text-[11px] text-[var(--text-secondary)] font-medium truncate max-w-[80px]">{a.assigneeName.split(' ')[0]}</span>
+        <div className="hidden sm:inline-flex items-center gap-1.5 flex-shrink-0" title={a.assigneeEmail}>
+          <span aria-hidden className="w-6 h-6 rounded-full flex items-center justify-center text-caption font-semibold bg-[var(--bg-inverse)] text-[var(--sidebar-accent)]">
+            {a.assigneeName.slice(0, 1).toUpperCase()}
+          </span>
+          <span className="text-caption text-[var(--text-secondary)] font-medium truncate max-w-[96px]">{a.assigneeName}</span>
         </div>
 
-        {/* status pill */}
-        <span
-          className="inline-flex items-center gap-1 h-5 px-1.5 rounded-[5px] text-[9.5px] font-bold uppercase tracking-[0.1em] flex-shrink-0"
-          style={{ background: status.bg, color: status.fg }}
-        >
-          {status.label}
-        </span>
+        <StatusPill status={a.status} size="sm" />
 
         {/* due date */}
         {a.due_date ? (
-          <span
-            className={`inline-flex items-center gap-1 text-[10.5px] tabular-nums flex-shrink-0 w-[52px] justify-end font-semibold ${
-              overdue ? 'text-[var(--accent-red)]' : 'text-[var(--text-tertiary)]'
-            }`}
-          >
-            <Calendar className="w-2.5 h-2.5" />
-            {new Date(a.due_date).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
+          <span className={`hidden sm:inline-flex items-center gap-1 text-caption tabular-nums whitespace-nowrap flex-shrink-0 min-w-[64px] justify-end font-medium ${overdue ? 'text-[var(--status-danger)]' : 'text-[var(--text-tertiary)]'}`}>
+            <Calendar className="w-3 h-3" aria-hidden />
+            {fmtDate(a.due_date, { style: 'short' })}
           </span>
         ) : (
-          <span className="w-[52px] flex-shrink-0" />
+          <span className="hidden sm:block min-w-[64px] flex-shrink-0" />
         )}
 
         <button
           onClick={onRemove}
-          className="w-6 h-6 rounded-[5px] text-[var(--text-tertiary)] hover:text-[var(--accent-red)] hover:bg-[var(--accent-red-light)] opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center justify-center flex-shrink-0"
-          title="Remove"
+          aria-label={t('assignments.removeAria', { code: a.gri_code })}
+          className="w-8 h-8 rounded-[var(--radius-sm)] text-[var(--text-tertiary)] hover:text-[var(--status-danger)] hover:bg-[var(--status-danger-soft)] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 [@media(hover:none)]:opacity-100 transition-opacity inline-flex items-center justify-center flex-shrink-0"
+          title={t('assignments.removeLabel')}
         >
-          <Trash2 className="w-3 h-3" />
+          <Trash2 className="w-3.5 h-3.5" />
         </button>
-      </motion.div>
+      </div>
     </motion.div>
   )
 }
@@ -1189,6 +1370,7 @@ function NetworkView({
   assignments: QuestionAssignment[]
   entities: OrgEntity[]
 }) {
+  const { t } = useTranslation()
   const [hoverId, setHoverId] = useState<string | null>(null)
 
   const { nodes, edges, viewBox } = useMemo(() => {
@@ -1261,30 +1443,30 @@ function NetworkView({
     return (
       <div className="surface-paper py-14 text-center">
         <NetworkIcon className="w-8 h-8 mx-auto text-[var(--text-tertiary)] mb-2" />
-        <div className="text-[13px] text-[var(--text-tertiary)]">No entity tree to graph yet.</div>
+        <div className="text-small text-[var(--text-tertiary)]">{t('assignments.network.empty')}</div>
       </div>
     )
   }
 
-  const BRAND = '#1B6B7B'
+  const BRAND = 'var(--color-brand)'
   const hovered = hoverId ? nodes.find(n => n.id === hoverId) : null
 
   return (
     <div className="surface-paper relative overflow-hidden" style={{ minHeight: 520 }}>
       {/* chrome */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-subtle)]">
-        <div className="flex items-center gap-2 text-[11px] text-[var(--text-tertiary)]">
+        <div className="flex items-center gap-2 text-caption text-[var(--text-tertiary)]">
           <NetworkIcon className="w-3.5 h-3.5" />
-          <span className="font-mono uppercase tracking-[0.12em]">Network</span>
+          <span className="font-medium">{t('assignments.view.network')}</span>
           <span className="text-[var(--text-quaternary)]">·</span>
-          <span>{nodes.length} nodes · {edges.length} links</span>
+          <span>{t('assignments.network.nodesLinks', { nodes: nodes.length, links: edges.length })}</span>
         </div>
-        <div className="flex items-center gap-3 text-[11px] text-[var(--text-tertiary)]">
-          <LegendItem label="Group" />
-          <LegendItem label="BU" />
-          <LegendItem label="Subsidiary" />
-          <LegendItem label="Plant" />
-          <LegendItem label="Office" />
+        <div className="flex items-center gap-3 text-caption text-[var(--text-tertiary)]">
+          <LegendItem label={t('assignments.entityType.group')} />
+          <LegendItem label={t('assignments.network.bu')} />
+          <LegendItem label={t('assignments.entityType.subsidiary')} />
+          <LegendItem label={t('assignments.entityType.plant')} />
+          <LegendItem label={t('assignments.entityType.office')} />
         </div>
       </div>
 
@@ -1292,7 +1474,7 @@ function NetworkView({
         <svg viewBox={viewBox} className="w-full" style={{ height: 460, display: 'block', overflow: 'visible' }} preserveAspectRatio="xMidYMid meet">
           <defs>
             <filter id="node-shadow" x="-50%" y="-50%" width="200%" height="200%">
-              <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="#0B1220" floodOpacity="0.12" />
+              <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="rgb(11 18 32)" floodOpacity="0.12" />
             </filter>
           </defs>
 
@@ -1369,7 +1551,7 @@ function NetworkView({
                       fill="var(--text-tertiary)"
                       style={{ fontFeatureSettings: '"tnum"' }}
                     >
-                      {n.total === 0 ? n.type.replace('_', ' ') : `${n.approved}/${n.total}`}
+                      {n.total === 0 ? t(`assignments.entityType.${n.type}`, { defaultValue: n.type.replace('_', ' ') }) : `${n.approved}/${n.total}`}
                     </text>
                   </g>
                 )}
@@ -1404,7 +1586,7 @@ function NetworkView({
                   fill="var(--text-tertiary)"
                   style={{ fontFeatureSettings: '"tnum"' }}
                 >
-                  {root.total === 0 ? 'Org root' : `${root.approved}/${root.total}`}
+                  {root.total === 0 ? t('assignments.network.orgRoot') : `${root.approved}/${root.total}`}
                 </text>
               </g>
             )
@@ -1417,23 +1599,23 @@ function NetworkView({
         {hovered ? (
           <div className="flex items-center gap-5 flex-wrap">
             <div>
-              <div className="text-[13.5px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{hovered.name}</div>
-              <div className="text-[10.5px] text-[var(--text-tertiary)] uppercase tracking-[0.12em] mt-0.5 font-semibold">{hovered.type.replace('_', ' ')}</div>
+              <div className="text-small font-semibold text-[var(--text-primary)]">{hovered.name}</div>
+              <div className="text-caption text-[var(--text-tertiary)] mt-0.5">{t(`assignments.entityType.${hovered.type}`, { defaultValue: hovered.type.replace('_', ' ') })}</div>
             </div>
             <span className="h-8 w-px bg-[var(--border-subtle)]" />
-            <div className="flex items-center gap-4 text-[11.5px] font-semibold tabular-nums">
-              <span className="text-[var(--status-ok)]">{hovered.approved} approved</span>
-              <span className="text-[var(--status-pending)]">{hovered.inReview} review</span>
-              <span className="text-[var(--status-draft)]">{hovered.open} open</span>
-              {hovered.rejected > 0 && <span className="text-[var(--status-reject)]">{hovered.rejected} rejected</span>}
+            <div className="flex items-center gap-4 text-caption font-semibold tabular-nums">
+              <span className="text-[var(--status-ok)]">{t('assignments.counts.approved', { count: hovered.approved })}</span>
+              <span className="text-[var(--status-pending)]">{t('assignments.counts.review', { count: hovered.inReview })}</span>
+              <span className="text-[var(--status-draft)]">{t('assignments.counts.open', { count: hovered.open })}</span>
+              {hovered.rejected > 0 && <span className="text-[var(--status-reject)]">{t('assignments.counts.rejected', { count: hovered.rejected })}</span>}
             </div>
             <span className="h-8 w-px bg-[var(--border-subtle)]" />
-            <div className="text-[15px] font-semibold tabular-nums tracking-[-0.01em] text-[var(--text-primary)]">
+            <div className="text-h3 font-semibold tabular-nums text-[var(--text-primary)]">
               {hovered.total === 0 ? '—' : Math.round((hovered.approved / hovered.total) * 100) + '%'}
             </div>
           </div>
         ) : (
-          <div className="text-[11.5px] text-[var(--text-tertiary)]">Hover a node for detail.</div>
+          <div className="text-caption text-[var(--text-tertiary)]">{t('assignments.network.hoverHint')}</div>
         )}
       </div>
     </div>
@@ -1533,6 +1715,7 @@ function BulkAssignModal({
   onClose: () => void
   onDone: () => Promise<void> | void
 }) {
+  const { t } = useTranslation()
   const [entityId, setEntityId] = useState<string>('')
   const [assigneeMemberId, setAssigneeMemberId] = useState<string>('')
   const [dueDate, setDueDate] = useState<string>('')
@@ -1571,8 +1754,8 @@ function BulkAssignModal({
   const submit = async () => {
     setErr(null)
     const m = memberById.get(assigneeMemberId)
-    if (!m) { setErr('Pick an assignee'); return }
-    if (tooMany) { setErr('Narrow the filter — bulk-assign is capped at 500 items.'); return }
+    if (!m) { setErr(t('assignments.bulk.pickAssignee')); return }
+    if (tooMany) { setErr(t('assignments.bulk.capError')); return }
     setSubmitting(true)
     try {
       const sections = Array.from(sectionPicks)
@@ -1594,150 +1777,104 @@ function BulkAssignModal({
     }
   }
 
+  const labelCls = 'block text-small font-medium text-[var(--text-primary)] mb-1.5'
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div
-        className="bg-[var(--bg-primary)] rounded-[var(--radius-lg)] border border-[var(--border-default)] w-full max-w-lg p-5 shadow-xl max-h-[90vh] overflow-y-auto"
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1">Setup helper</div>
-        <h3 className="font-display text-[20px] font-bold text-[var(--text-primary)]">Bulk-assign questionnaire items</h3>
-        <p className="text-[var(--text-xs)] text-[var(--text-secondary)] mt-1 mb-4">
-          Hand entire sections to one person with a single click. Existing assignments are skipped (no overwrites).
-          Cap: 500 items per call.
-        </p>
-
-        {done ? (
-          <div className="space-y-3">
-            <div className="p-4 rounded-[var(--radius-md)] bg-[var(--accent-green-light)] border border-[var(--status-ok)]/30">
-              <div className="text-[var(--text-sm)] font-semibold text-[var(--status-ok)]">Done</div>
-              <div className="text-[var(--text-xs)] text-[var(--text-secondary)] mt-1">
-                Created <strong>{done.created}</strong> assignment{done.created === 1 ? '' : 's'}; skipped {done.skipped} existing.
-                A summary notification was sent to the assignee.
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <button onClick={() => void onDone()} className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold">
-                Close
-              </button>
-            </div>
+    <SideSheet
+      open
+      onClose={onClose}
+      busy={submitting}
+      width={520}
+      title={t('assignments.bulk.title')}
+      description={t('assignments.bulk.intro')}
+      footer={done ? (
+        <button onClick={() => void onDone()} className="btn-primary h-10">{t('common.close')}</button>
+      ) : (
+        <>
+          <button onClick={onClose} className="btn-secondary h-10" disabled={submitting}>{t('common.cancel')}</button>
+          <button onClick={submit} disabled={submitting || !assigneeMemberId || tooMany} className="btn-primary h-10">
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> : <Users className="w-4 h-4" aria-hidden />}
+            {t('assignments.bulk.assign')}
+          </button>
+        </>
+      )}
+    >
+      {done ? (
+        <div className="rounded-[var(--radius-lg)] border border-[var(--status-success-line)] bg-[var(--status-success-soft)] p-4" role="status">
+          <div className="flex items-center gap-2 text-small font-semibold text-[var(--status-success)]">
+            <Check className="h-4 w-4" aria-hidden /> {t('assignments.bulk.done')}
           </div>
-        ) : (
-          <>
-            <div className="space-y-3">
-              <label className="block">
-                <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Entity (optional — defaults to root)</span>
-                <select
-                  value={entityId}
-                  onChange={e => setEntityId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
-                >
-                  <option value="">— org root —</option>
-                  {entities.map(e => (
-                    <option key={e.id} value={e.id}>{e.name}{e.code ? ` (${e.code})` : ''}</option>
-                  ))}
-                </select>
-              </label>
+          <div className="text-small text-[var(--text-secondary)] mt-1">
+            <Trans i18nKey="assignments.bulk.result" count={done.created} values={{ count: done.created, skipped: done.skipped }} components={{ b: <strong /> }} />
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <label className="block">
+            <span className={labelCls}>{t('assignments.bulk.entity')}</span>
+            <select value={entityId} onChange={e => setEntityId(e.target.value)} className={fieldCls}>
+              <option value="">{t('assignments.bulk.orgRoot')}</option>
+              {entities.map(e => (
+                <option key={e.id} value={e.id}>{e.name}{e.code ? ` (${e.code})` : ''}</option>
+              ))}
+            </select>
+          </label>
 
-              <label className="block">
-                <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Assignee *</span>
-                <select
-                  value={assigneeMemberId}
-                  onChange={e => setAssigneeMemberId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
-                >
-                  <option value="">— pick a person —</option>
-                  {members.map(m => (
-                    <option key={m.id} value={m.id}>{m.name} · {m.email}</option>
-                  ))}
-                </select>
-              </label>
+          <label className="block">
+            <span className={labelCls}>{t('assignments.bulk.assignee')}</span>
+            <select value={assigneeMemberId} onChange={e => setAssigneeMemberId(e.target.value)} className={fieldCls}>
+              <option value="">{t('assignments.bulk.pickPerson')}</option>
+              {members.map(m => (
+                <option key={m.id} value={m.id}>{m.name} · {m.email}</option>
+              ))}
+            </select>
+          </label>
 
-              <label className="block">
-                <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Due date</span>
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={e => setDueDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
-                />
-              </label>
+          <label className="block">
+            <span className={labelCls}>{t('assignments.bulk.dueDate')}</span>
+            <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={fieldCls} />
+          </label>
 
-              <div>
-                <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">
-                  Sections (leave empty for the whole framework — {questions.length} items)
-                </span>
-                <div className="flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto p-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                  {allSections.map(s => {
-                    const on = sectionPicks.has(s)
-                    return (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => toggleSection(s)}
-                        className={`text-[10px] font-semibold px-2 py-1 rounded-full border ${
-                          on
-                            ? 'bg-[var(--color-brand)] text-white border-[var(--color-brand)]'
-                            : 'bg-[var(--bg-primary)] text-[var(--text-secondary)] border-[var(--border-default)]'
-                        }`}
-                      >{s}</button>
-                    )
-                  })}
-                  {allSections.length === 0 && (
-                    <span className="text-[10px] text-[var(--text-tertiary)]">No sections in the loaded questionnaire.</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block">
-                  <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Reviewer email (optional)</span>
-                  <input
-                    type="email"
-                    value={reviewerEmail}
-                    onChange={e => setReviewerEmail(e.target.value)}
-                    className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
-                    placeholder="reviewer@example.com"
-                  />
-                </label>
-                <label className="block">
-                  <span className="block text-[10px] uppercase tracking-wider font-semibold text-[var(--text-tertiary)] mb-1.5">Approver email (optional)</span>
-                  <input
-                    type="email"
-                    value={approverEmail}
-                    onChange={e => setApproverEmail(e.target.value)}
-                    className="w-full px-3 py-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-sm)]"
-                    placeholder="approver@example.com"
-                  />
-                </label>
-              </div>
+          <fieldset>
+            <legend className={labelCls}>{t('assignments.bulk.sections', { count: questions.length })}</legend>
+            <div className="flex flex-wrap gap-1.5 max-h-[160px] overflow-y-auto p-2 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-secondary)]">
+              {allSections.map(sec => {
+                const on = sectionPicks.has(sec)
+                return (
+                  <button key={sec} type="button" aria-pressed={on} onClick={() => toggleSection(sec)} className={`chip h-8 px-3 ${on ? 'chip-active' : ''}`}>
+                    {on && <Check className="h-3.5 w-3.5" aria-hidden />}
+                    {t(capitalLabelKey(sec), { defaultValue: sec })}
+                  </button>
+                )
+              })}
+              {allSections.length === 0 && (
+                <span className="text-caption text-[var(--text-tertiary)]">{t('assignments.bulk.noSections')}</span>
+              )}
             </div>
+          </fieldset>
 
-            <div className={`mt-3 p-2 rounded-[var(--radius-md)] text-[var(--text-xs)] ${tooMany ? 'bg-red-500/10 text-red-400 border border-red-500/30' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border border-[var(--border-subtle)]'}`}>
-              <strong>{matchedCount}</strong> item{matchedCount === 1 ? '' : 's'} matched.
-              {tooMany && ' Cap is 500/call — narrow the section filter.'}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className={labelCls}>{t('assignments.bulk.reviewer')}</span>
+              <input type="email" value={reviewerEmail} onChange={e => setReviewerEmail(e.target.value)} className={fieldCls} placeholder="reviewer@example.com" />
+            </label>
+            <label className="block">
+              <span className={labelCls}>{t('assignments.bulk.approver')}</span>
+              <input type="email" value={approverEmail} onChange={e => setApproverEmail(e.target.value)} className={fieldCls} placeholder="approver@example.com" />
+            </label>
+          </div>
+
+          <div className={`p-3 rounded-[var(--radius-md)] text-small border ${tooMany ? 'bg-[var(--status-danger-soft)] text-[var(--status-danger)] border-[var(--status-danger-line)]' : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] border-[var(--border-subtle)]'}`} aria-live="polite">
+            <Trans i18nKey="assignments.bulk.matched" count={matchedCount} values={{ count: matchedCount }} components={{ b: <strong /> }} />
+            {tooMany && t('assignments.bulk.capHint')}
+          </div>
+
+          {err && (
+            <div role="alert" className="flex items-start gap-2 p-3 rounded-[var(--radius-md)] border border-[var(--status-danger-line)] bg-[var(--status-danger-soft)] text-small text-[var(--status-danger)]">
+              <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden /> {err}
             </div>
-
-            {err && (
-              <div className="mt-3 p-2 rounded-[var(--radius-md)] bg-red-500/10 border border-red-500/30 text-red-400 text-[var(--text-xs)]">{err}</div>
-            )}
-
-            <div className="mt-5 flex items-center justify-end gap-2">
-              <button onClick={onClose} className="px-3 py-2 rounded-[var(--radius-md)] text-[var(--text-sm)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">
-                Cancel
-              </button>
-              <button
-                onClick={submit}
-                disabled={submitting || !assigneeMemberId || tooMany}
-                className="px-4 py-2 rounded-[var(--radius-md)] bg-[var(--color-brand)] text-white text-[var(--text-sm)] font-semibold disabled:opacity-50 inline-flex items-center gap-1.5"
-              >
-                {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Users className="w-3.5 h-3.5" />}
-                Assign
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+          )}
+        </div>
+      )}
+    </SideSheet>
   )
 }

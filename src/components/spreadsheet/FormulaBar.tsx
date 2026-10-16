@@ -10,6 +10,7 @@
  *   - Read-only when no cell is selected
  */
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { FunctionSquare, HelpCircle } from 'lucide-react'
 
 export interface FormulaBarProps {
@@ -33,6 +34,7 @@ export function FormulaBar({
   onCancel,
   onShowHelp,
 }: FormulaBarProps) {
+  const { t } = useTranslation()
   const [draft, setDraft] = useState(activeFormula)
   const [dirty, setDirty] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -56,21 +58,21 @@ export function FormulaBar({
 
   return (
     <div
-      className="flex items-stretch gap-2 px-2 py-1.5 surface-paper border border-[var(--border-subtle)] rounded-[8px]"
+      className="flex items-stretch gap-2 px-2 py-1.5 surface-paper border border-[var(--border-subtle)] rounded-[var(--radius-md)]"
       data-testid="formula-bar"
     >
       {/* Cell-ref pill */}
       <div
-        className="inline-flex items-center justify-center min-w-[56px] px-2 h-8 rounded-[6px] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] font-mono text-[11px] font-semibold text-[var(--text-secondary)] tabular-nums"
-        aria-label="Active cell reference"
+        className="inline-flex items-center justify-center min-w-[56px] px-2 h-9 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] font-mono text-caption font-semibold text-[var(--text-secondary)] tabular-nums"
+        aria-label={t('spreadsheet.activeCell')}
       >
         {activeCellLabel || '—'}
       </div>
       {/* fx indicator */}
       <div
-        className="inline-flex items-center justify-center w-8 h-8 rounded-[6px] text-[var(--text-tertiary)]"
+        className="inline-flex items-center justify-center w-9 h-9 rounded-[var(--radius-sm)] text-[var(--text-tertiary)]"
         aria-hidden
-        title="Formula"
+        title={t('spreadsheet.formula')}
       >
         <FunctionSquare className="w-3.5 h-3.5" />
       </div>
@@ -83,7 +85,7 @@ export function FormulaBar({
         autoCapitalize="off"
         disabled={disabled}
         value={draft}
-        placeholder={disabled ? 'Select a cell to edit' : 'Type a value or =formula'}
+        placeholder={disabled ? t('spreadsheet.selectCell') : t('spreadsheet.typeValue')}
         onChange={e => {
           setDraft(e.target.value)
           setDirty(true)
@@ -94,16 +96,16 @@ export function FormulaBar({
           else if (e.key === 'Tab') { commit() /* let browser advance focus */ }
         }}
         onBlur={() => { if (dirty) commit() }}
-        className="flex-1 px-2 h-8 rounded-[6px] border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[12px] font-mono tabular-nums focus:border-[var(--color-brand)] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-        aria-label="Formula or value editor"
+        className="flex-1 px-2 h-9 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-small font-mono tabular-nums focus:border-[var(--color-brand)] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+        aria-label={t('spreadsheet.editor')}
       />
       {onShowHelp && (
         <button
           type="button"
           onClick={onShowHelp}
-          className="inline-flex items-center gap-1 px-2 h-8 rounded-[6px] border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-[11px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
-          aria-label="Formula help"
-          title="Formula examples"
+          className="inline-flex items-center gap-1 px-2 h-9 rounded-[var(--radius-sm)] border border-[var(--border-subtle)] bg-[var(--bg-primary)] text-caption text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
+          aria-label={t('spreadsheet.help')}
+          title={t('spreadsheet.examples')}
         >
           <HelpCircle className="w-3 h-3" />
           Help

@@ -1,0 +1,109 @@
+{
+  "eyebrow": "Work",
+  "review": {
+    "title": "Review queue",
+    "subtitle": "Subsidiary leads check every submitted plant figure before it reaches the group officer.",
+    "reject": "Send back",
+    "pass": "Pass to approval"
+  },
+  "approval": {
+    "title": "Approval queue",
+    "subtitle": "Sustainability officers approve reviewed figures. Approved lines feed the group rollup and the published report.",
+    "return": "Return to reviewer",
+    "reject": "Reject",
+    "pass": "Approve"
+  },
+  "errors": {
+    "update": "Could not update: {{message}}",
+    "updateTitle": "That decision wasn't saved",
+    "refresh": "Couldn't refresh the queue",
+    "loadTitle": "The queue didn't load",
+    "loadBody": "We couldn't reach the server, so we can't confirm what is waiting for you. Nothing has been changed.",
+    "needComment_review": "Add a comment so the contributor knows what to fix.",
+    "needComment_approval": "Add a comment so the reviewer knows what to recheck.",
+    "needCommentReject": "Add a comment explaining why this is rejected."
+  },
+  "switchToApproval": "Approval queue",
+  "switchToReview": "Review queue",
+  "listAria": "Items in this queue",
+  "queueHeading": "Waiting on you",
+  "queueCount_one": "{{count}} item",
+  "queueCount_other": "{{count}} items",
+  "narrativeShort": "Narrative",
+  "flagged_one": "{{count}} flag",
+  "flagged_other": "{{count}} flags",
+  "stats": {
+    "aria": "Queue summary",
+    "waitingReview": "Waiting for review",
+    "waitingApproval": "Waiting for approval",
+    "alreadyReviewed": "Passed to approval",
+    "stillInReview": "Still in review",
+    "flagged": "Flagged",
+    "flaggedHint": "Anomaly scan findings"
+  },
+  "mode": {
+    "Manual": "Manual",
+    "Calculator": "Calculator",
+    "Connector": "Connector"
+  },
+  "empty": {
+    "title_review": "Nothing waiting for review",
+    "title_approval": "Nothing waiting for approval",
+    "review": "No plant submissions are waiting for a lead to review. New submissions appear here as contributors send them.",
+    "approval": "Nothing is awaiting approval from the sustainability officer. Reviewed figures appear here as leads pass them on.",
+    "viewRollup": "View group rollup"
+  },
+  "cleared": {
+    "title": "Queue cleared",
+    "body_review_one": "You passed {{count}} figure to approval. New submissions will appear here.",
+    "body_review_other": "You passed {{count}} figures to approval. New submissions will appear here.",
+    "body_approval_one": "You approved {{count}} figure. It now feeds the group rollup and the report.",
+    "body_approval_other": "You approved {{count}} figures. They now feed the group rollup and the report."
+  },
+  "toast": {
+    "pass_review": "Passed to approval · {{item}}",
+    "pass_approval": "Approved · {{item}}",
+    "return_review": "Sent back to {{name}} · {{item}}",
+    "return_approval": "Returned to review · {{item}}",
+    "reject": "Rejected and sent back to {{name}} · {{item}}",
+    "undone": "Decision undone · {{item}}"
+  },
+  "detail": {
+    "entity": "Reporting entity",
+    "submittedBy": "Submitted by",
+    "due": "Due",
+    "modeUsed": "Entry method",
+    "narrative_one": "Submitted narrative ({{count}} character)",
+    "narrative_other": "Submitted narrative ({{count}} characters)",
+    "noNarrative": "No narrative submitted.",
+    "value": "Submitted value",
+    "vsPrior": "vs FY{{year}} · {{value}}",
+    "evidence_one": "Evidence ({{count}})",
+    "evidence_other": "Evidence ({{count}})",
+    "noEvidence": "No evidence attached. Ask for a source document before approving.",
+    "connector": "Connector",
+    "file": "File",
+    "note": "Note from contributor",
+    "showTrend": "Show 4-year trend",
+    "hideTrend": "Hide 4-year trend",
+    "commentPlaceholder_review": "Comment — optional to pass, required to send back",
+    "commentPlaceholder_approval": "Comment — optional to approve, required to return or reject"
+  },
+  "lineage": {
+    "title": "Lineage",
+    "assigned": "Assigned by {{by}}",
+    "entered": "Entered by {{name}} · {{mode}}",
+    "unknownMode": "method not recorded",
+    "submitted": "Submitted for review",
+    "reviewed": "Reviewed and passed to approval",
+    "you_review": "Your review",
+    "you_approval": "Your approval"
+  },
+  "variance": {
+    "large": "{{delta}} vs FY{{year}} ({{prior}}). Verify before approving.",
+    "normal": "{{delta}} vs FY{{year}}, within the expected range.",
+    "noPrior": "No prior-year value on file, so the year-on-year check can't run.",
+    "noUnit": "No unit stamped on this value. Confirm it with the submitter before approving.",
+    "title": "Checks"
+  }
+}

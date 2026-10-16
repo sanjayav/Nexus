@@ -1,0 +1,587 @@
+{
+  "framework": {
+    "reportingFramework": "Reporting framework",
+    "phase1": "Phase 1 · GRI only",
+    "on": "On",
+    "off": "Off",
+    "soon": "Soon",
+    "items_one": "{{count}} item",
+    "items_other": "{{count}} items"
+  },
+  "retry": "Retry",
+  "errorBoundary": {
+    "unexpected": "An unexpected error occurred",
+    "body": "The page hit an unexpected error. Your data is safe — try the action again, return home, or refresh.",
+    "stack": "Stack trace (dev only)",
+    "tryAgain": "Try again",
+    "goHome": "Go home"
+  },
+  "theme": {
+    "label": "Color theme",
+    "light": "Light",
+    "auto": "Auto",
+    "dark": "Dark",
+    "switchTo": "Switch to {{label}} theme"
+  },
+  "breadcrumb": "Breadcrumb",
+  "jargon": {
+    "noDefinition": "No definition available.",
+    "whatIs": "What is {{term}}?"
+  },
+  "unknownError": "Unknown error",
+  "integration": {
+    "ai": "AI is not configured in this environment. Ask an admin to set ANTHROPIC_API_KEY.",
+    "email": "Email delivery is not configured. Ask an admin to set RESEND_API_KEY.",
+    "sso": "SSO is not configured. Ask an admin to set WORKOS_API_KEY.",
+    "realtime": "Realtime collaboration is not configured. Ask an admin to set LIVEBLOCKS_SECRET_KEY."
+  },
+  "live": {
+    "soloTitle": "Realtime collaboration is not configured. Add LIVEBLOCKS_SECRET_KEY on the server to enable multi-user editing.",
+    "solo": "Solo mode",
+    "reconnectingTitle": "Reconnecting to the realtime server…",
+    "connectingTitle": "Connecting to the realtime server…",
+    "reconnecting": "Reconnecting…",
+    "connecting": "Connecting…",
+    "offlineTitle": "Realtime sync is offline. Your edits are local-only until the connection returns.",
+    "offline": "Offline",
+    "liveTitle": "Realtime sync is active — edits propagate to other editors in this room.",
+    "live": "Live"
+  },
+  "setupGuard": {
+    "title": "Live data not found",
+    "message": "This screen reads directly from the Nexus backend. The database appears empty — run the idempotent setup to provision tables and seed FY2022–FY2025 historical values.",
+    "complete": "Setup complete",
+    "failed": "Setup failed",
+    "reloading": "Reloading with live data…",
+    "initializing": "Initializing…",
+    "retry": "Retry initialization",
+    "initialize": "Initialize database",
+    "footnote": "Idempotent. Creates tables if missing, seeds demo SPD data, safe to run multiple times."
+  },
+  "demoCta": {
+    "hide": "Hide — I'll set up manually",
+    "kicker": "For demos",
+    "title": "Load demo sample data",
+    "body": "One click pre-fills your workspace: 7 entities, 2 climate targets, 5 material topics, and an FY2025 reporting cycle. Skips manual onboarding entirely so you can demo the publish, anomaly, and assurance flows immediately.",
+    "cta": "Load demo setup"
+  },
+  "demoSeed": {
+    "stages": {
+      "org": "Organisation tree (group + 3 subsidiaries + 3 plants)",
+      "targets": "Climate targets (SBTi + net-zero)",
+      "materiality": "Material topics (5 priority issues)",
+      "period": "FY2025 reporting cycle"
+    },
+    "seedFailed": "Seed failed",
+    "title": "Load demo sample",
+    "subtitle": "Pre-fills your workspace so you can demo every flow in seconds.",
+    "intro": "This will create the following in your workspace. Existing data isn't touched. You can keep, edit, or delete anything afterwards.",
+    "recommended": "Recommended for demos. Skip if you want to onboard manually — every step is also available in the Setup guide.",
+    "working": "Working…",
+    "done": "Done",
+    "allSet": "All set. Closing…",
+    "couldNotSeed": "Couldn't seed the workspace",
+    "load": "Load sample data"
+  },
+  "dismiss": "Dismiss",
+  "reset": {
+    "failed": "Reset failed",
+    "triggerTitle": "Wipe workspace data — keeps users + login",
+    "trigger": "Reset workspace",
+    "title": "Reset workspace?",
+    "closeAria": "Close reset workspace dialog",
+    "body": "This permanently removes <b>all entities, members, climate targets, material topics, reporting periods, assignments, assurance requests, and published reports</b> in this workspace.",
+    "preserved": "Preserved: your login, users + roles, the GRI questionnaire catalogue, and the audit trail.",
+    "typeToConfirm": "Type <b>RESET</b> below to confirm.",
+    "done": "Workspace reset. Reloading…",
+    "resetting": "Resetting…",
+    "everything": "Reset everything"
+  },
+  "quickStart": {
+    "kicker": "Get started in 3 steps",
+    "title": "From spreadsheet to assured report",
+    "body": "The fastest path through Nexus. Click any step to jump in — you don't have to do them in order.",
+    "s1": {
+      "title": "Import your data",
+      "body": "Drop an Excel, or pre-loaded demo data populates the report.",
+      "cta": "Open Performance data"
+    },
+    "s2": {
+      "title": "Review & approve",
+      "body": "Anomaly checks run automatically. Approve disclosures from the queue.",
+      "cta": "Open review queue"
+    },
+    "s3": {
+      "title": "Publish report",
+      "body": "Generate a hash-anchored PDF. Auditors verify it via a public link.",
+      "cta": "Open Publish centre"
+    }
+  },
+  "journey": {
+    "stages": {
+      "onboard": {
+        "label": "Set up org",
+        "description": "Build the reporting tree and add members",
+        "cta": "Start with your group"
+      },
+      "assign": {
+        "label": "Assign",
+        "description": "Pick GRI line items and hand them to people",
+        "cta": "Create first assignment"
+      },
+      "collect": {
+        "label": "Collect",
+        "description": "Plants answer questions and attach evidence",
+        "cta": "Open my tasks"
+      },
+      "review": {
+        "label": "Review",
+        "description": "Subsidiary lead checks plant submissions",
+        "cta": "Review submissions"
+      },
+      "approve": {
+        "label": "Approve",
+        "description": "Sustainability officer signs off the rollup",
+        "cta": "Approve rollups"
+      },
+      "publish": {
+        "label": "Publish",
+        "description": "Lock the year and generate the GRI report",
+        "cta": "Publish report"
+      }
+    },
+    "headline": {
+      "startGroup": "Start by adding your parent group",
+      "entitiesMembers": "{{entities}} entities, {{members}} members",
+      "addPlants": "{{entities}} entities — add plants under subsidiaries",
+      "inviteMembers": "{{entities}} entities — invite members to begin",
+      "finishOrg": "Finish org setup first",
+      "noneAssigned": "No questions assigned yet",
+      "assignedAcross": "{{assigned}} questions assigned across {{plants}} plants",
+      "nothingToCollect": "Nothing to collect yet",
+      "allSubmitted": "All plants have submitted",
+      "outstanding": "{{outstanding}} still outstanding · {{submitted}} submitted",
+      "allReviewed": "All reviewed",
+      "nothingToReview": "Nothing to review",
+      "waitingLead": "{{count}} waiting for subsidiary lead",
+      "approvedCount": "{{count}} approved",
+      "nothingToApprove": "Nothing to approve",
+      "awaitingOfficer": "{{count}} awaiting sustainability officer",
+      "approvalsRequired": "Approvals required before publish",
+      "partialApproved": "{{approved}}/{{assigned}} approved — waiting on rest",
+      "readyToPublish": "Ready to publish the group report"
+    },
+    "pipeline": "Reporting pipeline",
+    "allComplete": "All stages complete",
+    "publishGroup": "Publish the group report",
+    "yourTurn": "Your turn",
+    "stagesComplete": "stages complete",
+    "pipelineShort": "Pipeline",
+    "sixStages": "Plant → Report · six stages",
+    "youWorkAt": "You work at",
+    "legend": {
+      "complete": "Complete",
+      "active": "Active",
+      "upcoming": "Upcoming"
+    },
+    "doNext": "Do this next",
+    "owners": {
+      "platform_admin": "Admin",
+      "group_sustainability_officer": "Group SO",
+      "subsidiary_lead": "Subsidiary Lead",
+      "plant_manager": "Plant Manager",
+      "data_contributor": "Contributor",
+      "narrative_owner": "Narrative",
+      "auditor": "Auditor"
+    }
+  },
+  "notifications": {
+    "ariaUnread": "Notifications, {{count}} unread",
+    "title": "Notifications",
+    "unread": "{{count}} unread",
+    "markAllRead": "Mark all read",
+    "markRead": "Mark read",
+    "emptyTitle": "Nothing yet",
+    "emptyBody": "Assignments, reviews and approvals show up here.",
+    "viewAll": "View all notifications",
+    "kinds": {
+      "assignment_created": "assignment",
+      "assignment_bulk_created": "bulk assignment",
+      "comment": "comment",
+      "mention": "mention",
+      "review_request": "review request",
+      "review_decision": "review decision",
+      "review_requested": "review requested",
+      "approval_requested": "approval requested",
+      "approve": "approve",
+      "approved": "approved",
+      "rejected": "rejected"
+    }
+  },
+  "time": {
+    "justNow": "just now",
+    "minutesShort": "{{count}}m",
+    "hoursShort": "{{count}}h",
+    "daysShort": "{{count}}d"
+  },
+  "setupGuide": {
+    "collapsedTitle": "Setup {{completed}}/{{total}}",
+    "title": "Setup guide",
+    "progress": "{{completed}} of {{total}} steps complete",
+    "dismiss": "Dismiss — can be restored from Settings",
+    "steps": {
+      "org_tree": {
+        "title": "Build the org tree",
+        "helper": "Add your group, subsidiaries, and plants."
+      },
+      "users": {
+        "title": "Invite your team",
+        "helper": "Add plant managers, reviewers, officers."
+      },
+      "materiality": {
+        "title": "Run materiality assessment",
+        "helper": "Identify the topics that matter most."
+      },
+      "targets": {
+        "title": "Set a climate target",
+        "helper": "Commit to a near-term SBTi or net-zero target."
+      },
+      "period": {
+        "title": "Open a reporting cycle",
+        "helper": "Create the fiscal year you are reporting on."
+      },
+      "assign": {
+        "title": "Assign disclosures",
+        "helper": "Route each GRI line item to the right contributor."
+      },
+      "publish": {
+        "title": "Publish your first report",
+        "helper": "Once data is approved, generate the auditor-grade PDF."
+      }
+    }
+  },
+  "guidedTour": {
+    "skip": "Skip Tour",
+    "getStarted": "Get Started",
+    "s0": {
+      "title": "Welcome to Nexus",
+      "description": "Nexus is a blockchain-verified ESG reporting platform. Collect data, calculate emissions, map to frameworks, approve through workflows, and publish assured reports — all from one place."
+    },
+    "s1": {
+      "title": "Command Center",
+      "description": "The Dashboard gives you a bird's-eye view: module health, SBTi trajectory, and facility performance across all Demo Co operations."
+    },
+    "s2": {
+      "title": "Data Collection → Calculator",
+      "description": "Start in Data Collection to submit entity and supplier data, then use the Calculator Engine to compute emissions using GHG Protocol methodology."
+    },
+    "s3": {
+      "title": "Frameworks & Workflow",
+      "description": "Framework Questions assigns disclosure items to the right people. The Approval Queue ensures every data point is reviewed and blockchain-anchored before reporting."
+    },
+    "s4": {
+      "title": "Analytics & Assurance",
+      "description": "The Analytics module flags anomalies against historical baselines. Assurance Review provides a third-party validation pipeline before publishing."
+    },
+    "s5": {
+      "title": "Report Publishing",
+      "description": "Generate CDP, TCFD, GRI, and CSRD reports from a single verified dataset. Use AI Narrative for automated executive summaries."
+    },
+    "s6": {
+      "title": "Every Number is Verifiable",
+      "description": "Look for the shield icon next to data points. Click it to see the full blockchain proof — who submitted, who approved, and the on-chain transaction hash."
+    }
+  },
+  "tour": {
+    "quickTour": "Quick tour",
+    "skip": "Skip tour",
+    "start": "Start using Nexus",
+    "steps": {
+      "welcome": {
+        "title": "Welcome to Nexus",
+        "body": "Your single workspace for collecting ESG data, drafting framework reports, and publishing assured disclosures. Take a quick tour to see where everything lives."
+      },
+      "day": {
+        "title": "This is your day",
+        "body": "Open assignments, review queue, and the next best action — all on one screen. Start here every morning."
+      },
+      "frameworks": {
+        "title": "Frameworks become documents",
+        "body": "Pick a framework, open the editor, and fill it in like a document. Values link automatically across every report."
+      },
+      "search": {
+        "title": "Cmd+K opens anything",
+        "body": "Press ⌘K to jump to any page, run an action, or find a framework. ⌘N adds something new."
+      }
+    }
+  },
+  "comments": {
+    "discussion": "Discussion",
+    "openCount": "{{count}} open",
+    "filterAria": "Filter comments",
+    "filter": {
+      "unresolved": "Unresolved",
+      "mine": "Mentioning me",
+      "review": "Review requests"
+    },
+    "noMatch": "No comments match this filter. Start a thread below.",
+    "hideResolved": "Hide resolved",
+    "showResolved": "Show resolved",
+    "couldNotUpdate": "Could not update: {{error}}",
+    "couldNotPost": "Could not post: {{error}}",
+    "reopen": "Reopen",
+    "resolve": "Resolve",
+    "reviewRequested": "Review requested",
+    "requestReview": "Request for review",
+    "cancelReply": "Cancel reply",
+    "reply": "Reply",
+    "submitHint": "⌘+Enter to submit",
+    "replyPlaceholder": "Reply…",
+    "placeholder": "Write a comment — type @ to mention someone",
+    "writeAria": "Write a comment",
+    "submitAria": "Submit comment",
+    "mentionSuggestions": "Mention suggestions",
+    "kinds": {
+      "review_decision": "review decision",
+      "approval_decision": "approval decision",
+      "rejection_reason": "rejection reason",
+      "system": "system"
+    }
+  },
+  "savedViews": {
+    "loadFailed": "Failed to load saved views",
+    "saveFailed": "Save failed",
+    "ownerOnly": "Only the owner can delete this view.",
+    "deleteFailed": "Delete failed",
+    "region": "Saved views",
+    "shared": "Shared with organisation",
+    "private": "Private view",
+    "more": "More for view {{name}}",
+    "saveView": "Save view",
+    "namePlaceholder": "e.g. \"Overdue E1 emissions\""
+  },
+  "mfa": {
+    "loadFailed": "Could not load MFA status.",
+    "enrollFailed": "Could not start enrollment.",
+    "verifyFailed": "Verification failed.",
+    "disableFailed": "Could not disable MFA.",
+    "title": "Account security",
+    "intro": "Add a second factor with a TOTP authenticator app (Google Authenticator, 1Password, Authy, Apple Passwords). After enabling, you'll be prompted for a 6-digit code at every sign-in.",
+    "checking": "Checking status...",
+    "off": "Two-factor authentication is off",
+    "recommended": "Strongly recommended for accounts with publishing or admin permissions.",
+    "settingUp": "Setting up...",
+    "enable": "Enable 2FA",
+    "step1": "Step 1 · Scan the QR code",
+    "step1Body": "Open your authenticator app and add a new account by scanning this code.",
+    "manualSecret": "Or enter this secret manually:",
+    "step2": "Step 2 · Save your recovery codes",
+    "step2Body": "Store these somewhere safe — each can be used once if you lose your device. They will NOT be shown again.",
+    "copied": "Copied!",
+    "copyAll": "Copy all recovery codes",
+    "step3": "Step 3 · Enter the 6-digit code from your app",
+    "verifying": "Verifying...",
+    "verifyEnable": "Verify and enable",
+    "on": "Two-factor authentication is on",
+    "lastUsed": "Last used {{date}}",
+    "promptEverySignIn": "You will be prompted for your code at every sign-in.",
+    "disable": "Disable",
+    "confirmDisable": "Confirm your password to disable 2FA",
+    "confirmDisableBody": "Once disabled, only your password will be required to sign in.",
+    "currentPassword": "Current password",
+    "disabling": "Disabling...",
+    "disable2fa": "Disable 2FA"
+  },
+  "linked": {
+    "title": "Linked data",
+    "autoFilled": "Auto-filled from another framework",
+    "overridden": "Locally overridden",
+    "appearsIn": "This value appears in <b>{{count}}</b> frameworks. Approving here propagates to every linked disclosure automatically (skipping any that are locally overridden)."
+  },
+  "history": {
+    "loadFailed": "Load failed",
+    "title": "Historical reference",
+    "definition": "Definition",
+    "calcMethod": "Calculation method",
+    "entry": "FY{{year}} entry",
+    "target": "Target",
+    "avg": "avg",
+    "noValues": "No historical values on file",
+    "nYearAvg": "{{n}}yr avg",
+    "min": "min",
+    "max": "max",
+    "yearByYear": "Year by year",
+    "fyTarget": "FY{{year}} target",
+    "peers": "Peer plants · approved",
+    "qualityCheck": "Quality check",
+    "sources": "Sources cited per year · confidence scored {{level}}",
+    "high": "high",
+    "mixed": "mixed",
+    "flags": {
+      "yoyTitle": "{{pct}} vs FY{{year}}",
+      "yoyCritical": "This is well above the 50% review threshold. Confirm this reflects a genuine change (restatement, boundary change, major project) or correct the data.",
+      "yoyWarn": "Above the 20% warn threshold — add a narrative justification in the comment field.",
+      "zExtremeTitle": "|z-score| = {{z}} — extreme outlier",
+      "zExtremeBody": "Value sits {{z}} standard deviations from the 4-year mean. Extremely unlikely without a structural change.",
+      "zWarnBody": "Outside 2σ of the 4-year history — worth a sanity check.",
+      "ratioTitle": "{{ratio}}× vs historical average",
+      "ratioBody": "Often indicates a unit typo (tonnes vs kg, m³ vs litres). Double-check the unit and the scale.",
+      "okTitle": "Within historical range",
+      "okBody": "No statistical anomalies detected. Value tracks with 4-year history."
+    }
+  },
+  "ai": {
+    "high": "High",
+    "medium": "Medium",
+    "low": "Low",
+    "notConfigured": "AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.",
+    "failed": "Extraction failed",
+    "title": "AI extraction",
+    "extract": "Extract data with AI",
+    "unavailable": "AI unavailable",
+    "envHint": "AI features not configured in this environment. Ask an admin to set <c>ANTHROPIC_API_KEY</c>.",
+    "reading": "Reading document…",
+    "period": "Period",
+    "supplier": "Supplier",
+    "reasoning": "Reasoning: ",
+    "useValue": "Use this value",
+    "reExtract": "Re-extract"
+  },
+  "anomalyFeed": {
+    "title": "Anomalies flagged",
+    "critical": "{{count}} critical",
+    "warn": "{{count}} warn",
+    "info": "{{count}} info",
+    "noneDetected": "No anomalies detected",
+    "noneDetectedTitle": "No anomalies detected",
+    "noneAt": "No anomalies at \"{{severity}}\"",
+    "hideSuppressed": "hide {{count}} suppressed",
+    "showSuppressed": "show {{count}} suppressed",
+    "tabCrit": "Crit",
+    "tabWarn": "Warn",
+    "tabInfo": "Info",
+    "refreshAria": "Refresh anomalies",
+    "refresh": "Refresh",
+    "allClear": "All values track within historical range and evidence is complete.",
+    "seeAll": "See all {{count}} anomalies",
+    "suppressedBy": "Suppressed by {{by}}: \"{{reason}}\"",
+    "openDisclosure": "Open disclosure",
+    "open": "Open",
+    "restoreTitle": "Restore — show this anomaly again",
+    "restore": "Restore",
+    "suppressTitle": "Suppress — mark as acknowledged with reason",
+    "suppress": "Suppress",
+    "reasonTooShort": "Explain in at least 10 characters — this is the audit trail.",
+    "suppressFailed": "Suppress failed",
+    "suppressAnomaly": "Suppress anomaly",
+    "suppressBody": "Nothing is deleted — the anomaly stays on record and is visible via \"show suppressed\". Your reason is logged in the audit chain.",
+    "reason": "Reason *",
+    "reasonPlaceholder": "e.g. 'Boundary expanded in FY2026 to include Plant D, values not directly comparable'",
+    "charCount": "{{n}}/10+ characters",
+    "types": {
+      "yoy_spike": "YoY spike",
+      "magnitude_jump": "Magnitude jump",
+      "z_score_outlier": "Outlier",
+      "trend_break": "Trend break",
+      "unit_change": "Unit change",
+      "missing_evidence": "No evidence",
+      "late_submission": "Late",
+      "narrative_gap": "Narrative gap",
+      "peer_deviation": "Peer outlier"
+    }
+  },
+  "blockchain": {
+    "status": "Verified & Anchored",
+    "chain": {
+      "submitted": "Data Submitted",
+      "review": "Peer Review",
+      "anchored": "Blockchain Anchored",
+      "system": "System",
+      "included": "Included in CDP Report",
+      "reportEngine": "Report Engine"
+    },
+    "title": "Blockchain Verification",
+    "subtitle": "Immutable audit proof",
+    "closeAria": "Close blockchain verification",
+    "verifiedBody": "This data point has a complete chain of custody on-chain.",
+    "tabProof": "Proof Details",
+    "tabChain": "Chain of Custody",
+    "onChain": "On-Chain Data",
+    "rows": {
+      "dataPoint": "Data Point",
+      "facility": "Facility",
+      "submittedBy": "Submitted By",
+      "submittedAt": "Submitted At",
+      "approvedBy": "Approved By",
+      "approvedAt": "Approved At",
+      "anchoredAt": "Anchored At",
+      "merkleRoot": "Merkle Root",
+      "txHash": "Transaction Hash",
+      "blockNumber": "Block Number",
+      "network": "Network",
+      "gasUsed": "Gas Used"
+    },
+    "whatMeans": "What does this mean?",
+    "explanation": "This data point was submitted by a facility engineer, reviewed and approved by a data approver, then cryptographically anchored to the Polygon zkEVM blockchain. The Merkle root proves this data was included in a batch of verified sustainability records. The transaction hash can be independently verified on the public blockchain explorer. Once anchored, this record cannot be altered or deleted.",
+    "sampleDataPoint": "Scope 1 Emissions - Q1 2026"
+  },
+  "excel": {
+    "scope1": "Scope 1",
+    "scope2": "Scope 2",
+    "scope3": "Scope 3",
+    "unknown": "Unknown",
+    "empty": "The spreadsheet appears to be empty.",
+    "parseError": "Could not parse the file. Please ensure it is a valid .xlsx or .csv file.",
+    "title": "Import Emission Data",
+    "subtitle": "Upload Excel / CSV or load PTTEP demo data",
+    "closeAria": "Close Excel import",
+    "parsing": "Parsing spreadsheet...",
+    "drop": "Drop your Excel or CSV file here",
+    "supports": "Supports .xlsx, .xls, .csv — columns are auto-detected",
+    "or": "or",
+    "loadDemo": "Load PTTEP Demo Data",
+    "demoBody": "Pre-loaded GHG inventory: {{count}} emission sources across Scope 1, 2, 3 — Arthit, Bongkot, S1, Zawtika assets",
+    "expectedColumns": "Expected columns",
+    "flexible": "Column names are flexibly matched — \"Fuel Type\", \"Energy Type\", \"Emission Factor\" all map correctly.",
+    "detected": "{{rows}} rows · {{cols}} columns detected",
+    "autoMapped": "Auto-mapped",
+    "fields": {
+      "scope": "Scope",
+      "category": "Category",
+      "source": "Source",
+      "fuelOrFactor": "Fuel / Factor",
+      "quantity": "Quantity",
+      "unit": "Unit"
+    },
+    "skip": "— skip —",
+    "rawPreview": "Raw data preview (first 3 rows)",
+    "totalRows": "Total Rows",
+    "sources": "sources",
+    "rows_one": "{{count}} row",
+    "rows_other": "{{count}} rows",
+    "successTitle": "Data Imported Successfully",
+    "successBody": "{{count}} emission sources loaded into calculators. Open any calculator to see the pre-populated data.",
+    "footerUpload": "Drag a file or use demo data to get started",
+    "footerMapping": "{{count}} rows from {{file}}",
+    "footerPreview": "{{count}} rows ready to import",
+    "previewData": "Preview Data",
+    "importRows": "Import {{count}} Rows"
+  },
+  "brand": {
+    "sustainability": "SUSTAINABILITY",
+    "esgReporting": "ESG REPORTING",
+    "tagline": "Sustainability Intelligence Platform"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "The page you’re looking for doesn’t exist or may have been moved. Use the link below to head back somewhere safe.",
+    "goBack": "Go back",
+    "backToDashboard": "Back to dashboard"
+  },
+  "inbox": {
+    "description": "{{total}} total · {{unread}} unread. Use arrow keys to navigate, Enter to open.",
+    "emptyTitle": "No notifications",
+    "emptyBody": "Assignments, reviews, and approvals will appear here as they happen.",
+    "loadMore": "Load more ({{count}} remaining)"
+  }
+}

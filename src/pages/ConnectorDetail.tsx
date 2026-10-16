@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { ArrowLeft, RefreshCw, Trash2, AlertTriangle, Check } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { ArrowLeft, RefreshCw, Unplug, AlertTriangle } from 'lucide-react'
 import PageHeader from '../components/PageHeader'
-import { Card, Button, Badge } from '../design-system'
+import { Button } from '../design-system'
+import { StateBoundary, StatusPill, SkeletonCard, SkeletonTable, notify, useConfirm, type PillTone } from '../components/ui'
 import { connectors, type ConnectorConnectionRow, type ConnectorSyncRun } from '../lib/api'
-import { showError, showSuccess } from '../lib/toast'
+import { useFmt } from '../lib/fmt'
+import { inputClass, labelClass, stickyTh } from '../components/settings/admin-tables/shared'
 
 /**
  * Per-connector detail page.
@@ -13,30 +16,47 @@ import { showError, showSuccess } from '../lib/toast'
  * renders the last 20 sync runs as a history table. Disconnect clears the
  * encrypted tokens server-side but keeps the row + history.
  */
+const CONNECTION_TONE: Record<string, { tone: PillTone; dot?: boolean }> = {
+  active: { tone: 'success', dot: true },
+  error: { tone: 'danger' },
+  pending: { tone: 'info', dot: true },
+  disabled: { tone: 'neutral' },
+}
+const RUN_TONE: Record<string, { tone: PillTone; dot?: boolean }> = {
+  complete: { tone: 'success' },
+  failed: { tone: 'danger' },
+  running: { tone: 'info', dot: true },
+  cancelled: { tone: 'neutral' },
+}
+
 export default function ConnectorDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { t } = useTranslation()
+  const f = useFmt()
+  const confirm = useConfirm()
   const [connection, setConnection] = useState<ConnectorConnectionRow | null>(null)
   const [runs, setRuns] = useState<ConnectorSyncRun[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
-  const [confirmDisconnect, setConfirmDisconnect] = useState(false)
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
 
   const load = useCallback(async () => {
     if (!id) return
     setLoading(true)
+    setError(null)
     try {
       const res = await connectors.get(id)
       setConnection(res.connection)
       setRuns(res.runs)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load connection')
+      setError(e instanceof Error ? e.message : t('connectorDetail.errors.load'))
     } finally {
       setLoading(false)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   useEffect(() => { void load() }, [load])
@@ -49,191 +69,200 @@ export default function ConnectorDetail() {
         fromDate: fromDate || undefined,
         toDate: toDate || undefined,
       })
-      showSuccess(`Imported ${result.rowsImported} of ${result.rowsFetched} rows (${result.rowsFailed} failed)`)
+      const msg = t('connectorDetail.toast.syncResult', {
+        imported: f.number(result.rowsImported),
+        fetched: f.number(result.rowsFetched),
+        failed: f.number(result.rowsFailed),
+      })
+      if (result.rowsFailed > 0) notify.warning(msg)
+      else notify.success(msg)
       await load()
     } catch (e) {
-      showError(e instanceof Error ? e.message : 'Sync failed')
+      notify.error(t('connectorDetail.errors.sync'), { description: e instanceof Error ? e.message : undefined })
     } finally {
       setSyncing(false)
     }
   }
 
   const handleDisconnect = async () => {
-    if (!id) return
+    if (!id || !connection) return
+    const ok = await confirm({
+      title: t('connectorDetail.disconnect.confirmTitle', { name: connection.display_name }),
+      description: t('connectorDetail.disconnect.body'),
+      confirmLabel: t('connectorDetail.disconnect.button'),
+      tone: 'destructive',
+    })
+    if (!ok) return
     try {
       await connectors.disconnect(id)
-      showSuccess('Disconnected. Tokens cleared from storage.')
+      notify.success(t('connectorDetail.toast.disconnected'))
       navigate('/data/connectors')
     } catch (e) {
-      showError(e instanceof Error ? e.message : 'Disconnect failed')
+      notify.error(t('connectorDetail.errors.disconnect'), { description: e instanceof Error ? e.message : undefined })
     }
   }
 
-  if (loading) {
-    return <div className="page-container"><div className="text-[13px] text-[var(--text-tertiary)]">Loading…</div></div>
-  }
-  if (error || !connection) {
-    return (
-      <div className="page-container">
-        <Link to="/data/connectors" className="inline-flex items-center gap-1 text-[12.5px] text-[var(--text-secondary)] mb-3">
-          <ArrowLeft className="w-3.5 h-3.5" /> All connectors
-        </Link>
-        <Card variant="outlined" className="border-[var(--accent-red-light)]">
-          <div className="flex items-start gap-3 text-[13px] text-[var(--accent-red)]">
-            <AlertTriangle className="w-4 h-4" />
-            <div>{error ?? 'Connection not found'}</div>
-          </div>
-        </Card>
-      </div>
-    )
-  }
+  const backLink = (
+    <Link
+      to="/data/connectors"
+      className="inline-flex items-center gap-1.5 h-10 sm:h-8 -ml-2 px-2 mb-2 rounded-[var(--radius-md)] text-small text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-colors"
+    >
+      <ArrowLeft className="w-4 h-4" aria-hidden /> {t('connectorDetail.allConnectors')}
+    </Link>
+  )
+
+  const notFound = !loading && !error && !connection
 
   return (
     <div className="page-container">
-      <PageHeader
-        breadcrumbs={[
-          { label: 'Data', to: '/data' },
-          { label: 'Connectors', to: '/data/connectors' },
-          { label: connection.display_name },
-        ]}
-        eyebrow="Live integration"
-        title={connection.display_name}
-        subtitle={`${connection.provider} · ${connection.auth_type}`}
-      />
-
-      <Card variant="paper" className="mb-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-[13px]">
-          <div>
-            <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">Status</div>
-            <Badge variant={connection.status === 'active' ? 'green' : connection.status === 'error' ? 'red' : 'gray'}>
-              {connection.status}
-            </Badge>
+      {backLink}
+      <StateBoundary
+        loading={loading}
+        error={error}
+        onRetry={() => void load()}
+        hasData={!!connection}
+        empty={notFound}
+        skeleton={
+          <div className="space-y-4">
+            <SkeletonCard />
+            <SkeletonTable rows={3} cols={6} framed />
           </div>
-          <div>
-            <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">Last sync</div>
-            <div className="text-[var(--text-primary)]">
-              {connection.last_sync_at ? new Date(connection.last_sync_at).toLocaleString() : 'Never'}
-            </div>
-            {connection.last_sync_status && (
-              <div className="text-[12px] text-[var(--text-secondary)] mt-0.5">{connection.last_sync_status}</div>
-            )}
-          </div>
-          <div>
-            <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] mb-1">Account / Instance</div>
-            <div className="text-[var(--text-primary)] font-mono text-[12px] truncate">
-              {connection.instance_url ?? connection.base_url ?? connection.account_id ?? '—'}
-            </div>
-          </div>
-        </div>
-        {connection.last_sync_error && (
-          <div className="mt-3 text-[12.5px] text-[var(--accent-red)] flex items-start gap-1.5">
-            <AlertTriangle className="w-3.5 h-3.5 mt-0.5" />
-            <div>{connection.last_sync_error}</div>
-          </div>
-        )}
-      </Card>
-
-      <Card variant="paper" className="mb-4">
-        <div className="text-[14px] font-semibold text-[var(--text-primary)] mb-3">Sync</div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-          <label className="text-[12.5px]">
-            <span className="block text-[var(--text-secondary)] mb-1">From date</span>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={e => setFromDate(e.target.value)}
-              className="w-full px-2 py-1.5 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)]"
+        }
+        errorState={{ title: t('connectorDetail.errors.loadTitle'), body: t('connectorDetail.errors.loadBody') }}
+        emptyState={{
+          art: 'connect',
+          title: t('connectorDetail.errors.notFound'),
+          body: t('connectorDetail.errors.notFoundBody'),
+          cta: { label: t('connectorDetail.allConnectors'), to: '/data/connectors' },
+        }}
+      >
+        {() => connection && (
+          <>
+            <PageHeader
+              title={connection.display_name}
+              subtitle={`${connection.provider} · ${t(`connectorDetail.authTypes.${connection.auth_type}`, { defaultValue: connection.auth_type })}`}
             />
-          </label>
-          <label className="text-[12.5px]">
-            <span className="block text-[var(--text-secondary)] mb-1">To date</span>
-            <input
-              type="date"
-              value={toDate}
-              onChange={e => setToDate(e.target.value)}
-              className="w-full px-2 py-1.5 rounded-md border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)]"
-            />
-          </label>
-          <div className="flex items-end">
-            <Button variant="primary" loading={syncing} onClick={handleSync} icon={<RefreshCw className="w-4 h-4" />}>
-              Sync now
-            </Button>
-          </div>
-        </div>
-        <div className="text-[11.5px] text-[var(--text-tertiary)]">
-          Leave dates empty to pull the last 12 months. Rows land in activity_data as <code className="font-mono">draft</code> and need approval before they roll up into reports.
-        </div>
-      </Card>
 
-      <Card variant="paper" className="mb-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-[14px] font-semibold text-[var(--text-primary)]">Sync history</div>
-          <Badge variant="gray">{runs.length}</Badge>
-        </div>
-        {runs.length === 0 ? (
-          <div className="text-[12.5px] text-[var(--text-tertiary)]">No syncs yet. Click "Sync now" to fetch your first batch.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-[12.5px]">
-              <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-[var(--text-tertiary)] border-b border-[var(--border-default)]">
-                  <th className="py-2 pr-3">Started</th>
-                  <th className="py-2 pr-3">Status</th>
-                  <th className="py-2 pr-3">Fetched</th>
-                  <th className="py-2 pr-3">Imported</th>
-                  <th className="py-2 pr-3">Failed</th>
-                  <th className="py-2 pr-3">Error</th>
-                </tr>
-              </thead>
-              <tbody>
-                {runs.map(r => (
-                  <tr key={r.id} className="border-b border-[var(--border-subtle)]">
-                    <td className="py-2 pr-3 text-[var(--text-primary)]">{new Date(r.started_at).toLocaleString()}</td>
-                    <td className="py-2 pr-3">
-                      {r.status === 'complete' ? <Badge variant="green">complete</Badge>
-                        : r.status === 'failed' ? <Badge variant="red">failed</Badge>
-                          : <Badge variant="amber">{r.status}</Badge>}
-                    </td>
-                    <td className="py-2 pr-3 text-[var(--text-primary)] font-mono">{r.rows_fetched}</td>
-                    <td className="py-2 pr-3 text-[var(--text-primary)] font-mono">{r.rows_imported}</td>
-                    <td className="py-2 pr-3 font-mono text-[var(--accent-red)]">{r.rows_failed}</td>
-                    <td className="py-2 pr-3 text-[var(--accent-red)] truncate max-w-xs" title={r.error ?? ''}>{r.error ?? ''}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
+            <section className="surface-paper overflow-hidden mb-6" aria-label={t('connectorDetail.fields.summary')}>
+              <dl className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[var(--border-subtle)]">
+                <div className="bg-[var(--bg-primary)] px-5 py-4 min-w-0">
+                  <dt className="text-caption text-[var(--text-tertiary)] mb-1.5">{t('connectorDetail.fields.status')}</dt>
+                  <dd>
+                    <StatusPill tone={(CONNECTION_TONE[connection.status] ?? { tone: 'neutral' }).tone} dot={CONNECTION_TONE[connection.status]?.dot}>
+                      {t(`connectorDetail.connectionStatus.${connection.status}`, { defaultValue: connection.status })}
+                    </StatusPill>
+                  </dd>
+                </div>
+                <div className="bg-[var(--bg-primary)] px-5 py-4 min-w-0">
+                  <dt className="text-caption text-[var(--text-tertiary)] mb-1.5">{t('connectorDetail.fields.lastSync')}</dt>
+                  <dd className="text-small font-medium text-[var(--text-primary)] whitespace-nowrap">
+                    {connection.last_sync_at ? f.dateTime(connection.last_sync_at) : t('connectorDetail.fields.never')}
+                    {connection.last_sync_status && (
+                      <span className="ml-2 align-middle">
+                        <StatusPill size="sm" tone={(RUN_TONE[connection.last_sync_status] ?? { tone: 'neutral' }).tone}>
+                          {t(`connectorDetail.runStatus.${connection.last_sync_status}`, { defaultValue: connection.last_sync_status })}
+                        </StatusPill>
+                      </span>
+                    )}
+                  </dd>
+                </div>
+                <div className="bg-[var(--bg-primary)] px-5 py-4 min-w-0">
+                  <dt className="text-caption text-[var(--text-tertiary)] mb-1.5">{t('connectorDetail.fields.account')}</dt>
+                  <dd className="text-small text-[var(--text-primary)] font-mono truncate" title={connection.instance_url ?? connection.base_url ?? connection.account_id ?? undefined}>
+                    {connection.instance_url ?? connection.base_url ?? connection.account_id ?? '—'}
+                  </dd>
+                </div>
+              </dl>
+              {connection.last_sync_error && (
+                <p role="alert" className="flex items-start gap-2 px-5 py-3 border-t border-[var(--status-danger-line)] bg-[var(--status-danger-soft)] text-small text-[var(--status-danger)]">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden />
+                  <span className="min-w-0 break-words">{connection.last_sync_error}</span>
+                </p>
+              )}
+            </section>
 
-      <Card variant="paper">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="text-[14px] font-semibold text-[var(--text-primary)] mb-1">Disconnect</div>
-            <div className="text-[12.5px] text-[var(--text-secondary)]">
-              Clears the encrypted access &amp; refresh tokens. Sync history is preserved. You can re-connect at any time.
-            </div>
-          </div>
-          {confirmDisconnect ? (
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setConfirmDisconnect(false)}>Cancel</Button>
-              <Button
-                variant="primary"
-                size="sm"
-                icon={<Check className="w-3.5 h-3.5" />}
-                onClick={handleDisconnect}
-                className="!bg-[var(--accent-red)]"
+            <section className="surface-paper p-5 mb-6" aria-labelledby="sync-heading">
+              <h2 id="sync-heading" className="type-h3 text-[var(--text-primary)]">{t('connectorDetail.sync.heading')}</h2>
+              <p className="text-small text-[var(--text-secondary)] mt-1 max-w-2xl">
+                {t('connectorDetail.sync.helpBefore')}<code className="font-mono text-caption px-1 py-0.5 rounded-[var(--radius-xs)] bg-[var(--bg-secondary)]">draft</code>{t('connectorDetail.sync.helpAfter')}
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 mt-4 items-end">
+                <label className="block min-w-0">
+                  <span className={labelClass}>{t('connectorDetail.sync.fromDate')}</span>
+                  <input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className={inputClass} />
+                </label>
+                <label className="block min-w-0">
+                  <span className={labelClass}>{t('connectorDetail.sync.toDate')}</span>
+                  <input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className={inputClass} />
+                </label>
+                <Button variant="primary" loading={syncing} onClick={handleSync} icon={<RefreshCw className="w-4 h-4" />}>
+                  {t('connectorDetail.sync.syncNow')}
+                </Button>
+              </div>
+            </section>
+
+            <section className="mb-6" aria-labelledby="history-heading">
+              <div className="flex items-end justify-between gap-3 mb-3">
+                <h2 id="history-heading" className="type-h3 text-[var(--text-primary)]">{t('connectorDetail.history.heading')}</h2>
+                <span className="text-caption text-[var(--text-tertiary)] tabular-nums">{t('connectorDetail.history.count', { count: runs.length })}</span>
+              </div>
+              {runs.length === 0 ? (
+                <div className="surface-paper px-5 py-6 text-small text-[var(--text-tertiary)]">{t('connectorDetail.history.empty')}</div>
+              ) : (
+                <div className="surface-paper overflow-hidden">
+                  <div className="overflow-x-auto max-h-[480px]">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th className={stickyTh}>{t('connectorDetail.history.started')}</th>
+                          <th className={stickyTh}>{t('connectorDetail.history.status')}</th>
+                          <th className={`${stickyTh} num`}>{t('connectorDetail.history.fetched')}</th>
+                          <th className={`${stickyTh} num`}>{t('connectorDetail.history.imported')}</th>
+                          <th className={`${stickyTh} num`}>{t('connectorDetail.history.failed')}</th>
+                          <th className={stickyTh}>{t('connectorDetail.history.error')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {runs.map(r => {
+                          const tone = RUN_TONE[r.status] ?? { tone: 'neutral' as PillTone }
+                          return (
+                            <tr key={r.id}>
+                              <td className="whitespace-nowrap !text-[var(--text-primary)]">{f.dateTime(r.started_at)}</td>
+                              <td>
+                                <StatusPill tone={tone.tone} dot={tone.dot}>
+                                  {t(`connectorDetail.runStatus.${r.status}`, { defaultValue: r.status })}
+                                </StatusPill>
+                              </td>
+                              <td className="num !text-[var(--text-primary)]">{f.number(r.rows_fetched)}</td>
+                              <td className="num !text-[var(--text-primary)]">{f.number(r.rows_imported)}</td>
+                              <td className={`num ${r.rows_failed > 0 ? '!text-[var(--status-danger)] font-medium' : ''}`}>{f.number(r.rows_failed)}</td>
+                              <td className="!text-[var(--status-danger)] truncate max-w-xs" title={r.error ?? ''}>{r.error ?? ''}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            <section className="surface-paper p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4" aria-labelledby="disconnect-heading">
+              <div className="min-w-0">
+                <h2 id="disconnect-heading" className="type-h3 text-[var(--text-primary)]">{t('connectorDetail.disconnect.heading')}</h2>
+                <p className="text-small text-[var(--text-secondary)] mt-1 max-w-2xl">{t('connectorDetail.disconnect.body')}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void handleDisconnect()}
+                className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-[var(--radius-md)] border border-[var(--status-danger-line)] text-small font-semibold text-[var(--status-danger)] hover:bg-[var(--status-danger-soft)] transition-colors whitespace-nowrap flex-shrink-0"
               >
-                Confirm
-              </Button>
-            </div>
-          ) : (
-            <Button variant="ghost" size="sm" icon={<Trash2 className="w-3.5 h-3.5" />} onClick={() => setConfirmDisconnect(true)}>
-              Disconnect
-            </Button>
-          )}
-        </div>
-      </Card>
+                <Unplug className="w-4 h-4" aria-hidden /> {t('connectorDetail.disconnect.button')}
+              </button>
+            </section>
+          </>
+        )}
+      </StateBoundary>
     </div>
   )
 }

@@ -1,0 +1,346 @@
+{
+  "welcome": {
+    "errors": {
+      "workspaceName": "工作区名称至少需要 2 个字符。",
+      "industry": "请选择最接近的 GICS 行业。",
+      "country": "请选择国家/地区。",
+      "name": "设施名称至少需要 2 个字符。",
+      "location": "请填写位置。"
+    },
+    "saveFailed": "无法保存工作区设置。",
+    "invalidInvite": "邀请无效。",
+    "inviteLimit": "此处最多可邀请 3 名团队成员——之后可在“用户与角色”中添加更多。",
+    "inviteDuplicate": "该邮箱已在列表中。",
+    "title": "设置您的工作区",
+    "subtitle": "只需五个简短步骤，暂缺的信息可稍后补充。",
+    "skip": "暂时跳过",
+    "continue": "继续",
+    "goToDashboard": "前往仪表盘",
+    "steps": {
+      "s0": "欢迎",
+      "s1": "首个设施",
+      "s2": "框架",
+      "s3": "邀请成员",
+      "s4": "完成"
+    },
+    "step1": {
+      "title": "介绍一下您的组织",
+      "workspaceName": "工作区名称",
+      "industry": "行业（GICS 分类）",
+      "pickSector": "选择行业…",
+      "country": "国家/地区",
+      "pickCountry": "选择国家/地区…"
+    },
+    "step2": {
+      "title": "添加首个设施",
+      "body": "其余组织架构可稍后在仪表盘中添加。",
+      "name": "设施名称",
+      "namePlaceholder": "例如：上海炼化基地",
+      "location": "位置",
+      "locationPlaceholder": "例如：中国上海",
+      "type": "类型",
+      "volume": "产量（可选）",
+      "volumeHint": "年产吨数、件数、兆瓦时等…",
+      "volumePlaceholder": "例如：420 万吨/年"
+    },
+    "facilityTypes": {
+      "refinery": "炼油厂",
+      "factory": "工厂 / 生产基地",
+      "office": "办公室",
+      "warehouse": "仓库 / 配送中心"
+    },
+    "step3": {
+      "title": "选择您要遵循的报告框架",
+      "preselected": "我们已预选一组推荐的入门框架——",
+      "endSentence": "。",
+      "tweak": "可按需调整，之后也可随时在设置中更改。",
+      "recommended": "推荐"
+    },
+    "listSep": "、",
+    "step4": {
+      "title": "邀请最多 3 名团队成员",
+      "body": "可选。设置完成后可在“用户与角色”中邀请其他团队成员。",
+      "add": "添加",
+      "remove": "移除 {{email}}"
+    },
+    "step5": {
+      "title": "一切就绪",
+      "body": "完成后将保存以下内容。",
+      "workspace": "工作区",
+      "facility": "首个设施",
+      "frameworks": "框架",
+      "invites": "邀请",
+      "notSet": "未设置",
+      "noneSelected": "未选择",
+      "none": "无",
+      "teammates_one": "{{count}} 名成员",
+      "teammates_other": "{{count}} 名成员"
+    },
+    "eyebrow": "引导式设置",
+    "invalidEmail": "请输入有效的邮箱地址。",
+    "partial_one": "工作区已创建，{{count}} 项需重试",
+    "partial_other": "工作区已创建，{{count}} 项需重试",
+    "partialBody": "引导式设置中会列出尚未完成的事项。",
+    "created": "{{name}} 已就绪",
+    "useSample": "改用示例数据开始",
+    "create": "创建工作区",
+    "progressAria": "第 {{step}} 步，共 {{total}} 步",
+    "stepLabels": {
+      "org": "组织",
+      "site": "首个站点",
+      "frameworks": "报告框架",
+      "team": "团队",
+      "review": "确认"
+    },
+    "stepTitles": {
+      "org": "介绍一下您的组织",
+      "site": "添加首个站点",
+      "frameworks": "选择适用的报告框架",
+      "team": "邀请最多 3 位同事",
+      "review": "确认并创建"
+    },
+    "stepBodies": {
+      "org": "报告市场决定推荐的框架、排放因子及合规设置。",
+      "site": "工厂、办公室或仓库均可，其余架构稍后补充。",
+      "frameworks": "已按您的市场预选入门组合，可随时在设置中调整。",
+      "team": "可选。其余成员可稍后在“用户与角色”中邀请。",
+      "review": "以下内容将被创建，不会发布任何报告。"
+    },
+    "market": {
+      "label": "报告市场",
+      "hint": "之后可在“设置 → 市场与合规”中修改。",
+      "global": {
+        "title": "全球",
+        "body": "GRI、ESRS、ISSB 与 TCFD；IEA／DEFRA 排放因子。",
+        "short": "全球"
+      },
+      "cn": {
+        "title": "中国内地及香港",
+        "body": "A 股及 A+H 上市公司：沪深北指引、CSDS、港交所 ESG；生态环境部排放因子；数据境内存储。",
+        "short": "中国市场"
+      }
+    },
+    "cnGuidance": "适用范围内的 A 股上市公司须按交易所《可持续发展报告指引》披露；A+H 公司还须遵循港交所 ESG 守则。核算将优先采用生态环境部排放因子：",
+    "emailLabel": "同事邮箱",
+    "roleLabel": "角色",
+    "cnReviewNote": "同时会将市场设为中国、数据存储地设为中国内地、时区设为 Asia/Shanghai、币种设为人民币。",
+    "previewAria": "工作区预览",
+    "previewTitle": "您的工作区",
+    "previewGroup": "您的集团",
+    "previewGroupHint": "行业 · 国家／地区",
+    "previewSite": "首个站点"
+  },
+  "gics": {
+    "Energy": "能源",
+    "Materials": "原材料",
+    "Industrials": "工业",
+    "Consumer Discretionary": "非必需消费品",
+    "Consumer Staples": "必需消费品",
+    "Health Care": "医疗保健",
+    "Financials": "金融",
+    "Information Technology": "信息技术",
+    "Communication Services": "通信服务",
+    "Utilities": "公用事业",
+    "Real Estate": "房地产"
+  },
+  "org": {
+    "types": {
+      "group": "集团",
+      "business_unit": "业务单元",
+      "subsidiary": "子公司",
+      "plant": "工厂",
+      "office": "办公室"
+    },
+    "breadcrumbSetup": "设置",
+    "eyebrow": "组织入门设置",
+    "title": "构建报告架构",
+    "stats": {
+      "entities": "实体",
+      "subsidiaries": "子公司",
+      "plants": "报告工厂",
+      "members": "已指派成员",
+      "aria": "组织架构概览"
+    },
+    "treeTitle": "报告实体架构",
+    "startWithGroup": "从集团开始",
+    "confirmRemove": "将移除该实体及其下所有实体，相关指派将不再出现在报告中。",
+    "pickEntity": "从架构中选择一个实体以查看并指派成员。",
+    "readyTitle": "准备好收集数据了吗？",
+    "readyBody": "架构确认无误后，即可进入任务指派——选择 GRI 问题、选择用户、选择适用的工厂。",
+    "openAssignments": "打开指派管理",
+    "emptyTitle": "从母公司集团开始",
+    "emptyBody": "然后在集团下添加业务单元，在各业务单元下添加子公司，在子公司下添加工厂/办公室。",
+    "addGroup": "添加集团",
+    "equityPct": "持股 {{pct}}%",
+    "addChild": "添加下级",
+    "remove": "移除",
+    "entityName": "实体名称",
+    "codeOptional": "代码（可选）",
+    "country": "国家/地区",
+    "equityPlaceholder": "持股比例 %",
+    "code": "代码",
+    "eqShort": "持股%",
+    "addMemberFailed": "无法添加成员：{{error}}",
+    "equity": "持股比例",
+    "industry": "行业",
+    "members": "成员（{{count}}）",
+    "noMembers": "此实体尚未指派成员。",
+    "addMember": "添加成员",
+    "scopeNote": "您在此构建的架构适用于所有报告框架——只需构建一次，无需按框架重复。当前您正在准备按 <b>{{framework}}</b> 进行报告；CSRD、CDP、TCFD 和 ISSB 上线后也将沿用这些实体。",
+    "saveFailed": "修改未保存",
+    "loadFailed": "组织架构加载失败",
+    "nextStep": "组织架构已就绪。下一步：{{step}}。",
+    "added": "已添加 {{name}}",
+    "removed": "已移除 {{name}}",
+    "confirmRemoveTitle": "移除 {{name}}？",
+    "removeMember": "移除 {{name}}"
+  },
+  "setup": {
+    "title": "完成工作区设置",
+    "checking": "正在检查工作区…",
+    "allDone": "所有设置已完成。",
+    "progress": "已完成 {{completed}}／{{total}} 步",
+    "cnNote": "包含中国市场步骤：交易所框架、生态环境部排放因子及市场与合规设置。",
+    "dismiss": "隐藏设置指南",
+    "hideDone": "收起已完成",
+    "showDone_one": "显示 {{count}} 个已完成步骤",
+    "showDone_other": "显示 {{count}} 个已完成步骤",
+    "takeTour": "观看 1 分钟导览",
+    "start": "开始",
+    "cnBadge": "中国",
+    "sidebarTitle": "设置",
+    "nextShort": "下一步：{{step}}",
+    "openHub": "打开引导式设置",
+    "collapsedTitle": "设置：已完成 {{completed}}／{{total}}",
+    "steps": {
+      "org_tree": {
+        "title": "搭建组织架构",
+        "helper": "添加集团、子公司及工厂。"
+      },
+      "market": {
+        "title": "确认市场与合规设置",
+        "helper": "数据存储地、ICP 备案、等保级别及数据出境状态。"
+      },
+      "frameworks": {
+        "title": "启用报告框架",
+        "helper": "交易所指引（沪深北、CSDS、港交所 ESG）或 GRI、ESRS、ISSB。"
+      },
+      "factors": {
+        "title": "采用生态环境部排放因子",
+        "helper": "生态环境部发布的全国及区域电网、燃料排放因子。"
+      },
+      "users": {
+        "title": "邀请团队成员",
+        "helper": "添加工厂负责人、审核人和可持续发展负责人。"
+      },
+      "materiality": {
+        "title": "开展重要性评估",
+        "helper": "为每个议题评定财务重要性与影响重要性。"
+      },
+      "targets": {
+        "title": "设定气候目标",
+        "helper": "承诺 SBTi 近期目标或净零目标。"
+      },
+      "period": {
+        "title": "开启报告周期",
+        "helper": "创建本次报告的财年。"
+      },
+      "assign": {
+        "title": "指派披露项",
+        "helper": "将各指标项指派给相应填报人。"
+      },
+      "publish": {
+        "title": "发布首份报告",
+        "helper": "数据批准后，生成带哈希存证的报告。"
+      }
+    }
+  },
+  "tour": {
+    "quickTour": "快速导览",
+    "skip": "跳过导览",
+    "start": "开始使用 Nexus",
+    "steps": {
+      "welcome": {
+        "title": "欢迎使用 Nexus",
+        "body": "在同一个工作区中收集 ESG 数据、起草框架报告并发布经鉴证的披露。快速浏览一下各项功能的位置。"
+      },
+      "day": {
+        "title": "这是您的一天",
+        "body": "待办指派、审核队列和建议的下一步操作——尽在一屏。每天从这里开始。"
+      },
+      "frameworks": {
+        "title": "框架即文档",
+        "body": "选择框架，打开编辑器，像编辑文档一样填写。数值会在所有报告间自动关联。"
+      },
+      "search": {
+        "title": "Cmd+K 打开一切",
+        "body": "按 ⌘K 可跳转到任意页面、执行操作或查找框架。⌘N 可新建内容。"
+      }
+    },
+    "close": "关闭导览"
+  },
+  "demo": {
+    "stages": {
+      "org": "组织架构（集团 + 3 家子公司 + 3 个工厂）",
+      "targets": "气候目标（SBTi + 净零）",
+      "materiality": "重要议题（5 个优先议题）",
+      "period": "FY2025 报告周期"
+    },
+    "seedFailed": "数据写入失败",
+    "title": "加载演示示例",
+    "subtitle": "预填工作区，几秒钟即可体验全部流程。",
+    "intro": "将在您的工作区中创建以下内容。现有数据不受影响。之后您可以保留、编辑或删除任何内容。",
+    "recommended": "不会改动现有数据。如需从零开始，所有步骤均可在引导式设置中完成。",
+    "working": "处理中…",
+    "done": "完成",
+    "allSet": "全部完成，正在关闭…",
+    "couldNotSeed": "无法写入工作区数据",
+    "load": "加载示例数据",
+    "titleCn": "加载中国市场示例",
+    "stagesCn": {
+      "org": "组织架构（A+H 集团、2 家子公司、3 个站点）",
+      "targets": "气候目标（2030 年近期目标、2060 年碳中和）",
+      "materiality": "已映射至交易所议题的重要议题",
+      "period": "FY2025 报告周期"
+    },
+    "retry": "重试",
+    "hide": "隐藏，我将手动设置",
+    "ctaTitle": "从示例数据开始",
+    "ctaBody": "一键为空白工作区填充实体、目标、重要议题和报告周期，可立即体验审核、异常检测和发布流程。"
+  },
+  "guard": {
+    "title": "未找到实时数据",
+    "message": "此页面直接读取 Nexus 后端数据。数据库似乎为空——请运行幂等初始化以创建数据表并写入 FY2022–FY2025 历史数值。",
+    "complete": "初始化完成",
+    "failed": "初始化失败",
+    "reloading": "正在加载实时数据…",
+    "initializing": "正在初始化…",
+    "retry": "重新初始化",
+    "initialize": "初始化数据库",
+    "footnote": "幂等操作。缺失时创建数据表并写入 SPD 演示数据，可安全地多次运行。",
+    "unknownError": "未知错误"
+  },
+  "hub": {
+    "errorTitle": "无法检查设置进度",
+    "eyebrow": "引导式设置",
+    "title": "完成 Nexus 设置",
+    "doneTitle": "工作区已就绪",
+    "body": "已完成 {{completed}}／{{total}} 步，每一步均依据实际数据核验。",
+    "doneBody": "所有设置步骤均已完成，可随时重新观看导览。",
+    "myDay": "前往我的一天",
+    "tourTitle": "可选导览",
+    "tourBody": "四个要点：我的一天、报告框架、搜索及审核流程。",
+    "cnTitle": "推荐给中国上市公司",
+    "cnBody": "沪深北交易所指引、财政部基本准则，以及适用于 A+H 公司的港交所 ESG 守则。",
+    "globalTitle": "推荐框架",
+    "globalBody": "多数国际报告主体的入门组合。",
+    "enabled": "已启用",
+    "enable": "启用",
+    "marketSettings": "查看市场与合规设置",
+    "factorTitle": "全国电网排放因子",
+    "factorLoading": "正在查询排放因子…",
+    "factorMissing": "尚无首选的中国排放因子，请打开排放因子库。",
+    "factorValue": "{{value}} {{unit}} · {{source}} {{version}}",
+    "factorLink": "打开排放因子库"
+  }
+}

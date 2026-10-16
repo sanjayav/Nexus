@@ -1,21 +1,26 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import {
-  AlertOctagon, AlertTriangle, Info, Shield, TrendingUp,
-  CheckCircle2, FileText, Activity, Filter, RotateCw, Eye, XCircle, CircleDot,
-  Sparkles, Copy, Check, Loader2, Lock,
+  RotateCw, Eye, CheckCircle2, XCircle, Sparkles, Copy, Check, Lock, ChevronDown, ArrowRight, Settings2,
 } from 'lucide-react'
 import { orgStore, type AnomalyScanResult, type AnomalyType, type AnomalyStatusValue, type Anomaly, type AnomalySeverity } from '../lib/orgStore'
 import { ai, isUnconfiguredError, type AiAnomalyListItem } from '../lib/api'
-import { useIntegrationStatus } from '../lib/integrations'
+import { useIntegrationStatus, integrationMissing } from '../lib/integrations'
 import { useAuth } from '../auth/AuthContext'
 import { resolveRole } from '../lib/rbac'
 import PageHeader from '../components/PageHeader'
 import SectionHeader from '../design-system/components/SectionHeader'
+import Button from '../design-system/components/Button'
 import AnomalyFeed from '../components/AnomalyFeed'
 import SavedViewsBar from '../components/SavedViewsBar'
-import { SkeletonCard } from '../design-system/components/Skeleton'
-import { popIn, riseIn } from '../components/motion'
+import { StatLedger, StateBoundary, StatusPill, notify, SkeletonLedger, SkeletonTable, SkeletonLines } from '../components/ui'
+import { SeverityPill, SEVERITY_VAR, ANOMALY_STATUS_TONE, ReasonSheet, type SeverityKey } from '../components/analytics/anomaly'
+import useOrgMarket from '../components/analytics/useOrgMarket'
+import { useFmt } from '../lib/fmt'
+import { itemLabel } from '../lib/itemLabel'
+import { ease, listItemMotion, spring } from '../motion/tokens'
 
 /**
  * Anomaly Detection — full-page. Everyone can see this, but the scope defaults
@@ -25,10 +30,17 @@ import { popIn, riseIn } from '../components/motion'
 type StatusFilter = 'all' | AnomalyStatusValue
 type SeverityFilter = 'all' | AnomalySeverity
 
+const keyOf = (a: Anomaly) => `${a.assignment_id}|${a.anomaly_type}`
+const sevKey = (s: string): SeverityKey => (['critical', 'warn', 'warning', 'info'].includes(s) ? (s as SeverityKey) : 'info')
+
 export default function AnomalyDetection() {
+  const { t, i18n } = useTranslation()
+  const f = useFmt()
+  const typeLabel = (ty: AnomalyType) => t(`anomalyPage.types.${ty}`, { defaultValue: ty })
   const { user } = useAuth()
   const role = resolveRole(user)
   const defaultScope = role === 'data_contributor' ? 'mine' : role === 'platform_admin' ? 'all' : 'role'
+  const canSeeAll = role === 'platform_admin' || role === 'group_sustainability_officer' || role === 'auditor'
   const [scope, setScope] = useState<'mine' | 'role' | 'all'>(defaultScope)
   const [data, setData] = useState<AnomalyScanResult | null>(null)
   const [loading, setLoading] = useState(true)
@@ -38,8 +50,7 @@ export default function AnomalyDetection() {
   const [statuses, setStatuses] = useState<Record<string, AnomalyStatusValue>>({})
   const [busyKey, setBusyKey] = useState<string | null>(null)
   const [refreshNonce, setRefreshNonce] = useState(0)
-  // Suppress-with-reason modal — the brief calls for a captured rationale on
-  // every dismissal so reviewers can audit why a flag was waved through.
+  // Dismiss requires a captured rationale so reviewers can audit why a flag was waved through.
   const [dismissTarget, setDismissTarget] = useState<Anomaly | null>(null)
 
   useEffect(() => {
@@ -47,475 +58,441 @@ export default function AnomalyDetection() {
     setLoading(true); setErr(null)
     orgStore.anomalyScan(scope, { includeSuppressed: true, limit: 400 })
       .then(d => { if (!cancelled) { setData(d); setLoading(false) } })
-      .catch(e => { if (!cancelled) { setErr(e instanceof Error ? e.message : 'Load failed'); setLoading(false) } })
+      .catch(e => { if (!cancelled) { setErr(e instanceof Error ? e.message : t('anomalyPage.errors.loadFailed')); setLoading(false) } })
     return () => { cancelled = true }
   }, [scope, refreshNonce])
 
-  // Update status for an anomaly — uses POST /api/org action update-anomaly-status.
-  // Stores result locally so the UI flips immediately; the next scan will
-  // also reflect persisted state. Dismiss takes a reason; the others don't.
-  const setStatus = async (a: Anomaly, status: AnomalyStatusValue, note?: string) => {
-    const key = `${a.assignment_id}|${a.anomaly_type}`
+  // POST /api/org action update-anomaly-status. Flips locally on success;
+  // the next scan reflects persisted state. Reversible changes offer Undo.
+  const setStatus = useCallback(async (a: Anomaly, status: AnomalyStatusValue, note?: string, quiet = false) => {
+    const key = keyOf(a)
+    const prev = statuses[key] ?? 'open'
     setBusyKey(key)
     try {
       await orgStore.updateAnomalyStatus(key, status, note)
       setStatuses(s => ({ ...s, [key]: status }))
+      if (!quiet) {
+        notify.success(t(`anomalyPage.toast.${status}`, { title: a.headline }), {
+          undo: status === 'dismissed' ? undefined : () => { void setStatus(a, prev, undefined, true) },
+        })
+      }
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Status update failed')
+      notify.error(t('anomalyPage.errors.statusUpdateFailed'), { description: e instanceof Error ? e.message : undefined })
+      throw e
     } finally {
       setBusyKey(null)
     }
-  }
+  }, [statuses, t])
 
-  const handleDismiss = async (a: Anomaly, reason: string) => {
-    await setStatus(a, 'dismissed', reason)
-    setDismissTarget(null)
-  }
-
-  const filteredAnomalies = useMemo(() => {
-    if (!data) return [] as Anomaly[]
-    return data.anomalies.filter(a => {
-      if (severityFilter !== 'all' && a.severity !== severityFilter) return false
-      const key = `${a.assignment_id}|${a.anomaly_type}`
-      const status = statuses[key] ?? 'open'
-      if (statusFilter !== 'all' && status !== statusFilter) return false
-      return true
-    })
-  }, [data, severityFilter, statusFilter, statuses])
+  const anomalies = data?.anomalies ?? []
+  const filteredAnomalies = useMemo(() => anomalies.filter(a => {
+    if (severityFilter !== 'all' && a.severity !== severityFilter) return false
+    const status = statuses[keyOf(a)] ?? 'open'
+    if (statusFilter !== 'all' && status !== statusFilter) return false
+    return true
+  }), [anomalies, severityFilter, statusFilter, statuses])
 
   const byType = useMemo(() => {
-    if (!data) return [] as Array<{ type: AnomalyType; count: number }>
-    const entries = Object.entries(data.summary.by_type) as Array<[AnomalyType, number]>
-    return entries.map(([type, count]) => ({ type, count })).sort((a, b) => b.count - a.count)
+    const bt = data?.summary?.by_type ?? {}
+    return (Object.entries(bt) as Array<[AnomalyType, number]>)
+      .map(([type, count]) => ({ type, count: Number(count) || 0 }))
+      .filter(r => r.count > 0)
+      .sort((a, b) => b.count - a.count)
   }, [data])
 
   const topEntities = useMemo(() => {
-    if (!data) return [] as Array<{ entity: string; count: number; critical: number }>
     const map = new Map<string, { count: number; critical: number }>()
-    for (const a of data.anomalies) {
-      const cur = map.get(a.entity_name) ?? { count: 0, critical: 0 }
+    for (const a of anomalies) {
+      const name = a.entity_name ?? '—'
+      const cur = map.get(name) ?? { count: 0, critical: 0 }
       cur.count += 1
       if (a.severity === 'critical') cur.critical += 1
-      map.set(a.entity_name, cur)
+      map.set(name, cur)
     }
-    return Array.from(map.entries()).map(([entity, v]) => ({ entity, ...v })).sort((a, b) => b.count - a.count).slice(0, 8)
-  }, [data])
+    return Array.from(map.entries()).map(([entity, v]) => ({ entity, ...v })).sort((a, b) => b.count - a.count).slice(0, 6)
+  }, [anomalies])
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="h-[120px] rounded-[18px] skeleton" />
-        <SkeletonCard />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <SkeletonCard /><SkeletonCard /><SkeletonCard />
-        </div>
-      </div>
-    )
-  }
+  const s = data?.summary
+  const filtersActive = severityFilter !== 'all' || statusFilter !== 'all'
 
   return (
     <div className="space-y-8">
       <PageHeader
         breadcrumbs={[
-          { label: 'Data', to: '/data' },
-          { label: 'Anomalies' },
+          { label: t('anomalyPage.breadcrumbs.data'), to: '/data' },
+          { label: t('anomalyPage.breadcrumbs.anomalies') },
         ]}
-        eyebrow="Quality"
-        title="Anomalies"
-        description="Nine statistical and integrity rules running live across every disclosure in scope. Findings are severity-ranked, traceable to the disclosure, and fully dismissable with an audit-logged reason."
+        eyebrow={t('anomalyPage.header.eyebrow')}
+        title={t('anomalyPage.header.title')}
+        description={t('anomalyPage.header.description')}
         actions={
-          <div className="flex items-center gap-1.5">
-            <ScopeTab active={scope === 'mine'} onClick={() => setScope('mine')}>Mine</ScopeTab>
-            <ScopeTab active={scope === 'role'} onClick={() => setScope('role')}>My scope</ScopeTab>
-            {(role === 'platform_admin' || role === 'group_sustainability_officer' || role === 'auditor') && (
-              <ScopeTab active={scope === 'all'} onClick={() => setScope('all')}>Org-wide</ScopeTab>
-            )}
-            <button
-              type="button"
-              onClick={() => setRefreshNonce(n => n + 1)}
-              className="chip inline-flex items-center gap-1"
-              title="Re-run the anomaly scan"
-            >
-              <RotateCw className="w-3 h-3" /> Scan now
-            </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <div role="radiogroup" aria-label={t('anomalyPage.scope.aria')} className="flex items-center gap-0.5 p-0.5 rounded-[var(--radius-md)] bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
+              <Seg on={scope === 'mine'} onClick={() => setScope('mine')} layout="scope">{t('anomalyPage.scope.mine')}</Seg>
+              <Seg on={scope === 'role'} onClick={() => setScope('role')} layout="scope">{t('anomalyPage.scope.role')}</Seg>
+              {canSeeAll && <Seg on={scope === 'all'} onClick={() => setScope('all')} layout="scope">{t('anomalyPage.scope.all')}</Seg>}
+            </div>
+            <Button variant="secondary" size="md" onClick={() => setRefreshNonce(n => n + 1)} title={t('anomalyPage.scanNowTitle')} icon={<RotateCw className={`w-4 h-4 ${loading && data ? 'animate-spin' : ''}`} />}>
+              {t('anomaly.scanNow')}
+            </Button>
           </div>
         }
       />
 
-      <SavedViewsBar
-        page="anomalies"
-        filters={{ scope, severityFilter, statusFilter }}
-        onApply={(f: { scope?: 'mine' | 'role' | 'all'; severityFilter?: SeverityFilter; statusFilter?: StatusFilter }) => {
-          if (f.scope) setScope(f.scope)
-          if (f.severityFilter) setSeverityFilter(f.severityFilter)
-          if (f.statusFilter) setStatusFilter(f.statusFilter)
-        }}
-      />
-
-      <div className="flex items-center gap-2 flex-wrap" role="toolbar" aria-label="Anomaly filters">
-        <span className="text-[11px] uppercase tracking-[0.1em] font-bold text-[var(--text-tertiary)]">Severity</span>
-        {(['all', 'critical', 'warn', 'info'] as SeverityFilter[]).map(s => (
-          <button
-            key={s}
-            className={`chip ${severityFilter === s ? 'chip-active' : ''}`}
-            onClick={() => setSeverityFilter(s)}
-          >
-            {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
-          </button>
-        ))}
-        <span className="mx-2 w-px h-4 bg-[var(--border-default)]" />
-        <span className="text-[11px] uppercase tracking-[0.1em] font-bold text-[var(--text-tertiary)]">Status</span>
-        {(['all', 'open', 'investigating', 'resolved', 'dismissed'] as StatusFilter[]).map(s => (
-          <button
-            key={s}
-            className={`chip ${statusFilter === s ? 'chip-active' : ''}`}
-            onClick={() => setStatusFilter(s)}
-          >
-            {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
-          </button>
-        ))}
-      </div>
-
-      {err && <div className="surface-paper p-4 text-[var(--accent-red)]">{err}</div>}
-
-      {data && (
-        <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <HeadlineCard icon={<AlertOctagon className="w-5 h-5" />} accent="red" label="Critical" count={data.summary.critical} hint="Almost certainly errors" index={0} />
-          <HeadlineCard icon={<AlertTriangle className="w-5 h-5" />} accent="amber" label="Warn" count={data.summary.warn} hint="Reviewer should look" index={1} />
-          <HeadlineCard icon={<Info className="w-5 h-5" />} accent="blue" label="Info" count={data.summary.info} hint="Worth noting" index={2} />
-          <HeadlineCard icon={<Shield className="w-5 h-5" />} accent="green" label="Suppressed" count={data.summary.suppressed_total} hint="Acknowledged with reason" index={3} />
-        </section>
-      )}
-
-      {data && (
-        <section>
-          <SectionHeader kicker="Distribution" title="Where the flags are" subtitle="Which rule types fire most, and which entities carry the load." />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <motion.div {...popIn(0)} className="surface-paper p-5">
-              <div className="flex items-center gap-2.5 mb-4">
-                <span className="w-7 h-7 rounded-[8px] flex items-center justify-center" style={{ background: 'var(--accent-teal-subtle)', color: 'var(--color-brand)' }}>
-                  <Filter className="w-3.5 h-3.5" />
-                </span>
-                <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)]">By rule type</h3>
-              </div>
-              {byType.length === 0 ? (
-                <div className="py-8 text-center text-[12.5px] text-[var(--text-tertiary)]">No anomalies in scope.</div>
-              ) : (
-                <ul className="space-y-2.5">
-                  {byType.map((r, i) => {
-                    const max = byType[0]?.count ?? 1
-                    const pct = Math.round((r.count / max) * 100)
-                    return (
-                      <li key={r.type}>
-                        <div className="flex items-baseline justify-between mb-1">
-                          <span className="text-[12.5px] font-semibold text-[var(--text-primary)]">{labelForType(r.type)}</span>
-                          <span className="text-[12px] font-bold tabular-nums text-[var(--text-primary)]">{r.count}</span>
-                        </div>
-                        <div className="h-[5px] rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }} animate={{ width: `${pct}%` }}
-                            transition={{ duration: 0.8, delay: 0.1 + i * 0.04, ease: [0.16, 1, 0.3, 1] }}
-                            className="h-full rounded-full"
-                            style={{ background: 'var(--color-brand)' }}
-                          />
-                        </div>
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
-            </motion.div>
-
-            <motion.div {...popIn(1)} className="surface-paper p-5">
-              <div className="flex items-center gap-2.5 mb-4">
-                <span className="w-7 h-7 rounded-[8px] flex items-center justify-center" style={{ background: 'var(--accent-purple-light)', color: 'var(--accent-purple)' }}>
-                  <Activity className="w-3.5 h-3.5" />
-                </span>
-                <h3 className="font-display text-[15px] font-semibold text-[var(--text-primary)]">Top entities by flag count</h3>
-              </div>
-              {topEntities.length === 0 ? (
-                <div className="py-8 text-center text-[12.5px] text-[var(--text-tertiary)]">No anomalies in scope.</div>
-              ) : (
-                <ul className="space-y-2">
-                  {topEntities.map((e, i) => {
-                    const max = topEntities[0]?.count ?? 1
-                    const pct = Math.round((e.count / max) * 100)
-                    return (
-                      <motion.li key={e.entity} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.05 + i * 0.03 }}>
-                        <div className="flex items-baseline justify-between mb-1 gap-3">
-                          <span className="text-[12.5px] font-semibold text-[var(--text-primary)] truncate">{e.entity}</span>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {e.critical > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full tabular-nums" style={{ background: 'var(--accent-red-light)', color: 'var(--accent-red)' }}>{e.critical} crit</span>}
-                            <span className="text-[12px] font-bold tabular-nums text-[var(--text-primary)]">{e.count}</span>
-                          </div>
-                        </div>
-                        <div className="h-[4px] rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
-                          <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.7, delay: 0.1 + i * 0.03 }} className="h-full rounded-full" style={{ background: e.critical > 0 ? 'var(--accent-red)' : 'var(--color-brand)' }} />
-                        </div>
-                      </motion.li>
-                    )
-                  })}
-                </ul>
-              )}
-            </motion.div>
-          </div>
-        </section>
-      )}
-
-      <section>
-        <SectionHeader kicker="Method" title="The nine rules" subtitle="Every check here is one an external auditor would run by hand. No black boxes, no AI hype — just statistically sound industry-standard checks." />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {RULES.map((r, i) => (
-            <motion.div key={r.type} {...riseIn(i)} className="surface-paper p-5">
-              <div className="flex items-center gap-2.5 mb-2">
-                <span className="w-7 h-7 rounded-[8px] flex items-center justify-center" style={{ background: r.bg, color: r.fg }}>
-                  <r.icon className="w-3.5 h-3.5" />
-                </span>
-                <div className="text-[11px] uppercase tracking-[0.1em] font-bold text-[var(--text-tertiary)]">{r.severity}</div>
-              </div>
-              <h4 className="text-[14px] font-semibold text-[var(--text-primary)] tracking-[-0.005em]">{r.title}</h4>
-              <p className="text-[12px] text-[var(--text-secondary)] mt-1.5 leading-relaxed">{r.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
-      <section>
-        <SectionHeader
-          kicker="Triage"
-          title="Investigation queue"
-          subtitle="Per-anomaly workflow: investigate, resolve, or dismiss. Status changes are logged to the audit trail."
-        />
-        <div className="surface-paper overflow-hidden">
-          {filteredAnomalies.length === 0 ? (
-            <div className="py-12 text-center text-[12.5px] text-[var(--text-tertiary)]">
-              No anomalies match these filters.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-            <table className="w-full text-[12.5px] min-w-[820px]">
-              <thead>
-                <tr className="text-left text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)]">
-                  <th className="px-3 py-2">Severity</th>
-                  <th className="px-3 py-2 sticky left-0 bg-[var(--bg-primary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">Title</th>
-                  <th className="px-3 py-2">Facility</th>
-                  <th className="px-3 py-2">Metric</th>
-                  <th className="px-3 py-2 text-right">Expected → Actual</th>
-                  <th className="px-3 py-2 text-right">Δ%</th>
-                  <th className="px-3 py-2">Status</th>
-                  <th className="px-3 py-2 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredAnomalies.slice(0, 50).map(a => {
-                  const key = `${a.assignment_id}|${a.anomaly_type}`
-                  const status = statuses[key] ?? 'open'
-                  const sev = a.severity
-                  const sevBg =
-                    sev === 'critical' ? 'var(--accent-red-light)' :
-                    sev === 'warn' ? 'var(--accent-amber-light)' : 'var(--accent-blue-light)'
-                  const sevFg =
-                    sev === 'critical' ? 'var(--accent-red)' :
-                    sev === 'warn' ? 'var(--accent-amber)' : 'var(--accent-blue)'
-                  const isBusy = busyKey === key
-                  return (
-                    <tr key={key} className="group/row border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">
-                      <td className="px-3 py-2">
-                        <span className="chip" style={{ background: sevBg, color: sevFg, fontWeight: 600 }}>{sev}</span>
-                      </td>
-                      <td className="px-3 py-2 sticky left-0 bg-[var(--bg-primary)] group-hover/row:bg-[var(--bg-secondary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">
-                        <div className="font-semibold text-[var(--text-primary)]">{a.headline}</div>
-                        <div className="text-[11px] text-[var(--text-tertiary)]">{labelForType(a.anomaly_type)}</div>
-                      </td>
-                      <td className="px-3 py-2 text-[var(--text-secondary)]">{a.entity_name}</td>
-                      <td className="px-3 py-2">
-                        <span className="font-mono text-[11px] text-[var(--text-tertiary)]">{a.gri_code}</span>
-                        <div className="text-[var(--text-secondary)]">{a.line_item}</div>
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-[var(--text-secondary)]">
-                        {a.prior !== null ? a.prior.toLocaleString() : '—'} → {a.current !== null ? a.current.toLocaleString() : '—'}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums">
-                        {a.delta_pct === null ? '—' : `${a.delta_pct > 0 ? '+' : ''}${a.delta_pct.toFixed(1)}%`}
-                      </td>
-                      <td className="px-3 py-2">
-                        <StatusPill value={status} />
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        <div className="inline-flex gap-1">
-                          <button
-                            disabled={isBusy}
-                            onClick={() => setStatus(a, 'investigating')}
-                            className="chip inline-flex items-center gap-1"
-                            title="Mark as investigating"
-                          >
-                            <Eye className="w-3 h-3" /> Investigate
-                          </button>
-                          <button
-                            disabled={isBusy}
-                            onClick={() => setStatus(a, 'resolved')}
-                            className="chip inline-flex items-center gap-1"
-                            title="Mark as resolved"
-                          >
-                            <CheckCircle2 className="w-3 h-3" /> Resolve
-                          </button>
-                          <button
-                            disabled={isBusy}
-                            onClick={() => setDismissTarget(a)}
-                            className="chip inline-flex items-center gap-1"
-                            title="Dismiss with a reason"
-                          >
-                            <XCircle className="w-3 h-3" /> Dismiss
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section>
-        <PersistedAnomaliesPanel />
-      </section>
-
-      <section>
-        <SectionHeader kicker="Feed" title="Live anomaly feed" subtitle="Sorted by severity. Open any flag to land on the disclosure. Suppress with a reason to mark acknowledged." />
-        <AnomalyFeed scope={scope} limit={100} title="All flagged disclosures" />
-      </section>
-
-      {dismissTarget && (
-        <DismissWithReasonModal
-          anomaly={dismissTarget}
-          onCancel={() => setDismissTarget(null)}
-          onConfirm={(reason) => handleDismiss(dismissTarget, reason)}
-        />
-      )}
-    </div>
-  )
-}
-
-// ──────────────────────────────────────────────────────────────
-// Dismiss-with-reason modal — captured rationale gets stored as the
-// `note` on /api/org action=update-anomaly-status, audit-logged server-side.
-// Reviewers must enter ≥10 chars so dismissals are never silent.
-// ──────────────────────────────────────────────────────────────
-function DismissWithReasonModal({
-  anomaly, onCancel, onConfirm,
-}: {
-  anomaly: Anomaly
-  onCancel: () => void
-  onConfirm: (reason: string) => Promise<void> | void
-}) {
-  const [reason, setReason] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [err, setErr] = useState<string | null>(null)
-  const tooShort = reason.trim().length < 10
-
-  const submit = async () => {
-    if (tooShort || busy) return
-    setBusy(true); setErr(null)
-    try {
-      await onConfirm(reason.trim())
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Could not dismiss')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(11,18,32,0.5)', backdropFilter: 'blur(8px)' }} onClick={onCancel}>
-      <div className="surface-paper w-full max-w-md" onClick={e => e.stopPropagation()}>
-        <header className="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0" style={{ background: 'var(--accent-amber-light)', color: 'var(--accent-amber)' }}>
-              <AlertTriangle className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="font-display text-[16px] font-semibold text-[var(--text-primary)]">Dismiss anomaly</h3>
-              <p className="text-[11.5px] text-[var(--text-tertiary)]">{anomaly.headline}</p>
-            </div>
-          </div>
-          <button onClick={onCancel} className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] cursor-pointer"><XCircle className="w-4 h-4" /></button>
-        </header>
-        <div className="p-5 space-y-3">
-          <p className="text-[12.5px] text-[var(--text-secondary)] leading-relaxed">
-            Reviewers must record why this anomaly can be ignored. The reason is logged to the audit
-            trail and attached to the persisted status row.
-          </p>
-          <label className="block">
-            <span className="block text-[10.5px] uppercase tracking-[0.1em] font-semibold text-[var(--text-tertiary)] mb-1.5">Reason (minimum 10 characters)</span>
-            <textarea
-              value={reason}
-              onChange={e => setReason(e.target.value)}
-              rows={4}
-              autoFocus
-              placeholder="e.g. Spike caused by acquisition of new subsidiary in Q3; confirmed legitimate"
-              className="w-full px-3.5 py-2.5 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[13px] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand)]/15 focus:border-[var(--color-brand)] resize-none"
+      <StateBoundary
+        loading={loading}
+        error={err}
+        onRetry={() => setRefreshNonce(n => n + 1)}
+        hasData={!!data}
+        skeleton={<div className="space-y-6"><SkeletonLedger items={4} /><SkeletonTable rows={5} /></div>}
+        errorState={{ title: t('anomalyPage.errors.loadTitle') }}
+      >
+        <div className="space-y-8">
+          {s && (
+            <StatLedger
+              aria-label={t('anomalyPage.headline.aria')}
+              items={[
+                { id: 'critical', label: t('anomalyPage.headline.critical'), value: s.critical, tone: s.critical > 0 ? 'danger' : 'neutral', hint: t('anomalyPage.headline.criticalHint'), onClick: () => { setSeverityFilter('critical'); setStatusFilter('all') } },
+                { id: 'warn', label: t('anomalyPage.headline.warn'), value: s.warn, tone: s.warn > 0 ? 'warning' : 'neutral', hint: t('anomalyPage.headline.warnHint'), onClick: () => { setSeverityFilter('warn'); setStatusFilter('all') } },
+                { id: 'info', label: t('anomalyPage.headline.info'), value: s.info, tone: 'info', hint: t('anomalyPage.headline.infoHint'), onClick: () => { setSeverityFilter('info'); setStatusFilter('all') } },
+                { id: 'suppressed', label: t('anomalyPage.headline.suppressed'), value: s.suppressed_total, tone: 'success', hint: t('anomalyPage.headline.suppressedHint') },
+              ]}
             />
-            <span className={`block text-[11px] mt-1 ${tooShort ? 'text-[var(--accent-amber)]' : 'text-[var(--text-tertiary)]'}`}>
-              {reason.trim().length} / 10 chars min
-            </span>
-          </label>
-          {err && (
-            <div className="p-2 rounded-[8px] bg-red-500/10 border border-red-500/30 text-red-300 text-[11.5px]">{err}</div>
           )}
+
+          <SavedViewsBar
+            page="anomalies"
+            filters={{ scope, severityFilter, statusFilter }}
+            onApply={(fv: { scope?: 'mine' | 'role' | 'all'; severityFilter?: SeverityFilter; statusFilter?: StatusFilter }) => {
+              if (fv.scope) setScope(fv.scope)
+              if (fv.severityFilter) setSeverityFilter(fv.severityFilter)
+              if (fv.statusFilter) setStatusFilter(fv.statusFilter)
+            }}
+          />
+
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-6 items-start">
+            {/* ── Triage queue ── */}
+            <section aria-labelledby="triage-h" className="min-w-0">
+              <SectionHeader kicker={t('anomalyPage.triage.kicker')} title={t('anomalyPage.triage.title')} subtitle={t('anomalyPage.triage.subtitle')} />
+              <div className="flex items-center gap-x-4 gap-y-2 flex-wrap mb-3" role="toolbar" aria-label={t('anomalyPage.filters.aria')}>
+                <FilterGroup label={t('anomalyPage.filters.severity')}>
+                  {(['all', 'critical', 'warn', 'info'] as SeverityFilter[]).map(sv => (
+                    <Seg key={sv} on={severityFilter === sv} onClick={() => setSeverityFilter(sv)} dot={sv === 'all' ? undefined : sevKey(sv)} layout="sev">
+                      {sv === 'all' ? t('common.all') : t(`anomalyPage.severity.${sv}`)}
+                    </Seg>
+                  ))}
+                </FilterGroup>
+                <FilterGroup label={t('anomalyPage.filters.status')}>
+                  {(['all', 'open', 'investigating', 'resolved', 'dismissed'] as StatusFilter[]).map(st => (
+                    <Seg key={st} on={statusFilter === st} onClick={() => setStatusFilter(st)} layout="status">
+                      {st === 'all' ? t('common.all') : t(`anomaly.status.${st}`)}
+                    </Seg>
+                  ))}
+                </FilterGroup>
+              </div>
+
+              <div className="surface-paper overflow-hidden">
+                {filteredAnomalies.length === 0 ? (
+                  <StateBoundary
+                    empty
+                    compact
+                    emptyState={filtersActive
+                      ? { variant: 'filtered', title: t('anomalyPage.triage.empty'), onClearFilters: () => { setSeverityFilter('all'); setStatusFilter('all') } }
+                      : { variant: 'cleared', title: t('anomalyPage.triage.clearedTitle'), body: t('anomalyPage.triage.clearedBody') }}
+                  >
+                    {null}
+                  </StateBoundary>
+                ) : (
+                  <ul className="divide-y divide-[var(--border-subtle)]">
+                    <AnimatePresence initial={false}>
+                      {filteredAnomalies.slice(0, 50).map(a => (
+                        <TriageRow
+                          key={keyOf(a)}
+                          a={a}
+                          status={statuses[keyOf(a)] ?? 'open'}
+                          busy={busyKey === keyOf(a)}
+                          typeLabel={typeLabel(a.anomaly_type)}
+                          lang={i18n.language}
+                          onInvestigate={() => setStatus(a, 'investigating').catch(() => {})}
+                          onResolve={() => setStatus(a, 'resolved').catch(() => {})}
+                          onDismiss={() => setDismissTarget(a)}
+                        />
+                      ))}
+                    </AnimatePresence>
+                  </ul>
+                )}
+                {filteredAnomalies.length > 50 && (
+                  <div className="px-5 py-3 border-t border-[var(--border-subtle)] text-caption text-[var(--text-tertiary)]">
+                    {t('anomalyPage.triage.showingFirst', { shown: 50, total: f.number(filteredAnomalies.length) })}
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* ── Distribution + method ── */}
+            <aside className="space-y-4 min-w-0" aria-label={t('anomalyPage.distribution.title')}>
+              <MeterCard title={t('anomalyPage.distribution.byRuleType')} empty={t('anomalyPage.distribution.empty')} rows={byType.map(r => ({ key: r.type, label: typeLabel(r.type), count: r.count }))} />
+              <MeterCard
+                title={t('anomalyPage.distribution.topEntities')}
+                empty={t('anomalyPage.distribution.empty')}
+                rows={topEntities.map(e => ({ key: e.entity, label: e.entity, count: e.count, critical: e.critical }))}
+              />
+              <MethodDisclosure />
+            </aside>
+          </div>
+
+          <section>
+            <PersistedAnomaliesPanel />
+          </section>
+
+          <section>
+            <SectionHeader kicker={t('anomalyPage.feed.kicker')} title={t('anomalyPage.feed.title')} subtitle={t('anomalyPage.feed.subtitle')} />
+            <AnomalyFeed scope={scope} limit={100} title={t('anomalyPage.feed.feedTitle')} />
+          </section>
         </div>
-        <footer className="flex items-center gap-2 p-5 border-t border-[var(--border-subtle)]">
-          <button onClick={onCancel} disabled={busy} className="flex-1 h-10 rounded-[8px] border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-secondary)] text-[13px] font-semibold hover:bg-[var(--bg-secondary)] cursor-pointer disabled:opacity-60">Cancel</button>
-          <button onClick={submit} disabled={tooShort || busy} className="flex-1 inline-flex items-center justify-center gap-1.5 h-10 rounded-[8px] bg-[var(--status-reject)] text-white text-[13px] font-semibold hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
-            {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <XCircle className="w-3.5 h-3.5" />}
-            Dismiss with reason
-          </button>
-        </footer>
+      </StateBoundary>
+
+      <AnimatePresence>
+        {dismissTarget && (
+          <ReasonSheet
+            key="dismiss"
+            title={t('anomalyPage.dismissModal.title')}
+            subject={dismissTarget.headline}
+            body={t('anomalyPage.dismissModal.body')}
+            label={t('anomalyPage.dismissModal.reasonLabel')}
+            placeholder={t('anomalyPage.dismissModal.placeholder')}
+            confirmLabel={t('anomalyPage.dismissModal.confirm')}
+            counter={n => t('anomalyPage.dismissModal.charCount', { count: n })}
+            onCancel={() => setDismissTarget(null)}
+            onConfirm={async reason => {
+              await setStatus(dismissTarget, 'dismissed', reason)
+              setDismissTarget(null)
+            }}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+/* ─── Triage row ───────────────────────────────────────── */
+
+function TriageRow({ a, status, busy, typeLabel, lang, onInvestigate, onResolve, onDismiss }: {
+  a: Anomaly
+  status: AnomalyStatusValue
+  busy: boolean
+  typeLabel: string
+  lang: string
+  onInvestigate: () => void
+  onResolve: () => void
+  onDismiss: () => void
+}) {
+  const { t } = useTranslation()
+  const f = useFmt()
+  const sev = sevKey(a.severity)
+  const delta = f.toNumber(a.delta_pct)
+  const closed = status === 'resolved' || status === 'dismissed'
+  return (
+    <motion.li layout="position" {...listItemMotion} className="relative">
+      <span className="absolute left-0 top-4 bottom-4 w-[3px] rounded-r-full" style={{ background: SEVERITY_VAR[sev], opacity: closed ? 0.35 : 1 }} aria-hidden />
+      <div className={`px-5 py-4 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-x-6 gap-y-3 ${closed ? 'opacity-70' : ''}`}>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <SeverityPill severity={sev} size="sm" />
+            <span className="text-caption text-[var(--text-tertiary)]">{typeLabel}</span>
+            <StatusPill tone={ANOMALY_STATUS_TONE[status]} size="sm" dot={status === 'investigating'} layoutId={`an-status-${a.assignment_id}-${a.anomaly_type}`}>{t(`anomaly.status.${status}`)}</StatusPill>
+          </div>
+          <div className="text-small font-semibold text-[var(--text-primary)] mt-1.5">{a.headline}</div>
+          <div className="text-caption text-[var(--text-tertiary)] mt-0.5 flex items-center gap-x-1.5 flex-wrap">
+            <span className="font-semibold text-[var(--color-brand)] tabular-nums">{a.gri_code}</span>
+            <span className="truncate max-w-[36ch]">{itemLabel(a, lang)}</span>
+            <span aria-hidden>·</span>
+            <span>{a.entity_name}</span>
+          </div>
+        </div>
+        <div className="flex md:flex-col items-center md:items-end justify-between gap-2">
+          <div className="text-right tabular-nums">
+            <div className="text-caption text-[var(--text-tertiary)] whitespace-nowrap">
+              {f.number(a.prior, { maxFraction: 1 })} <ArrowRight className="inline w-3 h-3 -mt-0.5" aria-hidden /> <span className="text-small font-semibold text-[var(--text-primary)]">{f.number(a.current, { maxFraction: 1 })}</span>
+            </div>
+            {delta != null && (
+              <div className={`text-caption font-semibold ${Math.abs(delta) > 50 ? 'text-[var(--status-danger)]' : Math.abs(delta) > 20 ? 'text-[var(--status-warning)]' : 'text-[var(--text-secondary)]'}`}>
+                {f.delta(delta, { percent: true })}{a.prior_year ? <span className="font-normal text-[var(--text-tertiary)]"> {t('anomalyPage.triage.vsYear', { year: a.prior_year })}</span> : null}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-1">
+            <RowAction label={t('anomaly.investigate')} title={t('anomalyPage.triage.investigateTitle')} onClick={onInvestigate} disabled={busy || status === 'investigating'} icon={<Eye className="w-3.5 h-3.5" />} />
+            <RowAction label={t('anomalyPage.triage.resolve')} title={t('anomalyPage.triage.resolveTitle')} onClick={onResolve} disabled={busy || status === 'resolved'} icon={<CheckCircle2 className="w-3.5 h-3.5" />} />
+            <RowAction label={t('anomaly.dismiss')} title={t('anomalyPage.triage.dismissTitle')} onClick={onDismiss} disabled={busy || status === 'dismissed'} icon={<XCircle className="w-3.5 h-3.5" />} />
+          </div>
+        </div>
+      </div>
+    </motion.li>
+  )
+}
+
+function RowAction({ label, title, onClick, disabled, icon }: { label: string; title: string; onClick: () => void; disabled?: boolean; icon: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className="min-h-[36px] px-2.5 rounded-[var(--radius-md)] border border-[var(--border-default)] bg-[var(--bg-primary)] text-caption font-medium text-[var(--text-secondary)] inline-flex items-center gap-1.5 whitespace-nowrap hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors duration-micro"
+    >
+      {icon}{label}
+    </button>
+  )
+}
+
+function FilterGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 min-w-0 max-w-full">
+      <span className="text-caption text-[var(--text-tertiary)] flex-shrink-0">{label}</span>
+      <div className="flex items-center gap-0.5 p-0.5 rounded-[var(--radius-md)] bg-[var(--bg-secondary)] overflow-x-auto [scrollbar-width:none]" role="radiogroup" aria-label={label}>
+        {children}
       </div>
     </div>
   )
 }
 
-// ──────────────────────────────────────────────────────────────
-// Persisted anomalies + AI explanation panel
-//
-// Pulls the DB-stored `anomalies` rows (long-lived, UUID-keyed) and lets the
-// caller request a Claude-generated narrative for any row. Narrative is
-// cached server-side on the row, so re-opening the panel is free.
-// ──────────────────────────────────────────────────────────────
+function Seg({ on, onClick, dot, layout, children }: { on: boolean; onClick: () => void; dot?: SeverityKey; layout: string; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={on}
+      onClick={onClick}
+      className={`relative min-h-[32px] px-2.5 rounded-[var(--radius-sm)] text-caption font-medium inline-flex items-center gap-1.5 whitespace-nowrap transition-colors duration-micro ${on ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'}`}
+    >
+      {on && <motion.span layoutId={`seg-${layout}`} className="absolute inset-0 rounded-[var(--radius-sm)] bg-[var(--bg-primary)] shadow-[var(--shadow-card)]" transition={spring.snappy} />}
+      {dot && <span className="relative w-1.5 h-1.5 rounded-full" style={{ background: SEVERITY_VAR[dot] }} aria-hidden />}
+      <span className="relative">{children}</span>
+    </button>
+  )
+}
+
+function MeterCard({ title, empty, rows }: { title: string; empty: string; rows: Array<{ key: string; label: string; count: number; critical?: number }> }) {
+  const { t } = useTranslation()
+  const reduce = useReducedMotion()
+  const max = rows[0]?.count || 1
+  return (
+    <div className="surface-paper p-5">
+      <h3 className="text-small font-semibold text-[var(--text-primary)] mb-3">{title}</h3>
+      {rows.length === 0 ? (
+        <p className="text-caption text-[var(--text-tertiary)]">{empty}</p>
+      ) : (
+        <ul className="space-y-2.5">
+          {rows.map((r, i) => (
+            <li key={r.key}>
+              <div className="flex items-baseline justify-between gap-3 mb-1">
+                <span className="text-caption text-[var(--text-secondary)] truncate">{r.label}</span>
+                <span className="flex items-center gap-2 flex-shrink-0">
+                  {r.critical ? <span className="text-caption font-medium text-[var(--status-danger)] tabular-nums">{t('anomalyPage.distribution.crit', { count: r.critical })}</span> : null}
+                  <span className="text-caption font-semibold tabular-nums text-[var(--text-primary)]">{r.count}</span>
+                </span>
+              </div>
+              <div className="h-1 rounded-full bg-[var(--bg-tertiary)] overflow-hidden">
+                <motion.div
+                  initial={reduce ? false : { width: '0%' }}
+                  animate={{ width: `${Math.round((r.count / max) * 100)}%` }}
+                  transition={{ duration: 0.7, delay: 0.1 + Math.min(i, 8) * 0.04, ease: ease.out }}
+                  className="h-full rounded-full"
+                  style={{ background: r.critical ? 'var(--status-danger)' : 'var(--chart-s2)' }}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+function MethodDisclosure() {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="surface-paper overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        className="w-full flex items-center justify-between gap-3 px-5 py-4 text-left hover:bg-[var(--bg-hover)] transition-colors duration-micro"
+      >
+        <span>
+          <span className="block text-small font-semibold text-[var(--text-primary)]">{t('anomalyPage.method.title')}</span>
+          <span className="block text-caption text-[var(--text-tertiary)] mt-0.5">{t('anomalyPage.method.short')}</span>
+        </span>
+        <ChevronDown className={`w-4 h-4 text-[var(--text-tertiary)] transition-transform duration-fast ${open ? 'rotate-180' : ''}`} aria-hidden />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.ul
+            initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.24, ease: ease.out }}
+            className="overflow-hidden border-t border-[var(--border-subtle)] divide-y divide-[var(--border-subtle)]"
+          >
+            {RULE_TYPES.map(r => (
+              <li key={r} className="px-5 py-3">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-caption font-semibold text-[var(--text-primary)]">{t(`anomalyPage.rules.${r}.title`)}</span>
+                  <span className="text-caption text-[var(--text-tertiary)] whitespace-nowrap">{t(`anomalyPage.rules.${r}.severity`)}</span>
+                </div>
+                <p className="text-caption text-[var(--text-secondary)] mt-0.5">{t(`anomalyPage.rules.${r}.desc`)}</p>
+              </li>
+            ))}
+          </motion.ul>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+const RULE_TYPES: AnomalyType[] = ['yoy_spike', 'magnitude_jump', 'z_score_outlier', 'trend_break', 'unit_change', 'missing_evidence', 'late_submission', 'narrative_gap', 'peer_deviation']
+
+/* ─── Persisted anomalies + AI narrative ───────────────────
+ * DB-stored `anomalies` rows (UUID-keyed) with an optional AI narrative.
+ * The narrative is cached server-side on the row. Every narrative carries an
+ * "AI-generated" label; when AI is off for the org or not configured for the
+ * deployment the panel says so instead of offering a button that fails. */
+
+type Narr = { text: string; generatedAt: string | null; loading: boolean; error: string | null; cached: boolean }
 
 function PersistedAnomaliesPanel() {
+  const { t } = useTranslation()
+  const f = useFmt()
+  const aiNotConfigured = t('anomalyPage.errors.aiNotConfigured')
   const [rows, setRows] = useState<AiAnomalyListItem[] | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [openId, setOpenId] = useState<string | null>(null)
+  const [nonce, setNonce] = useState(0)
   const integrations = useIntegrationStatus()
-  const aiUnavailable = !integrations.loading && !integrations.ai
-  // Per-row narrative cache: { [id]: { text, generatedAt, loading, error } }
-  const [narratives, setNarratives] = useState<Record<string, { text: string; generatedAt: string | null; loading: boolean; error: string | null; cached: boolean }>>({})
+  const market = useOrgMarket()
+  const orgOff = !market.loading && !market.aiEnabled
+  const deploymentOff = integrationMissing(integrations, 'ai')
+  const aiUnavailable = orgOff || deploymentOff
+  const [narratives, setNarratives] = useState<Record<string, Narr>>({})
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
+    setLoading(true); setErr(null)
     ai.listAnomaliesForNarration()
-      .then(r => { if (!cancelled) { setRows(r.anomalies); setLoading(false) } })
-      .catch(e => { if (!cancelled) { setErr(e instanceof Error ? e.message : 'Load failed'); setLoading(false) } })
+      .then(r => { if (!cancelled) { setRows(Array.isArray(r?.anomalies) ? r.anomalies : []); setLoading(false) } })
+      .catch(e => { if (!cancelled) { setErr(e instanceof Error ? e.message : t('anomalyPage.errors.loadFailed')); setLoading(false) } })
     return () => { cancelled = true }
-  }, [])
+  }, [nonce])
 
-  // Hydrate already-cached narratives from the list response so the panel
-  // shows instantly with no extra round-trip.
+  // Hydrate cached narratives from the list response — no extra round-trip.
   useEffect(() => {
     if (!rows) return
     setNarratives(prev => {
       const next = { ...prev }
       for (const r of rows) {
-        if (r.ai_narrative && !next[r.id]) {
-          next[r.id] = { text: r.ai_narrative, generatedAt: r.ai_narrative_generated_at, loading: false, error: null, cached: true }
-        }
+        if (r.ai_narrative && !next[r.id]) next[r.id] = { text: r.ai_narrative, generatedAt: r.ai_narrative_generated_at, loading: false, error: null, cached: true }
       }
       return next
     })
@@ -529,12 +506,9 @@ function PersistedAnomaliesPanel() {
     try {
       const r = await ai.narrateAnomaly(anomalyId, regenerate)
       setNarratives(s => ({ ...s, [anomalyId]: { text: r.narrative, generatedAt: r.generatedAt, loading: false, error: null, cached: r.cached } }))
-      // Also reflect on the row so the "Last updated" hint is fresh.
       setRows(rs => rs ? rs.map(row => row.id === anomalyId ? { ...row, ai_narrative: r.narrative, ai_narrative_generated_at: r.generatedAt } : row) : rs)
     } catch (e) {
-      const errMsg = isUnconfiguredError(e)
-        ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.'
-        : e instanceof Error ? e.message : 'AI request failed'
+      const errMsg = isUnconfiguredError(e) ? aiNotConfigured : e instanceof Error ? e.message : t('anomalyPage.errors.aiRequestFailed')
       setNarratives(s => ({ ...s, [anomalyId]: { text: '', generatedAt: null, loading: false, error: errMsg, cached: false } }))
     }
   }
@@ -545,263 +519,153 @@ function PersistedAnomaliesPanel() {
     try {
       await navigator.clipboard.writeText(n.text)
       setCopiedId(anomalyId)
-      setTimeout(() => setCopiedId(cur => cur === anomalyId ? null : cur), 1500)
+      setTimeout(() => setCopiedId(cur => (cur === anomalyId ? null : cur)), 1500)
     } catch {
-      // Clipboard API can be unavailable in some browsers / sandboxes — silently
-      // ignore so the rest of the panel keeps working.
+      notify.error(t('anomalyPage.ai.copyFailed'))
     }
   }
 
   return (
     <>
       <SectionHeader
-        kicker="AI"
-        title="Explain with AI"
-        subtitle="Persisted anomalies with optional Claude-generated narratives. Click the sparkle to expand a plain-English explanation grounded in the underlying activity data."
+        kicker={t('anomalyPage.ai.kicker')}
+        title={t('anomalyPage.ai.title')}
+        subtitle={t('anomalyPage.ai.subtitle')}
+        actions={<AiLabel />}
       />
-      {err && <div className="surface-paper p-4 text-[var(--accent-red)]">{err}</div>}
       {aiUnavailable && (
-        <div className="surface-paper p-3 flex items-start gap-2 border-l-2 border-amber-400/40 bg-amber-400/5 mb-2" role="status">
-          <Lock className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-          <div className="text-[12.5px] text-amber-300 leading-relaxed">
-            <span className="font-semibold">AI narration is disabled.</span>{' '}
-            Ask an admin to set <code className="font-mono">ANTHROPIC_API_KEY</code> in the server environment to
-            generate plain-English explanations. Previously-generated narratives below remain viewable.
+        <div className="surface-paper p-4 mb-3 flex items-start gap-3" role="status">
+          <span className="w-9 h-9 rounded-[var(--radius-md)] flex items-center justify-center flex-shrink-0 bg-[var(--bg-secondary)] text-[var(--text-tertiary)]">
+            <Lock className="w-4 h-4" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-small font-semibold text-[var(--text-primary)]">
+              {orgOff ? t('anomalyPage.ai.orgOffTitle') : t('anomalyPage.ai.disabledTitle')}
+            </div>
+            <p className="text-caption text-[var(--text-secondary)] mt-0.5">
+              {orgOff ? t('anomalyPage.ai.orgOffBody') : t('anomalyPage.ai.deploymentOffBody')}
+            </p>
           </div>
+          {orgOff && (
+            <Link to="/settings" className="flex-shrink-0 inline-flex items-center gap-1.5 min-h-[36px] px-3 rounded-[var(--radius-md)] border border-[var(--border-default)] text-caption font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)]">
+              <Settings2 className="w-3.5 h-3.5" aria-hidden /> {t('anomalyPage.ai.openSettings')}
+            </Link>
+          )}
         </div>
       )}
       <div className="surface-paper overflow-hidden">
-        {loading ? (
-          <div className="py-8 text-center text-[12.5px] text-[var(--text-tertiary)]">Loading anomalies…</div>
-        ) : !rows || rows.length === 0 ? (
-          <div className="py-12 text-center text-[12.5px] text-[var(--text-tertiary)]">No persisted anomalies in this workspace.</div>
-        ) : (
-          <div className="overflow-x-auto">
-          <table className="w-full text-[12.5px] min-w-[720px]">
-            <thead>
-              <tr className="text-left text-[10.5px] uppercase tracking-[0.08em] text-[var(--text-tertiary)] border-b border-[var(--border-subtle)]">
-                <th className="px-3 py-2">Severity</th>
-                <th className="px-3 py-2 sticky left-0 bg-[var(--bg-primary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">Title / Facility</th>
-                <th className="px-3 py-2">Metric</th>
-                <th className="px-3 py-2 text-right">Expected → Actual</th>
-                <th className="px-3 py-2 text-right">Δ%</th>
-                <th className="px-3 py-2 text-right">AI</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(r => {
-                const sev = r.severity
-                const sevBg = sev === 'critical' ? 'var(--accent-red-light)' : sev === 'warning' ? 'var(--accent-amber-light)' : 'var(--accent-blue-light)'
-                const sevFg = sev === 'critical' ? 'var(--accent-red)' : sev === 'warning' ? 'var(--accent-amber)' : 'var(--accent-blue)'
-                const isOpen = openId === r.id
-                const n = narratives[r.id]
-                return (
-                  <Fragment key={r.id}>
-                    <tr className="group/persisted border-b border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">
-                      <td className="px-3 py-2">
-                        <span className="chip" style={{ background: sevBg, color: sevFg, fontWeight: 600 }}>{sev}</span>
-                      </td>
-                      <td className="px-3 py-2 sticky left-0 bg-[var(--bg-primary)] group-hover/persisted:bg-[var(--bg-secondary)] z-10 shadow-[2px_0_4px_rgba(0,0,0,0.04)]">
-                        <div className="font-semibold text-[var(--text-primary)]">{r.title}</div>
-                        <div className="text-[11px] text-[var(--text-tertiary)]">{r.facility_name ?? 'No facility'} · Scope {r.scope ?? '—'}</div>
-                      </td>
-                      <td className="px-3 py-2">
-                        <span className="font-mono text-[11px] text-[var(--text-tertiary)]">{r.metric ?? '—'}</span>
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums text-[var(--text-secondary)]">
-                        {(() => {
-                          const ev = r.expected_value == null ? null : Number(r.expected_value)
-                          const av = r.actual_value == null ? null : Number(r.actual_value)
-                          const left = ev == null || !Number.isFinite(ev) ? '—' : ev.toLocaleString()
-                          const right = av == null || !Number.isFinite(av) ? '—' : av.toLocaleString()
-                          return `${left} → ${right}`
-                        })()}
-                      </td>
-                      <td className="px-3 py-2 text-right tabular-nums">
-                        {(() => {
-                          const d = r.deviation_pct == null ? null : Number(r.deviation_pct)
-                          if (d == null || !Number.isFinite(d)) return '—'
-                          return `${d > 0 ? '+' : ''}${d.toFixed(1)}%`
-                        })()}
-                      </td>
-                      <td className="px-3 py-2 text-right">
-                        {(() => {
-                          // When AI is unconfigured and there's no cached narrative on this row,
-                          // disable the trigger entirely (with tooltip). Cached narratives can
-                          // still be opened so existing explanations remain accessible.
-                          const hasCached = !!r.ai_narrative
-                          const disabledForAi = aiUnavailable && !hasCached
-                          return (
-                            <button
-                              type="button"
-                              className="chip inline-flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                              onClick={() => {
-                                if (isOpen) { setOpenId(null); return }
-                                handleExplain(r.id, false)
-                              }}
-                              disabled={disabledForAi}
-                              aria-expanded={isOpen}
-                              aria-controls={`ai-panel-${r.id}`}
-                              title={disabledForAi ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : 'Explain with AI'}
-                              aria-label={disabledForAi ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : 'Explain with AI'}
-                            >
-                              {disabledForAi ? <Lock className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
-                              {disabledForAi ? 'AI off' : isOpen ? 'Hide' : 'Explain'}
-                            </button>
-                          )
-                        })()}
-                      </td>
-                    </tr>
+        <StateBoundary
+          loading={loading}
+          error={err}
+          onRetry={() => setNonce(n => n + 1)}
+          compact
+          empty={!rows || rows.length === 0}
+          skeleton={<div className="p-5"><SkeletonLines lines={4} /></div>}
+          emptyState={{ variant: 'cleared', title: t('anomalyPage.ai.emptyTitle'), body: t('anomalyPage.ai.empty'), density: 'compact' }}
+        >
+          <ul className="divide-y divide-[var(--border-subtle)]">
+            {(rows ?? []).map(r => {
+              const isOpen = openId === r.id
+              const n = narratives[r.id]
+              const hasCached = !!r.ai_narrative
+              const disabledForAi = aiUnavailable && !hasCached
+              const ev = f.toNumber(r.expected_value)
+              const av = f.toNumber(r.actual_value)
+              const d = f.toNumber(r.deviation_pct)
+              return (
+                <li key={r.id}>
+                  <div className="px-5 py-4 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-x-6 gap-y-3 items-center">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <SeverityPill severity={r.severity} size="sm" />
+                        {r.metric && <span className="text-caption text-[var(--text-tertiary)] tabular-nums">{r.metric}</span>}
+                      </div>
+                      <div className="text-small font-semibold text-[var(--text-primary)] mt-1.5">{r.title}</div>
+                      <div className="text-caption text-[var(--text-tertiary)] mt-0.5">
+                        {r.facility_name ?? t('anomalyPage.ai.noFacility')} · {r.scope != null && /scope|范围/i.test(String(r.scope)) ? String(r.scope) : t('anomalyPage.ai.scope', { scope: r.scope ?? '—' })}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between md:justify-end gap-4">
+                      <div className="text-right tabular-nums">
+                        <div className="text-caption text-[var(--text-tertiary)] whitespace-nowrap">
+                          {f.number(ev, { maxFraction: 1 })} <ArrowRight className="inline w-3 h-3 -mt-0.5" aria-hidden /> <span className="text-small font-semibold text-[var(--text-primary)]">{f.number(av, { maxFraction: 1 })}</span>
+                        </div>
+                        {d != null && <div className={`text-caption font-semibold ${Math.abs(d) > 20 ? 'text-[var(--status-danger)]' : 'text-[var(--text-secondary)]'}`}>{f.delta(d, { percent: true })}</div>}
+                      </div>
+                      <button
+                        type="button"
+                        className="min-h-[36px] px-3 rounded-[var(--radius-md)] border border-[var(--border-default)] text-caption font-medium inline-flex items-center gap-1.5 whitespace-nowrap text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-micro"
+                        onClick={() => { if (isOpen) { setOpenId(null); return } handleExplain(r.id, false) }}
+                        disabled={disabledForAi}
+                        aria-expanded={isOpen}
+                        aria-controls={`ai-panel-${r.id}`}
+                        title={disabledForAi ? (orgOff ? t('anomalyPage.ai.orgOffTitle') : aiNotConfigured) : t('anomalyPage.ai.explainWithAi')}
+                      >
+                        {disabledForAi ? <Lock className="w-3.5 h-3.5" aria-hidden /> : <Sparkles className="w-3.5 h-3.5 text-[var(--color-brand)]" aria-hidden />}
+                        {disabledForAi ? t('anomalyPage.ai.aiOff') : isOpen ? t('anomalyPage.ai.hide') : hasCached ? t('anomalyPage.ai.read') : t('anomalyPage.ai.explain')}
+                      </button>
+                    </div>
+                  </div>
+                  <AnimatePresence initial={false}>
                     {isOpen && (
-                      <tr className="border-b border-[var(--border-subtle)]">
-                        <td colSpan={6} className="p-0">
-                          <div
-                            id={`ai-panel-${r.id}`}
-                            className="p-4 m-3 rounded-[10px]"
-                            style={{
-                              background: 'var(--accent-purple-light, rgba(120,85,200,0.08))',
-                              borderLeft: '3px solid var(--accent-purple, #7855c8)',
-                            }}
-                          >
-                            <div className="flex items-center justify-between mb-2 gap-3 flex-wrap">
-                              <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.1em] font-bold" style={{ color: 'var(--accent-purple, #7855c8)' }}>
-                                <Sparkles className="w-3.5 h-3.5" /> AI explanation
+                      <motion.div
+                        id={`ai-panel-${r.id}`}
+                        initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.24, ease: ease.out }}
+                        className="overflow-hidden"
+                      >
+                        <div className="mx-5 mb-4 rounded-[var(--radius-lg)] border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-4">
+                          <div className="flex items-center justify-between gap-3 flex-wrap mb-2">
+                            <AiLabel />
+                            {n?.text && !n.loading && (
+                              <div className="flex items-center gap-1">
+                                <button type="button" onClick={() => handleCopy(r.id)} title={t('anomalyPage.ai.copyTitle')}
+                                  className="min-h-[32px] px-2.5 rounded-[var(--radius-md)] text-caption font-medium inline-flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]">
+                                  {copiedId === r.id ? <Check className="w-3.5 h-3.5" aria-hidden /> : <Copy className="w-3.5 h-3.5" aria-hidden />}
+                                  {copiedId === r.id ? t('anomalyPage.ai.copied') : t('anomalyPage.ai.copy')}
+                                </button>
+                                <button type="button" onClick={() => handleExplain(r.id, true)} disabled={aiUnavailable}
+                                  title={aiUnavailable ? aiNotConfigured : t('anomalyPage.ai.regenerateTitle')}
+                                  className="min-h-[32px] px-2.5 rounded-[var(--radius-md)] text-caption font-medium inline-flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed">
+                                  {aiUnavailable ? <Lock className="w-3.5 h-3.5" aria-hidden /> : <RotateCw className="w-3.5 h-3.5" aria-hidden />}
+                                  {t('anomalyPage.ai.regenerate')}
+                                </button>
                               </div>
-                              <div className="flex items-center gap-2">
-                                {n?.text && !n.loading && (
-                                  <button
-                                    type="button"
-                                    className="chip inline-flex items-center gap-1"
-                                    onClick={() => handleCopy(r.id)}
-                                    title="Copy narrative"
-                                  >
-                                    {copiedId === r.id ? <><Check className="w-3 h-3" /> Copied</> : <><Copy className="w-3 h-3" /> Copy</>}
-                                  </button>
-                                )}
-                                {n?.text && !n.loading && (
-                                  <button
-                                    type="button"
-                                    className="chip inline-flex items-center gap-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    onClick={() => handleExplain(r.id, true)}
-                                    disabled={aiUnavailable}
-                                    title={aiUnavailable ? 'AI is not configured. Ask an admin to set ANTHROPIC_API_KEY.' : 'Regenerate narrative'}
-                                  >
-                                    {aiUnavailable ? <Lock className="w-3 h-3" /> : <RotateCw className="w-3 h-3" />}
-                                    Regenerate
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                            {n?.loading ? (
-                              <div className="flex items-center gap-2 text-[12.5px] text-[var(--text-secondary)]">
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating narrative…
-                              </div>
-                            ) : n?.error ? (
-                              <div className="text-[12.5px] text-[var(--accent-red)]">{n.error}</div>
-                            ) : n?.text ? (
-                              <>
-                                <p className="text-[13px] leading-relaxed text-[var(--text-primary)] whitespace-pre-wrap">{n.text}</p>
-                                <div className="mt-2 text-[10.5px] text-[var(--text-tertiary)] italic">
-                                  Generated by Claude. Verify before sharing.
-                                  {n.generatedAt && <> · Last updated {formatRelative(n.generatedAt)}</>}
-                                </div>
-                              </>
-                            ) : (
-                              <div className="text-[12.5px] text-[var(--text-secondary)]">No narrative yet.</div>
                             )}
                           </div>
-                        </td>
-                      </tr>
+                          {n?.loading ? (
+                            <div aria-live="polite"><span className="sr-only">{t('anomalyPage.ai.generating')}</span><SkeletonLines lines={3} /></div>
+                          ) : n?.error ? (
+                            <p role="alert" className="text-small text-[var(--status-danger)]">{n.error}</p>
+                          ) : n?.text ? (
+                            <>
+                              <p className="text-small text-[var(--text-primary)] whitespace-pre-wrap max-w-[75ch]">{n.text}</p>
+                              <p className="mt-2 text-caption text-[var(--text-tertiary)]">
+                                {t('anomalyPage.ai.generatedNote')}
+                                {n.generatedAt && <> · {t('anomalyPage.ai.lastUpdated', { when: f.relative(n.generatedAt) })}</>}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="text-small text-[var(--text-secondary)]">{t('anomalyPage.ai.noNarrative')}</p>
+                          )}
+                        </div>
+                      </motion.div>
                     )}
-                  </Fragment>
-                )
-              })}
-            </tbody>
-          </table>
-          </div>
-        )}
+                  </AnimatePresence>
+                </li>
+              )
+            })}
+          </ul>
+        </StateBoundary>
       </div>
     </>
   )
 }
 
-function formatRelative(iso: string): string {
-  const then = new Date(iso).getTime()
-  if (!isFinite(then)) return ''
-  const diffMs = Date.now() - then
-  const mins = Math.round(diffMs / 60000)
-  if (mins < 1) return 'just now'
-  if (mins < 60) return `${mins} minute${mins === 1 ? '' : 's'} ago`
-  const hrs = Math.round(mins / 60)
-  if (hrs < 24) return `${hrs} hour${hrs === 1 ? '' : 's'} ago`
-  const days = Math.round(hrs / 24)
-  return `${days} day${days === 1 ? '' : 's'} ago`
-}
-
-function StatusPill({ value }: { value: AnomalyStatusValue }) {
-  const map: Record<AnomalyStatusValue, { bg: string; fg: string; label: string }> = {
-    open:          { bg: 'var(--bg-tertiary)',      fg: 'var(--text-secondary)', label: 'Open' },
-    investigating: { bg: 'var(--accent-blue-light)',fg: 'var(--accent-blue)',    label: 'Investigating' },
-    resolved:      { bg: 'var(--accent-green-light)',fg: 'var(--status-ok)',     label: 'Resolved' },
-    dismissed:     { bg: 'var(--bg-tertiary)',      fg: 'var(--text-tertiary)',  label: 'Dismissed' },
-  }
-  const s = map[value]
+/** Regulatory AI-content label (CAC labelling; also shown for global orgs). */
+function AiLabel() {
+  const { t } = useTranslation()
   return (
-    <span className="chip inline-flex items-center gap-1" style={{ background: s.bg, color: s.fg }}>
-      <CircleDot className="w-3 h-3" /> {s.label}
-    </span>
+    <StatusPill tone="brand" icon={<Sparkles />} title={t('anomalyPage.ai.labelTitle')}>{t('anomalyPage.ai.label')}</StatusPill>
   )
 }
-
-function HeadlineCard({ icon, accent, label, count, hint, index }: { icon: React.ReactNode; accent: 'red' | 'amber' | 'blue' | 'green'; label: string; count: number; hint: string; index: number }) {
-  const palette = {
-    red: { bg: 'var(--accent-red-light)', fg: 'var(--accent-red)' },
-    amber: { bg: 'var(--accent-amber-light)', fg: 'var(--accent-amber)' },
-    blue: { bg: 'var(--accent-blue-light)', fg: 'var(--accent-blue)' },
-    green: { bg: 'var(--accent-green-light)', fg: 'var(--status-ok)' },
-  }[accent]
-  return (
-    <motion.div {...popIn(index)} className="surface-paper p-5">
-      <div className="flex items-start justify-between mb-3">
-        <span className="w-10 h-10 rounded-[10px] flex items-center justify-center" style={{ background: palette.bg, color: palette.fg }}>
-          {icon}
-        </span>
-        <span className="text-[10px] uppercase tracking-[0.12em] font-bold" style={{ color: palette.fg }}>{label}</span>
-      </div>
-      <div className="text-[34px] leading-none font-bold tabular-nums text-[var(--text-primary)] tracking-[-0.02em]">{count}</div>
-      <div className="text-[11.5px] text-[var(--text-tertiary)] mt-1.5">{hint}</div>
-    </motion.div>
-  )
-}
-
-function ScopeTab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button onClick={onClick} className={`chip ${active ? 'chip-active' : ''}`}>{children}</button>
-  )
-}
-
-function labelForType(t: AnomalyType): string {
-  switch (t) {
-    case 'yoy_spike': return 'YoY variance spike'
-    case 'magnitude_jump': return 'Magnitude jump'
-    case 'z_score_outlier': return 'Statistical outlier'
-    case 'trend_break': return 'Trend break'
-    case 'unit_change': return 'Unit mismatch'
-    case 'missing_evidence': return 'Missing evidence'
-    case 'late_submission': return 'Late submission'
-    case 'narrative_gap': return 'Narrative gap'
-    case 'peer_deviation': return 'Peer deviation'
-  }
-}
-
-const RULES: Array<{ type: AnomalyType; title: string; desc: string; severity: string; icon: typeof AlertOctagon; bg: string; fg: string }> = [
-  { type: 'yoy_spike',       title: 'Year-over-year variance',  desc: 'Current value vs the most recent historical filing. Warns above ±20%, critical above ±50%.',                                      severity: 'Critical / Warn', icon: TrendingUp,     bg: 'var(--accent-red-light)',   fg: 'var(--accent-red)' },
-  { type: 'magnitude_jump',  title: 'Magnitude jump',           desc: '8×+ (or ≤0.125×) the 4-year historical average — catches unit typos (tonnes vs kg, m³ vs litres).',                             severity: 'Critical',        icon: AlertOctagon,   bg: 'var(--accent-red-light)',   fg: 'var(--accent-red)' },
-  { type: 'z_score_outlier', title: 'Statistical outlier',      desc: 'Z-score against 4-year baseline. Warn at |z|>2, critical at |z|>3.',                                                             severity: 'Critical / Warn', icon: Activity,       bg: 'var(--accent-red-light)',   fg: 'var(--accent-red)' },
-  { type: 'trend_break',     title: 'Trend break',              desc: 'Reverses a 3-year monotonic direction by more than 10%. Worth a narrative explanation.',                                         severity: 'Info / Warn',     icon: TrendingUp,     bg: 'var(--accent-amber-light)', fg: 'var(--accent-amber)' },
-  { type: 'unit_change',     title: 'Unit mismatch',            desc: 'Current unit string differs from the unit used in historical filings. Confirm conversion.',                                     severity: 'Warn',            icon: AlertTriangle,  bg: 'var(--accent-amber-light)', fg: 'var(--accent-amber)' },
-  { type: 'missing_evidence',title: 'Missing evidence',         desc: 'Submitted, reviewed, or approved numeric entry with no evidence file attached. Audit fails without this.',                        severity: 'Critical / Warn', icon: FileText,       bg: 'var(--accent-red-light)',   fg: 'var(--accent-red)' },
-  { type: 'late_submission', title: 'Late submission',          desc: 'Submitted after the recorded due date. Tracked for process improvement.',                                                         severity: 'Info / Warn',     icon: CheckCircle2,   bg: 'var(--accent-blue-light)',  fg: 'var(--accent-blue)' },
-  { type: 'narrative_gap',   title: 'Narrative gap',            desc: 'Narrative disclosure approved with empty narrative_body. Disclosure will not appear in the published report.',                    severity: 'Critical',        icon: FileText,       bg: 'var(--accent-red-light)',   fg: 'var(--accent-red)' },
-  { type: 'peer_deviation',  title: 'Peer plant deviation',     desc: 'Plant value sits >2σ from sibling plants for the same disclosure — boundary or operating difference.',                            severity: 'Warn',            icon: Activity,       bg: 'var(--accent-amber-light)', fg: 'var(--accent-amber)' },
-]

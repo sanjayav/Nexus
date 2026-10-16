@@ -1,0 +1,106 @@
+{
+  "hero": {
+    "eyebrow": "Compare",
+    "title": "Nexus vs Workiva — honestly.",
+    "subtitle": "We respect Workiva's track record. Here's where each platform wins, including the places Nexus has work to do."
+  },
+  "honestTake": {
+    "eyebrow": "The honest take",
+    "title": "Different teams, different choices.",
+    "body": "Workiva is a great choice if you're a Fortune 500 with a 4-month implementation budget, need industry-leading iXBRL tagging, and want every connector pre-built. Nexus is for teams that need to ship CSRD now, want transparent pricing, and value a modern UX without the steep learning curve. Both platforms deliver auditor-ready reports — we take different paths to get there."
+  },
+  "cta": {
+    "heading": "Try Nexus free for 14 days.",
+    "primary": "Start free trial",
+    "secondary": "See how it works"
+  },
+  "values": {
+    "free": "Free",
+    "avg60k": "~$60K avg",
+    "twoDays": "~2 days",
+    "fourMonths": "~4 months",
+    "sixTemplates": "6 templates",
+    "inProgress": "In progress",
+    "anthropicMainland": "Anthropic + mainland provider"
+  },
+  "rows": {
+    "pricingTransparency": {
+      "feature": "Pricing transparency",
+      "note": "Nexus publishes tier pricing. Workiva requires a custom quote."
+    },
+    "starterTier": {
+      "feature": "Starter tier",
+      "note": "Industry estimate; Workiva does not publish."
+    },
+    "implementationTime": {
+      "feature": "Implementation time"
+    },
+    "frameworksSupported": {
+      "feature": "Frameworks supported"
+    },
+    "ixbrl": {
+      "feature": "iXBRL tagging",
+      "note": "Honest: Workiva is industry-leading on iXBRL. Nexus is partner-ready, not yet best-in-class."
+    },
+    "esgNative": {
+      "feature": "ESG-native architecture",
+      "note": "Workiva's ESG module sits atop a finance/disclosure platform; Nexus was built ESG-first."
+    },
+    "blockchainAudit": {
+      "feature": "Blockchain audit trail"
+    },
+    "aiEvidence": {
+      "feature": "AI evidence extraction"
+    },
+    "aiGap": {
+      "feature": "AI gap analysis",
+      "note": "Workiva markets this as \"ESRS Intelligence\". Both ship a comparable capability."
+    },
+    "aiFactorMatcher": {
+      "feature": "AI vendor → emission-factor matcher"
+    },
+    "linkedData": {
+      "feature": "Linked data",
+      "note": "Both platforms propagate values across disclosures from a single source."
+    },
+    "multiLlm": {
+      "feature": "Multi-LLM routing",
+      "note": "Workiva claims multi-vendor LLM routing. Nexus uses Anthropic by default and, per organisation, an OpenAI-compatible mainland China provider."
+    },
+    "realtimeCollab": {
+      "feature": "Real-time collaboration"
+    },
+    "spreadsheetFormulas": {
+      "feature": "Spreadsheet formulas",
+      "note": "Honest: Workiva's spreadsheet engine is a mature differentiator. Nexus offers bulk entry but not full formulas."
+    },
+    "erpConnectors": {
+      "feature": "70+ pre-built ERP connectors",
+      "note": "Honest: Workiva's connector library is far broader. Nexus offers 6 templates plus open API."
+    },
+    "pcaf": {
+      "feature": "PCAF financed emissions"
+    },
+    "scim": {
+      "feature": "SCIM 2.0"
+    },
+    "samlSso": {
+      "feature": "SAML SSO"
+    },
+    "soc2": {
+      "feature": "SOC 2 Type II",
+      "note": "Honest: Workiva holds SOC 2 Type II. Nexus is mid-audit and will publish once attested."
+    },
+    "selfServeTrial": {
+      "feature": "Self-serve trial"
+    },
+    "chinaFrameworks": {
+      "feature": "China exchange, MOF and HKEX framework packs",
+      "note": "SSE / SZSE / BSE guidelines, MOF CSDS, HKEX ESG Code and CASS-ESG ship as framework packs. We have not assessed Workiva's coverage here."
+    },
+    "bilingualReports": {
+      "feature": "Simplified Chinese report output (PDF / Word)",
+      "note": "Not assessed for Workiva."
+    }
+  }
+}

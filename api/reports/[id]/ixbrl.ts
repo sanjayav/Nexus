@@ -58,6 +58,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 1. Load report metadata + org slug.
     const reportRows = await sql`
       SELECT ra.id, ra.org_id, ra.period_id, ra.framework_id, ra.verification_token,
+             COALESCE(to_jsonb(ra)->>'locale', ra.metadata->>'locale') AS locale,
              rp.label AS period_label, rp.year AS period_year,
              o.slug AS org_slug
       FROM report_artifacts ra
@@ -65,7 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       LEFT JOIN organisations o ON o.id = ra.org_id
       WHERE ra.id = ${reportId} AND ra.org_id = ${token.org}
     ` as Array<{ id: string; org_id: string; period_id: string; framework_id: string;
-                 verification_token: string; period_label: string | null;
+                 verification_token: string; locale: string | null; period_label: string | null;
                  period_year: number | null; org_slug: string | null }>
 
     if (reportRows.length === 0) return res.status(404).json({ error: 'Report not found' })
@@ -80,6 +81,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         reportingYear: year,
         frameworkIds: report.framework_id ? [report.framework_id] : [],
         approvedOnly: !includeUnapproved,
+        // Same language as the published PDF (?locale= overrides).
+        locale: req.query.locale ? String(req.query.locale) : report.locale,
       })
     } catch (err: unknown) {
       // Deep engine failed (e.g. missing organisations.lei column on a stale
@@ -138,7 +141,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
     }
 
-    const xhtml = await generateIxbrl(report.id, mappings, tags)
+    const xhtml = await generateIxbrl(report.id, mappings, tags, req.query.locale ? String(req.query.locale) : report.locale)
     res.setHeader('Content-Type', 'application/xhtml+xml')
     res.setHeader('Content-Disposition', `attachment; filename="${fname}"`)
     res.setHeader('X-Ixbrl-Engine', 'v1-fallback')

@@ -1,0 +1,213 @@
+{
+  "topics": {
+    "E1": "E1 Climate Change",
+    "E2": "E2 Pollution",
+    "E3": "E3 Water and Marine Resources",
+    "E4": "E4 Biodiversity and Ecosystems",
+    "E5": "E5 Resource Use and Circular Economy",
+    "S1": "S1 Own Workforce",
+    "S2": "S2 Workers in Value Chain",
+    "S3": "S3 Affected Communities",
+    "S4": "S4 Consumers and End-Users",
+    "G1": "G1 Business Conduct"
+  },
+  "errors": {
+    "load": "Load failed: {{message}}",
+    "finalize": "Finalize failed: {{message}}",
+    "create": "Create failed: {{message}}",
+    "update": "Update failed: {{message}}",
+    "iroSave": "IRO save failed: {{message}}",
+    "save": "Save failed: {{message}}",
+    "loadTitle": "Couldn't load the materiality assessment",
+    "updateTitle": "Change not saved",
+    "createTitle": "Couldn't add the topic",
+    "finalizeTitle": "Couldn't finalise",
+    "iroTitle": "Couldn't save the IRO",
+    "saveTitle": "Rating not saved"
+  },
+  "finalized": "Materiality verdict finalized.",
+  "crumbStrategy": "Strategy",
+  "crumbSelf": "Materiality",
+  "eyebrow": "Double Materiality Assessment",
+  "title": "Materiality assessment",
+  "description": "Identify topics, capture stakeholder concern, score financial materiality (likelihood × severity), and finalize the matrix — material topics flow into report scope.",
+  "tabs": {
+    "topics": "Topics",
+    "iros": "IROs",
+    "stakeholders": "Stakeholders",
+    "matrix": "Matrix",
+    "cnsse": "CN-SSE topics"
+  },
+  "universe": "CSRD topic universe — add to scope",
+  "topicsCount": "Topics ({{count}})",
+  "customTopic": "Custom topic",
+  "topicName": "Topic name",
+  "topicCategory": "Topic category",
+  "category": {
+    "Environmental": "Environmental",
+    "Social": "Social",
+    "Governance": "Governance",
+    "Economic": "Economic"
+  },
+  "col": {
+    "topic": "Topic",
+    "category": "Category",
+    "impact": "Impact",
+    "financial": "Financial",
+    "likelihood": "Likelihood",
+    "severity": "Severity",
+    "horizon": "Horizon",
+    "material": "Material",
+    "cnsse": "CN-SSE topic"
+  },
+  "aria": {
+    "impact": "Impact score for {{topic}}",
+    "financial": "Financial score for {{topic}}",
+    "likelihood": "Likelihood for {{topic}}",
+    "severity": "Severity for {{topic}}",
+    "horizon": "Time horizon for {{topic}}",
+    "score": "Score (1 to 5)",
+    "cnsse": "CN-SSE topic for {{topic}}",
+    "concern": "{{group}} concern for {{topic}}"
+  },
+  "horizon": {
+    "short": "Short",
+    "medium": "Medium",
+    "long": "Long"
+  },
+  "empty": {
+    "title": "No material topics yet",
+    "body": "Pick from the CSRD topic universe above or add a custom topic to start your double-materiality assessment.",
+    "bodyCn": "Start from the 21 CN-SSE topics above, or add a custom topic, to begin the double-materiality assessment."
+  },
+  "iros": {
+    "addTopicsFirst": "Add topics on the Topics tab first.",
+    "count_one": "{{count}} IRO",
+    "count_other": "{{count}} IROs",
+    "meta": "sev {{sev}} · lik {{lik}} · {{horizon}}",
+    "typeAria": "IRO type",
+    "descAria": "IRO description",
+    "description": "Description",
+    "sev": "Sev",
+    "lik": "Lik",
+    "horizonAria": "Time horizon",
+    "add": "Add"
+  },
+  "iroType": {
+    "impact": "Impact",
+    "risk": "Risk",
+    "opportunity": "Opportunity"
+  },
+  "stakeholders": {
+    "investors": "investors",
+    "employees": "employees",
+    "customers": "customers",
+    "suppliers": "suppliers",
+    "regulators": "regulators",
+    "civil_society": "civil society"
+  },
+  "noTopicsToRate": "No topics to rate.",
+  "matrix": {
+    "title": "Double materiality matrix",
+    "thresholdPrefix": "Threshold: ",
+    "thresholdSuffix": " on either axis = material.",
+    "finalize": "Finalize materiality",
+    "financial": "Financial materiality",
+    "financialAxis": "Financial materiality",
+    "impact": "Impact materiality",
+    "impactAxis": "Impact materiality",
+    "verdict": "Verdict",
+    "material": "Material",
+    "notMaterial": "Not material",
+    "pending": "Pending finalize",
+    "aria": "Double materiality matrix with {{count}} topics",
+    "pointAria": "{{topic}}: financial {{financial}}, impact {{impact}}",
+    "tipScores": "Financial {{financial}} · Impact {{impact}}",
+    "quadDouble": "Double material",
+    "quadImpact": "Impact material",
+    "quadFinancial": "Financially material",
+    "emptyTitle": "Nothing to plot yet",
+    "emptyBody": "Score topics on both axes in the Topics tab to place them on the matrix.",
+    "viewAria": "Matrix view",
+    "view": {
+      "cnsse": "21 CN-SSE topics",
+      "topics": "Assessment topics"
+    },
+    "legendMaterial": "Material",
+    "legendPending": "Scored, not finalised",
+    "legendThreshold": "Threshold"
+  },
+  "tabsAria": "Materiality assessment sections",
+  "universeTitle": "Add topics to scope",
+  "ledger": {
+    "aria": "Materiality summary",
+    "topics": "Topics in scope",
+    "assessed": "Scored on both axes",
+    "assessedHint": "of {{total}} topics",
+    "material": "Material",
+    "materialHint": "After the last finalise",
+    "cnsse": "CN-SSE topics covered",
+    "cnsseHint": "Of the exchange's 21 topics",
+    "iros": "Impacts, risks & opportunities",
+    "irosHint": "Recorded against topics"
+  },
+  "toast": {
+    "added": "Added “{{topic}}” to scope",
+    "iroAdded": "Impact, risk or opportunity recorded"
+  },
+  "finalizedCounts": "{{material}} material · {{not}} not material",
+  "finalizeSheet": {
+    "title": "Finalise the materiality verdict?",
+    "body": "{{assessed}} of {{total}} topics are scored. Topics scoring {{threshold}} or more on either axis become material and enter report scope. You can re-score and finalise again later."
+  },
+  "status": {
+    "unscored": "Not scored"
+  },
+  "verdict": {
+    "double": "Double material",
+    "financial": "Financially material",
+    "impact": "Impact material",
+    "not": "Not material",
+    "unassessed": "Not scored"
+  },
+  "cnsse": {
+    "universe": "SSE / SZSE / BSE guideline — 21 sustainability topics",
+    "intro": "The exchange guidelines require each of the 21 topics to be assessed for financial materiality (effect on the company's value) and impact materiality (the company's effect on the economy, society and environment). A topic is material at {{threshold}} or more on either axis; scores here are the highest of the topics mapped to it.",
+    "pillars": {
+      "environment": "Environment",
+      "social": "Social",
+      "governance": "Sustainability-related governance"
+    },
+    "pillarCount": "{{count}} topics",
+    "topics": {
+      "CLIM": "Climate change response",
+      "POL": "Pollutant emissions",
+      "WST": "Waste management",
+      "BIO": "Ecosystem and biodiversity protection",
+      "ENVC": "Environmental compliance management",
+      "ENE": "Energy use",
+      "WAT": "Water resource use",
+      "CIR": "Circular economy",
+      "RUR": "Rural revitalisation",
+      "SOC": "Social contribution",
+      "INN": "Innovation-driven development",
+      "ETH": "Ethics of science and technology",
+      "SUP": "Supply chain security",
+      "SME": "Fair treatment of SMEs",
+      "PRD": "Product and service safety and quality",
+      "DAT": "Data security and customer privacy",
+      "EMP": "Employees",
+      "DD": "Due diligence",
+      "STK": "Stakeholder communication",
+      "ABC": "Anti-commercial bribery and anti-corruption",
+      "AUC": "Anti-unfair competition"
+    },
+    "unmapped": "Not mapped",
+    "notInScope": "Not yet assessed",
+    "scores": "Financial {{f}} · Impact {{i}}",
+    "addToScope": "Add to assessment",
+    "mapExisting": "Map an existing topic…",
+    "mapExistingAria": "Map an existing topic to {{topic}}",
+    "unmap": "Remove {{topic}} from this CN-SSE topic"
+  }
+}

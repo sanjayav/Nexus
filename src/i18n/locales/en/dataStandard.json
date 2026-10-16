@@ -1,0 +1,64 @@
+{
+  "header": {
+    "eyebrow": "Data governance",
+    "title": "ESG data standard",
+    "subtitle": "One company-wide definition, calculation method, cadence and ownership chain per disclosure — how comparability is enforced across every plant."
+  },
+  "framework": "Framework",
+  "loadFailed": "Load failed",
+  "errorTitle": "The data standard didn't load",
+  "emptyTitle": "No data standard for {{code}} yet",
+  "emptyBody": "Definitions, methods and owners appear here once the framework's disclosures are assigned.",
+  "stats": {
+    "disclosures": "Disclosures",
+    "definitions": "Definitions on file",
+    "ofTotal": "{{n}} of {{total}}",
+    "calcMethods": "Calculation methods",
+    "ownershipChains": "Ownership chains",
+    "completeChains": "{{n}} of {{total}} fully assigned"
+  },
+  "searchPlaceholder": "Search code, disclosure or definition…",
+  "cadenceAria": "Filter by cadence",
+  "allCadences": "All",
+  "cadence": {
+    "daily": "Daily",
+    "monthly": "Monthly",
+    "quarterly": "Quarterly",
+    "annual": "Annual"
+  },
+  "catalog": {
+    "kicker": "Catalogue",
+    "title_one": "{{count}} disclosure · {{code}}",
+    "title_other": "{{count}} disclosures · {{code}}",
+    "subtitle": "Open a row for its definition, calculation method and ownership chain."
+  },
+  "otherSection": "Other",
+  "sectionCount_one": "{{count}} disclosure",
+  "sectionCount_other": "{{count}} disclosures",
+  "row": {
+    "definition": "Definition",
+    "method": "Method",
+    "noDefinition": "No definition",
+    "noMethod": "No method",
+    "canonicalDefinition": "Canonical definition",
+    "calcMethod": "Calculation method",
+    "noDefinitionBody": "No canonical definition yet. Plants may interpret this disclosure differently until one is agreed.",
+    "noMethodBody": "No calculation method recorded yet."
+  },
+  "chain": {
+    "title": "Ownership chain",
+    "dataOwner": "Data owner",
+    "reviewer": "Reviewer",
+    "approver": "Approver",
+    "unassigned": "Unassigned",
+    "note": "Submissions route through each role in order. Every transition is hash-chained for audit."
+  },
+  "roles": {
+    "plant_manager": "Plant manager",
+    "subsidiary_lead": "Subsidiary lead",
+    "group_sustainability_officer": "Group sustainability officer",
+    "data_contributor": "Data contributor",
+    "narrative_owner": "Narrative owner",
+    "platform_admin": "Administrator"
+  }
+}

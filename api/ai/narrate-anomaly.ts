@@ -4,14 +4,17 @@ import { cors, requirePermission } from '../_auth.js'
 import { checkRateLimit } from '../_rateLimit.js'
 import { narrateAnomaly, type AnomalyNarrationContext } from '../_claude.js'
 import { getDb } from '../_db.js'
+import { aiGate, aiLabel } from '../_llm.js'
 
 /**
  * POST /api/ai/narrate-anomaly
  *
  * Returns a plain-English explanation of a flagged anomaly, grounded in the
  * underlying activity_data for the affected facility & scope. Narrative is
- * cached on the `anomalies` row — subsequent calls return the stored text
- * unless `regenerate: true` is passed. Cache hit costs zero Claude tokens.
+ * cached on the `anomalies` row together with its locale
+ * (`ai_narrative_locale`, NULL = 'en'); a call in the same locale returns the
+ * stored text unless `regenerate: true` is passed, a call in another locale
+ * regenerates. Cache hit costs zero model tokens.
  */
 
 const schema = z.object({
@@ -36,6 +39,7 @@ type AnomalyRow = {
   ai_narrative_model: string | null
   ai_narrative_tokens_in: number | null
   ai_narrative_tokens_out: number | null
+  ai_narrative_locale: string | null
 }
 
 type FacilityRow = {
@@ -82,7 +86,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
              a.type, a.severity, a.title, a.description, a.scope, a.metric,
              a.expected_value, a.actual_value, a.deviation_pct, a.status,
              a.detected_at,
-             a.ai_narrative, a.ai_narrative_generated_at
+             a.ai_narrative, a.ai_narrative_generated_at,
+             to_jsonb(a) ->> 'ai_narrative_locale' AS ai_narrative_locale
       FROM anomalies a
       LEFT JOIN facilities f ON f.id = a.facility_id
       WHERE a.org_id = ${t.org}
@@ -107,9 +112,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ anomalies: coerced })
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return res.status(503).json({ error: 'AI not configured' })
-  }
+  const gate = await aiGate(sql, req, t)
+  if (!gate.ok) return res.status(gate.status).json(gate.body)
 
   // Below here is POST-only narration path.
   const allowed = await checkRateLimit(req, res, {
@@ -134,7 +138,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     SELECT id, facility_id, severity, title, description, scope, metric,
            expected_value, actual_value, deviation_pct, detected_at,
            ai_narrative, ai_narrative_generated_at, ai_narrative_model,
-           ai_narrative_tokens_in, ai_narrative_tokens_out
+           ai_narrative_tokens_in, ai_narrative_tokens_out,
+           to_jsonb(anomalies) ->> 'ai_narrative_locale' AS ai_narrative_locale
     FROM anomalies
     WHERE id = ${anomalyId} AND org_id = ${t.org}
     LIMIT 1
@@ -142,8 +147,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const anomaly = anomalyRows[0]
   if (!anomaly) return res.status(404).json({ error: 'Anomaly not found' })
 
-  // 2. Cache hit — return stored narrative unless caller asked to regenerate.
-  if (anomaly.ai_narrative && !regenerate) {
+  // 2. Cache hit — stored narrative in the caller's locale, unless the caller
+  //    asked to regenerate. Locale is part of the cache key.
+  const cachedLocale = anomaly.ai_narrative_locale ?? 'en'
+  if (anomaly.ai_narrative && !regenerate && cachedLocale === gate.locale) {
     return res.status(200).json({
       narrative: anomaly.ai_narrative,
       generatedAt: anomaly.ai_narrative_generated_at,
@@ -153,6 +160,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         tokensOut: anomaly.ai_narrative_tokens_out ?? 0,
         cached: 0,
       },
+      ...aiLabel(gate.locale, { model: anomaly.ai_narrative_model ?? undefined }),
     })
   }
 
@@ -229,23 +237,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     limited_context: cleanHistory.length < 2,
   }
 
-  // 4. Call Claude.
-  const result = await narrateAnomaly(ctx)
+  // 4. Call the org's model in the caller's language.
+  const result = await narrateAnomaly(ctx, { provider: gate.provider, locale: gate.locale })
   if (!result.ok || !result.text) {
     return res.status(502).json({ error: result.error ?? 'AI narration failed' })
   }
 
   // 5. Persist to anomaly row so subsequent reads are cache hits.
   const generatedAt = new Date().toISOString()
-  await sql`
-    UPDATE anomalies
-    SET ai_narrative = ${result.text},
-        ai_narrative_generated_at = ${generatedAt},
-        ai_narrative_model = ${'claude-sonnet-4-6'},
-        ai_narrative_tokens_in = ${result.tokensIn ?? 0},
-        ai_narrative_tokens_out = ${result.tokensOut ?? 0}
-    WHERE id = ${anomalyId} AND org_id = ${t.org}
-  `
+  const model = result.model ?? gate.provider.model
+  try {
+    await sql`
+      UPDATE anomalies
+      SET ai_narrative = ${result.text},
+          ai_narrative_generated_at = ${generatedAt},
+          ai_narrative_model = ${model},
+          ai_narrative_tokens_in = ${result.tokensIn ?? 0},
+          ai_narrative_tokens_out = ${result.tokensOut ?? 0},
+          ai_narrative_locale = ${gate.locale}
+      WHERE id = ${anomalyId} AND org_id = ${t.org}
+    `
+  } catch {
+    // ai_narrative_locale not migrated yet (api/_cnSchema.ts) — store without it.
+    await sql`
+      UPDATE anomalies
+      SET ai_narrative = ${result.text},
+          ai_narrative_generated_at = ${generatedAt},
+          ai_narrative_model = ${model},
+          ai_narrative_tokens_in = ${result.tokensIn ?? 0},
+          ai_narrative_tokens_out = ${result.tokensOut ?? 0}
+      WHERE id = ${anomalyId} AND org_id = ${t.org}
+    `
+  }
 
   return res.status(200).json({
     narrative: result.text,
@@ -256,5 +279,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       tokensOut: result.tokensOut ?? 0,
       cached: result.cached ?? 0,
     },
+    ...aiLabel(gate.locale, result),
   })
 }

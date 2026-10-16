@@ -14,7 +14,8 @@
  */
 import type { ReactNode } from 'react'
 import { Lock } from 'lucide-react'
-import { useIntegrationStatus } from '../lib/integrations'
+import { useTranslation } from 'react-i18next'
+import { useIntegrationStatus, integrationMissing } from '../lib/integrations'
 
 export type IntegrationKey = 'ai' | 'email' | 'sso' | 'realtime'
 
@@ -48,6 +49,7 @@ export function IntegrationGatedButton({
   loadingChildren,
   disabled,
 }: Props) {
+  const { t } = useTranslation()
   const status = useIntegrationStatus()
 
   if (status.loading) {
@@ -58,15 +60,16 @@ export function IntegrationGatedButton({
     )
   }
 
-  const ok = status[integration]
-  if (!ok) {
+  // Only gate when the server said "not configured". If /api/health itself
+  // failed (unknown), let the click through — the endpoint reports its own error.
+  if (integrationMissing(status, integration)) {
     return (
       <button
         type={type}
         className={disabledClassName}
         disabled
-        title={LABELS[integration]}
-        aria-label={LABELS[integration]}
+        title={t(`components.integration.${integration}`, { defaultValue: LABELS[integration] })}
+        aria-label={t(`components.integration.${integration}`, { defaultValue: LABELS[integration] })}
         data-integration-gated={integration}
       >
         <Lock className="w-3.5 h-3.5" />

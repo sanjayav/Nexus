@@ -42,6 +42,7 @@ const DEV_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://l
 export interface TokenPayload {
   sub: string   // user id
   org: string   // org id
+  /** May be '' for users provisioned without email (WeCom / DingTalk). */
   email: string
   /**
    * Data-residency region for this org's primary store. Optional for
@@ -185,7 +186,8 @@ export function cors(
   }
   // No origin or not allowed → no ACAO header → browser blocks the response.
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+  // Accept-Language carries the UI language (src/lib/api.ts) for server-rendered text.
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept-Language')
   res.setHeader('Access-Control-Allow-Credentials', 'true')
 }
 

@@ -1,0 +1,147 @@
+{
+  "breadcrumb": {
+    "reports": "Reports",
+    "here": "AI drafting"
+  },
+  "title": "AI narrative drafting",
+  "subtitle": "Draft framework-aligned narrative from your approved disclosure data. Figures come from approved values only; missing inputs are flagged, never invented.",
+  "provider": {
+    "default": "AI provider",
+    "checking": "Checking AI availability…",
+    "on": "{{provider}} available",
+    "off": "AI drafting off",
+    "tooltip": "The AI provider is set per organisation in Settings → Market & compliance."
+  },
+  "brief": {
+    "title": "Drafting brief",
+    "body": "Choose what to draft. The model only sees approved values for the current reporting year."
+  },
+  "fields": {
+    "framework": "Framework",
+    "section": "Section",
+    "tone": "Tone"
+  },
+  "frameworks": {
+    "gri": "GRI Standards",
+    "csrd": "CSRD / ESRS",
+    "tcfd": "TCFD",
+    "cdp": "CDP",
+    "issb": "ISSB IFRS S2",
+    "cn-sse": "SSE Guideline No. 14",
+    "hkex-esg": "HKEX ESG Code"
+  },
+  "tones": {
+    "formal": "Formal",
+    "narrative": "Narrative",
+    "concise": "Concise"
+  },
+  "sections": {
+    "gri302": "GRI 302 — Energy",
+    "gri303": "GRI 303 — Water and effluents",
+    "gri305": "GRI 305 — Emissions",
+    "gri306": "GRI 306 — Waste",
+    "gri401": "GRI 401 — Employment",
+    "gri403": "GRI 403 — Occupational health and safety",
+    "esrsE1": "ESRS E1 — Climate change",
+    "esrsE2": "ESRS E2 — Pollution",
+    "esrsE3": "ESRS E3 — Water and marine resources",
+    "esrsE5": "ESRS E5 — Resource use and circular economy",
+    "esrsS1": "ESRS S1 — Own workforce",
+    "esrsG1": "ESRS G1 — Business conduct",
+    "tcfdGovernance": "TCFD — Governance",
+    "tcfdStrategy": "TCFD — Strategy",
+    "tcfdRisk": "TCFD — Risk management",
+    "tcfdMetrics": "TCFD — Metrics and targets",
+    "cdpC1": "CDP C1 — Governance",
+    "cdpC2": "CDP C2 — Risks and opportunities",
+    "cdpC6": "CDP C6 — Emissions data",
+    "cdpC11": "CDP C11 — Carbon pricing",
+    "issbGovernance": "IFRS S2 — Governance",
+    "issbStrategy": "IFRS S2 — Strategy",
+    "issbRisk": "IFRS S2 — Risk management",
+    "issbMetrics": "IFRS S2 — Metrics and targets",
+    "sseClimateGov": "Climate — Governance",
+    "sseClimateStrategy": "Climate — Strategy",
+    "sseClimateMetrics": "Climate — Metrics and targets",
+    "sseEnergy": "Energy use",
+    "ssePollutants": "Pollutant emissions",
+    "sseEmployees": "Employees",
+    "sseAntiBribery": "Anti-bribery and anti-corruption",
+    "hkexA1": "A1 — Emissions",
+    "hkexA2": "A2 — Use of resources",
+    "hkexB1": "B1 — Employment",
+    "hkexB2": "B2 — Health and safety",
+    "hkexB5": "B5 — Supply chain management",
+    "hkexB7": "B7 — Anti-corruption"
+  },
+  "assurances": {
+    "anchored": "Every figure comes from an approved value",
+    "gaps": "Missing inputs are listed as gaps, not estimated",
+    "labelled": "Output is labelled as AI-generated, including when copied"
+  },
+  "buttons": {
+    "unavailable": "AI drafting unavailable",
+    "drafting": "Drafting…",
+    "draft": "Draft with AI",
+    "regenerate": "Draft again",
+    "copied": "Copied",
+    "copy": "Copy",
+    "clear": "Clear",
+    "insert": "Insert into report"
+  },
+  "progress": {
+    "gather": "Gathering approved values for {{section}}",
+    "draft": "Drafting narrative with {{provider}}",
+    "check": "Checking each figure against its source value",
+    "elapsed": "{{s}} s elapsed"
+  },
+  "label": {
+    "generated": "AI-generated",
+    "meta": "{{model}} · {{time}}",
+    "review": "AI-generated draft. A person must review it before it is published.",
+    "clipboard": "[{{label}} · {{model}} · review before publishing]"
+  },
+  "toast": {
+    "copied": "Draft copied with its AI-generated label",
+    "copyFailed": "Couldn’t copy to the clipboard. Select the text and copy it manually.",
+    "insertTitle": "Draft copied for the report",
+    "insertBody": "Paste it into the section in the disclosure editor. The AI-generated label is included.",
+    "cleared": "Draft cleared"
+  },
+  "usage": {
+    "tokensIn": "{{n}} tokens in",
+    "cached": " ({{n}} cached)",
+    "out": "{{n}} out",
+    "sep": " · "
+  },
+  "errors": {
+    "generateFailed": "The draft could not be generated.",
+    "draftFailed": "The draft didn’t come back",
+    "draftFailedBody": "Nothing was saved. Try again; if it keeps failing, the AI provider may be unavailable."
+  },
+  "disabled": {
+    "whoLabel": "Who can turn it on",
+    "whereLabel": "Where",
+    "meanwhileLabel": "Meanwhile",
+    "meanwhile": "Write the narrative in the disclosure editor. Approved values are still available there.",
+    "openSettings": "Open settings",
+    "writeManually": "Write in the disclosure editor",
+    "organisation": {
+      "title": "AI drafting is switched off for your organisation",
+      "body": "An administrator has disabled AI features for this workspace, so no draft can be generated and no data is sent to an AI provider.",
+      "who": "Workspace administrators",
+      "where": "Settings → Market & compliance → AI features"
+    },
+    "deployment": {
+      "title": "No AI provider is configured for this deployment",
+      "body": "This Nexus environment has no AI provider credentials, so drafting is unavailable for every organisation on it.",
+      "who": "Your platform administrator (the team that operates this Nexus deployment)",
+      "where": "Deployment environment: AI provider API key"
+    }
+  },
+  "empty": {
+    "title": "Ready to draft",
+    "body": "Choose a framework and section, then select Draft with AI. The draft appears here, labelled as AI-generated, for you to review."
+  },
+  "emptyDraft": "The model returned an empty draft. Try again or choose another section."
+}

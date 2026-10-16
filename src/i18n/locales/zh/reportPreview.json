@@ -1,0 +1,91 @@
+{
+  "failedToLoad": "加载失败",
+  "unableToLoad": "预览未能加载",
+  "retry": "重试",
+  "backToPublish": "返回发布中心",
+  "auditorView": "审计师视图",
+  "printPdf": "打印 / 保存 PDF",
+  "cover": {
+    "eyebrow": "可持续发展绩效数据",
+    "companyLine1": "Demo Co",
+    "companyLine2": "大众股份有限公司",
+    "reportingPeriod": "报告期：{{year}} 年 1 月 1 日至 12 月 31 日",
+    "badge": "FY{{year}} · 由 Nexus 重新生成 · GRI 标准 2021",
+    "note": "本报告依据 GRI 标准 2021、IFRS S1、IFRS S2 及 SASB 编制发布。以前年度数值（FY2022–FY2025）沿用已发布的《可持续发展绩效数据》报告。本年度所有数值均根据 Nexus 平台中已批准的条目重新生成。"
+  },
+  "guidelines": {
+    "title": "报告指引",
+    "orgLabel": "组织（GRI 2-1）：",
+    "orgBody": "Demo Co PLC。总部：工业区 Demo Plaza 1 号，市中心。",
+    "scopeLabel": "范围（GRI 2-2）：",
+    "scopeBody": "本报告年度 Demo Co 集团实体的经营绩效，涵盖 Demo Co 持股比例 ≥ 50% 的公司，以及 Polymers JV Ltd.（Demo Co 持股 41.44%，为第一大股东）。可持续发展数据覆盖总收入的 75% 以上。",
+    "periodLabel": "报告期（GRI 2-3）：",
+    "periodBody": "{{year}} 年 1 月 1 日至 12 月 31 日。年度周期。",
+    "restatementsLabel": "重述（GRI 2-4）：",
+    "restatementsBody": "如本报告对以前年度数据进行修订，相关重述将在受影响的披露项旁注明。",
+    "assuranceLabel": "外部鉴证（GRI 2-5）：",
+    "assuranceBody": "由 LRQA Group Limited 依据 ISAE 3000（修订版）提供有限鉴证，编号 BGK00001264。鉴证声明附于本报告末尾。"
+  },
+  "headings": {
+    "group": "可持续发展绩效数据 — Demo Co",
+    "jv": "合资企业 — 并行范围"
+  },
+  "assurance": {
+    "title": "LRQA 独立鉴证声明",
+    "subtitle": "ISAE 3000（修订版）· 编号 BGK00001264",
+    "p1": "LRQA Group Limited 依据 ISAE 3000（修订版），按照核查人员专业判断所确定的重要性水平，对 GC 的可持续发展绩效数据提供有限鉴证。所采用的 LRQA 核查程序基于包容性、重要性、回应性、影响以及绩效数据可靠性等原则。",
+    "p2": "鉴证范围涵盖 GC 在泰国的运营以及以下 GRI 披露项：GRI 302-1、302-3、303-3/4/5、305-7、306-3/4/5、308-2、403-9/10、405-2、414-2、GRI 11.8.3 及 OGSS OG13。",
+    "placeholder": "占位内容",
+    "placeholderBody": "— 完整的 LRQA 鉴证声明将在最终发布时插入此处。详细的业务约定条款、观察事项及结论与现行鉴证模板一致（参见 Demo Co FY2025 SPD 第 60–61 页）。"
+  },
+  "table": {
+    "lineItem": "披露项",
+    "unit": "单位",
+    "target": "目标 {{value}}",
+    "footnotes": "脚注："
+  },
+  "capitals": {
+    "Financial_Capital": "财务资本",
+    "Manufacture_Capital": "制造资本",
+    "Human_Capital": "人力资本",
+    "Social_Relationship_Capital": "社会与关系资本",
+    "Natural_Capital": "自然资本"
+  },
+  "subsections": {
+    "Direct_Economic_Value_Generated": "直接产生的经济价值",
+    "Economic_Value_Distributed": "分配的经济价值",
+    "Procurement_Practices": "采购实践",
+    "Return_on_Environmental_Investment": "环境投资回报",
+    "Workforce": "员工队伍",
+    "Workforce_by_Area": "按地区划分的员工",
+    "New_Employees": "新进员工",
+    "Turnover": "员工流失",
+    "Training_and_Development": "培训与发展",
+    "Gender_Diversity": "性别多元化",
+    "Equal_Remuneration": "同工同酬",
+    "Health_Safety": "健康与安全",
+    "Process_Safety": "工艺安全",
+    "Board_Structure": "董事会结构",
+    "Board_Effectiveness": "董事会效能",
+    "Executive_Compensation": "高管薪酬",
+    "CEO_Pay_Ratio": "CEO 薪酬比率",
+    "Anti_Bribery_and_Corruption": "反贿赂与反腐败",
+    "Code_of_Conduct_Breaches": "违反行为准则",
+    "Anticompetitive_Practices": "反竞争行为",
+    "Non_Compliance": "违规事项",
+    "Supply_Chain": "供应链",
+    "Philanthropic_Activities": "慈善活动",
+    "Local_Community": "当地社区",
+    "Materials": "物料",
+    "Energy": "能源",
+    "Greenhouse_Gas_Emissions_GHGs_": "温室气体排放（GHGs）",
+    "Air_Emissions": "大气排放",
+    "Water": "水资源",
+    "Waste": "废弃物",
+    "Spills": "泄漏",
+    "Operational_Eco_Efficiency": "运营生态效率",
+    "Product_Stewardship": "产品责任管理",
+    "Hazardous_Substances": "有害物质"
+  },
+  "unableToLoadBody": "无法连接服务器，暂时无法生成报告预览。"
+}

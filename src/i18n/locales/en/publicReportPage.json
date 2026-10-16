@@ -1,0 +1,64 @@
+{
+  "loading": "Loading published report…",
+  "unavailable": "Report no longer available.",
+  "print": "Print",
+  "assured": "Assured",
+  "reportTitle": "Sustainability report · {{period}}",
+  "meta": "Version {{version}} · published {{date}}",
+  "quantitative": "Quantitative disclosures",
+  "narrative": "Narrative disclosures",
+  "show": "Show",
+  "hide": "Hide",
+  "password": {
+    "title": "Password protected",
+    "body": "This report is password protected. Please enter the password provided by the sender.",
+    "placeholder": "Password",
+    "submit": "View report"
+  },
+  "errors": {
+    "title": "Unable to load report",
+    "invalidPassword": "Invalid password",
+    "loadFailed": "Failed to load report",
+    "body": "The report service didn't respond. Nothing is wrong with the link itself; try again in a moment.",
+    "goneTitle": "This link is no longer active",
+    "goneBody": "The publisher revoked this link or it expired. Ask them for a new one.",
+    "notFoundBody": "This link doesn't match a published report. Check that you copied the whole link."
+  },
+  "table": {
+    "code": "Code",
+    "lineItem": "Line item",
+    "value": "Value",
+    "unit": "Unit"
+  },
+  "anchored": {
+    "title": "Blockchain anchored",
+    "body": "This report's SHA-256 fingerprint is anchored to Bitcoin via OpenTimestamps. Anyone can confirm the file hasn't changed since it was published.",
+    "pill": "Hash-anchored"
+  },
+  "opinion": {
+    "limited": "limited",
+    "reasonable": "reasonable"
+  },
+  "footer": {
+    "generated": "Generated {{date}}",
+    "lastVerified": " · last verified {{date}}",
+    "assuredBy": "Assured by {{firm}} — signed by {{signer}} on {{date}}",
+    "auditor": "auditor",
+    "opinionOpen": " ({{opinion}} assurance",
+    "isaeClose": ", {{reference}})",
+    "close": ")",
+    "publishedBy": "Published by {{name}} · SHA-256 {{hash}}…",
+    "poweredBy": "Powered by Aeiforo",
+    "publishedByName": "Published by {{name}}"
+  },
+  "chip": "Published report",
+  "assuredBy": "Assured by {{firm}}",
+  "notAssured": "Not independently assured",
+  "verifyCta": "Verify this report",
+  "noSections": "No approved disclosures in this report",
+  "noSectionsBody": "The publisher hasn't included any approved figures or narratives in this version.",
+  "integrity": {
+    "title": "Integrity",
+    "notAnchored": "This report's SHA-256 fingerprint is stored on the platform. An external timestamp hasn't been recorded yet."
+  }
+}
