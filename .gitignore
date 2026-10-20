@@ -30,3 +30,7 @@ dist-ssr
 .env.test.local
 .env.production.local
 
+graphify-out/
+test-results/
+playwright-report/
+*.tsbuildinfo
