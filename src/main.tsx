@@ -1,24 +1,13 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App'
+import App from '@/app/App'
+import { AppProviders } from '@/app/providers'
 import './index.css'
-import { AuthProvider } from './auth/AuthContext'
-import { LanguageProvider } from './contexts/LanguageContext'
-import { RBACProvider } from './contexts/RBACContext'
-import { WorkspaceProvider } from './workspace/WorkspaceContext'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <LanguageProvider>
-      <WorkspaceProvider>
-        <AuthProvider>
-          <RBACProvider>
-            <App />
-          </RBACProvider>
-        </AuthProvider>
-      </WorkspaceProvider>
-    </LanguageProvider>
+    <AppProviders>
+      <App />
+    </AppProviders>
   </React.StrictMode>,
 )
-
-

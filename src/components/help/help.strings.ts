@@ -1,0 +1,81 @@
+import { defineStrings } from '@/lib/i18n'
+
+export const helpStrings = defineStrings({
+  en: {
+    whatIsThis: 'What does this mean?',
+    welcome: {
+      title: 'Welcome to Nexus',
+      body: 'Tell us how you will use Nexus and we will set up your home screen. You can change this any time from your profile menu.',
+      personas: {
+        executive: {
+          title: 'I oversee sustainability',
+          desc: 'Board member, CEO, CFO or board secretary. A plain summary of progress, risks and decisions.',
+        },
+        preparer: { title: 'I provide data', desc: 'Site, finance, HR or procurement teams. Your assigned sections and Excel templates.' },
+        reviewer: { title: 'I review and approve', desc: 'Sustainability office or internal control. The review queue and audit trail.' },
+      },
+      largeText: 'Use larger text',
+      largeTextDesc: 'Makes every screen easier to read. Can be changed later.',
+      start: 'Get started',
+      skip: 'Skip for now',
+    },
+    display: {
+      title: 'Display',
+      standard: 'Standard text',
+      large: 'Larger text',
+      role: 'Home screen for',
+      personas: { executive: 'Executive', preparer: 'Preparer', reviewer: 'Reviewer' },
+    },
+    shortcuts: {
+      title: 'Keyboard shortcuts',
+      body: 'Move around without the mouse.',
+      search: 'Search pages and actions',
+      help: 'Show this list',
+      goHome: 'Go to command center',
+      goTasks: 'Go to task inbox',
+      goFrameworks: 'Go to frameworks',
+      goImport: 'Go to data import',
+      goReport: 'Go to report builder',
+      then: 'then',
+      submitComment: 'Send a comment',
+      close: 'Close dialogs and menus',
+    },
+  },
+  zh: {
+    whatIsThis: '这是什么意思？',
+    welcome: {
+      title: '欢迎使用 Nexus',
+      body: '请选择您的主要工作内容，我们将据此为您设置首页。之后可随时在个人菜单中修改。',
+      personas: {
+        executive: { title: '我负责管理与决策', desc: '董事、总经理、财务总监或董事会秘书。以简明摘要查看进度、风险和待决策事项。' },
+        preparer: { title: '我负责填报数据', desc: '基地安环、财务、人力或采购等部门。查看分配给您的章节和 Excel 导入模板。' },
+        reviewer: { title: '我负责审核', desc: '可持续发展办公室或内控部门。查看审核队列和审核记录。' },
+      },
+      largeText: '使用大字号',
+      largeTextDesc: '所有页面的文字都会放大，阅读更轻松，之后可随时修改。',
+      start: '开始使用',
+      skip: '暂时跳过',
+    },
+    display: {
+      title: '显示',
+      standard: '标准字号',
+      large: '大字号',
+      role: '首页视图',
+      personas: { executive: '管理层', preparer: '填报人', reviewer: '审核人' },
+    },
+    shortcuts: {
+      title: '键盘快捷键',
+      body: '无需鼠标即可快速操作。',
+      search: '搜索页面和功能',
+      help: '显示快捷键列表',
+      goHome: '前往工作台',
+      goTasks: '前往待办任务',
+      goFrameworks: '前往披露框架',
+      goImport: '前往数据导入',
+      goReport: '前往报告编制',
+      then: '然后',
+      submitComment: '发表评论',
+      close: '关闭对话框和菜单',
+    },
+  },
+})

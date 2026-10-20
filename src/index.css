@@ -17,7 +17,9 @@
     box-sizing: border-box;
   }
 
-  h1, h2, h3 {
+  h1,
+  h2,
+  h3 {
     text-wrap: balance;
   }
 
@@ -63,7 +65,7 @@
   .canvas-depth {
     background-image:
       radial-gradient(900px 320px at 50% -140px, rgba(16, 185, 129, 0.06), transparent 70%),
-      linear-gradient(180deg, #F7F7F4 0%, #F5F5F1 100%);
+      linear-gradient(180deg, #f7f7f4 0%, #f5f5f1 100%);
   }
 }
 
@@ -85,8 +87,26 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Print: the executive briefing and report previews print without app chrome. */
+@media print {
+  aside,
+  header,
+  [role='status'] {
+    display: none !important;
+  }
+  body,
+  main,
+  main > div {
+    overflow: visible !important;
+    height: auto !important;
+    background: #fff !important;
   }
 }
