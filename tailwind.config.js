@@ -1,9 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
@@ -28,7 +25,16 @@ export default {
         accent: '#00D48E',
       },
       fontFamily: {
-        sans: ['Inter', '"PingFang SC"', '"Hiragino Sans GB"', '"Microsoft YaHei"', '"Noto Sans SC"', '"Source Han Sans SC"', 'system-ui', 'sans-serif'],
+        sans: [
+          'Inter',
+          '"PingFang SC"',
+          '"Hiragino Sans GB"',
+          '"Microsoft YaHei"',
+          '"Noto Sans SC"',
+          '"Source Han Sans SC"',
+          'system-ui',
+          'sans-serif',
+        ],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       borderRadius: {
@@ -49,7 +55,10 @@ export default {
         'scale-in': { from: { opacity: 0, transform: 'scale(0.97)' }, to: { opacity: 1, transform: 'none' } },
         'slide-in': { from: { transform: 'translateX(100%)' }, to: { transform: 'none' } },
         // The one authored moment: page content settles into focus.
-        page: { from: { opacity: 0, transform: 'translateY(6px)', filter: 'blur(3px)' }, to: { opacity: 1, transform: 'none', filter: 'blur(0)' } },
+        page: {
+          from: { opacity: 0, transform: 'translateY(6px)', filter: 'blur(3px)' },
+          to: { opacity: 1, transform: 'none', filter: 'blur(0)' },
+        },
       },
       animation: {
         'fade-up': 'fade-up 240ms cubic-bezier(0.2, 0, 0, 1) both',
