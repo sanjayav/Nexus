@@ -36,7 +36,7 @@ npm install
 npm run dev            # http://localhost:5173
 ```
 
-Demo sign-in: `user1@marklytics.co.uk` / `marklytics`. Switch tenant from the organisation menu (top left) and language from the 中文 / EN control (top right).
+Demo sign-in: `user1@marklytics.co.uk` / `marklytics` (organisation admin in both workspaces). **Demo accounts** on the sign-in page lists one person per role (framework owner, approver, reviewer, data contributor, external auditor); every seeded account uses the same password. Switch tenant from the organisation menu (top left) and language from the 中文 / EN control (top right).
 
 | Script                            | What it does                                                                                       |
 | --------------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -47,7 +47,7 @@ Demo sign-in: `user1@marklytics.co.uk` / `marklytics`. Switch tenant from the or
 | `npm run test:e2e`                | Playwright against the production build. Locally, set `PW_CHANNEL=chrome` to use installed Chrome. |
 | `npm run lint` / `npm run format` | ESLint / Prettier                                                                                  |
 
-All demo data lives in the browser. **Reset demo data** in the profile menu restores the current workspace and leaves the others untouched.
+All demo data lives in the browser. **Reset demo data** in the profile menu (administrators only) restores the current workspace in every store, including members and invitations, and leaves the others untouched.
 
 ## 2. Who it is for
 
@@ -61,6 +61,21 @@ Nexus asks on first sign-in how the person will use it and sets up their home sc
 | **Power user**                                 | Anything                                                                                                                                                    | `⌘K` command palette, `?` for shortcuts, `g` + key to jump (`g h` home, `g t` tasks, `g f` frameworks, `g i` import, `g r` report).               |
 
 Every screen works at 375 px on a phone. Dialogs become bottom sheets and tables scroll inside their card.
+
+**Persona is not permission.** The persona above only chooses a home screen. What a person may _do_ comes from their **role** in the workspace, set by an administrator:
+
+| Role               | Can                                                                | Cannot                           |
+| ------------------ | ------------------------------------------------------------------ | -------------------------------- |
+| Platform admin     | Everything, including billing                                      | —                                |
+| Organisation admin | People, settings, every framework, approve, publish                | Billing; change a platform admin |
+| Framework owner    | Configure frameworks, fill in, submit, review                      | Approve, publish, manage people  |
+| Approver           | Review, approve or reject, build and publish reports               | Fill in answers                  |
+| Reviewer           | Read, comment, send work back                                      | Approve                          |
+| Data contributor   | Fill in and submit **their assigned frameworks**, upload documents | Review, approve, settings        |
+| External auditor   | Read everything, verify proofs, see the audit trail                | Change anything                  |
+| Viewer             | Executive summary and published reports                            | Everything else                  |
+
+Pages a role cannot open disappear from the sidebar and the ⌘K palette; opening one by URL shows who the administrators are instead. The **four-eyes rule** (on by default) stops whoever submitted a section from approving it.
 
 ## 3. Features
 
@@ -88,6 +103,16 @@ Every screen works at 375 px on a phone. Dialogs become bottom sheets and tables
   - CBAM embedded-emissions view for aluminium and steel export lines.
 - **Suppliers (供应商管理):** a Scope 3 Category 1 coverage KPI, risk flags and invitations to three questionnaire templates (ESG, PCF data, critical-minerals due diligence). Includes a verify / return workflow.
 - **Double materiality, Scope 3 calculator, GHG targets, AI drafting assistant.**
+
+### Administer
+
+- **People and access (成员与权限):**
+  - Invite several people at once (paste a list), each with a role and the frameworks they may fill in. Each invitation is a 7-day link; the admin copies it, because email delivery is not connected yet.
+  - The invitee's page names the organisation, inviter and role, asks for a name, password and personal-information consent, and signs them in to their own first run.
+  - Change roles inline, suspend, reactivate or remove; resend or revoke invitations; expired links show as expired.
+  - Guard rails: nobody changes their own access or someone more privileged; there is always one active administrator; roles above your own cannot be granted.
+  - Permission matrix and four-eyes policy, both persisted and applied immediately.
+  - Access log of every invitation, change and sign-in (successful or failed).
 
 ### Overview
 
@@ -129,6 +154,14 @@ e2e/              Playwright specs (flows + every-route smoke test)
 - Feature-specific state (suppliers, ratings, products, carbon assets) lives in each feature's own `store.ts` with the same pattern.
 - Replacing localStorage with an API is one module per store. Pages never touch storage directly.
 
+**Access layer** (`src/features/access`).
+
+- `model.ts` is pure: roles, permissions, `ROUTE_POLICY`, invite validation, admin guard rails, the four-eyes rule. It is written to move server-side unchanged.
+- `store.ts` is the directory per workspace (members, invitations, permission overrides, policy, access log). Every action checks the actor itself and returns a typed `Result`, so a control that slipped through the UI still cannot change data.
+- `AccessContext` resolves the session (`{ email }`) to a member of the open workspace, ends the session if they are suspended everywhere, and exposes `can()` / `canEditModule()`.
+- `RequireAccess` guards every route; `useReportingActions` refuses edits, submissions and decisions the member is not allowed, including approving their own submission.
+- Display preferences are per person, so a colleague signing in on a shared device gets their own first run.
+
 **Workspace layer.**
 
 - `WorkspaceProvider` selects the tenant.
@@ -161,12 +194,13 @@ e2e/              Playwright specs (flows + every-route smoke test)
 
 ## 6. Testing
 
-| Layer            | Where                                  | What it proves                                                                                                                                                                                                                                |
-| ---------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unit             | `src/**/*.test.ts`                     | Store transitions (submit → return → approve, isolation, reset, import notes); spreadsheet parsing / mapping / validation; carbon maths (market-based Scope 2 reconciles exactly to the seed, PCF what-if, CBAM exposure, passport readiness) |
-| Component        | `src/**/__tests__/*.test.tsx` (jsdom)  | Real pages with real providers: submit blocked until complete, locked sections, approve / return-with-note / bulk approve, @mention suggestions and notifications                                                                             |
-| Terminology gate | `src/lib/i18n/glossary.test.ts`        | Scans **every** zh string in every dictionary for banned wording and half-width punctuation inside Chinese (§8)                                                                                                                               |
-| End-to-end       | `e2e/` (Playwright, desktop + Pixel 7) | Sign-in and first run as an executive; the full preparer ↔ reviewer loop surviving reload; **every route** in zh and en for both tenants with no console errors and no horizontal overflow                                                    |
+| Layer            | Where                                  | What it proves                                                                                                                                                                                                                                                                          |
+| ---------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit             | `src/**/*.test.ts`                     | Store transitions (submit → return → approve, isolation, reset, import notes); spreadsheet parsing / mapping / validation; carbon maths (market-based Scope 2 reconciles exactly to the seed, PCF what-if, CBAM exposure, passport readiness)                                           |
+| Component        | `src/**/__tests__/*.test.tsx` (jsdom)  | Real pages with real providers: submit blocked until complete, locked sections, approve / return-with-note / bulk approve, @mention suggestions and notifications                                                                                                                       |
+| Terminology gate | `src/lib/i18n/glossary.test.ts`        | Scans **every** zh string in every dictionary for banned wording and half-width punctuation inside Chinese (§8)                                                                                                                                                                         |
+| Access           | `src/features/access/**`               | Role and route policy, invite validation, guard rails, four-eyes (unit); invite → accept → revoke → resend, role and status changes, matrix overrides, workspace isolation (store); real pages signed in as contributor, reviewer, auditor and admin (component)                        |
+| End-to-end       | `e2e/` (Playwright, desktop + Pixel 7) | Sign-in and first run as an executive; the full preparer ↔ reviewer loop surviving reload; an admin invites a reviewer who accepts in a separate browser and sees only reviewer access; **every route** in zh and en for both tenants with no console errors and no horizontal overflow |
 
 CI (`.github/workflows/ci.yml`) runs `npm run check` and `npm run build` on every push.
 
@@ -282,15 +316,55 @@ Chinese copy must read as native to a CSO, 董秘, assurance provider or exchang
 - Excel import, index table with Traditional Chinese export.
 - ESG ratings, suppliers, product footprint and CBAM, carbon assets.
 - Role-based onboarding, executive summary, larger-text mode, shortcuts.
+- **Identity and access:** one directory per workspace, invitations with accept flow, eight roles enforced on routes and actions, framework scope, four-eyes approval, permission matrix, access log.
 - Gate-tested Chinese terminology.
 - Unit, component and end-to-end tests in CI.
 
-**Next.**
+### Production readiness (audit, Nov 2026)
 
-1. Backend API with tenant isolation, replacing the zustand persistence layer store by store.
-2. Real SSO (WeCom first) and notification delivery.
-3. Versioned emission-factor library with effective dates.
-4. Energy management (吨标准煤, intensity) aligned with 编制指南第四号.
-5. Scenario analysis and financial effects (MOF climate standard, 指南第二号).
-6. Chinese PDF typesetting with e-seal sign-off.
-7. Assurance portal (PBC lists, sampling, auditor access).
+Each page was checked for whether its primary actions are real (persisted, enforced) or only look real.
+
+| Verdict                                   | Pages                                                                                                                                                                                                                                                       |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Real**                                  | Executive summary, Ratings, Questionnaire, Module review, Data import, Carbon assets, Products, Suppliers (no delivery), Index table, Anchors / events export, People and access                                                                            |
+| **Partly real**                           | Analytics, Benchmark, Frameworks / module hub (status from seed, not approvals), Tasks, Scope 3 / GHG targets, Integrity timeline, Admin settings (compliance block only)                                                                                   |
+| **Facade** (shows success, saves nothing) | Report builder export, Period create, Organization setup, Workbench, Carbon accounting records, Evidence upload, Verification (always passes), Double materiality survey, AI studio, Roles and credentials, Connectors, Workflow config, Analytics settings |
+
+Fixed while building access: four-eyes approval, reopening approved work now needs approval rights and is logged, reset covers every store, a failed page download shows a retry instead of a blank screen, the dead "Add organization" button is gone, and the demo directory no longer carries another client's domain.
+
+### Plan
+
+| Phase                              | Scope                                                                                                                                                                                                                                                                                                                               | Exit criteria                                                                                     |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **1. Identity and access** ✓       | This release                                                                                                                                                                                                                                                                                                                        | Every route and reporting action enforced; invite → accept proven end to end in a browser         |
+| **2. Publish and audit integrity** | Report lifecycle (draft → locked → published) built from _approved_ answers with a snapshot and version; persisted period creation; real document export (print-to-PDF / .docx); XBRL labelled as preview until taxonomy-generated; verification hashes the payload and can fail; every facade above either persists or says "demo" | No action shows success without a persisted record; facade count 13 → 0                           |
+| **3. Backend**                     | API with tenant isolation, one store module at a time; server sessions; argon2 password hashing; invitation delivery (email, then WeCom); MFA for admins and approvers; append-only access log; SSO (WeCom first, then Entra ID / Okta with SCIM)                                                                                   | localStorage holds preferences only; access rules run server-side from `features/access/model.ts` |
+| **4. Mainland launch**             | Blockers in §7 (hosting and ICP, PIPL deployment, filings, 等保 2.0)                                                                                                                                                                                                                                                                | Signed-off legal and security review                                                              |
+| **5. Product depth**               | Versioned emission factors; energy management (吨标准煤) per 编制指南第四号; scenario analysis and financial effects (指南第二号); Chinese PDF with e-seal; assurance portal (PBC lists, sampling, auditor workspace)                                                                                                               | Gap table in §7 fully ✓                                                                           |
+
+### Benchmark
+
+Measured on this branch against the previous commit.
+
+| Measure                                       | Before                                                      | After                                                           |
+| --------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------- |
+| Routes enforcing a permission                 | 0 of 37                                                     | 36 of 37 (executive summary is open to every member by design)  |
+| Reporting actions checked at the action layer | 0 of 11                                                     | 9 of 11 (export logging and mark-as-read need none)             |
+| Access changes that survive a reload          | 0 (in-memory page state)                                    | All, with an access-log entry                                   |
+| Identity sources                              | 3 unconnected lists (sign-in, IAM page, @mention directory) | 1 directory per workspace                                       |
+| Unit and component tests                      | 70                                                          | 118                                                             |
+| End-to-end tests                              | 156                                                         | 160                                                             |
+| Main bundle (gzip)                            | 97.1 KB                                                     | 107.1 KB (the directory and role copy the sign-in screen needs) |
+
+UX parity with the reference set (Vercel, AirOps, Searchable members pages; Slack and Attio invitation pages, via Mobbin):
+
+| Pattern                                                                    | Status  |
+| -------------------------------------------------------------------------- | ------- |
+| Inline invite composer with role per row, add-another, paste a list        | ✓       |
+| Members and pending invitations as separate tabs; role editable in the row | ✓       |
+| Pending, expired, resend with a new link, revoke with confirmation         | ✓       |
+| Accept page naming the organisation, inviter, role and invited address     | ✓       |
+| Consent before account creation                                            | ✓       |
+| Invitation email delivery                                                  | Phase 3 |
+| SSO, SCIM provisioning, verified-domain auto-join                          | Phase 3 |
+| Bulk select and bulk role change on members                                | Not yet |
