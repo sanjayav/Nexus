@@ -27,6 +27,8 @@ import { toast } from '@/lib/hooks/useToast'
 import { useL10n, useMockData, useWorkspace } from '@/features/workspace/WorkspaceContext'
 import { useQuestionnaireText } from '@/features/frameworks/content/questionnaireContent'
 import CommentThread from '@/features/collaboration/CommentThread'
+import { useAccess } from '@/features/access/AccessContext'
+import { accessStrings } from '@/features/access/access.strings'
 import { summarize, useReportingActions, useSectionViews, useWorkspaceSlice, type SectionView } from '@/store/hooks'
 import type { ReviewDecision, SectionStatus } from '@/store/reporting'
 import {
@@ -77,7 +79,13 @@ export default function ModuleReviewPage() {
   const seed = useMockData()
   const views = useSectionViews(moduleId)
   const { activity } = useWorkspaceSlice()
-  const { decide } = useReportingActions()
+  const { decide, ownSubmission } = useReportingActions()
+  const { can, role } = useAccess()
+  const a = useStrings(accessStrings)
+  const canApprove = can('approval.approve')
+  const canReview = can('approval.review')
+  /** Why this member can't approve a section, if they can't. */
+  const approveBlock = (sectionId: string) => (!canApprove ? a.noApprove : ownSubmission(sectionId) ? a.fourEyes : undefined)
 
   const [tab, setTab] = useState<TabId>('queue')
   const [filter, setFilter] = useState<QueueFilter>('submitted')
@@ -127,9 +135,11 @@ export default function ModuleReviewPage() {
 
   const approve = (ids: string[]) => {
     if (!ids.length) return
-    decide(moduleId, ids, 'approve')
+    const n = decide(moduleId, ids, 'approve')
     setSelected(new Set())
-    toast(fmt(s.approvedToast, { n: ids.length }))
+    if (n) toast(fmt(s.approvedToast, { n }))
+    // Bulk approval skips sections the four-eyes rule reserves for someone else.
+    if (n < ids.length) toast(fmt(s.skippedOwn, { n: ids.length - n }), 'info')
   }
   const toggle = (id: string) =>
     setSelected(prev => {
@@ -211,12 +221,14 @@ export default function ModuleReviewPage() {
                         <QueueCard
                           view={v}
                           moduleId={moduleId}
-                          selectable={filter === 'submitted'}
+                          selectable={filter === 'submitted' && canApprove}
                           selected={selected.has(v.section.id)}
                           onToggle={() => toggle(v.section.id)}
                           onApprove={() => approve([v.section.id])}
                           onReturn={() => setPending({ decision: 'request_changes', ids: [v.section.id] })}
-                          onReject={() => setPending({ decision: 'reject', ids: [v.section.id] })}
+                          onReject={canApprove ? () => setPending({ decision: 'reject', ids: [v.section.id] }) : undefined}
+                          onReturnAllowed={canReview}
+                          approveBlock={approveBlock(v.section.id)}
                           submittedBy={activity.find(a => a.kind === 'submit' && a.sectionId === v.section.id)}
                         />
                       </StaggerItem>
@@ -363,7 +375,7 @@ export default function ModuleReviewPage() {
               </div>
               <div className="flex items-center justify-between gap-3">
                 <dt className="text-zinc-500">{s.role}</dt>
-                <dd className="text-zinc-900">{s.approverRole}</dd>
+                <dd className="text-zinc-900">{role ? a.roles[role].name : '—'}</dd>
               </div>
               <div className="flex items-center justify-between gap-3">
                 <dt className="text-zinc-500">{s.vcHash}</dt>
@@ -428,6 +440,8 @@ function QueueCard({
   onApprove,
   onReturn,
   onReject,
+  onReturnAllowed,
+  approveBlock,
   submittedBy,
 }: {
   view: SectionView
@@ -437,7 +451,11 @@ function QueueCard({
   onToggle: () => void
   onApprove: () => void
   onReturn: () => void
-  onReject: () => void
+  /** Omitted when the member may not reject. */
+  onReject?: () => void
+  onReturnAllowed: boolean
+  /** Reason approval is unavailable to this member, if it is. */
+  approveBlock?: string
   submittedBy?: { actor: string; at: string }
 }) {
   const s = useStrings(moduleReviewStrings)
@@ -493,21 +511,31 @@ function QueueCard({
         </div>
         {view.status === 'submitted' && (
           <div className="hidden sm:flex items-center gap-1.5 shrink-0">
-            <Button size="sm" variant="ghost" icon={CornerUpLeft} onClick={onReturn}>
-              {s.requestChanges}
-            </Button>
-            <Button size="sm" variant="brand" icon={Check} onClick={onApprove}>
+            {onReturnAllowed && (
+              <Button size="sm" variant="ghost" icon={CornerUpLeft} onClick={onReturn}>
+                {s.requestChanges}
+              </Button>
+            )}
+            <Button size="sm" variant="brand" icon={Check} onClick={onApprove} disabled={!!approveBlock} title={approveBlock}>
               {s.approve}
             </Button>
           </div>
         )}
       </div>
+      {view.status === 'submitted' && approveBlock && (
+        <p className="px-4 sm:px-5 -mt-2 pb-3 sm:pl-[52px] text-xs text-zinc-500 flex items-center gap-1.5">
+          <ShieldCheck className="w-3.5 h-3.5 shrink-0 text-zinc-400" />
+          {approveBlock}
+        </p>
+      )}
       {view.status === 'submitted' && (
         <div className="sm:hidden flex items-center gap-2 px-4 pb-4">
-          <Button size="sm" variant="secondary" icon={CornerUpLeft} className="flex-1" onClick={onReturn}>
-            {s.requestChanges}
-          </Button>
-          <Button size="sm" variant="brand" icon={Check} className="flex-1" onClick={onApprove}>
+          {onReturnAllowed && (
+            <Button size="sm" variant="secondary" icon={CornerUpLeft} className="flex-1" onClick={onReturn}>
+              {s.requestChanges}
+            </Button>
+          )}
+          <Button size="sm" variant="brand" icon={Check} className="flex-1" onClick={onApprove} disabled={!!approveBlock}>
             {s.approve}
           </Button>
         </div>
@@ -540,7 +568,7 @@ function QueueCard({
               <div className="pt-3 border-t border-line">
                 <CommentThread moduleId={moduleId} sectionId={view.section.id} />
               </div>
-              {view.status === 'submitted' && (
+              {view.status === 'submitted' && onReject && (
                 <div className="flex justify-end">
                   <Button size="sm" variant="danger" icon={XCircle} onClick={onReject}>
                     {s.reject}

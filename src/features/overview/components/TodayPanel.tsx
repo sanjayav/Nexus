@@ -5,7 +5,7 @@ import { ArrowRight, Bell, CalendarClock, CheckSquare, CornerUpLeft, Inbox, List
 import clsx from 'clsx'
 import { fmt, useFormat, useStrings } from '@/lib/i18n'
 import { STATUS_ORDER, STATUS_TONE, useWorkflowText } from '@/lib/i18n/shared/workflow'
-import { useAuth } from '@/features/auth/AuthContext'
+import { useAccess } from '@/features/access/AccessContext'
 import { useL10n, useMockData, useWorkspace } from '@/features/workspace/WorkspaceContext'
 import { daysUntil, regulatoryCalendar } from '@/config/regulatory'
 import { summarize, useSectionViews, useWorkspaceSlice } from '@/store/hooks'
@@ -32,7 +32,7 @@ export default function TodayPanel() {
   const wt = useWorkflowText()
   const l10n = useL10n()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { member } = useAccess()
   const { region } = useWorkspace()
   const seed = useMockData()
   const views = useSectionViews()
@@ -85,7 +85,7 @@ export default function TodayPanel() {
           <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 w-72 h-72 rounded-full bg-emerald-400/10 blur-3xl" />
           <p className="text-[13px] text-zinc-500">{f.date(new Date(), { weekday: 'long', month: 'long', day: 'numeric' })}</p>
           <h2 className="mt-1 text-[22px] sm:text-[26px] font-semibold tracking-[-0.02em] text-zinc-900">
-            {fmt(greeting, { name: user?.name ?? '' })}
+            {fmt(greeting, { name: member?.name ?? '' })}
           </h2>
           <div className="mt-5">
             <div className="flex items-end justify-between gap-4 mb-2">

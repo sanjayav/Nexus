@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
-import { useAuth } from '@/features/auth/AuthContext'
+import { useAccess } from '@/features/access/AccessContext'
+import { blockedByFourEyes } from '@/features/access/model'
 import { useMockData, useWorkspace } from '@/features/workspace/WorkspaceContext'
 import { seedStatus, selectSlice, useReportingStore, type ReviewDecision, type SectionStatus, type WorkspaceSlice } from './reporting'
 
@@ -13,10 +14,16 @@ export function useWorkspaceSlice(): WorkspaceSlice {
   return useReportingStore(useShallow(selectSlice(workspace.id)))
 }
 
-/** Store actions bound to the current workspace and signed-in user. */
+/**
+ * Store actions bound to the current workspace and signed-in member. Each
+ * action checks the member's permission (and framework scope, and the
+ * four-eyes rule) and does nothing when it is not allowed, so a control that
+ * slipped through the UI still cannot change data.
+ */
 export function useReportingActions() {
   const { workspace } = useWorkspace()
-  const { user } = useAuth()
+  const { member, can, canEditModule, policy } = useAccess()
+  const slice = useWorkspaceSlice()
   const store = useReportingStore(
     useShallow(s => ({
       setAnswer: s.setAnswer,
@@ -34,31 +41,44 @@ export function useReportingActions() {
     })),
   )
   return useMemo(() => {
-    const ctx = { ws: workspace.id, actor: user?.name ?? user?.email ?? 'User' }
+    const ctx = { ws: workspace.id, actor: member?.name ?? '', actorId: member?.id }
+    const status = (sectionId: string) => slice.sections[sectionId]?.status
+    /** Whether the four-eyes rule stops this member approving the section. */
+    const ownSubmission = (sectionId: string) =>
+      blockedByFourEyes(slice.sections[sectionId]?.submittedBy, member?.id ?? '', policy.fourEyes)
+    const canReview = can('approval.review')
     return {
       actor: ctx.actor,
+      ownSubmission,
       setAnswer: (moduleId: string, sectionId: string, fieldId: string, value: string) =>
-        store.setAnswer(ctx, moduleId, sectionId, fieldId, value),
+        canEditModule(moduleId) && store.setAnswer(ctx, moduleId, sectionId, fieldId, value),
       importAnswers: (
         moduleId: string,
         values: Record<string, Record<string, string>>,
         source: string,
         notes?: { sectionId: string; fieldId: string; body: string }[],
-      ) => store.importAnswers(ctx, moduleId, values, source, notes),
-      submitSection: (moduleId: string, sectionId: string) => store.submitSection(ctx, moduleId, sectionId),
-      reopenSection: (moduleId: string, sectionId: string) => store.reopenSection(ctx, moduleId, sectionId),
-      decide: (moduleId: string, sectionIds: string[], decision: ReviewDecision, note?: string) =>
-        store.decide(ctx, moduleId, sectionIds, decision, note),
+      ) => (canEditModule(moduleId) ? store.importAnswers(ctx, moduleId, values, source, notes) : 0),
+      submitSection: (moduleId: string, sectionId: string) =>
+        canEditModule(moduleId) && can('questionnaire.submit') && store.submitSection(ctx, moduleId, sectionId),
+      /** Withdrawing a submission needs edit rights; reopening approved work needs approval rights. */
+      reopenSection: (moduleId: string, sectionId: string) =>
+        (status(sectionId) === 'approved' ? can('approval.approve') : canEditModule(moduleId)) &&
+        store.reopenSection(ctx, moduleId, sectionId),
+      decide: (moduleId: string, sectionIds: string[], decision: ReviewDecision, note?: string) => {
+        const allowed = decision === 'request_changes' ? canReview : can('approval.approve')
+        const ids = decision === 'approve' ? sectionIds.filter(id => !ownSubmission(id)) : sectionIds
+        if (allowed && ids.length) store.decide(ctx, moduleId, ids, decision, note)
+        return allowed ? ids.length : 0
+      },
       addComment: (moduleId: string, sectionId: string, body: string, fieldId?: string) =>
-        store.addComment(ctx, moduleId, sectionId, body, fieldId),
-      resolveComment: (commentId: string) => store.resolveComment(ctx, commentId),
-      completeTask: (taskId: string, done: boolean) => store.completeTask(ctx, taskId, done),
+        can('questionnaire.view') && store.addComment(ctx, moduleId, sectionId, body, fieldId),
+      resolveComment: (commentId: string) => can('questionnaire.view') && store.resolveComment(ctx, commentId),
+      completeTask: (taskId: string, done: boolean) => can('questionnaire.edit') && store.completeTask(ctx, taskId, done),
       logExport: (note: string) => store.logExport(ctx, note),
-      setExplanation: (sectionId: string, text: string) => store.setExplanation(ctx, sectionId, text),
+      setExplanation: (sectionId: string, text: string) => can('report.build') && store.setExplanation(ctx, sectionId, text),
       markAllRead: () => store.markAllRead(ctx),
-      resetWorkspace: () => store.resetWorkspace(ctx.ws),
     }
-  }, [store, workspace.id, user?.name, user?.email])
+  }, [store, workspace.id, member, can, canEditModule, policy.fourEyes, slice.sections])
 }
 
 export interface SectionView {

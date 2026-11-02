@@ -4,10 +4,11 @@ import { AnimatePresence, motion } from 'motion/react'
 import { ChevronRight, Menu, Plus, Search } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '@/features/auth/AuthContext'
+import { useAccess } from '@/features/access/AccessContext'
+import { requiredPermission } from '@/features/access/model'
 import { useWorkspace } from '@/features/workspace/WorkspaceContext'
 import { useStrings } from '@/lib/i18n'
 import { Toaster, toast } from '@/lib/hooks/useToast'
-import { useReportingActions } from '@/store/hooks'
 import { TEXT_ZOOM, usePreferences } from '@/store/preferences'
 import WelcomeDialog from '@/components/help/WelcomeDialog'
 import ShortcutsDialog, { useGlobalShortcuts } from '@/components/help/ShortcutsDialog'
@@ -23,9 +24,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const s = useStrings(shellStrings)
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, logout } = useAuth()
+  const { logout } = useAuth()
+  const { member, can } = useAccess()
   const { workspace } = useWorkspace()
-  const { resetWorkspace } = useReportingActions()
   const [collapsed, setCollapsed] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -66,24 +67,31 @@ export default function AppShell({ children }: { children: ReactNode }) {
     return [s.home]
   }, [location.pathname, s])
 
+  const allowed = (path: string) => {
+    const needed = requiredPermission(path)
+    return !needed || can(needed)
+  }
+  const canCreate = can('report.build')
+
   const paletteItems = useMemo(
-    () => [
-      ...NAV_GROUPS.flatMap(g => g.items.map(i => ({ label: s.nav[i.key], group: s.groups[g.key], icon: i.icon, path: i.path }))),
-      { label: s.create, group: s.home, icon: Plus, path: '/period/create' },
-    ],
-    [s],
+    () =>
+      [
+        ...NAV_GROUPS.flatMap(g => g.items.map(i => ({ label: s.nav[i.key], group: s.groups[g.key], icon: i.icon, path: i.path }))),
+        { label: s.create, group: s.home, icon: Plus, path: '/period/create' },
+      ].filter(i => allowed(i.path)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `can` changes with the member, which is the dependency
+    [s, member],
   )
 
-  const shellUser = { name: user?.name ?? 'User', email: user?.email ?? '' }
   const sidebarProps = {
-    user: shellUser,
+    member,
     onSearch: () => setPaletteOpen(true),
-    onAdmin: () => navigate('/admin'),
+    onAdmin: can('admin.org') ? () => navigate('/admin') : undefined,
     onLogout: () => {
       logout()
       navigate('/login', { replace: true })
     },
-    onResetDemo: () => setResetOpen(true),
+    onResetDemo: can('admin.org') ? () => setResetOpen(true) : undefined,
     onShortcuts: () => setHelpOpen(true),
   }
 
@@ -132,7 +140,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
             <Menu className="w-5 h-5" />
           </button>
 
-          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 min-w-0 text-sm">
+          <nav aria-label={s.breadcrumb} className="flex items-center gap-1.5 min-w-0 text-sm">
             {crumbs.map((c, i) => (
               <span key={i} className="flex items-center gap-1.5 min-w-0">
                 {i > 0 && <ChevronRight className="w-3.5 h-3.5 text-zinc-300 shrink-0 hidden sm:block" />}
@@ -156,9 +164,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
             </button>
             <LanguageSwitcher />
             <NotificationCenter />
-            <Button variant="primary" icon={Plus} className="ml-1" onClick={() => navigate('/period/create')} aria-label={s.create}>
-              <span className="hidden sm:inline">{s.create}</span>
-            </Button>
+            {canCreate && (
+              <Button variant="primary" icon={Plus} className="ml-1" onClick={() => navigate('/period/create')} aria-label={s.create}>
+                <span className="hidden sm:inline">{s.create}</span>
+              </Button>
+            )}
           </div>
         </header>
 
@@ -201,9 +211,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
             <Button
               variant="danger"
               onClick={() => {
-                resetWorkspace()
+                // Loaded on demand: it touches every feature store and their seed data.
+                void import('@/store/resetWorkspace').then(m => {
+                  m.resetWorkspaceData(workspace.id)
+                  toast(s.resetDone)
+                })
                 setResetOpen(false)
-                toast(s.resetDone)
               }}
             >
               {s.resetConfirm}

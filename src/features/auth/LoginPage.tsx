@@ -24,6 +24,13 @@ import { integrationStrings, SSO_MARK } from '@/lib/i18n/shared/integrations'
 import LanguageSwitcher from '@/components/layout/LanguageSwitcher'
 import { useWorkspace, useL10n } from '@/features/workspace/WorkspaceContext'
 import { WORKSPACES, type SsoProvider } from '@/config/regions'
+import { Avatar } from '@/components/ui'
+import { getSlice, useAccessStore } from '@/features/access/store'
+import { accessStrings } from '@/features/access/access.strings'
+import type { RoleId } from '@/features/access/model'
+
+/** One sign-in per role, so a demo can show how access differs. */
+const DEMO_ROLES: RoleId[] = ['org_admin', 'framework_owner', 'approver', 'reviewer', 'data_contributor', 'external_auditor']
 
 const inputClass =
   'w-full h-11 pl-10 pr-3.5 rounded-xl bg-white border border-line text-[15px] text-zinc-900 placeholder:text-zinc-500 shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500/25 focus:border-brand-500/60 transition-shadow'
@@ -33,6 +40,9 @@ export default function Login() {
   const names = useStrings(integrationStrings)
   const l10n = useL10n()
   const { workspace, region, setWorkspace } = useWorkspace()
+  const a = useStrings(accessStrings)
+  const members = useAccessStore(st => getSlice(st, workspace.id).members)
+  const demoAccounts = DEMO_ROLES.flatMap(role => members.find(m => m.role === role && m.status === 'active') ?? [])
   const { login } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState(DEMO_EMAIL)
@@ -68,19 +78,19 @@ export default function Login() {
     setError(null)
     setLoading(true)
 
-    const ok = await login(email, password)
+    const result = await login(email, password)
     setLoading(false)
 
-    if (!ok) {
-      setError(fmt(s.invalid, { email: DEMO_EMAIL }))
+    if (!result.ok) {
+      setError(a.signIn[result.error])
       return
     }
 
     navigate('/executive', { replace: true })
   }
 
-  const applyDemo = () => {
-    setEmail(DEMO_EMAIL)
+  const applyDemo = (account = DEMO_EMAIL) => {
+    setEmail(account)
     setPassword(DEMO_PASSWORD)
     setError(null)
   }
@@ -416,22 +426,39 @@ export default function Login() {
               </div>
             </div>
 
-            <div className="mt-6 rounded-xl border border-dashed border-zinc-300 bg-white/60 p-3.5">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-xs font-medium text-zinc-500">{s.demoHint}</span>
-                <button
-                  type="button"
-                  onClick={applyDemo}
-                  className="text-xs font-medium text-brand-700 hover:text-brand-600 hover:underline underline-offset-4"
-                >
-                  {s.fillDemo}
-                </button>
+            <details className="group/demo mt-6 rounded-xl border border-dashed border-zinc-300 bg-white/60 open:bg-white">
+              <summary className="flex items-center justify-between gap-3 p-3.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                <span className="text-xs font-medium text-zinc-500">
+                  {a.demoAccounts.title}
+                  <span className="ml-1.5 font-mono text-zinc-700 bg-zinc-100 px-1.5 py-0.5 rounded">{DEMO_PASSWORD}</span>
+                </span>
+                <ChevronDown className="w-3.5 h-3.5 text-zinc-400 transition-transform group-open/demo:rotate-180" aria-hidden />
+              </summary>
+              <div className="px-3.5 pb-3.5">
+                <p className="text-xs text-zinc-500 leading-relaxed">{a.demoAccounts.body}</p>
+                <ul className="mt-2.5 -mx-1.5 space-y-0.5">
+                  {demoAccounts.map(m => (
+                    <li key={m.id}>
+                      <button
+                        type="button"
+                        onClick={() => (setMethod('email'), applyDemo(m.email), setNotice(null))}
+                        aria-pressed={email.trim().toLowerCase() === m.email}
+                        className="w-full flex items-center gap-2.5 px-1.5 py-1.5 rounded-lg text-left hover:bg-zinc-50 aria-pressed:bg-zinc-100"
+                      >
+                        <Avatar name={m.name} size="sm" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[13px] font-medium text-zinc-900 truncate">{m.name}</span>
+                          <span className="block text-[11px] text-zinc-500 truncate">{m.email}</span>
+                        </span>
+                        <span className="shrink-0 text-[11px] font-medium text-zinc-600 bg-zinc-900/[0.05] px-1.5 py-0.5 rounded-md">
+                          {a.roles[m.role].name}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <div className="mt-2 flex flex-wrap gap-1.5 font-mono text-xs text-zinc-700">
-                <span className="bg-zinc-100 px-2 py-1 rounded-md">{DEMO_EMAIL}</span>
-                <span className="bg-zinc-100 px-2 py-1 rounded-md">{DEMO_PASSWORD}</span>
-              </div>
-            </div>
+            </details>
 
             <p className="mt-8 flex items-center justify-center gap-1.5 text-xs text-zinc-400 text-center">
               <ShieldCheck className="w-3.5 h-3.5 shrink-0" /> {s.secure}

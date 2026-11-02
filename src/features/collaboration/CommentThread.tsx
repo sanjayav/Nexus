@@ -4,10 +4,9 @@ import { AtSign, CheckCircle2, RotateCcw } from 'lucide-react'
 import clsx from 'clsx'
 import { useStrings } from '@/lib/i18n'
 import { useWorkflowText } from '@/lib/i18n/shared/workflow'
-import { useL10n, useWorkspace } from '@/features/workspace/WorkspaceContext'
-import { PEOPLE } from '@/data/people'
+import { usePeople } from '@/features/access/AccessContext'
 import { useReportingActions, useWorkspaceSlice } from '@/store/hooks'
-import { Button, ease, textareaClass } from '@/components/ui'
+import { Avatar, Button, ease, textareaClass } from '@/components/ui'
 import { collaborationStrings } from './collaboration.strings'
 
 /** Persisted discussion on a section (or one field of it), with @mentions. */
@@ -24,8 +23,6 @@ export default function CommentThread({
 }) {
   const s = useStrings(collaborationStrings)
   const wt = useWorkflowText()
-  const l10n = useL10n()
-  const { workspace } = useWorkspace()
   const { comments } = useWorkspaceSlice()
   const { addComment, resolveComment } = useReportingActions()
   const [body, setBody] = useState('')
@@ -36,7 +33,7 @@ export default function CommentThread({
     () => comments.filter(c => c.sectionId === sectionId && (fieldId ? c.fieldId === fieldId : true)),
     [comments, sectionId, fieldId],
   )
-  const people = PEOPLE[workspace.id] ?? []
+  const people = usePeople()
   const suggestions = mentionQuery === null ? [] : people.filter(p => p.name.toLowerCase().includes(mentionQuery.toLowerCase())).slice(0, 5)
 
   const onChange = (value: string) => {
@@ -157,12 +154,10 @@ export default function CommentThread({
                     onMouseDown={e => (e.preventDefault(), insertMention(p.name))}
                     className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left hover:bg-zinc-50"
                   >
-                    <span className="w-6 h-6 rounded-full bg-zinc-100 text-zinc-700 text-[11px] font-semibold flex items-center justify-center">
-                      {p.name.slice(0, 1)}
-                    </span>
+                    <Avatar name={p.name} size="sm" />
                     <span className="min-w-0">
                       <span className="block text-[13px] text-zinc-900">{p.name}</span>
-                      <span className="block text-[11px] text-zinc-500 truncate">{l10n(p.title)}</span>
+                      <span className="block text-[11px] text-zinc-500 truncate">{p.title}</span>
                     </span>
                   </button>
                 </li>

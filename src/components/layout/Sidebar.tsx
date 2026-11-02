@@ -8,7 +8,6 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
-  Plus,
   RotateCcw,
   Search,
   Settings,
@@ -21,7 +20,10 @@ import { useDismiss } from '@/lib/hooks/useDismiss'
 import { useL10n, useMockData, useWorkspace } from '@/features/workspace/WorkspaceContext'
 import { REGIONS, WORKSPACES } from '@/config/regions'
 import { usePipeline, useWorkspaceSlice } from '@/store/hooks'
-import { ease, spring } from '@/components/ui'
+import { Avatar, ease, spring } from '@/components/ui'
+import { useAccess } from '@/features/access/AccessContext'
+import { accessStrings } from '@/features/access/access.strings'
+import { requiredPermission, type Member } from '@/features/access/model'
 import { helpStrings } from '@/components/help/help.strings'
 import { usePreferences, type Persona } from '@/store/preferences'
 import { NAV_GROUPS } from './navigation'
@@ -30,20 +32,22 @@ import { shellStrings } from './shell.strings'
 type SidebarProps = {
   collapsed: boolean
   mobile: boolean
-  user: { name: string; email: string }
+  member: Member | null
   onSearch: () => void
   onClose?: () => void
   onToggleCollapse?: () => void
-  onAdmin: () => void
+  /** Omitted when the member may not open admin settings. */
+  onAdmin?: () => void
   onLogout: () => void
-  onResetDemo: () => void
+  /** Omitted when the member may not reset workspace data. */
+  onResetDemo?: () => void
   onShortcuts: () => void
 }
 
 export default function Sidebar({
   collapsed,
   mobile,
-  user,
+  member,
   onSearch,
   onClose,
   onToggleCollapse,
@@ -57,6 +61,14 @@ export default function Sidebar({
   const seed = useMockData()
   const { tasksDone } = useWorkspaceSlice()
   const pipeline = usePipeline()
+  const { can } = useAccess()
+  const groups = NAV_GROUPS.map(g => ({
+    ...g,
+    items: g.items.filter(i => {
+      const needed = requiredPermission(i.path)
+      return !needed || can(needed)
+    }),
+  })).filter(g => g.items.length > 0)
   const openTasks = seed.moduleTasks.filter(t => !tasksDone.includes(t.id)).length + pipeline.changes_requested + pipeline.submitted
   const isCollapsed = collapsed && !mobile
   // Separate indicator ids so the desktop pill never animates into the mobile drawer.
@@ -101,7 +113,7 @@ export default function Sidebar({
       </div>
 
       <nav className={clsx('flex-1 overflow-y-auto scrollbar-none pb-4', isCollapsed ? 'px-2' : 'px-3')}>
-        {NAV_GROUPS.map(group => (
+        {groups.map(group => (
           <div key={group.key} className="mt-4 first:mt-2">
             {isCollapsed ? (
               <div className="mx-auto mb-2 w-4 h-px bg-line" />
@@ -161,7 +173,7 @@ export default function Sidebar({
       <div className={clsx('border-t border-line shrink-0', isCollapsed ? 'p-2 space-y-1' : 'p-3')}>
         <UserMenu
           collapsed={isCollapsed}
-          user={user}
+          member={member}
           onAdmin={onAdmin}
           onLogout={onLogout}
           onResetDemo={onResetDemo}
@@ -203,6 +215,7 @@ function OrgSwitcher({ collapsed }: { collapsed: boolean }) {
   const s = useStrings(shellStrings)
   const [open, setOpen] = useState(false)
   const { workspace, setWorkspace } = useWorkspace()
+  const { workspaceIds } = useAccess()
   const t = useL10n()
   const ref = useRef<HTMLDivElement>(null)
   useDismiss(ref, open, () => setOpen(false))
@@ -241,7 +254,7 @@ function OrgSwitcher({ collapsed }: { collapsed: boolean }) {
             className="absolute left-0 top-full mt-1 w-64 p-1 bg-white border border-line rounded-xl shadow-pop z-50 origin-top-left"
           >
             <div className="px-2.5 pt-1.5 pb-1 text-[11px] font-medium text-zinc-400">{s.orgLabel}</div>
-            {WORKSPACES.map(w => (
+            {WORKSPACES.filter(w => workspaceIds.includes(w.id)).map(w => (
               <button
                 key={w.id}
                 type="button"
@@ -265,10 +278,6 @@ function OrgSwitcher({ collapsed }: { collapsed: boolean }) {
                 </span>
               </button>
             ))}
-            <div className="my-1 h-px bg-line" />
-            <button type="button" className="w-full flex items-center gap-2 px-2.5 h-9 rounded-lg text-sm text-zinc-600 hover:bg-zinc-50">
-              <Plus className="w-4 h-4" /> {s.addOrg}
-            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -278,26 +287,27 @@ function OrgSwitcher({ collapsed }: { collapsed: boolean }) {
 
 function UserMenu({
   collapsed,
-  user,
+  member,
   onAdmin,
   onLogout,
   onResetDemo,
   onShortcuts,
 }: {
   collapsed: boolean
-  user: { name: string; email: string }
-  onAdmin: () => void
+  member: Member | null
+  onAdmin?: () => void
   onLogout: () => void
-  onResetDemo: () => void
+  onResetDemo?: () => void
   onShortcuts: () => void
 }) {
   const s = useStrings(shellStrings)
   const h = useStrings(helpStrings)
+  const a = useStrings(accessStrings)
+  const user = { name: member?.name ?? '', email: member?.email ?? '' }
   const { textSize, setTextSize, persona, setPersona } = usePreferences()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   useDismiss(ref, open, () => setOpen(false))
-  const initial = (user.name[0] ?? user.email[0] ?? 'U').toUpperCase()
 
   return (
     <div ref={ref} className="relative">
@@ -311,9 +321,7 @@ function UserMenu({
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 text-white flex items-center justify-center shrink-0 text-xs font-semibold">
-          {initial}
-        </div>
+        <Avatar name={user.name || user.email} className="!w-7 !h-7" />
         {!collapsed && (
           <div className="min-w-0 text-left leading-tight flex-1">
             <div className="text-[13px] font-medium text-zinc-900 truncate">{user.name}</div>
@@ -331,6 +339,11 @@ function UserMenu({
             <div className="px-2.5 py-2 border-b border-line mb-1">
               <div className="text-[13px] font-medium text-zinc-900 truncate">{user.name}</div>
               <div className="text-xs text-zinc-500 truncate">{user.email}</div>
+              {member && (
+                <div className="mt-1.5 inline-flex items-center h-5 px-1.5 rounded-md bg-zinc-900/[0.05] text-[11px] font-medium text-zinc-600">
+                  {a.roles[member.role].name}
+                </div>
+              )}
             </div>
             <div className="px-2.5 pt-1 pb-2 border-b border-line mb-1 space-y-2">
               <div className="text-[11px] font-medium text-zinc-400">{h.display.title}</div>
@@ -349,15 +362,19 @@ function UserMenu({
                 options={(['executive', 'preparer', 'reviewer'] as const).map(p => ({ value: p, label: h.display.personas[p] }))}
               />
             </div>
-            <MenuItem icon={Settings} onClick={() => (setOpen(false), onAdmin())}>
-              {s.adminSettings}
-            </MenuItem>
+            {onAdmin && (
+              <MenuItem icon={Settings} onClick={() => (setOpen(false), onAdmin())}>
+                {s.adminSettings}
+              </MenuItem>
+            )}
             <MenuItem icon={Keyboard} onClick={() => (setOpen(false), onShortcuts())}>
               {h.shortcuts.title}
             </MenuItem>
-            <MenuItem icon={RotateCcw} onClick={() => (setOpen(false), onResetDemo())}>
-              {s.resetDemo}
-            </MenuItem>
+            {onResetDemo && (
+              <MenuItem icon={RotateCcw} onClick={() => (setOpen(false), onResetDemo())}>
+                {s.resetDemo}
+              </MenuItem>
+            )}
             <MenuItem icon={LogOut} onClick={onLogout} danger>
               {s.logout}
             </MenuItem>

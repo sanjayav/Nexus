@@ -4,7 +4,7 @@ import { AnimatedNumber, Badge, CardHeader, PageHeader, Stagger, Stat, StatStrip
 import { fmt, useFormat, useStrings } from '@/lib/i18n'
 import { toast } from '@/lib/hooks/useToast'
 import { useL10n, useWorkspace } from '@/features/workspace/WorkspaceContext'
-import { PEOPLE } from '@/data/people'
+import { usePeople } from '@/features/access/AccessContext'
 import { direction, ratingsFor, type Diagnostic, type Rating } from './data'
 import { useActionPlan } from './store'
 import { ratingsStrings } from './ratings.strings'
@@ -29,7 +29,7 @@ export default function RatingsPage() {
   const l10n = useL10n()
   const { workspace } = useWorkspace()
   const demo = ratingsFor(workspace.id)
-  const people = PEOPLE[workspace.id] ?? []
+  const people = usePeople()
   const plan = useActionPlan()
   const industry = l10n(demo.industry)
 

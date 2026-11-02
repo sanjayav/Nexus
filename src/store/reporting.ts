@@ -18,13 +18,15 @@ export type SectionStatus = 'not_started' | 'draft' | 'submitted' | 'changes_req
 export type ReviewDecision = 'approve' | 'request_changes' | 'reject'
 
 export type ActivityKind =
-  'answer' | 'submit' | 'approve' | 'request_changes' | 'reject' | 'comment' | 'import' | 'report_export' | 'task_done'
+  'answer' | 'submit' | 'reopen' | 'approve' | 'request_changes' | 'reject' | 'comment' | 'import' | 'report_export' | 'task_done'
 
 export interface SectionOverride {
   answers: Record<string, string>
   status?: SectionStatus
   updatedAt?: string
   updatedBy?: string
+  /** Member id of whoever last submitted the section, for the four-eyes rule. */
+  submittedBy?: string
 }
 
 export interface Comment {
@@ -42,6 +44,8 @@ export interface Activity {
   kind: ActivityKind
   at: string
   actor: string
+  /** Member id behind `actor` (absent on entries recorded before identities existed). */
+  actorId?: string
   moduleId?: string
   sectionId?: string
   /** Number of values affected (imports, bulk edits). */
@@ -88,7 +92,7 @@ const now = () => new Date().toISOString()
 const sectionRoute = (moduleId: string | undefined, kind: ActivityKind) =>
   moduleId ? (kind === 'submit' ? `/modules/${moduleId}/review` : `/modules/${moduleId}/questionnaire`) : '/tasks'
 
-type Ctx = { ws: string; actor: string }
+type Ctx = { ws: string; actor: string; actorId?: string }
 
 interface ReportingState {
   workspaces: Record<string, WorkspaceSlice>
@@ -102,7 +106,7 @@ interface ReportingState {
     notes?: { sectionId: string; fieldId: string; body: string }[],
   ) => number
   submitSection: (ctx: Ctx, moduleId: string, sectionId: string) => void
-  /** Unlock a submitted or approved section for editing. */
+  /** Unlock a submitted or approved section for editing (recorded in the activity log). */
   reopenSection: (ctx: Ctx, moduleId: string, sectionId: string) => void
   decide: (ctx: Ctx, moduleId: string, sectionIds: string[], decision: ReviewDecision, note?: string) => void
   addComment: (ctx: Ctx, moduleId: string, sectionId: string, body: string, fieldId?: string) => void
@@ -205,24 +209,32 @@ export const useReportingStore = create<ReportingState>()(
         return count
       },
 
-      submitSection: ({ ws, actor }, moduleId, sectionId) =>
+      submitSection: ({ ws, actor, actorId }, moduleId, sectionId) =>
         set(state =>
           withSlice(state, ws, s =>
-            record(patchSection(s, sectionId, { status: 'submitted' }, actor), { kind: 'submit', actor, moduleId, sectionId }, true),
+            record(
+              patchSection(s, sectionId, { status: 'submitted', submittedBy: actorId }, actor),
+              { kind: 'submit', actor, actorId, moduleId, sectionId },
+              true,
+            ),
           ),
         ),
 
-      reopenSection: ({ ws, actor }, _moduleId, sectionId) =>
-        set(state => withSlice(state, ws, s => patchSection(s, sectionId, { status: 'draft' }, actor))),
+      reopenSection: ({ ws, actor, actorId }, moduleId, sectionId) =>
+        set(state =>
+          withSlice(state, ws, s =>
+            record(patchSection(s, sectionId, { status: 'draft' }, actor), { kind: 'reopen', actor, actorId, moduleId, sectionId }),
+          ),
+        ),
 
-      decide: ({ ws, actor }, moduleId, sectionIds, decision, note) =>
+      decide: ({ ws, actor, actorId }, moduleId, sectionIds, decision, note) =>
         set(state =>
           withSlice(state, ws, s => {
             let next = s
             for (const id of sectionIds) next = patchSection(next, id, { status: DECISION_STATUS[decision] }, actor)
             return record(
               next,
-              { kind: DECISION_KIND[decision], actor, moduleId, sectionId: sectionIds[0], count: sectionIds.length, note },
+              { kind: DECISION_KIND[decision], actor, actorId, moduleId, sectionId: sectionIds[0], count: sectionIds.length, note },
               true,
             )
           }),

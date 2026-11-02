@@ -21,7 +21,8 @@ import {
   Unlock,
 } from 'lucide-react'
 import clsx from 'clsx'
-import { ROLE_DEFINITIONS, useRBAC, type RoleId } from '@/features/access/RBACContext'
+import { useAccess } from '@/features/access/AccessContext'
+import { accessStrings } from '@/features/access/access.strings'
 import { fmt, useFormat, useStrings } from '@/lib/i18n'
 import { moduleCatalogStrings, useFrameworkLabels } from '@/lib/i18n/shared/frameworkCatalog'
 import { STATUS_TONE, useWorkflowText } from '@/lib/i18n/shared/workflow'
@@ -68,7 +69,8 @@ const selectClass =
 export default function QuestionnairePage() {
   const { moduleId = '' } = useParams<{ moduleId: string }>()
   const navigate = useNavigate()
-  const { currentRole, setRole } = useRBAC()
+  const { member, can, canEditModule } = useAccess()
+  const a = useStrings(accessStrings)
   const s = useStrings(questionnaireStrings)
   const c = useStrings(moduleCatalogStrings)
   const f = useFormat()
@@ -126,8 +128,17 @@ export default function QuestionnairePage() {
     )
   }
 
-  const locked = current?.status === 'submitted' || current?.status === 'approved'
-  const canSubmit = !!current && !locked && current.answered >= current.required
+  const editable = canEditModule(moduleId)
+  const locked = !editable || current?.status === 'submitted' || current?.status === 'approved'
+  const canSubmit = editable && can('questionnaire.submit') && !!current && !locked && current.answered >= current.required
+  // Withdrawing a submission needs edit rights; reopening approved work needs approval rights.
+  const canReopen = current?.status === 'approved' ? can('approval.approve') : editable
+  const readOnlyNote =
+    member && !editable
+      ? can('questionnaire.edit')
+        ? fmt(a.readOnly.scope, { frameworks: member.scope.map(id => fw.short(id)).join('、') })
+        : fmt(a.readOnly.view, { role: a.roles[member.role].name })
+      : null
   const go = (i: number) => views[i] && setActiveId(views[i].section.id)
 
   const onSubmit = () => {
@@ -168,22 +179,20 @@ export default function QuestionnairePage() {
             </SelectWithIcon>
           </div>
           <div className="flex items-center gap-2">
-            <SelectWithIcon
-              icon={Eye}
-              label={s.role}
-              value={currentRole}
-              onChange={v => setRole(v as RoleId)}
-              className="text-[13px] text-zinc-700 hidden sm:block"
-            >
-              {Object.values(ROLE_DEFINITIONS).map(r => (
-                <option key={r.id} value={r.id}>
-                  {s.roles[r.id] ?? r.name}
-                </option>
-              ))}
-            </SelectWithIcon>
-            <Button icon={FileSpreadsheet} onClick={() => navigate(`/import?module=${moduleId}`)}>
-              <span className="hidden sm:inline">{s.importExcel}</span>
-            </Button>
+            {member && (
+              <span
+                className="hidden sm:inline-flex items-center gap-1.5 h-9 px-3 rounded-[10px] bg-white border border-line text-[13px] text-zinc-700 shadow-sm"
+                title={s.role}
+              >
+                {editable ? <Unlock className="w-3.5 h-3.5 text-zinc-400" /> : <Eye className="w-3.5 h-3.5 text-zinc-400" />}
+                {a.roles[member.role].name}
+              </span>
+            )}
+            {editable && (
+              <Button icon={FileSpreadsheet} onClick={() => navigate(`/import?module=${moduleId}`)}>
+                <span className="hidden sm:inline">{s.importExcel}</span>
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -302,10 +311,12 @@ export default function QuestionnairePage() {
                       <Button icon={Paperclip} onClick={() => navigate('/evidence')}>
                         {s.evidence}
                       </Button>
-                      {locked ? (
-                        <Button icon={Unlock} onClick={() => reopenSection(moduleId, current.section.id)}>
-                          {s.reopen}
-                        </Button>
+                      {!editable ? null : locked ? (
+                        canReopen && (
+                          <Button icon={Unlock} onClick={() => reopenSection(moduleId, current.section.id)}>
+                            {s.reopen}
+                          </Button>
+                        )
                       ) : (
                         <Button
                           variant="primary"
@@ -320,7 +331,14 @@ export default function QuestionnairePage() {
                     </div>
                   </div>
 
-                  {(locked || returnNote) && (
+                  {readOnlyNote && (
+                    <div className="flex items-start gap-3 rounded-xl px-4 py-3 text-[13px] bg-zinc-50 text-zinc-700 ring-1 ring-inset ring-line">
+                      <Eye className="w-4 h-4 mt-0.5 shrink-0 text-zinc-500" />
+                      <p className="min-w-0 leading-relaxed">{readOnlyNote}</p>
+                    </div>
+                  )}
+
+                  {editable && (locked || returnNote) && (
                     <motion.div
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}

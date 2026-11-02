@@ -46,7 +46,7 @@ export function Tabs<T extends string>({
                 className="absolute inset-0 rounded-lg bg-white shadow-card ring-1 ring-zinc-900/[0.06]"
               />
             )}
-            <span className="relative">{it.label}</span>
+            <span className="relative inline-flex items-center gap-1.5">{it.label}</span>
             {it.count !== undefined && (
               <span className={clsx('relative text-[11px] tabular', active ? 'text-zinc-500' : 'text-zinc-400')}>{it.count}</span>
             )}

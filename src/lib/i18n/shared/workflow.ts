@@ -23,6 +23,7 @@ export const workflowStrings = defineStrings({
     activity: {
       answer: '{actor} updated {target}',
       submit: '{actor} submitted {target} for review',
+      reopen: '{actor} reopened {target} for editing',
       approve: '{actor} approved {target}',
       request_changes: '{actor} requested changes on {target}',
       reject: '{actor} rejected {target}',
@@ -48,6 +49,7 @@ export const workflowStrings = defineStrings({
     activity: {
       answer: '{actor} 更新了「{target}」',
       submit: '{actor} 提交了「{target}」，待审核',
+      reopen: '{actor} 重新打开「{target}」进行修改',
       approve: '{actor} 审核通过「{target}」',
       request_changes: '{actor} 退回「{target}」，要求修改',
       reject: '{actor} 驳回了「{target}」',

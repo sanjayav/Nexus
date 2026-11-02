@@ -3,7 +3,7 @@ import { Factory, Info, PieChart, Send, ShieldAlert, Sigma } from 'lucide-react'
 import { AnimatedNumber, Button, PageHeader, Stagger, StaggerItem, Stat, StatStrip } from '@/components/ui'
 import { fmt, useFormat, useStrings } from '@/lib/i18n'
 import { toast } from '@/lib/hooks/useToast'
-import { useAuth } from '@/features/auth/AuthContext'
+import { useAccess } from '@/features/access/AccessContext'
 import { useWorkspace } from '@/features/workspace/WorkspaceContext'
 import { hasSpecificData, type TemplateId } from './data'
 import { useSuppliers, type SupplierUpdate } from './store'
@@ -20,9 +20,9 @@ export default function SuppliersPage() {
   const s = useStrings(suppliersStrings)
   const f = useFormat()
   const { workspace, region } = useWorkspace()
-  const { user } = useAuth()
+  const { member } = useAccess()
   const { demo, suppliers, apply } = useSuppliers()
-  const actor = user?.name
+  const actor = member?.name
 
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [detailId, setDetailId] = useState<string | null>(null)
