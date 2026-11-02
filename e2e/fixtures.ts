@@ -11,24 +11,27 @@ export function appPaths(workspace: 'lvyuan' | 'aeiforo'): string[] {
   return paths.map(p => p.replace(':moduleId', module).replace(':periodId', workspace === 'lvyuan' ? 'FY2026' : 'FY2025'))
 }
 
-type Session = { locale?: 'zh' | 'en'; workspace?: 'lvyuan' | 'aeiforo'; onboarded?: boolean; name?: string }
+type Session = { locale?: 'zh' | 'en'; workspace?: 'lvyuan' | 'aeiforo'; onboarded?: boolean; email?: string }
 
-/** Start signed in, skipping the login screen (covered by its own test). */
-export async function signIn(page: Page, { locale = 'zh', workspace = 'lvyuan', onboarded = true, name = '王敏' }: Session = {}) {
+/** Start signed in as a seeded member (the demo administrator by default), skipping the login screen. */
+export async function signIn(page: Page, { locale = 'zh', workspace = 'lvyuan', onboarded = true, email = DEMO.email }: Session = {}) {
   await page.addInitScript(
-    ([l, w, o, n]) => {
+    ([l, w, o, e]) => {
       if (sessionStorage.getItem('e2e-seeded')) return
       sessionStorage.setItem('e2e-seeded', '1')
-      localStorage.setItem('aeiforo_auth_user', JSON.stringify({ email: 'user1@marklytics.co.uk', name: n, role: 'Admin' }))
+      localStorage.setItem('aeiforo_auth_user', JSON.stringify({ email: e }))
       localStorage.setItem('aeiforo_language', l)
       localStorage.setItem('aeiforo_workspace', w)
       if (o)
         localStorage.setItem(
           'nexus.preferences',
-          JSON.stringify({ state: { persona: 'preparer', textSize: 'standard', overviewMode: 'detailed', onboarded: true }, version: 1 }),
+          JSON.stringify({
+            state: { persona: 'preparer', textSize: 'standard', overviewMode: 'detailed', onboarded: true, owner: e, saved: {} },
+            version: 1,
+          }),
         )
     },
-    [locale, workspace, onboarded, name] as const,
+    [locale, workspace, onboarded, email] as const,
   )
 }
 

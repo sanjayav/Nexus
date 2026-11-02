@@ -8,7 +8,7 @@ for (const [locale, workspace] of [
   test.describe(`${locale} · ${workspace}`, () => {
     for (const path of appPaths(workspace)) {
       test(`renders ${path}`, async ({ page, consoleErrors: _ }) => {
-        await signIn(page, { locale, workspace, name: locale === 'zh' ? '王敏' : 'Sarah Lee' })
+        await signIn(page, { locale, workspace })
         await page.goto(path)
         await expect(page.locator('main h1, main h2').first()).toBeVisible()
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)

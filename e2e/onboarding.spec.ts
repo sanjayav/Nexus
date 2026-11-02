@@ -36,7 +36,7 @@ test.describe('sign-in and first run', () => {
     await page.getByLabel(/Work email|工作邮箱/).fill(DEMO.email)
     await page.getByLabel(/Password|密码/).fill('wrong')
     await page.getByLabel(/Password|密码/).press('Enter')
-    await expect(page.getByText(/Invalid credentials|账号或密码错误/)).toBeVisible()
+    await expect(page.getByText(/That email and password don’t match|邮箱或密码不正确/)).toBeVisible()
     await expect(page).toHaveURL(/\/login$/)
   })
 })
